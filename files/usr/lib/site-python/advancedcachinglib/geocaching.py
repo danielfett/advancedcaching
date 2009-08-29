@@ -142,7 +142,7 @@ class CacheDownloader():
 		return images
 	
 	 
-	def decode_htmlentities(self, string):
+	def __decode_htmlentities(self, string):
 		def substitute_entity(match):
 			ent = match.group(3)
 			if match.group(1) == "#":
@@ -278,7 +278,7 @@ class CacheDownloader():
 			if inwaypoints:
 				waypoints += "%s  " % line
 
-		coordinate.owner = self.decode_htmlentities(owner)
+		coordinate.owner = self.__decode_htmlentities(owner)
 		if size == 'micro':
 			coordinate.size = 1
 		elif size == 'small':

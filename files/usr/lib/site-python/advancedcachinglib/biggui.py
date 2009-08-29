@@ -244,7 +244,7 @@ class BigGui(GtkGui):
 		'''
 	
 		
-	def configure_event(self, widget, event):
+	def __configure_event(self, widget, event):
 	
 		x, y, width, height = widget.get_allocation()
 		self.map_width = int(width  + 2 * width * self.MAP_FACTOR)
@@ -262,9 +262,9 @@ class BigGui(GtkGui):
 		self.draw_at_y = 0
 		self.draw_root_x = int(-width * self.MAP_FACTOR)
 		self.draw_root_y = int(-height * self.MAP_FACTOR)
-		self.draw_map()
+		self.__draw_map()
 		
-	def coord2point(self, coord):
+	def __coord2point(self, coord):
 		point = self.ts.deg2num(coord)
 		size = self.ts.tile_size()
 		
@@ -274,7 +274,7 @@ class BigGui(GtkGui):
 		
 	
 		
-	def decode_htmlentities(self, string):
+	def __decode_htmlentities(self, string):
 		def substitute_entity(match):
 			ent = match.group(3)
 			if match.group(1) == "#":
@@ -324,7 +324,7 @@ class BigGui(GtkGui):
 			rows.append((f, r.type, s, t, d, r.name, r.title))
 		self.cachelist.replaceContent(rows)		
 		
-	def draw_map(self):
+	def __draw_map(self):
 		if not self.drawing_area_configured:
 			return False
 	
@@ -354,13 +354,13 @@ class BigGui(GtkGui):
 						d.start()
 
 		
-	def drag(self, widget, event):
+	def __drag(self, widget, event):
 		if not self.dragging:
 			return
 		self.drag_offset_x = self.drag_start_x - event.x
 		self.drag_offset_y = self.drag_start_y - event.y
 		
-	def drag_end(self, widget, event):
+	def __drag_end(self, widget, event):
 		if not self.dragging:
 			return
 		self.dragging = False
@@ -376,10 +376,10 @@ class BigGui(GtkGui):
 			return
 		self.map_center_x += (offset_x / self.ts.tile_size())
 		self.map_center_y += (offset_y / self.ts.tile_size())
-		self.draw_map()
+		self.__draw_map()
 		
 			
-	def drag_draw(self):
+	def __drag_draw(self):
 		if not self.dragging:
 			return False
 		#if abs(self.drag_offset_x) < 3 or abs(self.drag_offset_y) < 3:
@@ -392,7 +392,7 @@ class BigGui(GtkGui):
 		return True
 	
 		
-	def drag_start(self, widget, event):
+	def __drag_start(self, widget, event):
 		self.drag_start_x = event.x
 		self.drag_start_y = event.y
 		self.drag_offset_x = 0
@@ -404,7 +404,7 @@ class BigGui(GtkGui):
 		
 		
 					
-	def draw_marks(self, thr):
+	def __draw_marks(self, thr):
 		xgc = self.xgc
 		"""
 		position = Coordinate(49.75400, 6.66135)
@@ -455,7 +455,7 @@ class BigGui(GtkGui):
 			elif c.type == "multi":
 				color = color_multi
 			
-			p = self.coord2point(c)
+			p = self.__coord2point(c)
 			xgc.set_rgb_fg_color(color)
 			
 			xgc.line_width = 1
@@ -507,7 +507,7 @@ class BigGui(GtkGui):
 					num = num + 1
 					xgc.line_width = 1
 					radius = 4
-					p = self.coord2point(geo.Coordinate(w['lat'], w['lon']))
+					p = self.__coord2point(geo.Coordinate(w['lat'], w['lon']))
 					self.pixmap.draw_line(xgc, p[0], p[1] - 3, p[0], p[1] + 4) #  |
 					self.pixmap.draw_line(xgc, p[0] - 3, p[1], p[0] + 4, p[1]) # ---
 					self.pixmap.draw_arc(xgc, False, p[0] - radius, p[1] - radius, radius*2, radius*2, 0, 360*64)
@@ -527,7 +527,7 @@ class BigGui(GtkGui):
 		radius = 7
 		color = gtk.gdk.color_parse('darkorchid')
 		for c in coords: # for each geocache
-			p = self.coord2point(c)
+			p = self.__coord2point(c)
 			xgc.line_width = 3		
 			xgc.set_rgb_fg_color(color)
 			radius = 8
@@ -579,11 +579,11 @@ class BigGui(GtkGui):
 		
 	def on_download_descriptions_clicked(self, something):
 		self.core.on_download_descriptions(self.get_visible_area())
-		self.draw_map()	
+		self.__draw_map()
 		
 	def on_download_clicked(self, something):
 		self.core.on_download(self.get_visible_area())
-		self.draw_map()	
+		self.__draw_map()
 					
 	def on_save_config(self, something):
 		if not self.block_changes:
@@ -776,13 +776,13 @@ class BigGui(GtkGui):
 		self.map_center_x, self.map_center_y = self.ts.deg2num(coord)
 		self.draw_at_x = 0
 		self.draw_at_y = 0
-		self.draw_map()
+		self.__draw_map()
 
 	
 	def strip_html(self, text):
 		text = re.sub(r"""(?i)<img[^>]+alt=["']?([^'"> ]+)[^>]+>""", self.replace_image_tag, text)
 		text = re.sub(r'<[^>]*?>', '', text)
-		text = self.decode_htmlentities(text)
+		text = self.__decode_htmlentities(text)
 		text = re.sub(r'[\n\r]+\s*[\n\r]+', '\n', text)
 		return text
 		

@@ -111,7 +111,8 @@ class Core():
 		if not os.path.exists(self.SETTINGS_DIR):
 			os.mkdir(self.SETTINGS_DIR)
 			
-		self.standbypreventer = Standbypreventer()
+		#self.standbypreventer = Standbypreventer()
+		# seems to crash dbus/fso/whatever
 			
 		self.__read_config()
 		

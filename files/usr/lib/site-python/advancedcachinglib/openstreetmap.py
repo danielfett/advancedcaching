@@ -119,7 +119,7 @@ class TileLoader(threading.Thread):
 			TileLoader.running_threads -= 1
 			
 			#if TileLoader.running_threads <= 0:
-				#gobject.idle_add(self.gui.draw_marks, self)
+				#gobject.idle_add(self.gui.__draw_marks, self)
 		
 	def download(self, remote, local):
 		

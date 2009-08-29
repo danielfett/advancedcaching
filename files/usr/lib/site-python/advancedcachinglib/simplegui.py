@@ -21,8 +21,6 @@
  
 # deps: python-html python-image python-netclient python-misc python-pygtk
 
-# maps-verzeichnis konfigurierbar machen
-# speeding up draw process
 
 
  
@@ -153,17 +151,17 @@ class SimpleGui():
 		
 		
 		self.drawing_area.connect("expose_event", self.expose_event)
-		self.drawing_area.connect("configure_event", self.configure_event)
-		self.drawing_area.connect("button_press_event", self.drag_start)
+		self.drawing_area.connect("configure_event", self.__configure_event)
+		self.drawing_area.connect("button_press_event", self.__drag_start)
 		self.drawing_area.connect("scroll_event", self.scroll)
-		self.drawing_area.connect("button_release_event", self.drag_end)
-		self.drawing_area.connect("motion_notify_event", self.drag)
+		self.drawing_area.connect("button_release_event", self.__drag_end)
+		self.drawing_area.connect("motion_notify_event", self.__drag)
 		self.drawing_area.set_events(gtk.gdk.EXPOSURE_MASK | gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.BUTTON_RELEASE_MASK | gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.SCROLL)
 		
 		# arrow drawing area
 		
 		self.drawing_area_arrow.connect("expose_event", self.expose_event_arrow)
-		self.drawing_area_arrow.connect("configure_event", self.configure_event_arrow)
+		self.drawing_area_arrow.connect("configure_event", self.__configure_event_arrow)
 		self.drawing_area_arrow.set_events(gtk.gdk.EXPOSURE_MASK)
 		
 		#self.zoom_adjustment = xml.get_widget('spinbutton_zoom').get_adjustment()
@@ -279,7 +277,7 @@ class SimpleGui():
 		
 	
 		
-	def configure_event(self, widget, event):
+	def __configure_event(self, widget, event):
 	
 		x, y, width, height = widget.get_allocation()
 		self.map_width = int(width  + 2 * width * self.MAP_FACTOR)
@@ -298,17 +296,17 @@ class SimpleGui():
 		self.draw_at_y = 0
 		self.draw_root_x = int(-width * self.MAP_FACTOR)
 		self.draw_root_y = int(-height * self.MAP_FACTOR)
-		self.draw_map()
+		self.__draw_map()
 		
 		
-	def configure_event_arrow(self, widget, event):
+	def __configure_event_arrow(self, widget, event):
 		x, y, width, height = widget.get_allocation()
 		self.pixmap_arrow = gtk.gdk.Pixmap(widget.window, width, height)
 		self.xgc_arrow = widget.window.new_gc()  # widget.get_style().fg_gc[gtk.STATE_NORMAL]
 		self.drawing_area_arrow_configured = True
-		self.draw_arrow()
+		self.__draw_arrow()
 		
-	def coord2point(self, coord):
+	def __coord2point(self, coord):
 		point = self.ts.deg2num(coord)
 		size = self.ts.tile_size()
 		
@@ -318,7 +316,7 @@ class SimpleGui():
 		
 	
 		
-	def decode_htmlentities(self, string):
+	def __decode_htmlentities(self, string):
 		def substitute_entity(match):
 			ent = match.group(3)
 			if match.group(1) == "#":
@@ -367,7 +365,7 @@ class SimpleGui():
 			rows.append((r.type, s, t, d, r.name, r.title))
 		self.cachelist.replaceContent(rows)
 		
-	def draw_arrow(self):
+	def __draw_arrow(self):
 		if not self.drawing_area_arrow_configured:
 			return
 		
@@ -409,7 +407,7 @@ class SimpleGui():
 		self.pixmap_arrow.draw_rectangle( widget.get_style().bg_gc[gtk.STATE_NORMAL],
 			True, 0, 0, width, height)
 			
-		arrow_transformed = self.get_arrow_transformed(x, y, width, height, display_bearing)	
+		arrow_transformed = self.__get_arrow_transformed(x, y, width, height, display_bearing)
 			
 		
 		self.xgc_arrow.line_style = gtk.gdk.LINE_SOLID
@@ -422,7 +420,7 @@ class SimpleGui():
 		self.drawing_area_arrow.queue_draw()
 		return True
 
-	def get_arrow_transformed(self, x, y, width, height, angle):
+	def __get_arrow_transformed(self, x, y, width, height, angle):
 		u = 1.0/3.0 # Offset to center of arrow, calculated as 2-x = sqrt(1^2+(x+1)^2)
 		arrow = [(0, -2+u), (1, +1+u), (0,0+u), (-1, 1+u)]
 		multiply = height / (2*(2-u))
@@ -437,13 +435,13 @@ class SimpleGui():
 		return arrow_transformed
 		
 		
-	def drag(self, widget, event):
+	def __drag(self, widget, event):
 		if not self.dragging:
 			return
 		self.drag_offset_x = self.drag_start_x - event.x
 		self.drag_offset_y = self.drag_start_y - event.y
 		
-	def drag_end(self, widget, event):
+	def __drag_end(self, widget, event):
 		if not self.dragging:
 			return
 		self.dragging = False
@@ -461,10 +459,10 @@ class SimpleGui():
 			cache = self.pointprovider.get_nearest_point_filter(c, c1, c2)
 			self.core.on_cache_selected(cache)
 		self.draw_at_x = self.draw_at_y = 0
-		self.draw_map()
+		self.__draw_map()
 		
 			
-	def drag_draw(self):
+	def __drag_draw(self):
 		if not self.dragging:
 			return False
 		#if abs(self.drag_offset_x) < 3 or abs(self.drag_offset_y) < 3:
@@ -478,7 +476,7 @@ class SimpleGui():
 		return True
 	
 		
-	def drag_start(self, widget, event):
+	def __drag_start(self, widget, event):
 		self.drag_start_x = event.x
 		self.drag_start_y = event.y
 		self.drag_offset_x = 0
@@ -486,16 +484,16 @@ class SimpleGui():
 		self.last_drag_offset_x = 0
 		self.last_drag_offset_y = 0
 		self.dragging = True
-		gobject.timeout_add(100, self.drag_draw)
+		gobject.timeout_add(100, self.__drag_draw)
 		
 		
-	def draw_map(self):
+	def __draw_map(self):
 		if not self.drawing_area_configured:
 			return False
 	
 		if self.map_width == 0 or self.map_height == 0:
 			return
-		self.draw_marks()
+		self.__draw_marks()
 		
 		#self.xgc.set_function(gtk.gdk.COPY)
 		#self.xgc.set_rgb_fg_color(gtk.gdk.color_parse('white'))
@@ -525,7 +523,7 @@ class SimpleGui():
 						d.start()
 
 					
-	def draw_marks(self, thr = None):
+	def __draw_marks(self, thr = None):
 		
 		xgc = self.xgc
 		xgc.set_function(gtk.gdk.COPY)
@@ -556,7 +554,7 @@ class SimpleGui():
 			elif c.type == "multi":
 				color = color_multi
 			
-			p = self.coord2point(c)
+			p = self.__coord2point(c)
 			xgc.set_rgb_fg_color(color)
 			
 			
@@ -613,7 +611,7 @@ class SimpleGui():
 					num = num + 1
 					xgc.line_width = 1
 					radius = 4
-					p = self.coord2point(geo.Coordinate(w['lat'], w['lon']))
+					p = self.__coord2point(geo.Coordinate(w['lat'], w['lon']))
 					self.pixmap_marks.draw_line(xgc, p[0], p[1] - 3, p[0], p[1] + 4) #  |
 					self.pixmap_marks.draw_line(xgc, p[0] - 3, p[1], p[0] + 4, p[1]) # ---
 					self.pixmap_marks.draw_arc(xgc, False, p[0] - radius, p[1] - radius, radius*2, radius*2, 0, 360*64)
@@ -657,7 +655,7 @@ class SimpleGui():
 		
 		# if we have a target, draw it
 		if self.current_target != None:
-			t = self.coord2point(self.current_target)
+			t = self.__coord2point(self.current_target)
 			if t != False and self.point_in_screen(t):
 			
 	
@@ -677,7 +675,7 @@ class SimpleGui():
 		
 		if self.gps_data != None and self.gps_data['position'] != None:
 			# if we have a position, draw a black cross
-			p = self.coord2point(self.gps_data['position'])
+			p = self.__coord2point(self.gps_data['position'])
 			if p != False:
 				
 				if self.point_in_screen(p):
@@ -788,11 +786,11 @@ class SimpleGui():
 		
 	def on_download_descriptions_clicked(self, something):
 		self.core.on_download_descriptions(self.get_visible_area())
-		self.draw_map()	
+		self.__draw_map()
 		
 	def on_download_clicked(self, something):
 		self.core.on_download(self.get_visible_area())
-		self.draw_map()	
+		self.__draw_map()
 		
 	def on_download_cache_clicked(self, something):
 		self.core.on_download_cache(self.current_cache)
@@ -802,7 +800,7 @@ class SimpleGui():
 		self.gps_data = gps_data
 		self.gps_has_fix = True
 		self.update_gps_display()
-		self.draw_arrow()
+		self.__draw_arrow()
 		self.update_progressbar()
 		
 		if self.dragging:
@@ -812,7 +810,7 @@ class SimpleGui():
 		if not self.drawing_area_configured:
 			return False
 		
-		x, y = self.coord2point(self.gps_data['position'])
+		x, y = self.__coord2point(self.gps_data['position'])
 		if self.gps_last_position != None:
 			for a in [1]: # we need some break here (:
 				
@@ -843,7 +841,7 @@ class SimpleGui():
 		
 		
 	def redraw_marks(self):
-		self.draw_marks()
+		self.__draw_marks()
 		self.refresh()
 	
 	def on_image_next_clicked(self, something):
@@ -864,7 +862,7 @@ class SimpleGui():
 		self.label_bearing.set_text("No Fix")
 		self.label_latlon.set_text(status)
 		self.gps_has_fix = False
-		self.draw_arrow()
+		self.__draw_arrow()
 		self.update_progressbar()
 				
 	def on_save_config(self, something):
@@ -1066,7 +1064,7 @@ class SimpleGui():
 		self.draw_at_x = 0
 		self.draw_at_y = 0
 		if not noupdate:
-			self.draw_map()
+			self.__draw_map()
 		
 	#called by core
 	def set_download_progress(self, fraction, text):
@@ -1076,7 +1074,7 @@ class SimpleGui():
 	def set_target(self, cache):
 		self.current_target = cache
 		self.label_target.set_text("Target (%s): %s %s" % (cache.name, cache.get_lat(self.format), cache.get_lon(self.format)))
-		self.draw_map()
+		self.__draw_map()
 		
 	def show(self):
 		self.window.show_all()	
@@ -1137,7 +1135,7 @@ class SimpleGui():
 		self.notebook_cache.set_current_page(0)
 		self.notebook_all.set_current_page(2)
 		
-		self.draw_map()
+		self.__draw_map()
 		
 	def show_error(self, errormsg):
 		error_dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR
@@ -1171,7 +1169,7 @@ class SimpleGui():
 		text = re.sub(r"""(?i)<img[^>]+alt=["']?([^'"> ]+)[^>]+>""", self.replace_image_tag, text)
 		text = re.sub(r'(?i)<(br|p)[^>]*?>', "\n", text)
 		text = re.sub(r'<[^>]*?>', '', text)
-		text = self.decode_htmlentities(text)
+		text = self.__decode_htmlentities(text)
 		text = re.sub(r'[\n\r]+\s*[\n\r]+', '\n', text)
 		return text
 		
