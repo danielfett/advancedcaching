@@ -2,10 +2,7 @@
 # -*- coding: utf-8 -*-
 
 #import downloader
-import geocaching
-import json
 import sqlite3
-import re
 import copy
 
 
@@ -92,7 +89,6 @@ class PointProvider():
 		filterargs.append(center.lon)
 		c.execute(query, tuple(filterargs))
 		
-		points = []
 		for row in c:
 			coord = self.ctype(row['lat'], row['lon'])
 			coord.unserialize(row)

@@ -33,7 +33,6 @@ import gobject
 import pango
 import os
 import thread
-import json
 
 import re
 
@@ -78,7 +77,7 @@ class SimpleGui():
 	]
 		
 	def __init__(self, core, pointprovider, userpointprovider):
-		self.ts = ts = openstreetmap.TileServer()
+		self.ts = openstreetmap.TileServer()
 		
 		self.core = core
 		self.pointprovider = pointprovider
@@ -260,7 +259,7 @@ class SimpleGui():
 		# Create the renderer used in the listview for coordinates
 		
 		txtRdr	= gtk.CellRendererText()
-		pixbufRdr = gtk.CellRendererPixbuf()
+		#pixbufRdr = gtk.CellRendererPixbuf()
 		(
 			COL_COORD_ID,
 			COL_COORD_LATLON,
@@ -350,10 +349,6 @@ class SimpleGui():
 	def display_results_advanced(self, caches):
 		rows = []
 		for r in caches:
-			if r.found:
-				f = 'ja'
-			else:
-				f = '  '
 			if r.size == -1:
 				s = "?"
 			else:
@@ -894,7 +889,6 @@ class SimpleGui():
 		else:
 			ctype = None
 			
-		size = terrain = diff = None
 		if ctype != None or found != None or name_search != '':
 			self.filtermsg.show()
 		else:
@@ -990,7 +984,6 @@ class SimpleGui():
 			pb = gtk.gdk.pixbuf_new_from_file(filename)
 		
 			if not self.image_zoomed:
-				scale = 1.0
 				w = float(pb.get_width())
 				h = float(pb.get_height())
 				if w > mw:
@@ -1112,9 +1105,7 @@ class SimpleGui():
 			self.cache_elements['difficulty'].set_text("?")
 		else:
 			self.cache_elements['difficulty'].set_text("%.1f/5" % (cache.difficulty/10.0))
-		
-		set_page = False
-					
+						
 					
 		text_shortdesc = self.strip_html(cache.shortdesc)
 		text_desc = self.strip_html(cache.desc)
@@ -1156,7 +1147,7 @@ class SimpleGui():
 		error_dlg.destroy()
 
 	def show_coordinate_input(self, start):
-		udr = Updown_Rows(self.format, start)
+		udr = UpdownRows(self.format, start)
 		dialog = gtk.Dialog("Change Target", None, gtk.DIALOG_MODAL, (gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE))
 		
 		frame = gtk.Frame("Latitude")
@@ -1318,7 +1309,7 @@ class PlusMinusUpdown():
 			text = self.labels[1]
 		self.button.child.set_text(text)
 
-class Updown_Rows():
+class UpdownRows():
 	def __init__(self, format, coord):
 		self.format = format
 		if coord == None:

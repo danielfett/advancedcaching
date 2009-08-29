@@ -23,9 +23,7 @@
 import gtk
 import gobject
 import pango
-import gc
 import extListview
-import json
 
 
 import re

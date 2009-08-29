@@ -65,7 +65,7 @@ class TileLoader(threading.Thread):
 		try:
 			self.pbuf = gtk.gdk.pixbuf_new_from_file(self.local_filename)
 			return True
-		except Exception as inst:
+		except:
 			if tryno == 0:
 				return self.recover()
 			else:
@@ -137,7 +137,6 @@ class TileLoader(threading.Thread):
 		try:
 			if not self.zoom == self.gui.ts.zoom:
 				return None
-			can_download = False
 			webFile = urllib.urlopen(remote)
 			if "text/html" in webFile.info()['Content-Type']:
 				print "File not found: %s" % remote
@@ -146,18 +145,11 @@ class TileLoader(threading.Thread):
 			localFile.write(webFile.read())
 			webFile.close()
 			localFile.close()
-			can_download = True
 		except:
 			pass
 		finally:
 			self.semaphore.release()
-			#self.lock.acquire()
-			#try:
 			self.downloading.remove(remote)
-				#if len(self.downloading) == 0 and can_download:
-				#	Gui.schedule_redraw = True
-			#finally:
-			#	self.lock.release()
 			return True
 		
 class TileServer():
@@ -185,7 +177,6 @@ class TileServer():
 		return(xtile, ytile)
 		
 	def deg2num(self, coord):
-		pi = 3.1415927
 		lat_rad = (coord.lat * math.pi) / 180.0
 		n = 2.0 ** self.zoom
 		xtile = (coord.lon + 180.0) / 360.0 * n

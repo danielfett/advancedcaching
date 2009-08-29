@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import socket
-import re
 import geo
 
 class GpsReader():

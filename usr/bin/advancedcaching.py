@@ -20,24 +20,18 @@
 
 
 
-import re
-
 ### For loading the conf file
-import ConfigParser
 import os
 import sys
 import gtk
 import gobject
-import thread
 import json
 
 #import cProfile
 #import pstats
 
 sys.path.append('/usr/lib/site-python')
-from advancedcachinglib import openstreetmap, provider, downloader, geo, geocaching, gpsreader, extListview
-
-from time import sleep
+from advancedcachinglib import provider, openstreetmap, extListview, downloader, geo, geocaching, gpsreader
 
 
 if len(sys.argv) != 2:
@@ -62,26 +56,26 @@ class Standbypreventer():
 		self.requested_status = self.STATUS_NONE
 		
 	def __del__(self):
-		self._unrequest_all()
+		self.__unrequest_all()
 		
 	def set_status(self, status):
 		if status != self.requested_status:	
-			self._unrequest_all()
-			self._request(status)
+			self.__unrequest_all()
+			self.__request(status)
 	
-	def _unrequest_all(self):
+	def __unrequest_all(self):
 		if self.requested_status == self.STATUS_ALIVE:
-			self._try_run('dbus-send --system --type=method_call --dest=org.shr.ophonekitd.Usage /org/shr/ophonekitd/Usage org.shr.ophonekitd.Usage.ReleaseResource string:CPU')
+			self.__try_run('dbus-send --system --type=method_call --dest=org.shr.ophonekitd.Usage /org/shr/ophonekitd/Usage org.shr.ophonekitd.Usage.ReleaseResource string:CPU')
 		elif self.requested_status == self.STATUS_SCREEN_ON:
-			self._try_run('dbus-send --system --type=method_call --dest=org.shr.ophonekitd.Usage /org/shr/ophonekitd/Usage org.shr.ophonekitd.Usage.ReleaseResource string:Display')
+			self.__try_run('dbus-send --system --type=method_call --dest=org.shr.ophonekitd.Usage /org/shr/ophonekitd/Usage org.shr.ophonekitd.Usage.ReleaseResource string:Display')
 			
-	def _request(self, status):
+	def __request(self, status):
 		if status == self.STATUS_ALIVE:
-			self._try_run('dbus-send --system --type=method_call --dest=org.shr.ophonekitd.Usage /org/shr/ophonekitd/Usage org.shr.ophonekitd.Usage.RequestResource string:CPU')
+			self.__try_run('dbus-send --system --type=method_call --dest=org.shr.ophonekitd.Usage /org/shr/ophonekitd/Usage org.shr.ophonekitd.Usage.RequestResource string:CPU')
 		elif status == self.STATUS_SCREEN_ON:
-			self._try_run('dbus-send --system --type=method_call --dest=org.shr.ophonekitd.Usage /org/shr/ophonekitd/Usage org.shr.ophonekitd.Usage.RequestResource string:Display')
+			self.__try_run('dbus-send --system --type=method_call --dest=org.shr.ophonekitd.Usage /org/shr/ophonekitd/Usage org.shr.ophonekitd.Usage.RequestResource string:Display')
 			
-	def _try_run(self, command):
+	def __try_run(self, command):
 		try:
 			os.system(command)
 		except Exception as e:
@@ -119,7 +113,7 @@ class Core():
 			
 		self.standbypreventer = Standbypreventer()
 			
-		self.read_config()
+		self.__read_config()
 		
 		self.standbypreventer.set_status(Standbypreventer.STATUS_SCREEN_ON)
 		
@@ -137,7 +131,7 @@ class Core():
 		self.gui.write_settings(self.settings)
 		
 		self.gps_thread = gpsreader.GpsReader(self)
-		gobject.timeout_add(1000, self.read_gps)
+		gobject.timeout_add(1000, self.__read_gps)
 		
 		self.gui.show()
 		
@@ -145,7 +139,7 @@ class Core():
 		
 	def __del__(self):
 		self.settings = self.gui.read_settings()
-		self.write_config()
+		self.__write_config()
 		
 	#def search_value_terrain_change(self, a):
 #		#print a, b, c
@@ -167,7 +161,7 @@ class Core():
 	def on_start_search_simple(self, text):
 		#m = re.search(r'/([NS]?)\s*(\d{1,2})\.(\d{1,2})\D+(\d+)\s*([WE]?)\s*(\d{1,3})\.(\d{1,2})\D+(\d+)', text, re.I)
 		#if m != None:
-		self.try_show_cache_by_search('%' + text + '%')
+		self.__try_show_cache_by_search('%' + text + '%')
 		
 	# called by gui
 	def on_start_search_advanced(self, found = None, owner_search = '', name_search = '', size = None, terrain = None, diff = None, ctype = None):
@@ -181,7 +175,7 @@ class Core():
 	# called by gui
 	def on_destroy(self):
 		self.settings = self.gui.read_settings()
-		self.write_config()
+		self.__write_config()
 
 	# called by gui
 	def on_download(self, location):
@@ -261,12 +255,12 @@ class Core():
 	def on_config_changed(self, new_settings):
 		self.settings = new_settings
 		self.downloader.update_userdata(self.settings['options_username'], self.settings['options_password'])
-		self.write_config()
+		self.__write_config()
 		
 		
 		
 		
-	def read_gps(self):
+	def __read_gps(self):
 		gps_data = self.gps_thread.get_data()
 		if (gps_data['position'] != None):
 			self.gui.on_good_fix(gps_data)
@@ -274,7 +268,7 @@ class Core():
 			self.gui.on_no_fix(gps_data, self.gps_thread.status)
 		return True
 		
-	def read_config(self):
+	def __read_config(self):
 		filename = os.path.join(self.SETTINGS_DIR, 'config')
 		if not os.path.exists(filename):
 			self.settings = self.DEFAULT_SETTINGS
@@ -294,7 +288,7 @@ class Core():
 		
 		
 		
-	def try_show_cache_by_search(self, idstring):
+	def __try_show_cache_by_search(self, idstring):
 		cache = self.pointprovider.find_by_string(idstring)
 		if cache != None:
 			self.gui.show_cache(cache)
@@ -302,7 +296,7 @@ class Core():
 			return True
 		return False
 		
-	def write_config(self):
+	def __write_config(self):
 	
 		
 		filename = os.path.join(self.SETTINGS_DIR, 'config')

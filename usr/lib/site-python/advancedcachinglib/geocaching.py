@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 import json
-import downloader
 import geo
 import string
 import os
@@ -294,7 +293,7 @@ class CacheDownloader():
 			print "Size not known: %s" % size
 			coordinate.size = 5
 		coordinate.difficulty = 10*float(difficulty)
-		coordinate.terrain = 10*float(difficulty)
+		coordinate.terrain = 10*float(terrain)
 		coordinate.shortdesc = self.treat_shortdesc(shortdesc)
 		coordinate.desc = self.treat_desc(desc)
 		coordinate.hints = self.rot13(self.treat_hints(hints))
@@ -312,18 +311,18 @@ class HTMLExporter():
 		if not os.path.exists(path):
 			try:
 				os.mkdir(path)
-			except Exception as e:
+			except:
 				raise 
 		
 	def export(self, coordinate):
 		if coordinate.name == '':
 			raise Exception('Koordinate hat keinen Namen')
-		filename = self.getUri(coordinate)
+		filename = self.get_uri(coordinate)
 		f = open(filename, 'w')
-		self.writeHTML(f, coordinate)
+		self.write_html(f, coordinate)
 		f.close()
 		
-	def getUri(self, coordinate):
+	def get_uri(self, coordinate):
 		return os.path.join(self.path, "%s%shtml" % (coordinate.name, os.extsep))
 		
 	def write_index(self, caches):
@@ -357,20 +356,20 @@ class HTMLExporter():
 		
 		
 
-	def writeHTML(self, f, coordinate):
+	def write_html(self, f, coordinate):
 		f.write('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"')
 		f.write(' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n')
 		f.write('<html xmlns="http://www.w3.org/1999/xhtml">\n <head>\n')
 		f.write('<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />')
-		self.writeHeader(f, coordinate)
+		self.write_header(f, coordinate)
 		f.write(' </head>\n <body>\n')
-		self.writeBody(f, coordinate)
+		self.write_body(f, coordinate)
 		f.write(' </body>\n</html>\n')
 	
-	def writeHeader(self, f, coordinate):
+	def write_header(self, f, coordinate):
 		f.write('  <title>%s|%s</title>\n' % (coordinate.name, coordinate.title))
 		
-	def writeBody(self, f, coordinate):
+	def write_body(self, f, coordinate):
 		f.write('  <h2>%s|%s</h2>\n' % (coordinate.name, coordinate.title))
 		f.write('  <fieldset><legend>Daten</legend>\n')
 		f.write('   <div style="display:inline-block;"><b>Size:</b> %s/5</div><br />\n' % coordinate.size)

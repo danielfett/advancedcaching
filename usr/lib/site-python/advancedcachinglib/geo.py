@@ -61,8 +61,8 @@ class Coordinate():
 	def bearing_to(self, target):
 		lat1 = math.radians(self.lat)
 		lat2 = math.radians(target.lat)
-		lon1 = math.radians(self.lon)
-		lon2 = math.radians(target.lon)
+		#lon1 = math.radians(self.lon)
+		#lon2 = math.radians(target.lon)
 		
 		dlon = math.radians(target.lon - self.lon);
 		y = math.sin(dlon) * math.cos(lat2)
