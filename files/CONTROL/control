@@ -4,6 +4,6 @@ Priority: optional
 Version: 0.0.2
 Architecture: all
 Maintainer: Daniel Fett
-Depends: python-pygtk, python-html, python-image, python-netclient, python-misc, python-sqlite3
+Depends: python-pygtk, python-html, python-image, python-netclient, python-misc, python-sqlite3, python-mime
 Source: none
 Description: "towards paperless geocaching"
