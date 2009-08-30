@@ -22,7 +22,6 @@
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime
 
 # todo:
-# add python-mime dep
 # add north indicater
 # add translation support?
 # download in seperate thread?
@@ -267,15 +266,15 @@ class SimpleGui():
 		txtRdr	= gtk.CellRendererText()
 		#pixbufRdr = gtk.CellRendererPixbuf()
 		(
-			COL_COORD_ID,
-			COL_COORD_LATLON,
 			COL_COORD_NAME,
+			COL_COORD_LATLON,
+			COL_COORD_ID,
 			COL_COORD_COMMENT,
 		) = range(4)
 		columns = (
-			('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
-			('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
 			('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
+			('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
+			('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
 			('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT,), False, True),
 		)
 		self.coordlist = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
@@ -1130,7 +1129,7 @@ class SimpleGui():
 				latlon = format(geo.Coordinate(w['lat'], w['lon']))
 			else:
 				latlon = "???"
-			rows.append((w['id'], latlon, w['name'],  self.strip_html(w['comment'])))
+			rows.append((w['name'], latlon, w['id'], self.strip_html(w['comment'])))
 		self.coordlist.replaceContent(rows)
 			
 		
