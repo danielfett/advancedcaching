@@ -116,7 +116,7 @@ class Core():
 			
 		self.__read_config()
 		
-		self.standbypreventer.set_status(Standbypreventer.STATUS_SCREEN_ON)
+		#self.standbypreventer.set_status(Standbypreventer.STATUS_SCREEN_ON)
 		
 		self.downloader = downloader.FileDownloader(self.settings['options_username'], self.settings['options_password'])
 		

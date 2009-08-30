@@ -19,7 +19,15 @@
 #
 
  
-# deps: python-html python-image python-netclient python-misc python-pygtk
+# deps: python-html python-image python-netclient python-misc python-pygtk python-mime
+
+# todo:
+# add python-mime dep
+# add north indicater
+# add translation support?
+# download in seperate thread?
+# add note tab
+# switch id<>name columns
 
 
 
@@ -718,7 +726,7 @@ class SimpleGui():
 					elif self.point_in_screen(p):
 						direction = self.gps_data['position'].bearing_to(self.current_target)
 						# correct max length: sqrt(width**2 + height**2)
-						length = self.map_width + self.map_height
+						length = self.map_width
 						self.pixmap_marks.draw_line(xgc, p[0], p[1], int(p[0] + math.cos(direction) * length), int(p[1] + math.sin(direction) * length))
 					'''
 					elif self.point_in_screen(t):
@@ -836,6 +844,7 @@ class SimpleGui():
 					self.gps_last_position = (x, y)	
 				break
 		else:
+			self.redraw_marks()
 			# also update when it was None
 			self.gps_last_position = (x, y)		
 		

@@ -69,10 +69,12 @@ class TileLoader(threading.Thread):
 			if tryno == 0:
 				return self.recover()
 			else:
-				TileLoader.running_threads -= 1
-				if TileLoader.running_threads == 0:
-					gobject.idle_add(self.gui.draw_marks)
-				return False
+				# draw "empty" tile:
+				self.pbuf = None
+				#TileLoader.running_threads -= 1
+				#if TileLoader.running_threads == 0:
+					#gobject.idle_add(self.gui.draw_marks)
+				return True
 				
 	def recover(self):
 		try:
@@ -89,6 +91,7 @@ class TileLoader(threading.Thread):
 			widget = self.gui.drawing_area
 			gc = widget.get_style().fg_gc[gtk.STATE_NORMAL]
 			gc.set_function(gtk.gdk.COPY)
+			gc.set_rgb_fg_color(gtk.gdk.color_parse("black"))
 			# to draw "night mode": INVERT
 			
 			a, b, width, height = widget.get_allocation()
@@ -107,7 +110,10 @@ class TileLoader(threading.Thread):
 				
 				self.drawlock.acquire()
 				acquired = True
-				self.gui.pixmap.draw_pixbuf(gc, self.pbuf, 0, 0, dx, dy, -1, -1)
+				if self.pbuf != None:
+				    self.gui.pixmap.draw_pixbuf(gc, self.pbuf, 0, 0, dx, dy, -1, -1)
+				else:
+				    self.gui.pixmap.draw_rectangle(gc, True, dx, dy, size, size)
 				
 				widget.queue_draw_area(max(self.gui.draw_root_x + self.gui.draw_at_x  + dx, 0), max(self.gui.draw_root_y + self.gui.draw_at_y  + dy, 0), size, size)
 				
