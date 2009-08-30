@@ -404,19 +404,14 @@ view</property>
                         <property name="visible">True</property>
                         <property name="resize_mode">queue</property>
                         <child>
-                          <widget class="GtkLabel" id="label_cache_desc">
+                          <widget class="GtkTextView" id="textview_cache_desc">
                             <property name="visible">True</property>
-                            <property name="xalign">0.10000000149011612</property>
-                            <property name="yalign">0.10000000149011612</property>
-                            <property name="ypad">15</property>
-                            <property name="label" translatable="yes">Dies ist eine Beispiel Cachebeschreibung, die nur als Beispiel dient. 
-Sie enth&#xE4;lt auch Abs&#xE4;tze, wie diesen. Beispiel Cachebeschreibung, die nur als Beispiel dient. Und noch Text.
-
-Hier gehts weiter. Sie enth&#xE4;lt auch Abs&#xE4;tze, wie diesen. Beispiel Cachebeschreibung, die nur als Beispiel dient. Und noch Text.</property>
-                            <property name="use_markup">True</property>
-                            <property name="wrap">True</property>
-                            <property name="selectable">True</property>
-                            <property name="width_chars">50</property>
+                            <property name="can_focus">True</property>
+                            <property name="pixels_above_lines">5</property>
+                            <property name="editable">False</property>
+                            <property name="wrap_mode">word-char</property>
+                            <property name="cursor_visible">False</property>
+                            <property name="text" translatable="yes">Please select a geocache by clicking it on the map or double clicking it on the "cache search" results table.</property>
                           </widget>
                         </child>
                       </widget>

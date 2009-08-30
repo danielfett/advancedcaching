@@ -26,7 +26,6 @@
 # add translation support?
 # download in seperate thread?
 # add note tab
-# switch id<>name columns
 
 
 
@@ -181,7 +180,7 @@ class SimpleGui():
 			'size': xml.get_widget('label_cache_size'),
 			'terrain': xml.get_widget('label_cache_terrain'),
 			'difficulty': xml.get_widget('label_cache_difficulty'),
-			'desc': xml.get_widget('label_cache_desc'),
+			'desc': xml.get_widget('textview_cache_desc').get_buffer(),
 			'shortdesc': xml.get_widget('label_cache_shortdesc'),
 			'hints': xml.get_widget('label_cache_hints'),
 			'coords': xml.get_widget('label_cache_coords'),
