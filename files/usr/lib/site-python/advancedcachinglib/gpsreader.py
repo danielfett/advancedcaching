@@ -6,6 +6,8 @@ import geo
 
 class GpsReader():
 
+	BEARING_HOLD_SPEED = 3
+
 	EMPTY = {
 			'position': None,
 			'altitude': None,
@@ -20,6 +22,7 @@ class GpsReader():
 		self.status = "connecting..."
 		self.connected = False
 		self.connect()
+		self.last_bearing = None
 		
 	
 	def connect(self):
@@ -87,6 +90,11 @@ class GpsReader():
 			except:
 				print "GPSD Output: \n%s\n  -- cannot be parsed." % data
 				self.status = "Could not read GPSD output."
+
+			if speed < self.BEARING_HOLD_SPEED and self.last_bearing != None:
+				track = self.last_bearing
+			else:
+				self.last_bearing = track
 				
 			return {
 				'position': geo.Coordinate(float(lat), float(lon)),

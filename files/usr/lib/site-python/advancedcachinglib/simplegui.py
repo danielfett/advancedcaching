@@ -25,7 +25,6 @@
 # add north indicater
 # add translation support?
 # download in seperate thread?
-# add note tab
 # parse attributes
 # fix drawing while drawing map
 # add "next waypoint" button
@@ -291,7 +290,6 @@ class SimpleGui():
 	
 		
 	def __configure_event(self, widget, event):
-	
 		x, y, width, height = widget.get_allocation()
 		self.map_width = int(width  + 2 * width * self.MAP_FACTOR)
 		self.map_height = int(height + 2 * height * self.MAP_FACTOR)
@@ -743,8 +741,17 @@ class SimpleGui():
 						self.pixmap_marks.draw_line(xgc, t[0], t[1], int(t[0] + math.cos(direction) * length), int(t[1] + math.sin(direction) * length))
 					'''
 				
-			
-			
+
+		# draw cross across the screen
+		xgc.line_width = 1
+		xgc.set_function(gtk.gdk.INVERT)
+		xgc.set_rgb_fg_color(gtk.gdk.color_parse("black"))
+
+		radius_inner = 30
+		self.pixmap_marks.draw_line(xgc, self.map_width/2, 0, self.map_width/2, self.map_height/2 - radius_inner)
+		self.pixmap_marks.draw_line(xgc, self.map_width/2, self.map_height/2 + radius_inner, self.map_width/2, self.map_height)
+		self.pixmap_marks.draw_line(xgc, 0, self.map_height/2, self.map_width/2 - radius_inner, self.map_height/2)
+		self.pixmap_marks.draw_line(xgc, self.map_width/2 + radius_inner, self.map_height/2, self.map_width, self.map_height/2)
 		
 		#xgc.set_rgb_fg_color(gtk.gdk.color_parse("black"))
 		#xgc.set_function(gtk.gdk.COPY)	
