@@ -161,6 +161,8 @@
             <child>
               <widget class="GtkDrawingArea" id="drawingarea">
                 <property name="app_paintable">True</property>
+                <signal name="map" handler="dmap"/>
+                <signal name="unmap" handler="dunmap"/>
               </widget>
               <packing>
                 <property name="top_attach">1</property>

@@ -12,7 +12,7 @@ import gtk
 
 class TileLoader(threading.Thread):
 	downloading = []
-	semaphore = threading.Semaphore(5)
+	semaphore = threading.Semaphore(20)
 	lock = thread.allocate_lock() #download-lock
 	drawlock = thread.allocate_lock()
 	running_threads = 0
@@ -25,7 +25,7 @@ class TileLoader(threading.Thread):
 	# - draw to pixmap (still locked!)
 	# - call queue_draw
 	# optional: acquire locks in all related parts of gui
-	def __init__(self, tile, zoom, gui, base_dir):
+	def __init__(self, tile, zoom, gui, base_dir, num = 0):
 		threading.Thread.__init__(self)
 		self.daemon = False
 		self.tile = tile
@@ -33,8 +33,10 @@ class TileLoader(threading.Thread):
 		self.gui = gui
 		self.base_dir = base_dir
 		self.pbuf = None
+		self.num = num
 		
 	def run(self):
+		self.__log("start")
 		TileLoader.running_threads += 1
 		filename = os.path.join("%d" % self.zoom, "%d" % self.tile[0], "%d.png" % self.tile[1])
 		self.local_filename = "%s%s" % (self.base_dir, filename)
@@ -49,7 +51,8 @@ class TileLoader(threading.Thread):
 				if not os.path.exists(path_2):
 					os.mkdir(path_2)
 			except:
-				1 #this may file due to threading issues. 
+				pass
+				#this may file due to threading issues. 
 				# too lazy to do proper locking here
 				# so just forget about the error
 							
@@ -60,6 +63,8 @@ class TileLoader(threading.Thread):
 		if not (answer == False):
 			self.load()
 			gobject.idle_add(self.draw)
+
+		self.__log("prep draw")
 		
 	def load(self, tryno = 0):
 		# load the pixbuf to memory
@@ -88,7 +93,7 @@ class TileLoader(threading.Thread):
 	def draw(self):
 		acquired = False
 		try:
-			
+			self.__log("draw-start")
 			widget = self.gui.drawing_area
 			gc = widget.get_style().fg_gc[gtk.STATE_NORMAL]
 			gc.set_function(gtk.gdk.COPY)
@@ -109,10 +114,10 @@ class TileLoader(threading.Thread):
 				dx = (self.tile[0] - xi) * size + offset_x
 				dy = (self.tile[1] - yi) * size + offset_y
 				
-				self.drawlock.acquire()
-				acquired = True
+				#self.drawlock.acquire()
+				#acquired = True
 				if self.pbuf != None:
-				    self.gui.pixmap.draw_pixbuf(gc, self.pbuf, 0, 0, dx, dy, -1, -1)
+				    self.gui.pixmap.draw_pixbuf(gc, self.pbuf, 0, 0, dx, dy, size, size)
 				else:
 				    self.gui.pixmap.draw_rectangle(gc, True, dx, dy, size, size)
 				
@@ -124,12 +129,14 @@ class TileLoader(threading.Thread):
 				self.drawlock.release()
 			
 			TileLoader.running_threads -= 1
-			
+			self.__log("draw-end")
+			#return True
 			#if TileLoader.running_threads <= 0:
 				#gobject.idle_add(self.gui.__draw_marks, self)
 		
 	def download(self, remote, local):
-		
+
+		self.__log("dl-start")
 		self.lock.acquire()
 		try:
 			if (remote in self.downloading):
@@ -157,7 +164,15 @@ class TileLoader(threading.Thread):
 		finally:
 			self.semaphore.release()
 			self.downloading.remove(remote)
+			self.__log("dl-end")
 			return True
+
+
+	def __log(self, string):
+		a = "%d  " % self.num
+		for i in range(self.num):
+			a += "   "
+		#print a, string
 		
 class TileServer():
 

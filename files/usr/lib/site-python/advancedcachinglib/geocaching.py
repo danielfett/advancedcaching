@@ -40,7 +40,7 @@ class GeocacheCoordinate(geo.Coordinate):
 			found = 1
 		else:
 			found = 0
-		return {'lat': self.lat, 'lon' : self.lon, 'name' : self.name, 'title' : self.title, 'shortdesc' : self.shortdesc, 'desc' : self.desc, 'hints' : self.hints, 'type' : self.type, 'size' : self.size, 'difficulty' : self.difficulty, 'terrain' : self.terrain, 'owner' : self.owner, 'found' : found, 'waypoints' : json.dumps(self.waypoints), 'images' : json.dumps(self.images), 'notes' : self.notes}
+		return {'lat': self.lat, 'lon' : self.lon, 'name' : self.name, 'title' : self.title, 'shortdesc' : self.shortdesc, 'desc' : self.desc, 'hints' : self.hints, 'type' : self.type, 'size' : self.size, 'difficulty' : self.difficulty, 'terrain' : self.terrain, 'owner' : self.owner, 'found' : found, 'waypoints' : self.waypoints, 'images' : self.images, 'notes' : self.notes}
 		
 	def unserialize(self, data):
 		self.lat = data['lat']
@@ -56,12 +56,28 @@ class GeocacheCoordinate(geo.Coordinate):
 		self.terrain = data['terrain']
 		self.owner = data['owner']
 		self.found = (data['found'] == 1)
-		self.waypoints = json.loads(data['waypoints'])
-		self.images = json.loads(data['images'])
+		self.waypoints = data['waypoints']
+		self.images = data['images']
 		if data['notes'] == None:
 			self.notes = ''
 		else:
 			self.notes = data['notes']
+
+	def get_waypoints(self):
+		if self.waypoints == None or self.waypoints == '':
+			return None
+		return json.loads(self.waypoints)
+
+	def get_images(self):
+		if self.images == None or self.images == '':
+			return None
+		return json.loads(self.images)
+
+	def set_waypoints(self, wps):
+		self.waypoints = json.dumps(wps)
+
+	def set_images(self, imgs):
+		self.images = json.dumps(imgs)
 		
 		
 	def was_downloaded(self):
@@ -302,8 +318,8 @@ class CacheDownloader():
 		coordinate.shortdesc = self.__treat_shortdesc(shortdesc)
 		coordinate.desc = self.__treat_desc(desc)
 		coordinate.hints = self.__rot13(self.__treat_hints(hints))
-		coordinate.waypoints = self.__treat_waypoints(waypoints)
-		coordinate.images = self.__treat_images(images)
+		coordinate.set_waypoints(self.__treat_waypoints(waypoints))
+		coordinate.set_images(self.__treat_images(images))
 		
 		return coordinate
 		
@@ -408,11 +424,11 @@ class HTMLExporter():
 			f.write('  </fieldset>')
 		
 	def __find_images(self, coordinate):
-		if not self.download_images:
-			return ''
-		self.current_image = 1
 		self.current_cache = coordinate.name
 		self.found_images = {}
+		self.current_image = 1
+		if self.download_images:
+			return ''
 		return re.sub('(?is)(<img[^>]+src=["\']?)([^ >"\']+)([^>]+?>)', self.__download_and_rewrite, coordinate.desc)
 		
 	def __download_and_rewrite(self, m):
@@ -428,6 +444,7 @@ class HTMLExporter():
 		ext = url.rsplit('.', 1)[1]
 		if not re.match('/^[a-zA-Z0-9]+$/', ext):
 			ext = 'img'
+		filename = ''
 		try:
 			filename = os.path.join(self.path, "%s-image%d.%s" % (self.current_cache, self.current_image, ext))
 			f = open(filename, 'wb')

@@ -22,6 +22,7 @@
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime
 
 # todo:
+# don't draw map when not mapped
 # add north indicater
 # add translation support?
 # download in seperate thread?
@@ -29,7 +30,6 @@
 # fix drawing while drawing map
 # add "next waypoint" button
 # don't decrypt text in []
-
 
 
  
@@ -132,6 +132,8 @@ class SimpleGui():
 			'on_change_coord_clicked' : self.on_change_coord_clicked,
 			'on_track_toggled' : self.on_track_toggled,
 			'on_search_reset_clicked' : self.on_search_reset_clicked,
+			'dmap' : self.dmap,
+			'dunmap' : self.dunmap,
 		})
 
 
@@ -283,6 +285,11 @@ class SimpleGui():
 		
 		gobject.timeout_add_seconds(10, self.__check_notes_save)
 
+	def dmap(self, widget):
+		print "dmap"
+
+	def dunmap(self, widget):
+		print "dunmap"
 
 	def __check_notes_save(self):
 		if self.current_cache != None and self.notes_changed:
@@ -499,12 +506,15 @@ class SimpleGui():
 		
 		
 	def __draw_map(self):
+		print 'begin draw map'
 		if not self.drawing_area_configured:
 			return False
 
 		if self.map_width == 0 or self.map_height == 0:
 			return
+		print 'begin draw marks'
 		self.__draw_marks()
+		print 'end draw marks'
 		
 		#self.xgc.set_function(gtk.gdk.COPY)
 		#self.xgc.set_rgb_fg_color(gtk.gdk.color_parse('white'))
@@ -529,13 +539,12 @@ class SimpleGui():
 					if not tile in tiles:
 						tiles.append(tile)
 						#print "Requesting ", tile, " zoom ", ts.zoom
-					
-						d = openstreetmap.TileLoader(tile, self.ts.zoom, self, self.settings['download_map_path'])
+						d = openstreetmap.TileLoader(tile, self.ts.zoom, self, self.settings['download_map_path'], (i * dir_ew)*span_x + (j * dir_ns))
 						d.start()
-
+		print 'end draw map'
 					
 	def __draw_marks(self, thr = None):
-		
+		print "marking"
 		xgc = self.xgc
 		xgc.set_function(gtk.gdk.COPY)
 		self.xgc.set_rgb_fg_color(gtk.gdk.color_parse('white'))
@@ -613,11 +622,11 @@ class SimpleGui():
 
 		# draw additional waypoints
 		# --> print description!
-		if self.current_cache != None and self.current_cache.waypoints != None:
+		if self.current_cache != None and self.current_cache.get_waypoints() != None:
 			xgc.set_function(gtk.gdk.AND)
 			xgc.set_rgb_fg_color(gtk.gdk.color_parse('red'))
 			num = 0
-			for w in self.current_cache.waypoints:
+			for w in self.current_cache.get_waypoints():
 				if w['lat'] != -1 and w['lon'] != -1:
 					num = num + 1
 					xgc.line_width = 1
@@ -976,7 +985,7 @@ class SimpleGui():
 			self.set_target(self.current_cache)	
 			self.notebook_all.set_current_page(0)
 		else:
-			wpt = self.current_cache.waypoints[element[0]-1]
+			wpt = self.current_cache.get_waypoints()[element[0]-1]
 			if wpt['lat'] == -1 or wpt['lon'] == -1:
 				return
 			self.set_target(geo.Coordinate(wpt['lat'], wpt['lon'], wpt['id']))	
@@ -1155,7 +1164,7 @@ class SimpleGui():
 		# Waypoints
 		format = lambda n: "%s %s" % (re.sub(r' ', '', n.get_lat(geo.Coordinate.FORMAT_DM)), re.sub(r' ', '', n.get_lon(geo.Coordinate.FORMAT_DM)))
 		rows = [(cache.name, format(cache), '(cache coord)', '')]
-		for w in cache.waypoints:
+		for w in cache.get_waypoints():
 			if not (w['lat'] == -1 and w['lon'] == -1):
 				latlon = format(geo.Coordinate(w['lat'], w['lon']))
 			else:
