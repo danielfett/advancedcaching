@@ -21,14 +21,28 @@ class PointProvider():
 		self.filterargs = []
 		c = self.conn.cursor()
 		c.execute('CREATE TABLE IF NOT EXISTS %s (%s)' % (self.cache_table, ', '.join([' '.join(m) for m in self.ctype.SQLROW.items()])))
+		self.check_table()
 		c.execute('CREATE INDEX IF NOT EXISTS %s_latlon ON %s (lat ASC, lon ASC)' % (self.cache_table, self.cache_table))
 		c.close()
+
+	def check_table(self):
+		c = self.conn.cursor()
+		fields = copy.copy(self.ctype.SQLROW)
+		c.execute('PRAGMA TABLE_INFO(%s)' % self.cache_table)
+		for row in c:
+		    del fields[row[1]]
+
+		# add all remaining fields
+		for name, type in fields.items():
+		    cmd = 'ALTER TABLE %s ADD COLUMN %s %s' % (self.cache_table, name, type)
+		    print "Updating your Database, adding Column %s to Table %s:\n%s" % (name, self.cache_table, cmd)
+		    c.execute(cmd)
+		self.save()
 		
 	def save(self):
 		self.conn.commit()
 		
 	def __del__(self):
-		print "closing"
 		self.conn.commit()
 		self.conn.close()
 		
@@ -189,3 +203,7 @@ class PointProvider():
 			return None
 		return coord
 		
+	def update_field(self, coordinate, field, newvalue):
+		query = 'UPDATE %s SET %s = ? WHERE name = ?' % (self.cache_table, field)
+		c = self.conn.cursor()
+		c.execute(query, (newvalue, coordinate.name))

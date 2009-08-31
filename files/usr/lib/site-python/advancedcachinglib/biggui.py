@@ -735,14 +735,14 @@ class BigGui(GtkGui):
 		
 		set_page = False
 		
-		text_shortdesc = self.strip_html(cache.shortdesc).strip()[:600]
+		text_shortdesc = self.__strip_html(cache.shortdesc).strip()[:600]
 		if text_shortdesc == '':
 			text_shortdesc = '(Keine Kurzbeschreibung vorhanden)'
 		else:
 			self.cache_elements['notebook'].set_current_page(0)
 			set_page = True
 			
-		text_desc = self.strip_html(cache.desc).strip()[:600]
+		text_desc = self.__strip_html(cache.desc).strip()[:600]
 		if text_desc == '':
 			text_desc = '(Keine Beschreibung vorhanden)'
 		if not set_page:
@@ -779,7 +779,7 @@ class BigGui(GtkGui):
 		self.__draw_map()
 
 	
-	def strip_html(self, text):
+	def __strip_html(self, text):
 		text = re.sub(r"""(?i)<img[^>]+alt=["']?([^'"> ]+)[^>]+>""", self.replace_image_tag, text)
 		text = re.sub(r'<[^>]*?>', '', text)
 		text = self.__decode_htmlentities(text)

@@ -16,7 +16,7 @@ from htmlentitydefs import name2codepoint as n2cp
 
 
 class GeocacheCoordinate(geo.Coordinate):
-	SQLROW = {'lat': 'REAL', 'lon' : 'REAL', 'name' : 'TEXT PRIMARY KEY', 'title' : 'TEXT', 'shortdesc' : 'TEXT', 'desc' : 'TEXT', 'hints' : 'TEXT', 'type' : 'TEXT', 'size' : 'INTEGER', 'difficulty' : 'INTEGER', 'terrain' : 'INTEGER', 'owner' : 'TEXT', 'found' : 'INTEGER', 'waypoints' : 'text', 'images' : 'text'}
+	SQLROW = {'lat': 'REAL', 'lon' : 'REAL', 'name' : 'TEXT PRIMARY KEY', 'title' : 'TEXT', 'shortdesc' : 'TEXT', 'desc' : 'TEXT', 'hints' : 'TEXT', 'type' : 'TEXT', 'size' : 'INTEGER', 'difficulty' : 'INTEGER', 'terrain' : 'INTEGER', 'owner' : 'TEXT', 'found' : 'INTEGER', 'waypoints' : 'text', 'images' : 'text', 'notes' : 'TEXT'}
 	def __init__(self, lat, lon, name = ''):
 		geo.Coordinate.__init__(self, lat, lon, name)
 		# NAME = GC-ID
@@ -32,6 +32,7 @@ class GeocacheCoordinate(geo.Coordinate):
 		self.found = False
 		self.waypoints = []
 		self.images = []
+		self.notes = ''
 
 	def serialize(self):
 
@@ -39,7 +40,7 @@ class GeocacheCoordinate(geo.Coordinate):
 			found = 1
 		else:
 			found = 0
-		return {'lat': self.lat, 'lon' : self.lon, 'name' : self.name, 'title' : self.title, 'shortdesc' : self.shortdesc, 'desc' : self.desc, 'hints' : self.hints, 'type' : self.type, 'size' : self.size, 'difficulty' : self.difficulty, 'terrain' : self.terrain, 'owner' : self.owner, 'found' : found, 'waypoints' : json.dumps(self.waypoints), 'images' : json.dumps(self.images)}
+		return {'lat': self.lat, 'lon' : self.lon, 'name' : self.name, 'title' : self.title, 'shortdesc' : self.shortdesc, 'desc' : self.desc, 'hints' : self.hints, 'type' : self.type, 'size' : self.size, 'difficulty' : self.difficulty, 'terrain' : self.terrain, 'owner' : self.owner, 'found' : found, 'waypoints' : json.dumps(self.waypoints), 'images' : json.dumps(self.images), 'notes' : self.notes}
 		
 	def unserialize(self, data):
 		self.lat = data['lat']
@@ -57,6 +58,10 @@ class GeocacheCoordinate(geo.Coordinate):
 		self.found = (data['found'] == 1)
 		self.waypoints = json.loads(data['waypoints'])
 		self.images = json.loads(data['images'])
+		if data['notes'] == None:
+			self.notes = ''
+		else:
+			self.notes = data['notes']
 		
 		
 	def was_downloaded(self):
@@ -69,37 +74,37 @@ class CacheDownloader():
 	def __init__(self, downloader):
 		self.downloader = downloader	
 	
-	def rot13(self, text):
+	def __rot13(self, text):
 		trans = string.maketrans(
 		'nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM',
 		'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
 		return text.translate(trans)
 
-	def strip_html(self, text):
+	def __strip_html(self, text):
 		return re.sub(r'<[^>]*?>', '', text)
 
-	def replace_br(self, text):
+	def __replace_br(self, text):
 		return re.sub('(<[bB][rR]\s*/?>|</[pP]>', '\n', text)
 
-	def treat_hints(self, hints):
-		return self.strip_html(hints).strip()
+	def __treat_hints(self, hints):
+		return self.__strip_html(hints).strip()
 
-	def treat_desc(self, desc):
-		desc =  self.treat_html(desc.rsplit('\n', 5)[0])
+	def __treat_desc(self, desc):
+		desc =  self.__treat_html(desc.rsplit('\n', 5)[0])
 		return desc.strip()
 	
-	def treat_shortdesc(self, desc):
+	def __treat_shortdesc(self, desc):
 		if desc.strip() == '':
 			return ''
-		desc =  self.treat_html(desc.rsplit('\n', 3)[0])
+		desc =  self.__treat_html(desc.rsplit('\n', 3)[0])
 		return desc
 	
-	def treat_html(self, html):
+	def __treat_html(self, html):
 		strip_comments = re.compile('<!--.*?-->', re.DOTALL)
 	
 		return strip_comments.sub('', html)
 		
-	def from_dm(self, direction, decimal, minutes):
+	def __from_dm(self, direction, decimal, minutes):
 		if direction == None or decimal == None or minutes == None:
 			return -1
 		if direction in "SsWw":
@@ -109,7 +114,7 @@ class CacheDownloader():
 		
 		return (float(decimal)+(float(minutes)/60.0)) * sign
 
-	def treat_waypoints(self, data):
+	def __treat_waypoints(self, data):
 
 		waypoints = []
 		finder = re.finditer(r'<tr bgcolor="#ffffff">\s+<td valign="top" align="center" width="16"><img [^>]+></td>\s*' +
@@ -124,15 +129,15 @@ class CacheDownloader():
 			if m.group(1) == None:
 				continue
 			waypoints.append({
-				'lat' : self.from_dm(m.group('lat_sign'), m.group('lat_d'), m.group('lat_m')), 
-				'lon' : self.from_dm(m.group('lon_sign'), m.group('lon_d'), m.group('lon_m')), 
+				'lat' : self.__from_dm(m.group('lat_sign'), m.group('lat_d'), m.group('lat_m')),
+				'lon' : self.__from_dm(m.group('lon_sign'), m.group('lon_d'), m.group('lon_m')),
 				'id' : "%s%s" % m.group('id_prefix', 'id'), 
 				'name' : m.group('name'), 
 				'comment' : m.group('comment')
 			})
 
 		return waypoints
-	def treat_images(self, data):
+	def __treat_images(self, data):
 		images = {}
 		finder = re.finditer('<a href="([^"]+)" rel="lightbox"><img src="../images/stockholm/16x16/images.gif" align="absmiddle" border="0">([^<]+)</a>', data)
 		for m in finder:
@@ -165,12 +170,12 @@ class CacheDownloader():
 		return entity_re.subn(substitute_entity, string)[0]
 		
 	def update_coordinate(self, coordinate):
-		response = self.get_cache_page(coordinate.name)
-		return self.parse_cache_page(response, coordinate)
+		response = self.__get_cache_page(coordinate.name)
+		return self.__parse_cache_page(response, coordinate)
 		#w = file('cachefile5.html', 'r')
-		#return self.parse_cache_page(w, coordinate)
+		#return self.__parse_cache_page(w, coordinate)
 	
-	def get_cache_page(self, cacheid):
+	def __get_cache_page(self, cacheid):
 		return self.downloader.get_reader('http://www.geocaching.com/seek/cache_details.aspx?wp=%s' % cacheid)
 		
 	def get_geocaches(self, location):
@@ -214,7 +219,7 @@ class CacheDownloader():
 		return points
 		
 		
-	def parse_cache_page(self, cache_page, coordinate):
+	def __parse_cache_page(self, cache_page, coordinate):
 		indesc = inshortdesc = inhints = inwaypoints = False
 		inhead = True
 		shortdesc = desc =  hints = waypoints = images = ''
@@ -294,20 +299,21 @@ class CacheDownloader():
 			coordinate.size = 5
 		coordinate.difficulty = 10*float(difficulty)
 		coordinate.terrain = 10*float(terrain)
-		coordinate.shortdesc = self.treat_shortdesc(shortdesc)
-		coordinate.desc = self.treat_desc(desc)
-		coordinate.hints = self.rot13(self.treat_hints(hints))
-		coordinate.waypoints = self.treat_waypoints(waypoints)
-		coordinate.images = self.treat_images(images)
+		coordinate.shortdesc = self.__treat_shortdesc(shortdesc)
+		coordinate.desc = self.__treat_desc(desc)
+		coordinate.hints = self.__rot13(self.__treat_hints(hints))
+		coordinate.waypoints = self.__treat_waypoints(waypoints)
+		coordinate.images = self.__treat_images(images)
 		
 		return coordinate
 		
 	
 class HTMLExporter():
-	def __init__(self, downloader, path, resize = None):
+	def __init__(self, downloader, path, resize = None, download_images = True):
 		self.downloader = downloader
 		self.path = path
 		self.resize = resize
+		self.download_images = download_images
 		if not os.path.exists(path):
 			try:
 				os.mkdir(path)
@@ -317,12 +323,12 @@ class HTMLExporter():
 	def export(self, coordinate):
 		if coordinate.name == '':
 			raise Exception('Koordinate hat keinen Namen')
-		filename = self.get_uri(coordinate)
+		filename = self.__get_uri(coordinate)
 		f = open(filename, 'w')
-		self.write_html(f, coordinate)
+		self.__write_html(f, coordinate)
 		f.close()
 		
-	def get_uri(self, coordinate):
+	def __get_uri(self, coordinate):
 		return os.path.join(self.path, "%s%shtml" % (coordinate.name, os.extsep))
 		
 	def write_index(self, caches):
@@ -356,20 +362,20 @@ class HTMLExporter():
 		
 		
 
-	def write_html(self, f, coordinate):
+	def __write_html(self, f, coordinate):
 		f.write('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"')
 		f.write(' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n')
 		f.write('<html xmlns="http://www.w3.org/1999/xhtml">\n <head>\n')
 		f.write('<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />')
-		self.write_header(f, coordinate)
+		self.__write_header(f, coordinate)
 		f.write(' </head>\n <body>\n')
-		self.write_body(f, coordinate)
+		self.__write_body(f, coordinate)
 		f.write(' </body>\n</html>\n')
 	
-	def write_header(self, f, coordinate):
+	def __write_header(self, f, coordinate):
 		f.write('  <title>%s|%s</title>\n' % (coordinate.name, coordinate.title))
 		
-	def write_body(self, f, coordinate):
+	def __write_body(self, f, coordinate):
 		f.write('  <h2>%s|%s</h2>\n' % (coordinate.name, coordinate.title))
 		f.write('  <fieldset><legend>Daten</legend>\n')
 		f.write('   <div style="display:inline-block;"><b>Size:</b> %s/5</div><br />\n' % coordinate.size)
@@ -391,30 +397,32 @@ class HTMLExporter():
 			f.write('   </table>\n')
 		f.write('  </fieldset>')
 		f.write('  <fieldset><legend>Cachebeschreibung</legend>\n')
-		f.write(self.find_images(coordinate))
+		f.write(self.__find_images(coordinate))
 		f.write('  </fieldset>')
 		if len(coordinate.images) > 0:
 			f.write('  <fieldset><legend>Bilder</legend>\n')
 			for image, description in coordinate.images.items():
 				f.write('   <em>%s:</em><br />\n' % description)
-				f.write('   <img src="%s" />\n' % self.download(image))
+				f.write('   <img src="%s" />\n' % self.__download(image))
 				f.write('   <hr />\n')
 			f.write('  </fieldset>')
 		
-	def find_images(self, coordinate):
+	def __find_images(self, coordinate):
+		if not self.download_images:
+			return ''
 		self.current_image = 1
 		self.current_cache = coordinate.name
 		self.found_images = {}
-		return re.sub('(?is)(<img[^>]+src=["\']?)([^ >"\']+)([^>]+?>)', self.download_and_rewrite, coordinate.desc)
+		return re.sub('(?is)(<img[^>]+src=["\']?)([^ >"\']+)([^>]+?>)', self.__download_and_rewrite, coordinate.desc)
 		
-	def download_and_rewrite(self, m):
-		url = m.group(2)
-		print m.group(2)
-		if not url.startswith('http://'):
-			return m.group(0)
-		return m.group(1) + self.download(url) + m.group(3)
+	#def download_and_rewrite(self, m):
+	#	url = m.group(2)
+	#	print m.group(2)
+	#	if not url.startswith('http://'):
+	#		return m.group(0)
+	#	return m.group(1) + self.__download(url) + m.group(3)
 		
-	def download(self, url):
+	def __download(self, url):
 		if url in self.found_images.keys():
 			return self.found_images[url]
 		ext = url.rsplit('.', 1)[1]

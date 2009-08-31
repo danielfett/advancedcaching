@@ -189,7 +189,7 @@ class Core():
 	# called by gui
 	def on_download_cache(self, cache):
 		cd = geocaching.CacheDownloader(self.downloader)
-		exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
+		exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'], self.settings['download_noimages'])
 		full = cd.update_coordinate(cache)
 		self.pointprovider.add_point(full, True)
 		exporter.export(full)
@@ -201,7 +201,7 @@ class Core():
 	# called by gui
 	def on_download_descriptions(self, location):
 		cd = geocaching.CacheDownloader(self.downloader)
-		exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
+		exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'], None, self.settings['download_noimages'])
 		
 		self.pointprovider.push_filter()
 			

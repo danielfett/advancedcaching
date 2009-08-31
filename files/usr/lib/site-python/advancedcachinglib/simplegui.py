@@ -26,6 +26,10 @@
 # add translation support?
 # download in seperate thread?
 # add note tab
+# parse attributes
+# fix drawing while drawing map
+# add "next waypoint" button
+# don't decrypt text in []
 
 
 
@@ -45,11 +49,6 @@ from htmlentitydefs import name2codepoint as n2cp
 import math
 
 from advancedcachinglib import *
-#from advancedcaching import provider
-#from advancedcaching import geo
-#from advancedcaching import geocaching
-#from advancedcaching import extListview
-
 
 
 class SimpleGui():
@@ -106,8 +105,10 @@ class SimpleGui():
 		self.drawing_area_configured = self.drawing_area_arrow_configured = False
 		self.drag_offset_x = 0
 		self.drag_offset_y = 0
+		self.notes_changed = False
 		self.map_center_x, self.map_center_y = 100, 100
 		self.inhibit_zoom = False
+		self.inhibit_expose = False
 		self.draw_lock = thread.allocate_lock()
 		global xml
 		xml = gtk.glade.XML("/usr/lib/advancedcaching/glade/freerunner.glade")
@@ -119,6 +120,7 @@ class SimpleGui():
 			"on_zoomout_clicked" : self.on_zoomout_clicked ,
 			"on_download_clicked" : self.on_download_clicked,
 			'save_config' : self.on_save_config,
+			'notes_changed' : self.on_notes_changed,
 			'on_button_download_now_clicked' : self.on_download_descriptions_clicked,
 			'on_spinbutton_zoom_change_value' : self.on_zoom_changed,
 		#	'on_vscale_search_terrain_change_value' : self.search_value_terrain_change,
@@ -181,7 +183,7 @@ class SimpleGui():
 			'terrain': xml.get_widget('label_cache_terrain'),
 			'difficulty': xml.get_widget('label_cache_difficulty'),
 			'desc': xml.get_widget('textview_cache_desc').get_buffer(),
-			'shortdesc': xml.get_widget('label_cache_shortdesc'),
+			'notes': xml.get_widget('textview_cache_notes').get_buffer(),
 			'hints': xml.get_widget('label_cache_hints'),
 			'coords': xml.get_widget('label_cache_coords'),
 			'log': xml.get_widget('link_cache_log'),
@@ -280,7 +282,12 @@ class SimpleGui():
 		xml.get_widget('scrolledwindow_coordlist').add(self.coordlist)
 		self.coordlist.connect('extlistview-button-pressed', self.on_waypoint_clicked)
 		
-		
+		gobject.timeout_add_seconds(10, self.__check_notes_save)
+
+
+	def __check_notes_save(self):
+		if self.current_cache != None and self.notes_changed:
+			self.pointprovider.update_field(self.current_cache, 'notes', self.cache_elements['notes'].get_text(self.cache_elements['notes'].get_start_iter(), self.cache_elements['notes'].get_end_iter()))
 	
 		
 	def __configure_event(self, widget, event):
@@ -386,7 +393,7 @@ class SimpleGui():
 			disabled = True
 		
 		if disabled:	
-			self.pixmap_arrow.draw_rectangle( widget.get_style().bg_gc[gtk.STATE_NORMAL],
+			self.pixmap_arrow.draw_rectangle(self.xgc_arrow,
 				True, 0, 0, width, height)
 			self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("red"))
 			self.pixmap_arrow.draw_line(self.xgc_arrow, 0, 0, width, height)
@@ -496,7 +503,7 @@ class SimpleGui():
 	def __draw_map(self):
 		if not self.drawing_area_configured:
 			return False
-	
+
 		if self.map_width == 0 or self.map_height == 0:
 			return
 		self.__draw_marks()
@@ -745,6 +752,8 @@ class SimpleGui():
 		return False	
 	
 	def expose_event(self, widget, event):
+		if self.inhibit_expose:
+			return
 		x , y, width, height = event.area
 		try:
 			openstreetmap.TileLoader.drawlock.acquire()
@@ -752,9 +761,10 @@ class SimpleGui():
 			gc.set_function(gtk.gdk.COPY)
 			widget.window.draw_drawable(gc,
 				self.pixmap, x, y, self.draw_root_x + self.draw_at_x  + x , self.draw_root_y + self.draw_at_y + y, -1, -1)
-			gc.set_function(gtk.gdk.EQUIV)
+			gc.set_function(gtk.gdk.AND)
 			widget.window.draw_drawable(gc,
 				self.pixmap_marks, x, y, self.draw_root_x + self.draw_at_x  + x , self.draw_root_y + self.draw_at_y + y, -1, -1)
+			gc.set_function(gtk.gdk.COPY)
 		finally:
 			openstreetmap.TileLoader.drawlock.release()
 		return False
@@ -863,6 +873,7 @@ class SimpleGui():
 	def on_image_zoom_clicked(self, something):
 		self.image_zoomed = not self.image_zoomed
 		self.update_cache_image()
+
 		
 	def on_no_fix(self, gps_data, status):
 		self.gps_data = gps_data
@@ -871,6 +882,9 @@ class SimpleGui():
 		self.gps_has_fix = False
 		self.__draw_arrow()
 		self.update_progressbar()
+
+	def on_notes_changed(self, something, somethingelse):
+		self.notes_changed = True
 				
 	def on_save_config(self, something):
 		if not self.block_changes:
@@ -1092,35 +1106,46 @@ class SimpleGui():
 	def show_cache(self, cache):
 		if cache == None:
 			return
+		self.__check_notes_save()
 		self.current_cache = cache
+
+		# Title
 		self.cache_elements['title'].set_text("<b>%s</b> %s" % (cache.name, cache.title))
 		self.cache_elements['title'].set_use_markup(True)
+
+		# Type
 		self.cache_elements['type'].set_text("%s" % cache.type)
 		if cache.size == -1:
 			self.cache_elements['size'].set_text("?")
 		else:
 			self.cache_elements['size'].set_text("%d/5" % cache.size)
-			
+
+		# Terrain
 		if cache.terrain == -1:
 			self.cache_elements['terrain'].set_text("?")
 		else:
 			self.cache_elements['terrain'].set_text("%.1f/5" % (cache.terrain/10.0))
-		
+
+		# Difficulty
 		if cache.difficulty == -1:
 			self.cache_elements['difficulty'].set_text("?")
 		else:
 			self.cache_elements['difficulty'].set_text("%.1f/5" % (cache.difficulty/10.0))
 						
-					
-		text_shortdesc = self.strip_html(cache.shortdesc)
-		text_desc = self.strip_html(cache.desc)
-		if text_desc == '':
-			text_desc = '(no description available)'
-			
+		# Description and short description
+		text_shortdesc = self.__strip_html(cache.shortdesc)
+		text_longdesc = self.__strip_html(cache.desc)
+		if text_longdesc == '':
+			text_longdesc = '(no description available)'
+		self.cache_elements['desc'].set_text(text_shortdesc + "\n\n" + text_longdesc)
+
+		# hints
 		text_hints = cache.hints.strip()
 		if text_hints == '':
 			text_hints = '(no hints available)'
-			
+		self.cache_elements['hints'].set_text(text_hints)
+
+		# Waypoints
 		format = lambda n: "%s %s" % (re.sub(r' ', '', n.get_lat(geo.Coordinate.FORMAT_DM)), re.sub(r' ', '', n.get_lon(geo.Coordinate.FORMAT_DM)))
 		rows = [(cache.name, format(cache), '(cache coord)', '')]
 		for w in cache.waypoints:
@@ -1128,17 +1153,20 @@ class SimpleGui():
 				latlon = format(geo.Coordinate(w['lat'], w['lon']))
 			else:
 				latlon = "???"
-			rows.append((w['name'], latlon, w['id'], self.strip_html(w['comment'])))
+			rows.append((w['name'], latlon, w['id'], self.__strip_html(w['comment'])))
 		self.coordlist.replaceContent(rows)
 			
-		
+		# Set button for downloading to correct state
 		self.button_download_details.set_sensitive(not cache.was_downloaded())
 		
-			
-		self.cache_elements['desc'].set_text(text_shortdesc + "\n\n" + text_desc)
-		self.cache_elements['hints'].set_text(text_hints)
+		# Load notes
+		self.cache_elements['notes'].set_text(cache.notes)
+
+		# Load images
 		self.load_images()
 		self.image_no = 0
+
+		# Set View
 		self.notebook_cache.set_current_page(0)
 		self.notebook_all.set_current_page(2)
 		
@@ -1171,7 +1199,7 @@ class SimpleGui():
 		return c
 
 	
-	def strip_html(self, text):
+	def __strip_html(self, text):
 		text = text.replace("\n", " ")
 		text = re.sub(r"""(?i)<img[^>]+alt=["']?([^'"> ]+)[^>]+>""", self.replace_image_tag, text)
 		text = re.sub(r'(?i)<(br|p)[^>]*?>', "\n", text)

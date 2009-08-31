@@ -21,12 +21,12 @@ class Coordinate():
 		self.lat = lat
 		self.lon = lon
 		
-	def from_dm(self, latdd, latmm, londd, lonmm):
+	def __from_dm(self, latdd, latmm, londd, lonmm):
 		self.lat = latdd + (latmm/60)
 		self.lon = londd + (lonmm/60)
 		
 	def from_dm_array(self, sign_lat, lat, sign_lon, lon):
-		self.from_dm(sign_lat * (lat[0]*10 + lat[1]),
+		self.__from_dm(sign_lat * (lat[0]*10 + lat[1]),
 			float(str(lat[2]) + str(lat[3]) + "." + str(lat[4]) + str(lat[5]) + str(lat[6])),
 			sign_lon * (lon[0] * 100 + lon[1] * 10 + lon[2]),
 			float(str(lon[3]) + str(lon[4]) + "." + str(lon[5]) + str(lon[6]) + str(lon[7])))
