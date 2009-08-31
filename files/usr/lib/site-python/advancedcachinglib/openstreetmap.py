@@ -32,6 +32,7 @@ class TileLoader(threading.Thread):
 		self.zoom = zoom
 		self.gui = gui
 		self.base_dir = base_dir
+		self.pbuf = None
 		
 	def run(self):
 		TileLoader.running_threads += 1
@@ -57,8 +58,8 @@ class TileLoader(threading.Thread):
 				answer = self.download(self.remote_filename, self.local_filename)
 		# now the file hopefully exists
 		if not (answer == False):
-			if self.load():
-				gobject.idle_add(self.draw)
+			self.load()
+			gobject.idle_add(self.draw)
 		
 	def load(self, tryno = 0):
 		# load the pixbuf to memory

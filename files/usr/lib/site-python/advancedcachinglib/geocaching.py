@@ -415,12 +415,12 @@ class HTMLExporter():
 		self.found_images = {}
 		return re.sub('(?is)(<img[^>]+src=["\']?)([^ >"\']+)([^>]+?>)', self.__download_and_rewrite, coordinate.desc)
 		
-	#def download_and_rewrite(self, m):
-	#	url = m.group(2)
-	#	print m.group(2)
-	#	if not url.startswith('http://'):
-	#		return m.group(0)
-	#	return m.group(1) + self.__download(url) + m.group(3)
+	def __download_and_rewrite(self, m):
+		url = m.group(2)
+		print m.group(2)
+		if not url.startswith('http://'):
+			return m.group(0)
+		return m.group(1) + self.__download(url) + m.group(3)
 		
 	def __download(self, url):
 		if url in self.found_images.keys():

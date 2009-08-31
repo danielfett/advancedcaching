@@ -262,7 +262,7 @@ view</property>
             <child>
               <widget class="GtkLabel" id="label_cache_title">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">&lt;b&gt;Geocache&lt;/b&gt; mit einem doch schon ganz sch&#xF6;n langen Namen</property>
+                <property name="label" translatable="yes">&lt;b&gt;Geocache&lt;/b&gt; (none selected)</property>
                 <property name="use_markup">True</property>
                 <property name="wrap">True</property>
                 <property name="ellipsize">end</property>
@@ -301,7 +301,7 @@ view</property>
                 <child>
                   <widget class="GtkLabel" id="label_cache_size">
                     <property name="visible">True</property>
-                    <property name="label" translatable="yes">klein</property>
+                    <property name="label" translatable="yes">?</property>
                   </widget>
                   <packing>
                     <property name="left_attach">3</property>
@@ -322,7 +322,7 @@ view</property>
                 <child>
                   <widget class="GtkLabel" id="label_cache_terrain">
                     <property name="visible">True</property>
-                    <property name="label" translatable="yes">4/5</property>
+                    <property name="label" translatable="yes">?</property>
                   </widget>
                   <packing>
                     <property name="left_attach">1</property>
@@ -347,7 +347,7 @@ view</property>
                 <child>
                   <widget class="GtkLabel" id="label_cache_difficulty">
                     <property name="visible">True</property>
-                    <property name="label" translatable="yes">2.5/5</property>
+                    <property name="label" translatable="yes">?</property>
                   </widget>
                   <packing>
                     <property name="left_attach">3</property>
@@ -366,7 +366,7 @@ view</property>
                 <child>
                   <widget class="GtkLabel" id="label_cache_type">
                     <property name="visible">True</property>
-                    <property name="label" translatable="yes">multi</property>
+                    <property name="label" translatable="yes">?</property>
                   </widget>
                   <packing>
                     <property name="left_attach">1</property>
@@ -434,10 +434,6 @@ view</property>
                     <property name="xalign">0.10000000149011612</property>
                     <property name="yalign">0.10000000149011612</property>
                     <property name="ypad">15</property>
-                    <property name="label" translatable="yes">Dies ist eine Beispiel Cachebeschreibung, die nur als Beispiel dient. 
-Sie enth&#xE4;lt auch Abs&#xE4;tze, wie diesen. Beispiel Cachebeschreibung, die nur als Beispiel dient. Und noch Text.
-
-Hier gehts weiter. Sie enth&#xE4;lt auch Abs&#xE4;tze, wie diesen. Beispiel Cachebeschreibung, die nur als Beispiel dient. Und noch Text.</property>
                     <property name="use_markup">True</property>
                     <property name="wrap">True</property>
                     <property name="wrap_mode">word-char</property>
@@ -1174,7 +1170,6 @@ load</property>
                 <property name="width_request">150</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="visibility">False</property>
                 <property name="invisible_char">&#x25CF;</property>
                 <signal name="changed" handler="save_config"/>
               </widget>
