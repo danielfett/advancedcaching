@@ -400,9 +400,9 @@ class HTMLExporter():
 		f.write('  </fieldset>\n')
 		f.write('  <fieldset><legend>Koordinaten</legend>\n')
 		f.write('   <div style="display:inline-block;"><b>MAIN:</b> <code>%s %s</code></div><br />\n' % (coordinate.get_lat(geo.Coordinate.FORMAT_DM), coordinate.get_lon(geo.Coordinate.FORMAT_DM)))
-		if len(coordinate.waypoints) > 0:
+		if len(coordinate.get_waypoints()) > 0:
 			f.write('   <table>\n')
-			for w in coordinate.waypoints:
+			for w in coordinate.get_waypoints():
 				if not (w['lat'] == -1 and w['lon'] == -1):
 					n = geo.Coordinate(w['lat'], w['lon'])
 					latlon = "%s %s" % (n.get_lat(geo.Coordinate.FORMAT_DM), n.get_lon(geo.Coordinate.FORMAT_DM))
@@ -415,9 +415,9 @@ class HTMLExporter():
 		f.write('  <fieldset><legend>Cachebeschreibung</legend>\n')
 		f.write(self.__find_images(coordinate))
 		f.write('  </fieldset>')
-		if len(coordinate.images) > 0:
+		if len(coordinate.get_images()) > 0:
 			f.write('  <fieldset><legend>Bilder</legend>\n')
-			for image, description in coordinate.images.items():
+			for image, description in coordinate.get_images().items():
 				f.write('   <em>%s:</em><br />\n' % description)
 				f.write('   <img src="%s" />\n' % self.__download(image))
 				f.write('   <hr />\n')

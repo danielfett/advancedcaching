@@ -23,13 +23,13 @@
 
 # todo:
 # don't draw map when not mapped
-# add north indicater
 # add translation support?
 # download in seperate thread?
 # parse attributes
 # fix drawing while drawing map
 # add "next waypoint" button
 # don't decrypt text in []
+# add description to displayed images
 
 
  
@@ -285,6 +285,7 @@ class SimpleGui():
 		
 		gobject.timeout_add_seconds(10, self.__check_notes_save)
 
+
 	def dmap(self, widget):
 		print "dmap"
 
@@ -322,6 +323,12 @@ class SimpleGui():
 		self.pixmap_arrow = gtk.gdk.Pixmap(widget.window, width, height)
 		self.xgc_arrow = widget.window.new_gc()  # widget.get_style().fg_gc[gtk.STATE_NORMAL]
 		self.drawing_area_arrow_configured = True
+		
+		font = pango.FontDescription("Sans 9")
+		self.north_indicator_layout = widget.create_pango_layout("N")
+		self.north_indicator_layout.set_alignment(pango.ALIGN_CENTER)
+		self.north_indicator_layout.set_font_description(font)
+
 		self.__draw_arrow()
 		
 	def __coord2point(self, coord):
@@ -407,10 +414,35 @@ class SimpleGui():
 			self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
 		
 			return False
-			
+
+
+
 		display_bearing = self.gps_data['position'].bearing_to(self.current_target) - self.gps_data['bearing']
 		display_distance = self.gps_data['position'].distance_to(self.current_target)
-	
+		display_north = math.radians(self.gps_data['bearing'])
+
+		self.pixmap_arrow.draw_rectangle(widget.get_style().bg_gc[gtk.STATE_NORMAL],
+			True, 0, 0, width, height)
+		# draw north indicator
+		self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
+		self.xgc_arrow.line_width = 3
+		indicator_radius = 30
+		indicator_dist = height/2 - indicator_radius/2
+		center_x, center_y = width/2, height/2
+		self.pixmap_arrow.draw_arc(self.xgc_arrow, False, center_x - indicator_dist, center_y - indicator_dist, indicator_dist * 2, indicator_dist * 2, 0, 64*360)
+
+		
+		position_x = width/2 - math.sin(display_north)*indicator_dist
+		position_y = height/2 - math.cos(display_north)*indicator_dist
+		self.pixmap_arrow.draw_arc(self.xgc_arrow, True, position_x - indicator_radius/2, position_y - indicator_radius/2, indicator_radius, indicator_radius, 0, 64*360)
+		self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("red"))
+		#self.pixmap_arrow.draw_point(self.xgc_arrow, position_x, position_y)
+		self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("white"))
+		x, y = self.north_indicator_layout.get_size()
+		self.pixmap_arrow.draw_layout(self.xgc_arrow, position_x - x/(2*pango.SCALE), position_y - y/(2*pango.SCALE), self.north_indicator_layout)
+
+
+
 		if (display_distance < 50):
 			color = "red"
 		elif (display_distance < 150):
@@ -422,8 +454,6 @@ class SimpleGui():
 		self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse(color))
 
 		
-		self.pixmap_arrow.draw_rectangle( widget.get_style().bg_gc[gtk.STATE_NORMAL],
-			True, 0, 0, width, height)
 			
 		arrow_transformed = self.__get_arrow_transformed(x, y, width, height, display_bearing)
 			
@@ -433,7 +463,7 @@ class SimpleGui():
 		self.pixmap_arrow.draw_polygon(self.xgc_arrow, True, arrow_transformed)
 		self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
 		self.pixmap_arrow.draw_polygon(self.xgc_arrow, False, arrow_transformed)
-			
+
 		
 		self.drawing_area_arrow.queue_draw()
 		return True
@@ -485,11 +515,9 @@ class SimpleGui():
 			return False
 		#if abs(self.drag_offset_x) < 3 or abs(self.drag_offset_y) < 3:
 		#	return
-		widget = self.drawing_area
-		x, y, width, height = widget.get_allocation()
-		gc = widget.get_style().fg_gc[gtk.STATE_NORMAL]
-		gc.set_function(gtk.gdk.COPY)
-		widget.window.draw_drawable(gc,
+		x, y, width, height = self.drawing_area.get_allocation()
+		#gc = widget.get_style().fg_gc[gtk.STATE_NORMAL]
+		self.drawing_area.window.draw_drawable(self.xgc,
 			self.pixmap, -self.draw_at_x + self.drag_offset_x - self.draw_root_x, -self.draw_at_y + self.drag_offset_y - self.draw_root_y, 0, 0, width, height)
 		return True
 	
@@ -502,19 +530,19 @@ class SimpleGui():
 		self.last_drag_offset_x = 0
 		self.last_drag_offset_y = 0
 		self.dragging = True
-		gobject.timeout_add(100, self.__drag_draw)
+		gobject.timeout_add(50, self.__drag_draw)
 		
 		
 	def __draw_map(self):
-		print 'begin draw map'
+		#print 'begin draw map'
 		if not self.drawing_area_configured:
 			return False
 
 		if self.map_width == 0 or self.map_height == 0:
 			return
-		print 'begin draw marks'
+		#print 'begin draw marks'
 		self.__draw_marks()
-		print 'end draw marks'
+		#print 'end draw marks'
 		
 		#self.xgc.set_function(gtk.gdk.COPY)
 		#self.xgc.set_rgb_fg_color(gtk.gdk.color_parse('white'))
@@ -541,10 +569,10 @@ class SimpleGui():
 						#print "Requesting ", tile, " zoom ", ts.zoom
 						d = openstreetmap.TileLoader(tile, self.ts.zoom, self, self.settings['download_map_path'], (i * dir_ew)*span_x + (j * dir_ns))
 						d.start()
-		print 'end draw map'
+		#print 'end draw map'
 					
 	def __draw_marks(self, thr = None):
-		print "marking"
+		#print "marking"
 		xgc = self.xgc
 		xgc.set_function(gtk.gdk.COPY)
 		self.xgc.set_rgb_fg_color(gtk.gdk.color_parse('white'))
@@ -736,19 +764,16 @@ class SimpleGui():
 					if self.point_in_screen(t) and self.point_in_screen(p):
 						self.pixmap_marks.draw_line(xgc, p[0], p[1], t[0], t[1])
 					elif self.point_in_screen(p):
-						direction = self.gps_data['position'].bearing_to(self.current_target)
+						direction = math.radians(self.current_target.bearing_to(self.gps_data['position']))
 						# correct max length: sqrt(width**2 + height**2)
 						length = self.map_width
-						self.pixmap_marks.draw_line(xgc, p[0], p[1], int(p[0] + math.cos(direction) * length), int(p[1] + math.sin(direction) * length))
-					'''
+						self.pixmap_marks.draw_line(xgc, p[0], p[1], int(p[0] + math.sin(direction) * length), int(p[1] + math.cos(direction) * length))
+					
 					elif self.point_in_screen(t):
-						direction = self.current_target.bearing_to(self.gps_data['position'])
-						print direction
-						direction = self.gps_data['position'].bearing_to(self.current_target)
-						print direction
+						direction = math.radians(self.gps_data['position'].bearing_to(self.current_target))
 						length = self.map_width + self.map_height
-						self.pixmap_marks.draw_line(xgc, t[0], t[1], int(t[0] + math.cos(direction) * length), int(t[1] + math.sin(direction) * length))
-					'''
+						self.pixmap_marks.draw_line(xgc, t[0], t[1], int(t[0] + math.sin(direction) * length), int(t[1] + math.cos(direction) * length))
+					
 				
 
 		# draw cross across the screen
@@ -763,7 +788,7 @@ class SimpleGui():
 		self.pixmap_marks.draw_line(xgc, self.map_width/2 + radius_inner, self.map_height/2, self.map_width, self.map_height/2)
 		
 		#xgc.set_rgb_fg_color(gtk.gdk.color_parse("black"))
-		#xgc.set_function(gtk.gdk.COPY)	
+		xgc.set_function(gtk.gdk.COPY)	
 		#self.refresh()
 		return False	
 	
@@ -1189,6 +1214,7 @@ class SimpleGui():
 		self.__draw_map()
 		
 	def show_error(self, errormsg):
+		raise errormsg
 		error_dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR
 				, message_format="%s" % errormsg
 				, buttons=gtk.BUTTONS_OK)

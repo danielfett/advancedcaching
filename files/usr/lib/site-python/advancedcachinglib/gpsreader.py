@@ -47,7 +47,6 @@ class GpsReader():
 			data = gpsd_connection.recv(512)
 			gpsd_connection.send("%s\r\n" % 'y')
 			quality_data = gpsd_connection.recv(512)
-			
 			# 1: Parse Quality Data
 			
 			# example output:
@@ -55,7 +54,7 @@ class GpsReader():
 			#  1:13 87 259 35 1:4 60 251 30 1:23 54 60 37 1:25 51 149 24 0:8 2 
 			#  188 0 0:7 33 168 24 1:20 26 110 28 1:
 			
-			if quality_data == "GPSD,Y=?":
+			if quality_data.strip() == "GPSD,Y=?":
 				sats = 0
 				sats_known = 0
 			else:
@@ -65,7 +64,7 @@ class GpsReader():
 				for i in range(1, sats_known):
 					if groups[i].split(' ')[4] == "1":
 						sats = sats + 1
-							
+			
 			if data.strip() == "GPSD,O=?":
 				self.status = "No GPS signal"
 				return {
@@ -76,6 +75,7 @@ class GpsReader():
 					'sats': sats,
 					'sats_known': sats_known
 				}
+
 				
 			# 2: Get current position, altitude, bearing and speed
 			
