@@ -30,8 +30,8 @@ class GeocacheCoordinate(geo.Coordinate):
 		self.terrain = -1
 		self.owner = ''
 		self.found = False
-		self.waypoints = []
-		self.images = []
+		self.waypoints = ''
+		self.images = ''
 		self.notes = ''
 
 	def serialize(self):

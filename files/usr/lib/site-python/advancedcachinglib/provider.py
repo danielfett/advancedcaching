@@ -56,7 +56,6 @@ class PointProvider():
 			mode = "REPLACE"
 		else:
 			mode = "IGNORE"
-		print p.serialize()
 		c.execute("INSERT OR %s INTO %s (`%s`) VALUES (%s)" % (mode, self.cache_table, '`, `'.join(self.ctype.SQLROW.keys()), ', '.join([':%s' % k for k in self.ctype.SQLROW.keys()])), p.serialize())
 		c.close()
 		
