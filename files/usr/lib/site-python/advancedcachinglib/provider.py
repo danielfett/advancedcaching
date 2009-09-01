@@ -48,14 +48,19 @@ class PointProvider():
 		
 	def add_point(self, p, replace = False):
 		c = self.conn.cursor()
-		if p.found:
-			f = 1
-		else:
-			f = 0
 		if replace:
 			mode = "REPLACE"
 		else:
-			mode = "IGNORE"
+			if p.found:
+				found = 1
+			else:
+				found = 0
+			c.execute("SELECT found FROM %s WHERE name = ? AND found != ?" % self.cache_table, (p.name, found))
+			existing = (len(c.fetchall()) == 1)
+			if existing:
+				c.execute("UPDATE %s SET found = ? WHERE name = ?" % self.cache_table, (p.found, p.name))
+			c.close()
+			return
 		c.execute("INSERT OR %s INTO %s (`%s`) VALUES (%s)" % (mode, self.cache_table, '`, `'.join(self.ctype.SQLROW.keys()), ', '.join([':%s' % k for k in self.ctype.SQLROW.keys()])), p.serialize())
 		c.close()
 		
