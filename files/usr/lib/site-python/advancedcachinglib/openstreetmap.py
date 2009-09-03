@@ -25,6 +25,7 @@ class TileLoader(threading.Thread):
 	# - draw to pixmap (still locked!)
 	# - call queue_draw
 	# optional: acquire locks in all related parts of gui
+	
 	def __init__(self, tile, zoom, gui, base_dir, num = 0):
 		threading.Thread.__init__(self)
 		self.daemon = False
@@ -95,7 +96,7 @@ class TileLoader(threading.Thread):
 		try:
 			self.__log("draw-start")
 			widget = self.gui.drawing_area
-			gc = widget.get_style().fg_gc[gtk.STATE_NORMAL]
+			gc = self.gui.xgc
 			gc.set_function(gtk.gdk.COPY)
 			gc.set_rgb_fg_color(gtk.gdk.color_parse("black"))
 			# to draw "night mode": INVERT

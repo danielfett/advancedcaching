@@ -21,7 +21,7 @@
 
 
 ### For loading the conf file
-from advancedcachinglib.geocaching import FieldnotesUploader
+#from advancedcachinglib.geocaching import FieldnotesUploader
 import os
 import sys
 import gtk
@@ -36,7 +36,7 @@ from advancedcachinglib import provider, openstreetmap, extListview, downloader,
 
 
 if len(sys.argv) != 2:
-	print "Usage: %s --desktop (not fully implemented yet) or %s --simple" % (sys.argv[0], sys.argv[0])
+	print "Usage: %s --desktop (not really implemented yet) or %s --simple" % (sys.argv[0], sys.argv[0])
 	exit()
 	
 arg = sys.argv[1].strip()
@@ -190,16 +190,18 @@ class Core():
 
 	# called by gui
 	def on_download_cache(self, cache):
+		self.gui.set_download_progress(0.5, "Downloading %s..." % cache.name)
 		try:
-		    cd = geocaching.CacheDownloader(self.downloader)
-		    exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'], self.settings['download_noimages'])
-		    full = cd.update_coordinate(cache)
-		    self.pointprovider.add_point(full, True)
-		    exporter.export(full)
-		    self.pointprovider.save()
+			cd = geocaching.CacheDownloader(self.downloader)
+			exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'], self.settings['download_noimages'])
+			full = cd.update_coordinate(cache)
+			self.pointprovider.add_point(full, True)
+			exporter.export(full)
+			self.pointprovider.save()
 		except Exception as e:
 			self.gui.show_error(e)
-		
+		finally:
+			self.gui.hide_progress()
 		
 		
 		
@@ -237,14 +239,11 @@ class Core():
 		try:
 			for cache in caches:
 				self.gui.set_download_progress(i/count, "Downloading %s..." % cache.name)
-				while gtk.events_pending():
-					gtk.main_iteration()
 				full = cd.update_coordinate(cache)
 				self.pointprovider.add_point(full, True)
 				exporter.export(full)
 				i += 1.0
 				
-			self.gui.set_download_progress(0, 'Finished!')
 			self.gui.hide_progress()
 		except Exception as e:
 			self.gui.show_error(e)
@@ -266,8 +265,10 @@ class Core():
 		self.__write_config()
 		
 	def on_upload_fieldnotes(self):
+		self.gui.set_download_progress(0.5, "Downloading %s..." % cache.name)
+
 		caches = self.pointprovider.get_new_fieldnotes()
-		fn = FieldnotesUploader(self.downloader)
+		fn = geocaching.FieldnotesUploader(self.downloader)
 		try:
 			for c in caches:
 				fn.add_fieldnote(c)
@@ -277,10 +278,10 @@ class Core():
 			raise
 			#self.gui.show_error(e)
 		else:
-			self.gui.show_success("Field notes uploaded successfully.")
+			#self.gui.show_success("Field notes uploaded successfully.")
 			for c in caches:
 				self.pointprovider.update_field(c, 'logas', geocaching.GeocacheCoordinate.LOG_NO_LOG)
-
+			self.gui.hide_progress()
 		
 	def __read_gps(self):
 		gps_data = self.gps_thread.get_data()

@@ -171,11 +171,12 @@
                   <packing>
                     <property name="top_attach">1</property>
                     <property name="bottom_attach">2</property>
+                    <property name="y_options">GTK_EXPAND | GTK_SHRINK | GTK_FILL</property>
                   </packing>
                 </child>
                 <child>
                   <widget class="GtkHBox" id="hbox7">
-                    <property name="height_request">50</property>
+                    <property name="height_request">100</property>
                     <property name="visible">True</property>
                     <property name="spacing">5</property>
                     <property name="homogeneous">True</property>
@@ -1276,7 +1277,7 @@ search</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
                                 <property name="use_stock">True</property>
-                                <signal name="clicked" handler="on_button_download_sync_clicked"/>
+                                <signal name="clicked" handler="on_download_details_sync_clicked"/>
                               </widget>
                               <packing>
                                 <property name="expand">False</property>
@@ -1573,6 +1574,7 @@ search</property>
             <property name="no_show_all">True</property>
           </widget>
           <packing>
+            <property name="expand">False</property>
             <property name="position">1</property>
           </packing>
         </child>

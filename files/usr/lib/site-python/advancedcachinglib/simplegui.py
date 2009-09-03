@@ -154,6 +154,7 @@ class SimpleGui():
 
 		# map drawing area
 		self.drawing_area = xml.get_widget("drawingarea")
+		self.drawing_area.set_double_buffered(False)
 		self.drawing_area_arrow = xml.get_widget("drawingarea_arrow")
 		self.filtermsg = xml.get_widget('label_filtermsg')
 		self.scrolledwindow_image = xml.get_widget('scrolledwindow_image')
@@ -390,7 +391,11 @@ class SimpleGui():
 	
 	def destroy(self, target):
 		self.core.on_destroy()
-		gtk.main_quit()	
+		gtk.main_quit()
+
+	def do_events(self):
+		while gtk.events_pending():
+			gtk.main_iteration()
 		
 		
 	# called by core
@@ -532,7 +537,7 @@ class SimpleGui():
 			cache = self.pointprovider.get_nearest_point_filter(c, c1, c2)
 			self.core.on_cache_selected(cache)
 		self.draw_at_x = self.draw_at_y = 0
-		self.__draw_map()
+		gobject.idle_add(self.__draw_map)
 		
 			
 	def __drag_draw(self):
@@ -872,6 +877,7 @@ class SimpleGui():
 		self.update_cache_image(reset = True)
 
 	def on_download_clicked(self, widget):
+		self.do_events()
 		self.core.on_download(self.get_visible_area())
 		self.__draw_map()
 
@@ -954,6 +960,7 @@ class SimpleGui():
 		self.update_cache_image()
 
 	def on_label_fieldnotes_mapped(self, widget):
+		self.__check_notes_save()
 		l = self.pointprovider.get_new_fieldnotes_count()
 		if l > 0:
 			widget.set_text("you have created %d fieldnotes" % l)
@@ -1218,6 +1225,7 @@ class SimpleGui():
 		self.progressbar.show()
 		self.progressbar.set_text(text)
 		self.progressbar.set_fraction(fraction)
+		self.do_events()
 		
 	def set_target(self, cache):
 		self.current_target = cache
@@ -1265,6 +1273,8 @@ class SimpleGui():
 		if text_longdesc == '':
 			text_longdesc = '(no description available)'
 		self.cache_elements['desc'].set_text(text_shortdesc + "\n\n" + text_longdesc)
+
+		self.do_events()
 
 		# hints
 		text_hints = cache.hints.strip()
