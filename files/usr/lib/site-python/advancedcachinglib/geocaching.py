@@ -16,7 +16,13 @@ from htmlentitydefs import name2codepoint as n2cp
 
 
 class GeocacheCoordinate(geo.Coordinate):
-	SQLROW = {'lat': 'REAL', 'lon' : 'REAL', 'name' : 'TEXT PRIMARY KEY', 'title' : 'TEXT', 'shortdesc' : 'TEXT', 'desc' : 'TEXT', 'hints' : 'TEXT', 'type' : 'TEXT', 'size' : 'INTEGER', 'difficulty' : 'INTEGER', 'terrain' : 'INTEGER', 'owner' : 'TEXT', 'found' : 'INTEGER', 'waypoints' : 'text', 'images' : 'text', 'notes' : 'TEXT'}
+	LOG_NO_LOG = 0
+	LOG_AS_FOUND = 1
+	LOG_AS_NOTFOUND = 2
+	LOG_AS_NOTE = 3
+
+
+	SQLROW = {'lat': 'REAL', 'lon' : 'REAL', 'name' : 'TEXT PRIMARY KEY', 'title' : 'TEXT', 'shortdesc' : 'TEXT', 'desc' : 'TEXT', 'hints' : 'TEXT', 'type' : 'TEXT', 'size' : 'INTEGER', 'difficulty' : 'INTEGER', 'terrain' : 'INTEGER', 'owner' : 'TEXT', 'found' : 'INTEGER', 'waypoints' : 'text', 'images' : 'text', 'notes' : 'TEXT', 'fieldnotes' : 'TEXT', 'logas': 'INTEGER', 'logdate' : 'TEXT'}
 	def __init__(self, lat, lon, name = ''):
 		geo.Coordinate.__init__(self, lat, lon, name)
 		# NAME = GC-ID
@@ -33,6 +39,9 @@ class GeocacheCoordinate(geo.Coordinate):
 		self.waypoints = ''
 		self.images = ''
 		self.notes = ''
+		self.fieldnotes = ''
+		self.log_as = self.LOG_NO_LOG
+		self.log_date = ''
 
 	def serialize(self):
 
@@ -40,7 +49,7 @@ class GeocacheCoordinate(geo.Coordinate):
 			found = 1
 		else:
 			found = 0
-		return {'lat': self.lat, 'lon' : self.lon, 'name' : self.name, 'title' : self.title, 'shortdesc' : self.shortdesc, 'desc' : self.desc, 'hints' : self.hints, 'type' : self.type, 'size' : self.size, 'difficulty' : self.difficulty, 'terrain' : self.terrain, 'owner' : self.owner, 'found' : found, 'waypoints' : self.waypoints, 'images' : self.images, 'notes' : self.notes}
+		return {'lat': self.lat, 'lon' : self.lon, 'name' : self.name, 'title' : self.title, 'shortdesc' : self.shortdesc, 'desc' : self.desc, 'hints' : self.hints, 'type' : self.type, 'size' : self.size, 'difficulty' : self.difficulty, 'terrain' : self.terrain, 'owner' : self.owner, 'found' : found, 'waypoints' : self.waypoints, 'images' : self.images, 'notes' : self.notes, 'fieldnotes' : self.fieldnotes, 'logas' : self.log_as, 'logdate' : self.log_date}
 		
 	def unserialize(self, data):
 		self.lat = data['lat']
@@ -62,15 +71,21 @@ class GeocacheCoordinate(geo.Coordinate):
 			self.notes = ''
 		else:
 			self.notes = data['notes']
+		if data['fieldnotes'] == None:
+			self.fieldnotes = ''
+		else:
+			self.fieldnotes = data['fieldnotes']
+		self.log_as = data['logas']
+		self.log_date = data['logdate']
 
 	def get_waypoints(self):
 		if self.waypoints == None or self.waypoints == '':
-			return None
+			return []
 		return json.loads(self.waypoints)
 
 	def get_images(self):
 		if self.images == None or self.images == '':
-			return None
+			return []
 		return json.loads(self.images)
 
 	def set_waypoints(self, wps):
@@ -83,6 +98,42 @@ class GeocacheCoordinate(geo.Coordinate):
 	def was_downloaded(self):
 		return (self.shortdesc != '' or self.desc != '')
 
+
+class FieldnotesUploader():
+	def __init__(self, downloader):
+		self.downloader = downloader
+		self.notes = []
+
+	def add_fieldnote(self, geocache):
+		if geocache.log_date == '':
+			raise Exception("Illegal Date.")
+
+		if geocache.log_as == GeocacheCoordinate.LOG_AS_FOUND:
+			log = "Found it"
+		elif geocache.log_as == GeocacheCoordinate.LOG_AS_NOTFOUND:
+			log = "Didn't find it"
+		elif geocache.log_as == GeocacheCoordinate.LOG_AS_NOTE:
+			log = "Write note"
+		else:
+			raise Exception("Illegal status: %s" % log_as)
+
+		text = geocache.fieldnotes.replace('"', "'")
+
+		self.notes.append('%s,%sT10:00Z,%s,"%s"' % (geocache.name, geocache.log_date, log, text))
+
+	def upload(self):
+		text = "\r\n".join(self.notes).encode("UTF-16")
+		response = self.downloader.get_reader('http://www.geocaching.com/my/uploadfieldnotes.aspx',
+		    data = self.downloader.encode_multipart_formdata(
+			[('btnUpload', 'Upload Field Note'), ('__VIEWSTATE' , '/wEPDwUJMTAzMzMxMDA0ZBgBBR5fX0NvbnRyb2xzUmVxdWlyZVBvc3RCYWNrS2V5X18WAQUPY2hrU3VwcHJlc3NEYXRl81S0OxJD683dU+w4wK4MfecRC8k=')],
+			[('fileUpload', 'geocache_visits.txt', text)]
+		))
+		res = response.read()
+		if not "successfully uploaded" in res:
+			raise Exception("Something went wrong while uploading the field notes.")
+		else:
+			return True
+	
 
 class CacheDownloader():
 	
@@ -188,8 +239,6 @@ class CacheDownloader():
 	def update_coordinate(self, coordinate):
 		response = self.__get_cache_page(coordinate.name)
 		return self.__parse_cache_page(response, coordinate)
-		#w = file('cachefile5.html', 'r')
-		#return self.__parse_cache_page(w, coordinate)
 	
 	def __get_cache_page(self, cacheid):
 		return self.downloader.get_reader('http://www.geocaching.com/seek/cache_details.aspx?wp=%s' % cacheid)
@@ -202,7 +251,7 @@ class CacheDownloader():
 			'eo_version':'5.0.51.2'
 		}
 		response = self.downloader.get_reader(url, values)
-		
+
 		the_page = response.read()
 
 		extractor = re.compile('.*<ExtraData><!\[CDATA\[(.*)\]\]>')
@@ -210,9 +259,10 @@ class CacheDownloader():
 		if match == None:
 			raise Exception('Seite konnte nicht abgerufen werden')
 		text = match.group(1).replace("\\'", "'")
-		print text
-		a= json.loads(text)
+		a= json.loads(text.replace('\t', ' '))
 		points = []
+		if not 'cc' in a['cs'].keys():
+			return points
 		for b in a['cs']['cc']:
 			c = GeocacheCoordinate(b['lat'], b['lon'], b['gc'])
 			c.title = b['nn']
@@ -233,7 +283,6 @@ class CacheDownloader():
 			c.found = b['f']
 			points.append(c)
 		return points
-		
 		
 	def __parse_cache_page(self, cache_page, coordinate):
 		indesc = inshortdesc = inhints = inwaypoints = False

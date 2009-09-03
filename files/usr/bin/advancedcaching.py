@@ -21,6 +21,7 @@
 
 
 ### For loading the conf file
+from advancedcachinglib.geocaching import FieldnotesUploader
 import os
 import sys
 import gtk
@@ -104,7 +105,8 @@ class Core():
     		'last_target_lon' : 10,
     		'last_target_name' : 'default',
 		'download_noimages' : False,
-		'download_map_path' : os.path.expanduser('~/Maps/OSM/')
+		'download_map_path' : os.path.expanduser('~/Maps/OSM/'),
+		'options_hide_found' : False
     	}
     	
 	def __init__(self, guitype):	
@@ -133,7 +135,7 @@ class Core():
 		
 		self.gps_thread = gpsreader.GpsReader(self)
 		gobject.timeout_add(1000, self.__read_gps)
-		
+		#self.downloader.upload_fieldnotes()
 		self.gui.show()
 		
 		
@@ -188,29 +190,32 @@ class Core():
 
 	# called by gui
 	def on_download_cache(self, cache):
-		cd = geocaching.CacheDownloader(self.downloader)
-		exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'], self.settings['download_noimages'])
-		full = cd.update_coordinate(cache)
-		self.pointprovider.add_point(full, True)
-		exporter.export(full)
-		self.pointprovider.save()	
+		try:
+		    cd = geocaching.CacheDownloader(self.downloader)
+		    exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'], self.settings['download_noimages'])
+		    full = cd.update_coordinate(cache)
+		    self.pointprovider.add_point(full, True)
+		    exporter.export(full)
+		    self.pointprovider.save()
+		except Exception as e:
+			self.gui.show_error(e)
 		
 		
 		
 		
 	# called by gui
-	def on_download_descriptions(self, location):
+	def on_download_descriptions(self, location, visibleonly = False):
 		cd = geocaching.CacheDownloader(self.downloader)
 		exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'], None, self.settings['download_noimages'])
 		
 		self.pointprovider.push_filter()
 			
-		if self.settings['download_notfound']:
+		if self.settings['download_notfound'] or visibleonly:
 			found = False
 		else:	
 			found = None
 			
-		if self.settings['download_new']:
+		if self.settings['download_new'] or visibleonly:
 			has_details = False
 		elif self.settings['download_nothing']:
 			has_details = True
@@ -218,7 +223,7 @@ class Core():
 			has_details = None
 		
 		
-		if self.settings['download_visible']:
+		if self.settings['download_visible'] or visibleonly:
 			self.pointprovider.set_filter(found = found, has_details = has_details, adapt_filter = True)
 			caches = self.pointprovider.get_points_filter(location)
 		else:
@@ -238,7 +243,9 @@ class Core():
 				self.pointprovider.add_point(full, True)
 				exporter.export(full)
 				i += 1.0
+				
 			self.gui.set_download_progress(0, 'Finished!')
+			self.gui.hide_progress()
 		except Exception as e:
 			self.gui.show_error(e)
 		self.pointprovider.save()	
@@ -258,8 +265,22 @@ class Core():
 		self.downloader.update_userdata(self.settings['options_username'], self.settings['options_password'])
 		self.__write_config()
 		
-		
-		
+	def on_upload_fieldnotes(self):
+		caches = self.pointprovider.get_new_fieldnotes()
+		fn = FieldnotesUploader(self.downloader)
+		try:
+			for c in caches:
+				fn.add_fieldnote(c)
+			fn.upload()
+			
+		except Exception as e:
+			raise
+			#self.gui.show_error(e)
+		else:
+			self.gui.show_success("Field notes uploaded successfully.")
+			for c in caches:
+				self.pointprovider.update_field(c, 'logas', geocaching.GeocacheCoordinate.LOG_NO_LOG)
+
 		
 	def __read_gps(self):
 		gps_data = self.gps_thread.get_data()

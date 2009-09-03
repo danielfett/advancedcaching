@@ -30,7 +30,8 @@
 # add "next waypoint" button
 # don't decrypt text in []
 # add description to displayed images
-
+# rewrite downloader and exporter (download images in downloader)
+# add field notes tab
 
  
 ### For the gui :-)
@@ -40,7 +41,7 @@ import gobject
 import pango
 import os
 import thread
-
+from time import gmtime, strftime
 import re
 
 from htmlentitydefs import name2codepoint as n2cp
@@ -68,7 +69,8 @@ class SimpleGui():
 		'download_nothing',
 		'download_resize',
 		'options_show_name',
-		'download_noimages'
+		'download_noimages',
+		'options_hide_found',
 	]
 	SETTINGS_INPUTS = [
 		'download_output_dir',
@@ -105,6 +107,7 @@ class SimpleGui():
 		self.drag_offset_x = 0
 		self.drag_offset_y = 0
 		self.notes_changed = False
+		self.fieldnotes_changed = False
 		self.map_center_x, self.map_center_y = 100, 100
 		self.inhibit_zoom = False
 		self.inhibit_expose = False
@@ -117,10 +120,9 @@ class SimpleGui():
 			"on_window1_destroy" : self.destroy ,
 			"on_zoomin_clicked" : self.on_zoomin_clicked ,
 			"on_zoomout_clicked" : self.on_zoomout_clicked ,
-			"on_download_clicked" : self.on_download_clicked,
 			'save_config' : self.on_save_config,
 			'notes_changed' : self.on_notes_changed,
-			'on_button_download_now_clicked' : self.on_download_descriptions_clicked,
+#			'on_button_download_now_clicked' : self.on_download_details_clicked,
 			'on_spinbutton_zoom_change_value' : self.on_zoom_changed,
 		#	'on_vscale_search_terrain_change_value' : self.search_value_terrain_change,
 		#	'on_vscale_search_diff_change_value' : self.search_value_diff_change
@@ -134,6 +136,18 @@ class SimpleGui():
 			'on_search_reset_clicked' : self.on_search_reset_clicked,
 			'dmap' : self.dmap,
 			'dunmap' : self.dunmap,
+			'on_download_details_map_clicked' : self.on_download_details_map_clicked,
+			# fieldnotes related
+			'on_upload_fieldnotes' : self.on_upload_fieldnotes,
+			'on_fieldnotes_changed' : self.on_fieldnotes_changed,
+			'on_fieldnotes_log_changed' : self.on_fieldnotes_log_changed,
+			'on_label_fieldnotes_mapped' : self.on_label_fieldnotes_mapped,
+			# context menu:
+			'on_actions_clicked' : self.on_actions_clicked,
+			'on_download_clicked' : self.on_download_clicked,
+			'on_download_details_sync_clicked' : self.on_download_details_sync_clicked,
+			'on_show_target_clicked' : self.on_show_target_clicked,
+
 		})
 
 
@@ -144,6 +158,7 @@ class SimpleGui():
 		self.filtermsg = xml.get_widget('label_filtermsg')
 		self.scrolledwindow_image = xml.get_widget('scrolledwindow_image')
 		self.image_cache = xml.get_widget('image_cache')
+		self.image_cache_caption = xml.get_widget('label_cache_image_caption')
 		self.notebook_cache = xml.get_widget('notebook_cache')
 		self.notebook_all = xml.get_widget('notebook_all')
 		self.progressbar = xml.get_widget('progress_download')
@@ -185,10 +200,16 @@ class SimpleGui():
 			'difficulty': xml.get_widget('label_cache_difficulty'),
 			'desc': xml.get_widget('textview_cache_desc').get_buffer(),
 			'notes': xml.get_widget('textview_cache_notes').get_buffer(),
+			'fieldnotes': xml.get_widget('textview_cache_fieldnotes').get_buffer(),
 			'hints': xml.get_widget('label_cache_hints'),
 			'coords': xml.get_widget('label_cache_coords'),
-			'log': xml.get_widget('link_cache_log'),
+			#'log': xml.get_widget('link_cache_log'),
 			#'notebook': xml.get_widget('notebook_cache')
+			'log_found' : xml.get_widget('radiobutton_cache_log_found'),
+			'log_notfound' : xml.get_widget('radiobutton_cache_log_notfound'),
+			'log_note' : xml.get_widget('radiobutton_cache_log_note'),
+			'log_no' : xml.get_widget('radiobutton_cache_log_no'),
+			'log_date' : xml.get_widget('label_cache_log_date'),
 		}
 		
 		self.search_elements = {
@@ -295,7 +316,11 @@ class SimpleGui():
 	def __check_notes_save(self):
 		if self.current_cache != None and self.notes_changed:
 			self.pointprovider.update_field(self.current_cache, 'notes', self.cache_elements['notes'].get_text(self.cache_elements['notes'].get_start_iter(), self.cache_elements['notes'].get_end_iter()))
-	
+			self.notes_changed = False
+
+		if self.current_cache != None and self.fieldnotes_changed:
+			self.pointprovider.update_field(self.current_cache, 'fieldnotes', self.cache_elements['fieldnotes'].get_text(self.cache_elements['fieldnotes'].get_start_iter(), self.cache_elements['fieldnotes'].get_end_iter()))
+			self.fieldnotes_changed = False
 		
 	def __configure_event(self, widget, event):
 		x, y, width, height = widget.get_allocation()
@@ -596,6 +621,8 @@ class SimpleGui():
 			radius = self.CACHE_DRAW_SIZE
 			color = color_default
 			if c.found:
+				if self.settings['options_hide_found']:
+					continue
 				color = color_found
 			elif c.type == "regular":
 				color = color_regular
@@ -820,6 +847,9 @@ class SimpleGui():
 
 	def get_visible_area(self):
 		return (self.pixmappoint2coord([0,0]), self.pixmappoint2coord([self.map_width, self.map_height]))
+
+	def hide_progress(self):
+		self.progressbar.hide()
 		
 			
 	def on_change_coord_clicked(self, something):
@@ -840,14 +870,22 @@ class SimpleGui():
 		except Exception as e:
 			print "Could not prepare images: %s" % e
 		self.update_cache_image(reset = True)
-		
-	def on_download_descriptions_clicked(self, something):
+
+	def on_download_clicked(self, widget):
+		self.core.on_download(self.get_visible_area())
+		self.__draw_map()
+
+
+	def on_download_details_map_clicked(self, some):
+		self.core.on_download_descriptions(self.get_visible_area(), True)
+		self.__draw_map()
+
+	def on_download_details_sync_clicked(self, something):
 		self.core.on_download_descriptions(self.get_visible_area())
 		self.__draw_map()
 		
-	def on_download_clicked(self, something):
-		self.core.on_download(self.get_visible_area())
-		self.__draw_map()
+	def on_actions_clicked(self, widget, event):
+		xml.get_widget('menu_actions').popup(None, None, None, event.button, event.get_time())
 		
 	def on_download_cache_clicked(self, something):
 		self.core.on_download_cache(self.current_cache)
@@ -915,6 +953,12 @@ class SimpleGui():
 		self.image_zoomed = not self.image_zoomed
 		self.update_cache_image()
 
+	def on_label_fieldnotes_mapped(self, widget):
+		l = self.pointprovider.get_new_fieldnotes_count()
+		if l > 0:
+			widget.set_text("you have created %d fieldnotes" % l)
+		else:
+			widget.set_text("you have not created any new fieldnotes")
 		
 	def on_no_fix(self, gps_data, status):
 		self.gps_data = gps_data
@@ -926,7 +970,28 @@ class SimpleGui():
 
 	def on_notes_changed(self, something, somethingelse):
 		self.notes_changed = True
-				
+	
+	def on_fieldnotes_changed(self, something, somethingelse):
+		self.fieldnotes_changed = True
+
+	def on_fieldnotes_log_changed(self, something):
+		if self.current_cache == None:
+			return
+		log = geocaching.GeocacheCoordinate.LOG_NO_LOG
+		if self.cache_elements['log_found'].get_active():
+			log = geocaching.GeocacheCoordinate.LOG_AS_FOUND
+			self.pointprovider.update_field(self.current_cache, 'found', '1')
+		elif self.cache_elements['log_notfound'].get_active():
+			log = geocaching.GeocacheCoordinate.LOG_AS_NOTFOUND
+			self.pointprovider.update_field(self.current_cache, 'found', '0')
+		elif self.cache_elements['log_note'].get_active():
+			log = geocaching.GeocacheCoordinate.LOG_AS_NOTE
+		logdate = strftime('%Y-%m-%d', gmtime())
+		self.cache_elements['log_date'].set_text('fieldnote date: %s' % logdate)
+		self.pointprovider.update_field(self.current_cache, 'logas', log)
+		self.pointprovider.update_field(self.current_cache, 'logdate', logdate)
+
+
 	def on_save_config(self, something):
 		if not self.block_changes:
 			self.core.on_config_changed(self.read_settings())
@@ -992,13 +1057,23 @@ class SimpleGui():
 		else:
 			self.set_target(self.current_cache)	
 			self.notebook_all.set_current_page(2)
-	
+
+	def on_show_target_clicked(self, some):
+		if self.current_target == None:
+			return
+		else:
+			self.set_center(self.current_target)
+
 	def on_start_search_simple(self, something):
 		self.core.on_start_search_simple(self.entry_search.get_text())	
 		
 	def on_track_toggled(self, something):
 		if self.button_track.get_active():
 			self.set_center(self.gps_data['position'])
+
+	def on_upload_fieldnotes(self, something):
+		self.core.on_upload_fieldnotes()
+		self.on_label_fieldnotes_mapped(None)
 	
 	def on_waypoint_clicked(self, listview, event, element):
 		if event.type != gtk.gdk._2BUTTON_PRESS or element == None:
@@ -1029,15 +1104,16 @@ class SimpleGui():
 	def update_cache_image(self, reset = False):
 		if reset:
 			self.image_cache.set_from_stock(gtk.STOCK_GO_FORWARD, -1)
+			self.image_cache_caption.set_text("click 'next' to see images")
 			return
 		try:
 			mw, mh = self.scrolledwindow_image.get_allocation().width - 10, self.scrolledwindow_image.get_allocation().height - 10
 			if self.current_cache == None or len(self.images) <= self.image_no:
-				self.image_cache.set_from_stock(gtk.STOCK_GO_FORWARD, -1)
+				self.update_cache_image(True)
 				return
 			filename = os.path.join(self.settings['download_output_dir'], self.images[self.image_no])
 			if not os.path.exists(filename):
-				print "File does not exist: %s:" % filename
+				self.image_cache_caption.set_text("not found: %s" % filename)
 				self.image_cache.set_from_stock(gtk.STOCK_GO_FORWARD, -1)
 				return
 			
@@ -1058,6 +1134,15 @@ class SimpleGui():
 		
 			
 			self.image_cache.set_from_pixbuf(pb)
+			imgs = self.current_cache.get_images()
+			print imgs
+			if self.images[self.image_no] in imgs.keys():
+				caption = imgs[self.images[self.image_no]]
+			else:
+				caption = "(no caption)"
+
+			self.image_cache_caption.set_text("<b>%d</b> %s" % (self.image_no, caption))
+			self.image_cache_caption.set_use_markup(True)
 		except Exception as e:
 			print "Error loading image: %s" % e
 			
@@ -1130,8 +1215,9 @@ class SimpleGui():
 		
 	#called by core
 	def set_download_progress(self, fraction, text):
+		self.progressbar.show()
 		self.progressbar.set_text(text)
-		self.progressbar.set_fraction(fraction)	
+		self.progressbar.set_fraction(fraction)
 		
 	def set_target(self, cache):
 		self.current_target = cache
@@ -1202,6 +1288,22 @@ class SimpleGui():
 		
 		# Load notes
 		self.cache_elements['notes'].set_text(cache.notes)
+		self.cache_elements['fieldnotes'].set_text(cache.fieldnotes)
+
+		# Set field note (log) settings
+		if cache.log_as == geocaching.GeocacheCoordinate.LOG_AS_FOUND:
+			self.cache_elements['log_found'].set_active(True)
+		elif cache.log_as == geocaching.GeocacheCoordinate.LOG_AS_NOTFOUND:
+			self.cache_elements['log_notfound'].set_active(True)
+		elif cache.log_as == geocaching.GeocacheCoordinate.LOG_AS_NOTE:
+			self.cache_elements['log_note'].set_active(True)
+		else:
+			self.cache_elements['log_no'].set_active(True)
+
+		if cache.log_date != '':
+			self.cache_elements['log_date'].set_text('fieldnote date: %s' % cache.log_date)
+		else:
+			self.cache_elements['log_date'].set_text('fieldnote date: not set')
 
 		# Load images
 		self.load_images()
@@ -1214,12 +1316,18 @@ class SimpleGui():
 		self.__draw_map()
 		
 	def show_error(self, errormsg):
-		raise errormsg
 		error_dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR
 				, message_format="%s" % errormsg
 				, buttons=gtk.BUTTONS_OK)
 		error_dlg.run()
 		error_dlg.destroy()
+
+	def show_success(self, message):
+		suc_dlg = gtk.MessageDialog(type= gtk.MESSAGE_INFO
+				, message_format=message
+				, buttons=gtk.BUTTONS_OK)
+		suc_dlg.run()
+		suc_dlg.destroy()
 
 	def show_coordinate_input(self, start):
 		udr = UpdownRows(self.format, start)

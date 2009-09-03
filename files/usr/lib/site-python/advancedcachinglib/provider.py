@@ -47,22 +47,24 @@ class PointProvider():
 		self.conn.close()
 		
 	def add_point(self, p, replace = False):
-		c = self.conn.cursor()
+		
 		if replace:
-			mode = "REPLACE"
+			self.conn.execute("INSERT OR REPLACE INTO %s (`%s`) VALUES (%s)" % (self.cache_table, '`, `'.join(self.ctype.SQLROW.keys()), ', '.join([':%s' % k for k in self.ctype.SQLROW.keys()])), p.serialize())
 		else:
 			if p.found:
 				found = 1
 			else:
 				found = 0
-			c.execute("SELECT found FROM %s WHERE name = ? AND found != ?" % self.cache_table, (p.name, found))
+			c = self.conn.cursor()
+			c.execute("SELECT found FROM %s WHERE name = ?" % self.cache_table, (p.name,))
 			existing = (len(c.fetchall()) == 1)
-			if existing:
-				c.execute("UPDATE %s SET found = ? WHERE name = ?" % self.cache_table, (p.found, p.name))
 			c.close()
+			if existing:
+				self.conn.execute("UPDATE %s SET found = ? WHERE name = ?" % self.cache_table, (p.found, p.name))
+			else:
+				self.conn.execute("INSERT INTO %s (`%s`) VALUES (%s)" % (self.cache_table, '`, `'.join(self.ctype.SQLROW.keys()), ', '.join([':%s' % k for k in self.ctype.SQLROW.keys()])), p.serialize())
 			return
-		c.execute("INSERT OR %s INTO %s (`%s`) VALUES (%s)" % (mode, self.cache_table, '`, `'.join(self.ctype.SQLROW.keys()), ', '.join([':%s' % k for k in self.ctype.SQLROW.keys()])), p.serialize())
-		c.close()
+		
 		
 	def get_points(self, c1, c2):
 		
@@ -86,7 +88,27 @@ class PointProvider():
 			strings.append(row['title'])
 		c.close()
 		return strings
-		
+	    
+	def get_new_fieldnotes_count(self):
+		c = self.conn.cursor()
+
+		c.execute('SELECT count(*) AS cnt FROM %s WHERE logas != %d' % (self.cache_table, self.ctype.LOG_NO_LOG))
+		for row in c:
+			return row['cnt']
+		return 0
+
+	def get_new_fieldnotes(self):
+		c = self.conn.cursor()
+
+		c.execute('SELECT * FROM %s WHERE logas != %d' % (self.cache_table, self.ctype.LOG_NO_LOG))
+		points = []
+		for row in c:
+			coord = self.ctype(row['lat'], row['lon'])
+			coord.unserialize(row)
+			points.append(coord)
+		c.close()
+		return points
+
 	
 	def get_nearest_point_filter(self, center, c1, c2):
 		filterstring = copy.copy(self.filterstring)
@@ -211,3 +233,4 @@ class PointProvider():
 		query = 'UPDATE %s SET %s = ? WHERE name = ?' % (self.cache_table, field)
 		c = self.conn.cursor()
 		c.execute(query, (newvalue, coordinate.name))
+		self.save()
