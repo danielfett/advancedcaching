@@ -61,7 +61,7 @@ class GpsReader():
 				sats = 0
 				groups = quality_data.split(':')
 				sats_known = int(groups[0].split(' ')[2])
-				for i in range(1, sats_known):
+				for i in xrange(1, sats_known):
 					if groups[i].split(' ')[4] == "1":
 						sats = sats + 1
 			

@@ -112,7 +112,7 @@ class TileLoader(threading.Thread):
 			offset_y = int(self.gui.map_height/2 -(y - int(y)) * size)
 			span_x = int(math.ceil(float(self.gui.map_width)/(size * 2.0)))
 			span_y = int(math.ceil(float(self.gui.map_height)/(size * 2.0)))
-			if self.tile[0] in range(xi - span_x, xi + span_x + 1, 1) and self.tile[1] in range(yi - span_y, yi + span_y + 1, 1) and self.zoom == self.gui.ts.zoom:
+			if self.tile[0] in xrange(xi - span_x, xi + span_x + 1, 1) and self.tile[1] in xrange(yi - span_y, yi + span_y + 1, 1) and self.zoom == self.gui.ts.zoom:
 				dx = (self.tile[0] - xi) * size + offset_x
 				dy = (self.tile[1] - yi) * size + offset_y
 				
@@ -172,7 +172,7 @@ class TileLoader(threading.Thread):
 
 	def __log(self, string):
 		a = "%d  " % self.num
-		for i in range(self.num):
+		for i in xrange(self.num):
 			a += "   "
 		#print a, string
 		

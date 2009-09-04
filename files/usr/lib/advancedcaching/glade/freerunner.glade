@@ -18,6 +18,7 @@
             <property name="can_focus">True</property>
             <property name="scrollable">True</property>
             <property name="tab_hborder">6</property>
+            <property name="homogeneous">True</property>
             <child>
               <widget class="GtkViewport" id="viewport1">
                 <property name="visible">True</property>
@@ -1313,7 +1314,7 @@ search</property>
             <child>
               <widget class="GtkLabel" id="label5">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">synchronize</property>
+                <property name="label" translatable="yes">sync</property>
               </widget>
               <packing>
                 <property name="position">4</property>
@@ -1557,7 +1558,7 @@ search</property>
             <child>
               <widget class="GtkLabel" id="label6">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">options</property>
+                <property name="label" translatable="yes">opt.</property>
               </widget>
               <packing>
                 <property name="position">5</property>

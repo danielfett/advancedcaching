@@ -340,6 +340,12 @@ def runit():
 	core = Core(gui)
 
 
+if "--profile" in sys.argv:
+	import cProfile
+	command = """runit()"""
+	cProfile.runctx( command, globals(), locals(), filename="Advancedcaching.profile" )
+	exit()
+
 if __name__ == "__main__":
 	gtk.gdk.threads_init()
 	core = Core(gui)

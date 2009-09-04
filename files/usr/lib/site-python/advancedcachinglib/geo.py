@@ -42,8 +42,8 @@ class Coordinate():
 		d_lat = self.re_to_dm_array.search("%02d %06.3f" % (abs(lat_d), abs(lat_m)))
 		d_lon = self.re_to_dm_array.search("%03d %06.3f" % (abs(lon_d), abs(lon_m)))
 		return [
-			[d_lat.group(i) for i in range (2, 9)],
-			[d_lon.group(i) for i in range (1, 9)]
+			[d_lat.group(i) for i in xrange (2, 9)],
+			[d_lon.group(i) for i in xrange (1, 9)]
 			]
 
 	def to_d_array(self):
@@ -51,8 +51,8 @@ class Coordinate():
 		d_lat = self.re_to_d_array.search("%08.5f" % abs(self.lat))
 		d_lon = self.re_to_d_array.search("%09.5f" % abs(self.lon))
 		return [
-			[d_lat.group(i) for i in range (2, 7)],
-			[d_lon.group(i) for i in range (1, 7)]
+			[d_lat.group(i) for i in xrange (2, 7)],
+			[d_lon.group(i) for i in xrange (1, 7)]
 			]
 		
 	def to_dm(self):

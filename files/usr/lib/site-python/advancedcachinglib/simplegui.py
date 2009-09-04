@@ -57,10 +57,23 @@ class SimpleGui():
 	CLICK_RADIUS = 20
 	TOO_MUCH_POINTS = 30
 	CACHE_DRAW_SIZE = 10
-	CACHE_DRAW_FONT = "Sans 4"
+	CACHE_DRAW_FONT = pango.FontDescription("Sans 4")
 	REDRAW_DISTANCE_TRACKING = 50 # distance from center of visible map in px
 	REDRAW_DISTANCE_MINOR = 4 # distance from last displayed point in px
-	
+
+	# map markers colors
+	COLOR_DEFAULT = gtk.gdk.color_parse('blue')
+	COLOR_FOUND = gtk.gdk.color_parse('grey')
+	COLOR_REGULAR = gtk.gdk.color_parse('green')
+	COLOR_MULTI = gtk.gdk.color_parse('orange')
+	COLOR_CACHE_CENTER = gtk.gdk.color_parse('black')
+	COLOR_CURRENT_CACHE = gtk.gdk.color_parse('red')
+	COLOR_WAYPOINTS = gtk.gdk.color_parse('deeppink')
+	COLOR_CURRENT_POSITION = gtk.gdk.color_parse('red')
+	COLOR_TARGET = gtk.gdk.color_parse('black')
+	COLOR_CROSSHAIR = gtk.gdk.color_parse("black")
+	COLOR_LINE_INVERT = gtk.gdk.color_parse("blue")
+
 	
 	SETTINGS_CHECKBOXES = [
 		'download_visible',
@@ -283,10 +296,10 @@ class SimpleGui():
 
 
 	def dmap(self, widget):
-		print "dmap"
+		pass
 
 	def dunmap(self, widget):
-		print "dunmap"
+		pass
 
 	def __check_notes_save(self):
 		if self.current_cache != None and self.notes_changed:
@@ -301,11 +314,11 @@ class SimpleGui():
 		x, y, width, height = widget.get_allocation()
 		self.map_width = int(width  + 2 * width * self.MAP_FACTOR)
 		self.map_height = int(height + 2 * height * self.MAP_FACTOR)
-		try:
-			openstreetmap.TileLoader.drawlock.acquire()
-			self.pixmap = gtk.gdk.Pixmap(widget.window, self.map_width, self.map_height)
-		finally:
-			openstreetmap.TileLoader.drawlock.release()
+		#try:
+		#	openstreetmap.TileLoader.drawlock.acquire()
+		self.pixmap = gtk.gdk.Pixmap(widget.window, self.map_width, self.map_height)
+		#finally:
+		#	openstreetmap.TileLoader.drawlock.release()
 			
 		self.pixmap_marks = gtk.gdk.Pixmap(widget.window, self.map_width, self.map_height)
 		self.xgc = widget.window.new_gc() #widget.get_style().fg_gc[gtk.STATE_NORMAL]
@@ -545,10 +558,9 @@ class SimpleGui():
 		
 		
 	def __draw_map(self):
-		#print 'begin draw map'
 		if not self.drawing_area_configured:
 			return False
-
+		
 		if self.map_width == 0 or self.map_height == 0:
 			return
 		#print 'begin draw marks'
@@ -566,9 +578,9 @@ class SimpleGui():
 		span_x = int(math.ceil(float(self.map_width)/(size * 2.0)))
 		span_y = int(math.ceil(float(self.map_height)/(size * 2.0)))
 		tiles = []
-		for i in range(0, span_x + 1, 1):
-			for j in range(0, span_y + 1, 1):
-				for dir in range(0, 4, 1):
+		for i in xrange(0, span_x + 1, 1):
+			for j in xrange(0, span_y + 1, 1):
+				for dir in xrange(0, 4, 1):
 					dir_ns = dir_ew = 1
 					if dir % 2 == 1: # if dir == 1 or dir == 3
 						dir_ns = -1
@@ -582,8 +594,9 @@ class SimpleGui():
 						d = openstreetmap.TileLoader(tile, self.ts.zoom, self, self.settings['download_map_path'], (i * dir_ew)*span_x + (j * dir_ns))
 						d.start()
 		#print 'end draw map'
-					
+			
 	def __draw_marks(self, thr = None):
+	    
 		#print "marking"
 		xgc = self.xgc
 		xgc.set_function(gtk.gdk.COPY)
@@ -598,27 +611,23 @@ class SimpleGui():
 		draw_short = (len(coords) > self.TOO_MUCH_POINTS)
 
 		xgc.set_function(gtk.gdk.COPY)
-		color_default = gtk.gdk.color_parse('blue')
-		color_found = gtk.gdk.color_parse('grey')
-		color_regular = gtk.gdk.color_parse('green')
-		color_multi = gtk.gdk.color_parse('orange')
-		font = pango.FontDescription(self.CACHE_DRAW_FONT)
+
 		num = 0
 		for c in coords: # for each geocache
 			radius = self.CACHE_DRAW_SIZE
-			color = color_default
 			if c.found:
 				if self.settings['options_hide_found']:
 					continue
-				color = color_found
+				color = self.COLOR_FOUND
 			elif c.type == "regular":
-				color = color_regular
+				color = self.COLOR_REGULAR
 			elif c.type == "multi":
-				color = color_multi
+				color = self.COLOR_MULTI
+			else:
+				color = self.COLOR_DEFAULT
 			
 			p = self.__coord2point(c)
 			xgc.set_rgb_fg_color(color)
-			
 			
 			if draw_short:
 				radius = radius/2.0
@@ -629,14 +638,10 @@ class SimpleGui():
 				continue
 				
 			
-			xgc.line_width = 1
-			self.pixmap_marks.draw_line(xgc, p[0], p[1] - 2, p[0], p[1] + 3) #  |
-			self.pixmap_marks.draw_line(xgc, p[0] - 2, p[1], p[0] + 3, p[1]) # ---
-			
 			# print the name?
 			if self.settings['options_show_name']:
 				layout = self.drawing_area.create_pango_layout(c.name)
-				layout.set_font_description(font)
+				layout.set_font_description(self.CACHE_DRAW_FONT)
 				self.pixmap_marks.draw_layout(xgc, p[0] + 3 + radius, p[1] - 3 - radius, layout)
 			
 			# if we have a description for this cache...
@@ -651,35 +656,39 @@ class SimpleGui():
 				pos_x = p[0] + radius + 3 + 1
 				pos_y = p[1] + 2
 				xgc.line_width = 1
-				for i in range(0, 3):
+				for i in xrange(0, 3):
 					self.pixmap_marks.draw_line(xgc, pos_x, pos_y + dist*i, pos_x + width, pos_y + dist * i)
 			
 			# if this cache is the active cache
 			if self.current_cache != None and c.name == self.current_cache.name:
-				xgc.line_width = 1		
-				xgc.set_rgb_fg_color(gtk.gdk.color_parse('red'))
-				radius = 8
+				xgc.line_width = 3
+				xgc.set_rgb_fg_color(self.COLOR_CURRENT_CACHE)
+				radius = 7
 				self.pixmap_marks.draw_rectangle(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
-			
+
+			xgc.set_rgb_fg_color(self.COLOR_CACHE_CENTER)
+			xgc.line_width = 1
+			self.pixmap_marks.draw_line(xgc, p[0], p[1] - 2, p[0], p[1] + 3) #  |
+			self.pixmap_marks.draw_line(xgc, p[0] - 2, p[1], p[0] + 3, p[1]) # ---
 
 		# draw additional waypoints
 		# --> print description!
 		if self.current_cache != None and self.current_cache.get_waypoints() != None:
 			xgc.set_function(gtk.gdk.AND)
-			xgc.set_rgb_fg_color(gtk.gdk.color_parse('red'))
+			xgc.set_rgb_fg_color(self.COLOR_WAYPOINTS)
+			xgc.line_width = 1
+			radius = 4
 			num = 0
 			for w in self.current_cache.get_waypoints():
 				if w['lat'] != -1 and w['lon'] != -1:
 					num = num + 1
-					xgc.line_width = 1
-					radius = 4
 					p = self.__coord2point(geo.Coordinate(w['lat'], w['lon']))
 					self.pixmap_marks.draw_line(xgc, p[0], p[1] - 3, p[0], p[1] + 4) #  |
 					self.pixmap_marks.draw_line(xgc, p[0] - 3, p[1], p[0] + 4, p[1]) # ---
 					self.pixmap_marks.draw_arc(xgc, False, p[0] - radius, p[1] - radius, radius*2, radius*2, 0, 360*64)
 					layout = self.drawing_area.create_pango_layout('')
 					layout.set_markup('<i>%s</i>' % (w['id']))
-					layout.set_font_description(font)
+					layout.set_font_description(self.CACHE_DRAW_FONT)
 					self.pixmap_marks.draw_layout(xgc, p[0] + 3 + radius, p[1] - 3 - radius, layout)
 		
 			
@@ -725,7 +734,7 @@ class SimpleGui():
 				radius_o = 10
 				radius_i = 3
 				xgc.set_function(gtk.gdk.INVERT)
-				xgc.set_rgb_fg_color(gtk.gdk.color_parse("black"))
+				xgc.set_rgb_fg_color(self.COLOR_TARGET)
 				self.pixmap_marks.draw_line(xgc, t[0] - radius_o, t[1], t[0] - radius_i, t[1])
 				self.pixmap_marks.draw_line(xgc, t[0] + radius_o, t[1], t[0] + radius_i, t[1])
 				self.pixmap_marks.draw_line(xgc, t[0], t[1] + radius_o, t[0], t[1] + radius_i)
@@ -739,14 +748,14 @@ class SimpleGui():
 			# if we have a position, draw a black cross
 			p = self.__coord2point(self.gps_data['position'])
 			if p != False:
-				
+				self.gps_last_position = p
 				if self.point_in_screen(p):
 		
 					xgc.line_width = 2	
 					radius_o = 20
 					radius_i = 7
 					xgc.set_function(gtk.gdk.COPY)
-					xgc.set_rgb_fg_color(gtk.gdk.color_parse("red"))
+					xgc.set_rgb_fg_color(self.COLOR_CURRENT_POSITION)
 				
 					# \  /
 					#
@@ -774,7 +783,7 @@ class SimpleGui():
 				if t != False:
 					xgc.line_width = 5		
 					xgc.set_function(gtk.gdk.AND_INVERT)
-					xgc.set_rgb_fg_color(gtk.gdk.color_parse("blue"))
+					xgc.set_rgb_fg_color(self.COLOR_LINE_INVERT)
 					if self.point_in_screen(t) and self.point_in_screen(p):
 						self.pixmap_marks.draw_line(xgc, p[0], p[1], t[0], t[1])
 					elif self.point_in_screen(p):
@@ -793,7 +802,7 @@ class SimpleGui():
 		# draw cross across the screen
 		xgc.line_width = 1
 		xgc.set_function(gtk.gdk.INVERT)
-		xgc.set_rgb_fg_color(gtk.gdk.color_parse("black"))
+		xgc.set_rgb_fg_color(self.COLOR_CROSSHAIR)
 
 		radius_inner = 30
 		self.pixmap_marks.draw_line(xgc, self.map_width/2, 0, self.map_width/2, self.map_height/2 - radius_inner)
@@ -810,25 +819,23 @@ class SimpleGui():
 		if self.inhibit_expose or self.dragging:
 			return
 		x , y, width, height = event.area
-		try:
-			openstreetmap.TileLoader.drawlock.acquire()
-			gc = widget.get_style().fg_gc[gtk.STATE_NORMAL]
-			gc.set_function(gtk.gdk.COPY)
-			widget.window.draw_drawable(gc,
-				self.pixmap, x, y, self.draw_root_x + self.draw_at_x  + x , self.draw_root_y + self.draw_at_y + y, -1, -1)
-			gc.set_function(gtk.gdk.AND)
-			widget.window.draw_drawable(gc,
-				self.pixmap_marks, x, y, self.draw_root_x + self.draw_at_x  + x , self.draw_root_y + self.draw_at_y + y, -1, -1)
-			gc.set_function(gtk.gdk.COPY)
-		finally:
-			openstreetmap.TileLoader.drawlock.release()
+
+		#gc = widget.get_style().fg_gc[gtk.STATE_NORMAL]
+		#gc.set_function(gtk.gdk.COPY)
+		widget.window.draw_drawable(self.xgc,
+			self.pixmap, x, y, self.draw_root_x + self.draw_at_x  + x , self.draw_root_y + self.draw_at_y + y, width, height)
+		self.xgc.set_function(gtk.gdk.AND)
+		widget.window.draw_drawable(self.xgc,
+			self.pixmap_marks, x, y, self.draw_root_x + self.draw_at_x  + x , self.draw_root_y + self.draw_at_y + y, width, height)
+		self.xgc.set_function(gtk.gdk.COPY)
+		
 		return False
 		
 	
 	def expose_event_arrow(self, widget, event):
 		x , y, width, height = event.area
-		widget.window.draw_drawable(widget.get_style().fg_gc[gtk.STATE_NORMAL],
-			self.pixmap_arrow, x, y, x , y, -1, -1)
+		widget.window.draw_drawable(self.xgc_arrow,
+			self.pixmap_arrow, x, y, x , y, width, height)
 		return False
 
 
@@ -925,6 +932,11 @@ class SimpleGui():
 		
 		
 	def redraw_marks(self):
+
+		import inspect
+		def whosdaddy():
+		    return inspect.stack()[2][3]
+		print 'drawing called by %s' % whosdaddy()
 		self.__draw_marks()
 		self.refresh()
 	
@@ -1542,7 +1554,7 @@ class UpdownRows():
 		
 		chooser = []
 		cn = 0
-		for i in range(1, num + len(interrupt) + 1):
+		for i in xrange(1, num + len(interrupt) + 1):
 			if i in interrupt:
 				table.attach(gtk.Label(interrupt[i]), i, i+1, 1, 2)
 			else:
