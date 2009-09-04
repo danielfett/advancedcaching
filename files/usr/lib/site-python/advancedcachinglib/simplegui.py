@@ -235,18 +235,6 @@ class SimpleGui():
 		#
 		# setting up TABLES
 		#
-		"""
-		strings = self.pointprovider.get_titles_and_names()
-		liststore = gtk.ListStore(gobject.TYPE_STRING)
-		for string in strings:
-			liststore.append([string])
-		comp = xml.get_widget('entrycompletion_search')
-		entry = xml.get_widget('entry_search')
-		entry.set_completion(comp)
-		comp.set_model(liststore)
-		comp.set_text_column(0)
-		self.entry_search = entry
-		"""
 		
 		# Create the renderer used in the listview
 		txtRdr	= gtk.CellRendererText()
@@ -267,28 +255,12 @@ class SimpleGui():
 			('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
 		)
 		self.cachelist = listview = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
-		xml.get_widget('scrolledwindow_search').add(listview)
 		listview.connect('extlistview-button-pressed', self.on_search_cache_clicked)
-		
-		# Create the renderer used in the listview for user defined points
-		"""
-		txtRdr	= gtk.CellRendererText()
-		pixbufRdr = gtk.CellRendererPixbuf()
-		(
-			ROW_COORD,
-			ROW_COMMENT,
-		) = range(2)
-		columns = (
-			('Position', [(txtRdr, gobject.TYPE_STRING)], (ROW_COORD), False, True),
-			('Kommentar', [(txtRdr, gobject.TYPE_STRING)], (ROW_COMMENT,), False, True),
-		)
-		self.userpointlist = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
-		xml.get_widget('scrolledwindow_userpoints').add(self.userpointlist)
-		"""
+		xml.get_widget('scrolledwindow_search').add(listview)
 		
 		# Create the renderer used in the listview for coordinates
 		
-		txtRdr	= gtk.CellRendererText()
+		#txtRdr	= gtk.CellRendererText()
 		#pixbufRdr = gtk.CellRendererPixbuf()
 		(
 			COL_COORD_NAME,
@@ -303,9 +275,10 @@ class SimpleGui():
 			('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT,), False, True),
 		)
 		self.coordlist = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
-		xml.get_widget('scrolledwindow_coordlist').add(self.coordlist)
 		self.coordlist.connect('extlistview-button-pressed', self.on_waypoint_clicked)
-		
+		xml.get_widget('scrolledwindow_coordlist').add(self.coordlist)
+
+		self.notebook_all.set_current_page(1)
 		gobject.timeout_add_seconds(10, self.__check_notes_save)
 
 
@@ -342,13 +315,14 @@ class SimpleGui():
 		self.draw_at_y = 0
 		self.draw_root_x = int(-width * self.MAP_FACTOR)
 		self.draw_root_y = int(-height * self.MAP_FACTOR)
+
 		self.__draw_map()
 		
 		
 	def __configure_event_arrow(self, widget, event):
 		x, y, width, height = widget.get_allocation()
 		self.pixmap_arrow = gtk.gdk.Pixmap(widget.window, width, height)
-		self.xgc_arrow = widget.window.new_gc()  # widget.get_style().fg_gc[gtk.STATE_NORMAL]
+		self.xgc_arrow = widget.window.new_gc()  
 		self.drawing_area_arrow_configured = True
 		
 		font = pango.FontDescription("Sans 9")
@@ -356,7 +330,7 @@ class SimpleGui():
 		self.north_indicator_layout.set_alignment(pango.ALIGN_CENTER)
 		self.north_indicator_layout.set_font_description(font)
 
-		self.__draw_arrow()
+		gobject.idle_add(self.__draw_arrow)
 		
 	def __coord2point(self, coord):
 		point = self.ts.deg2num(coord)
@@ -579,6 +553,7 @@ class SimpleGui():
 			return
 		#print 'begin draw marks'
 		self.__draw_marks()
+		
 		#print 'end draw marks'
 		
 		#self.xgc.set_function(gtk.gdk.COPY)
@@ -803,13 +778,13 @@ class SimpleGui():
 					if self.point_in_screen(t) and self.point_in_screen(p):
 						self.pixmap_marks.draw_line(xgc, p[0], p[1], t[0], t[1])
 					elif self.point_in_screen(p):
-						direction = math.radians(self.current_target.bearing_to(self.gps_data['position']))
+						direction = -math.radians(self.current_target.bearing_to(self.gps_data['position']))
 						# correct max length: sqrt(width**2 + height**2)
 						length = self.map_width
 						self.pixmap_marks.draw_line(xgc, p[0], p[1], int(p[0] + math.sin(direction) * length), int(p[1] + math.cos(direction) * length))
 					
 					elif self.point_in_screen(t):
-						direction = math.radians(self.gps_data['position'].bearing_to(self.current_target))
+						direction = -math.radians(self.gps_data['position'].bearing_to(self.current_target))
 						length = self.map_width + self.map_height
 						self.pixmap_marks.draw_line(xgc, t[0], t[1], int(t[0] + math.sin(direction) * length), int(t[1] + math.cos(direction) * length))
 					
@@ -1243,7 +1218,7 @@ class SimpleGui():
 		self.__draw_map()
 		
 	def show(self):
-		self.window.show_all()	
+		self.window.show_all()
 		gtk.main()
 		
 			

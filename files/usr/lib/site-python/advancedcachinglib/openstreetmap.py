@@ -194,21 +194,23 @@ class TileServer():
 		return 256
 		
 	def deg2tilenum(self, lat_deg, lon_deg):
-		lat_rad = lat_deg * math.pi / 180.0
-		n = 2.0 ** self.zoom
-		xtile = int((lon_deg + 180.0) / 360.0 * n)
+		#lat_rad = lat_deg * math.pi / 180.0
+		lat_rad = math.radians(lat_deg)
+		n = 2 ** self.zoom
+		xtile = int((lon_deg + 180) / 360 * n)
 		ytile = int((1.0 - math.log(math.tan(lat_rad) + (1.0 / math.cos(lat_rad))) / math.pi) / 2.0 * n)
 		return(xtile, ytile)
 		
 	def deg2num(self, coord):
-		lat_rad = (coord.lat * math.pi) / 180.0
-		n = 2.0 ** self.zoom
-		xtile = (coord.lon + 180.0) / 360.0 * n
+		lat_rad = math.radians(coord.lat)
+		#lat_rad = (coord.lat * math.pi) / 180.0
+		n = 2 ** self.zoom
+		xtile = (coord.lon + 180) / 360 * n
 		ytile = (1.0 - math.log(math.tan(lat_rad) + (1.0 / math.cos(lat_rad))) / math.pi) / 2.0 * n
 		return(xtile, ytile)
 		
 	def num2deg(self, xtile, ytile):
-		n = 2.0 ** self.zoom
+		n = 2 ** self.zoom
 		lon_deg = xtile / n * 360.0 - 180.0
 		lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * ytile / n)))
 		lat_deg = lat_rad * 180.0 / math.pi

@@ -7,10 +7,14 @@ import sqlite3
 import copy
 
 
+
 class PointProvider():
 	USER_AGENT='User-Agent: Mozilla/5.0 (X11; U; Linux i686; de; rv:1.9.0.12) Gecko/2009070811  Windows NT Firefox/3.1'
 
 	def __init__(self, filename, downloader, ctype, table):
+
+		self.dur_sum = self.dur_cnt = 0
+
 		self.filterstack = []
 		self.conn = sqlite3.connect(filename)
 		self.conn.row_factory = sqlite3.Row
@@ -199,16 +203,24 @@ class PointProvider():
 		
 		if location != None:
 			c1, c2 = location
-			filterstring.append('((lat BETWEEN ? AND ?) AND (lon BETWEEN ? AND ?))')
+			filterstring.append('(lat BETWEEN ? AND ?) AND (lon BETWEEN ? AND ?)')
 			filterargs.append(min(c1.lat, c2.lat))
 			filterargs.append(max(c1.lat, c2.lat))
 			filterargs.append(min(c1.lon, c2.lon))
 			filterargs.append(max(c1.lon, c2.lon))
 			
 		c = self.conn.cursor()
+		from datetime import datetime
 		query = 'SELECT * FROM %s WHERE %s' % (self.cache_table, " AND ".join(filterstring))
-		
+
+		print query
+		before = datetime.now()
 		c.execute(query, tuple(filterargs))
+		after = datetime.now()
+		print "duration: %d" % (after - before).microseconds
+		self.dur_sum += (after - before).microseconds
+		self.dur_cnt += 1
+		print "avg: %f" % (self.dur_sum/float(self.dur_cnt))
 		points = []
 		for row in c:
 			coord = self.ctype(row['lat'], row['lon'])

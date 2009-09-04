@@ -39,7 +39,7 @@ import os
 #import pstats
 
 
-if len(sys.argv) != 2:
+if len(sys.argv) < 2:
 	print "Usage: %s --desktop (not really implemented yet) or %s --simple" % (sys.argv[0], sys.argv[0])
 	exit()
 	
@@ -50,7 +50,7 @@ if arg == '--simple':
 else:
 	from advancedcachinglib import biggui
 	gui = biggui.BigGui
-	
+
 	
 class Standbypreventer():
 	STATUS_NONE = 0
@@ -335,8 +335,11 @@ class Core():
 	
 
 			
+def runit():
+	gtk.gdk.threads_init()
+	core = Core(gui)
 
-		
+
 if __name__ == "__main__":
 	gtk.gdk.threads_init()
 	core = Core(gui)
