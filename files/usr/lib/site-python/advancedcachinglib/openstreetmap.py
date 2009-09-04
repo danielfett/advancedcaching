@@ -1,14 +1,15 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import urllib
+import math
+import thread
+
+import geo
+import gobject
+import gtk
 import os
 import threading
-import thread
-import math
-import gobject
-import geo
-import gtk
+import urllib
 
 class TileLoader(threading.Thread):
 	downloading = []

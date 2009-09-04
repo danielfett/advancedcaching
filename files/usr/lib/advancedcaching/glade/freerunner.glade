@@ -16,8 +16,8 @@
             <property name="height_request">600</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
+            <property name="scrollable">True</property>
             <property name="tab_hborder">6</property>
-            <property name="homogeneous">True</property>
             <child>
               <widget class="GtkViewport" id="viewport1">
                 <property name="visible">True</property>
@@ -1115,14 +1115,16 @@ search</property>
                               </packing>
                             </child>
                             <child>
-                              <widget class="GtkLabel" id="label31">
+                              <widget class="GtkTextView" id="textview1">
                                 <property name="visible">True</property>
-                                <property name="xalign">0</property>
-                                <property name="label" translatable="yes">after uploading, field notes are available at your profile page</property>
+                                <property name="sensitive">False</property>
+                                <property name="can_focus">True</property>
+                                <property name="editable">False</property>
+                                <property name="wrap_mode">word</property>
+                                <property name="cursor_visible">False</property>
+                                <property name="text" translatable="yes">After uploading, fieldnotes can be accessed through your profile page. They are private and can be used as a template for a log entry.</property>
                               </widget>
                               <packing>
-                                <property name="expand">False</property>
-                                <property name="padding">3</property>
                                 <property name="position">2</property>
                               </packing>
                             </child>
@@ -1311,7 +1313,7 @@ search</property>
             <child>
               <widget class="GtkLabel" id="label5">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">sync</property>
+                <property name="label" translatable="yes">synchronize</property>
               </widget>
               <packing>
                 <property name="position">4</property>
@@ -1555,7 +1557,7 @@ search</property>
             <child>
               <widget class="GtkLabel" id="label6">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">opt.</property>
+                <property name="label" translatable="yes">options</property>
               </widget>
               <packing>
                 <property name="position">5</property>
@@ -1619,6 +1621,19 @@ search</property>
         <property name="label" translatable="yes">fetch details for visible</property>
         <property name="use_underline">True</property>
         <signal name="activate" handler="on_download_details_map_clicked"/>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkSeparatorMenuItem" id="menuitem3">
+        <property name="visible">True</property>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkMenuItem" id="menu_action_set_target_center">
+        <property name="visible">True</property>
+        <property name="label" translatable="yes">set center as target</property>
+        <property name="use_underline">True</property>
+        <signal name="activate" handler="on_set_target_center"/>
       </widget>
     </child>
   </widget>

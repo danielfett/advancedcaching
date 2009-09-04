@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import socket
 import geo
+import socket
 
 class GpsReader():
 
@@ -27,9 +27,9 @@ class GpsReader():
 	
 	def connect(self):
 		try:
-			global gpsd_connection
-			gpsd_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-			gpsd_connection.connect(("127.0.0.1", 2947))
+			
+			self.gpsd_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+			self.gpsd_connection.connect(("127.0.0.1", 2947))
 			self.status = "connected"
 			self.connected = True
 		except:
@@ -43,10 +43,10 @@ class GpsReader():
 				self.connect()
 				if not self.connected:
 					return self.EMPTY
-			gpsd_connection.send("%s\r\n" % 'o')
-			data = gpsd_connection.recv(512)
-			gpsd_connection.send("%s\r\n" % 'y')
-			quality_data = gpsd_connection.recv(512)
+			self.gpsd_connection.send("%s\r\n" % 'o')
+			data = self.gpsd_connection.recv(512)
+			self.gpsd_connection.send("%s\r\n" % 'y')
+			quality_data = self.gpsd_connection.recv(512)
 			# 1: Parse Quality Data
 			
 			# example output:

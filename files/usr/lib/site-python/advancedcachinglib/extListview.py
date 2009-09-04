@@ -47,10 +47,16 @@
 #   * Added a call to set_cursor() when unselecting all rows upon clicking on the empty area
 #   * Sort indicators are now displayed whenever needed
 
-import gtk, random
-
-from gtk     import gdk
-from gobject import signal_new, TYPE_INT, TYPE_STRING, TYPE_BOOLEAN, TYPE_PYOBJECT, TYPE_NONE, SIGNAL_RUN_LAST
+from gobject import SIGNAL_RUN_LAST
+from gobject import TYPE_BOOLEAN
+from gobject import TYPE_INT
+from gobject import TYPE_NONE
+from gobject import TYPE_PYOBJECT
+from gobject import TYPE_STRING
+from gobject import signal_new
+import gtk
+from gtk import gdk
+import random
 
 
 # Internal d'n'd (reordering)

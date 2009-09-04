@@ -2,9 +2,10 @@
 # -*- coding: utf-8 -*-
 
 import json
+
 import geo
-import string
 import os
+import string
 
 try:
 	import Image
@@ -115,7 +116,7 @@ class FieldnotesUploader():
 		elif geocache.log_as == GeocacheCoordinate.LOG_AS_NOTE:
 			log = "Write note"
 		else:
-			raise Exception("Illegal status: %s" % log_as)
+			raise Exception("Illegal status: %s" % self.log_as)
 
 		text = geocache.fieldnotes.replace('"', "'")
 

@@ -22,33 +22,33 @@
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime
 
 # todo:
-# don't draw map when not mapped
 # add translation support?
 # download in seperate thread?
 # parse attributes
-# fix drawing while drawing map
 # add "next waypoint" button
 # don't decrypt text in []
 # add description to displayed images
 # rewrite downloader and exporter (download images in downloader)
-# add field notes tab
 
  
 ### For the gui :-)
+import math
+import thread
+from time import gmtime
+from time import strftime
+
+from advancedcachinglib import extListview
+from advancedcachinglib import geo
+from advancedcachinglib import geocaching
+from advancedcachinglib import openstreetmap
+import gobject
 import gtk
 import gtk.glade
-import gobject
-import pango
-import os
-import thread
-from time import gmtime, strftime
-import re
-
 from htmlentitydefs import name2codepoint as n2cp
-
-import math
-
-from advancedcachinglib import *
+import os
+import pango
+import re
+#from advancedcachinglib import *
 
 
 class SimpleGui():
@@ -147,6 +147,7 @@ class SimpleGui():
 			'on_download_clicked' : self.on_download_clicked,
 			'on_download_details_sync_clicked' : self.on_download_details_sync_clicked,
 			'on_show_target_clicked' : self.on_show_target_clicked,
+			'on_set_target_center' : self.on_set_target_center,
 
 		})
 
@@ -543,8 +544,14 @@ class SimpleGui():
 	def __drag_draw(self):
 		if not self.dragging:
 			return False
-		#if abs(self.drag_offset_x) < 3 or abs(self.drag_offset_y) < 3:
-		#	return
+
+		delta = math.sqrt((self.last_drag_offset_x - self.drag_offset_x)**2 + (self.last_drag_offset_y - self.drag_offset_y)**2 )
+		if delta < 5:
+			return True
+
+		self.last_drag_offset_x = self.drag_offset_x
+		self.last_drag_offset_y = self.drag_offset_y
+
 		x, y, width, height = self.drawing_area.get_allocation()
 		#gc = widget.get_style().fg_gc[gtk.STATE_NORMAL]
 		self.drawing_area.window.draw_drawable(self.xgc,
@@ -825,7 +832,7 @@ class SimpleGui():
 		return False	
 	
 	def expose_event(self, widget, event):
-		if self.inhibit_expose:
+		if self.inhibit_expose or self.dragging:
 			return
 		x , y, width, height = event.area
 		try:
@@ -1065,6 +1072,9 @@ class SimpleGui():
 			self.set_target(self.current_cache)	
 			self.notebook_all.set_current_page(2)
 
+	def on_set_target_center(self, something):
+		self.set_target(self.ts.num2deg(self.map_center_x, self.map_center_y))
+
 	def on_show_target_clicked(self, some):
 		if self.current_target == None:
 			return
@@ -1274,6 +1284,10 @@ class SimpleGui():
 			text_longdesc = '(no description available)'
 		self.cache_elements['desc'].set_text(text_shortdesc + "\n\n" + text_longdesc)
 
+		# Set View
+		self.notebook_cache.set_current_page(0)
+		self.notebook_all.set_current_page(2)
+		
 		self.do_events()
 
 		# hints
@@ -1319,11 +1333,8 @@ class SimpleGui():
 		self.load_images()
 		self.image_no = 0
 
-		# Set View
-		self.notebook_cache.set_current_page(0)
-		self.notebook_all.set_current_page(2)
-		
-		self.__draw_map()
+		gobject.idle_add(self.__draw_marks)
+		self.refresh()
 		
 	def show_error(self, errormsg):
 		error_dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR

@@ -22,17 +22,21 @@
 
 ### For loading the conf file
 #from advancedcachinglib.geocaching import FieldnotesUploader
-import os
-import sys
-import gtk
-import gobject
 import json
+import sys
+
+sys.path.append('/usr/lib/site-python')
+
+from advancedcachinglib import downloader
+from advancedcachinglib import geocaching
+from advancedcachinglib import gpsreader
+from advancedcachinglib import provider
+import gobject
+import gtk
+import os
 
 #import cProfile
 #import pstats
-
-sys.path.append('/usr/lib/site-python')
-from advancedcachinglib import provider, openstreetmap, extListview, downloader, geo, geocaching, gpsreader
 
 
 if len(sys.argv) != 2:
@@ -124,7 +128,8 @@ class Core():
 		
 		#pointprovider = LiveCacheProvider()
 		self.pointprovider = provider.PointProvider("%s/caches.db" % self.SETTINGS_DIR, self.downloader, geocaching.GeocacheCoordinate, 'geocaches')
-		self.userpointprovider = provider.PointProvider("%s/caches.db" % self.SETTINGS_DIR, self.downloader, geo.Coordinate, 'userpoints')
+		#self.userpointprovider = provider.PointProvider("%s/caches.db" % self.SETTINGS_DIR, self.downloader, geo.Coordinate, 'userpoints')
+		self.userpointprovider = None
 		#pointprovider = PointProvider(':memory:', self.downloader)
 		#reader = GpxReader(pointprovider)
 		#reader.read_file('../../file.loc')
@@ -265,7 +270,7 @@ class Core():
 		self.__write_config()
 		
 	def on_upload_fieldnotes(self):
-		self.gui.set_download_progress(0.5, "Downloading %s..." % cache.name)
+		self.gui.set_download_progress(0.5, "Uploading Fieldnotes...")
 
 		caches = self.pointprovider.get_new_fieldnotes()
 		fn = geocaching.FieldnotesUploader(self.downloader)
