@@ -69,7 +69,7 @@ signal_new('extlistview-dnd', gtk.TreeView, SIGNAL_RUN_LAST, TYPE_NONE, (gdk.Dra
 signal_new('extlistview-modified', gtk.TreeView, SIGNAL_RUN_LAST, TYPE_NONE, ())
 signal_new('extlistview-button-pressed', gtk.TreeView, SIGNAL_RUN_LAST, TYPE_NONE, (gdk.Event, TYPE_PYOBJECT))
 signal_new('extlistview-column-visibility-changed', gtk.TreeView, SIGNAL_RUN_LAST, TYPE_NONE, (TYPE_STRING, TYPE_BOOLEAN))
-signal_new('button-press-event', gtk.TreeViewColumn, SIGNAL_RUN_LAST, TYPE_NONE, (gdk.Event, ))
+signal_new('button-press-event', gtk.TreeViewColumn, SIGNAL_RUN_LAST, TYPE_NONE, (gdk.Event,))
 
 
 class ExtListViewColumn(gtk.TreeViewColumn):
@@ -80,9 +80,9 @@ class ExtListViewColumn(gtk.TreeViewColumn):
         Most of the code of this class comes from Quod Libet (http://www.sacredchao.net/quodlibet)
     """
 
-    def __init__(self, title=None, cell_renderer=None, **args):
+    def __init__(self, title=None, cell_renderer=None, ** args):
         """ Constructor, see gtk.TreeViewColumn """
-        gtk.TreeViewColumn.__init__(self, title, cell_renderer, **args)
+        gtk.TreeViewColumn.__init__(self, title, cell_renderer, ** args)
         label = gtk.Label(title)
         self.set_widget(label)
         label.show()
@@ -156,7 +156,7 @@ class ExtListView(gtk.TreeView):
                     elif isinstance(renderer, gtk.CellRendererPixbuf): column.add_attribute(renderer, 'pixbuf', nbEntries-1)
                     elif isinstance(renderer, gtk.CellRendererText):
                         if useMarkup: column.add_attribute(renderer, 'markup', nbEntries-1)
-                        else:         column.add_attribute(renderer, 'text',   nbEntries-1)
+                        else:         column.add_attribute(renderer, 'text', nbEntries-1)
 
         # Mark management
         self.markedRow  = None
@@ -177,10 +177,10 @@ class ExtListView(gtk.TreeView):
         if len(dndTargets) != 0:
             self.enable_model_drag_dest(dndTargets, gdk.ACTION_DEFAULT)
 
-        self.connect('drag-begin',           self.onDragBegin)
-        self.connect('drag-motion',          self.onDragMotion)
-        self.connect('button-press-event',   self.onButtonPressed)
-        self.connect('drag-data-received',   self.onDragDataReceived)
+        self.connect('drag-begin', self.onDragBegin)
+        self.connect('drag-motion', self.onDragMotion)
+        self.connect('button-press-event', self.onButtonPressed)
+        self.connect('drag-data-received', self.onDragDataReceived)
         self.connect('button-release-event', self.onButtonReleased)
 
         # Show the list
@@ -294,7 +294,7 @@ class ExtListView(gtk.TreeView):
             self.sortAscending = True
 
         # Dump the rows, sort them, and reorder the list
-        rows     = [tuple(r) + (i,) for i, r in enumerate(self.store)]
+        rows     = [tuple(r) + (i, ) for i, r in enumerate(self.store)]
         criteria = self.sortColCriteria[column]
         rows.sort(lambda r1, r2: self.__cmpRows(r1, r2, criteria, self.sortAscending))
         self.store.reorder([r[-1] for r in rows])
@@ -442,7 +442,7 @@ class ExtListView(gtk.TreeView):
             return
 
         # Insert the additional column used for the mark management
-        if type(rows[0]) is tuple: rows[:] = [row + (False,) for row in rows]
+        if type(rows[0]) is tuple: rows[:] = [row + (False, ) for row in rows]
         else:                      rows[:] = [row + [False] for row in rows]
 
         # Move the mark if needed
@@ -525,7 +525,7 @@ class ExtListView(gtk.TreeView):
             srcPath = self.store.get_path(srcIter)[0]
 
             if self.__isDropAfter(pos):
-                dstIter = self.store.insert_after(self.store.get_iter(path),  self.store[srcIter])
+                dstIter = self.store.insert_after(self.store.get_iter(path), self.store[srcIter])
             else:
                 dstIter = self.store.insert_before(self.store.get_iter(path), self.store[srcIter])
                 if path == srcPath:
@@ -606,7 +606,7 @@ class ExtListView(gtk.TreeView):
 
     def onDragBegin(self, tree, context):
         """ A drag'n'drop operation has begun """
-        if self.getSelectedRowsCount() == 1: context.set_icon_stock(gtk.STOCK_DND,          0, 0)
+        if self.getSelectedRowsCount() == 1: context.set_icon_stock(gtk.STOCK_DND, 0, 0)
         else:                                context.set_icon_stock(gtk.STOCK_DND_MULTIPLE, 0, 0)
 
 
