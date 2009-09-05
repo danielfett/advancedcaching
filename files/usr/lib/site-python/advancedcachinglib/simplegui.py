@@ -332,14 +332,13 @@ class SimpleGui():
 	self.draw_root_x = int(-width * self.MAP_FACTOR)
 	self.draw_root_y = int(-height * self.MAP_FACTOR)
 
-	self.__draw_map()
+	gobject.idle_add(self.__draw_map)
 		
 		
     def __configure_event_arrow(self, widget, event):
 	x, y, width, height = widget.get_allocation()
 	self.pixmap_arrow = gtk.gdk.Pixmap(widget.window, width, height)
 	self.xgc_arrow = widget.window.new_gc()
-	self.drawing_area_arrow_configured = True
 
 	if self.pixmap_north_indicator == None:
 	    # prepare font
@@ -359,6 +358,7 @@ class SimpleGui():
 	    # print "%d %d" %((self.NORTH_INDICATOR_SIZE - x / pango.SCALE) / 2, (self.NORTH_INDICATOR_SIZE - y / pango.SCALE) / 2)
 
 
+	self.drawing_area_arrow_configured = True
 	gobject.idle_add(self.__draw_arrow)
 		
     def __coord2point(self, coord):
@@ -425,13 +425,9 @@ class SimpleGui():
 	self.cachelist.replaceContent(rows)
 
 
-    def __draw_arrow(self):
-	import time
-	print "ad", time.time()
+    def __draw_arrow(self):		
 	if not self.drawing_area_arrow_configured:
 	    return
-		
-		
 	widget = self.drawing_area_arrow
 	x, y, width, height = widget.get_allocation()
 			
@@ -812,15 +808,15 @@ class SimpleGui():
 		    if self.point_in_screen(t) and self.point_in_screen(p):
 			self.pixmap_marks.draw_line(xgc, p[0], p[1], t[0], t[1])
 		    elif self.point_in_screen(p):
-			direction = -math.radians(self.current_target.bearing_to(self.gps_data['position']))
+			direction = math.radians(self.current_target.bearing_to(self.gps_data['position']))
 			# correct max length: sqrt(width**2 + height**2)
 			length = self.map_width
-			self.pixmap_marks.draw_line(xgc, p[0], p[1], int(p[0] + math.sin(direction) * length), int(p[1] + math.cos(direction) * length))
+			self.pixmap_marks.draw_line(xgc, p[0], p[1], int(p[0] - math.sin(direction) * length), int(p[1] + math.cos(direction) * length))
 					
 		    elif self.point_in_screen(t):
-			direction = -math.radians(self.gps_data['position'].bearing_to(self.current_target))
+			direction = math.radians(self.gps_data['position'].bearing_to(self.current_target))
 			length = self.map_width + self.map_height
-			self.pixmap_marks.draw_line(xgc, t[0], t[1], int(t[0] + math.sin(direction) * length), int(t[1] + math.cos(direction) * length))
+			self.pixmap_marks.draw_line(xgc, t[0], t[1], int(t[0] - math.sin(direction) * length), int(t[1] + math.cos(direction) * length))
 					
 				
 
