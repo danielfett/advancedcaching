@@ -74,6 +74,13 @@ class SimpleGui():
 	COLOR_CROSSHAIR = gtk.gdk.color_parse("black")
 	COLOR_LINE_INVERT = gtk.gdk.color_parse("blue")
 
+	# arrow colors and sizes
+	COLOR_ARROW_DEFAULT = gtk.gdk.color_parse("green")
+	COLOR_ARROW_NEAR = gtk.gdk.color_parse("orange")
+	COLOR_ARROW_ATTARGET = gtk.gdk.color_parse("red")
+	COLOR_ARROW_DISABLED = gtk.gdk.color_parse("red")
+	COLOR_ARROW_NORTH = gtk.gdk.color_parse("black")
+	NORTH_INDICATOR_SIZE = 30
 	
 	SETTINGS_CHECKBOXES = [
 		'download_visible',
@@ -116,6 +123,7 @@ class SimpleGui():
 		self.image_no = 0
 		self.images = []
 		
+		self.pixmap_north_indicator = None
 		self.drawing_area_configured = self.drawing_area_arrow_configured = False
 		self.drag_offset_x = 0
 		self.drag_offset_y = 0
@@ -260,12 +268,12 @@ class SimpleGui():
 			ROW_TITLE,
 		) = range(6)
 		columns = (
+			('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
 			('typ', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
 			('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE,ROW_ID), False, True),
 			('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN,ROW_ID), False, True),
 			('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF,ROW_ID), False, True),
 			('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
-			('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
 		)
 		self.cachelist = listview = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
 		listview.connect('extlistview-button-pressed', self.on_search_cache_clicked)
@@ -303,26 +311,21 @@ class SimpleGui():
 
 	def __check_notes_save(self):
 		if self.current_cache != None and self.notes_changed:
-			self.pointprovider.update_field(self.current_cache, 'notes', self.cache_elements['notes'].get_text(self.cache_elements['notes'].get_start_iter(), self.cache_elements['notes'].get_end_iter()))
+			self.core.on_notes_changed(self.current_cache, self.cache_elements['notes'].get_text(self.cache_elements['notes'].get_start_iter(), self.cache_elements['notes'].get_end_iter()))
 			self.notes_changed = False
 
 		if self.current_cache != None and self.fieldnotes_changed:
-			self.pointprovider.update_field(self.current_cache, 'fieldnotes', self.cache_elements['fieldnotes'].get_text(self.cache_elements['fieldnotes'].get_start_iter(), self.cache_elements['fieldnotes'].get_end_iter()))
+			self.core.on_fieldnotes_changed(self.current_cache, self.cache_elements['fieldnotes'].get_text(self.cache_elements['fieldnotes'].get_start_iter(), self.cache_elements['fieldnotes'].get_end_iter()))
 			self.fieldnotes_changed = False
 		
 	def __configure_event(self, widget, event):
 		x, y, width, height = widget.get_allocation()
 		self.map_width = int(width  + 2 * width * self.MAP_FACTOR)
 		self.map_height = int(height + 2 * height * self.MAP_FACTOR)
-		#try:
-		#	openstreetmap.TileLoader.drawlock.acquire()
 		self.pixmap = gtk.gdk.Pixmap(widget.window, self.map_width, self.map_height)
-		#finally:
-		#	openstreetmap.TileLoader.drawlock.release()
 			
 		self.pixmap_marks = gtk.gdk.Pixmap(widget.window, self.map_width, self.map_height)
-		self.xgc = widget.window.new_gc() #widget.get_style().fg_gc[gtk.STATE_NORMAL]
-		#xgc.line_width = 3
+		self.xgc = widget.window.new_gc()
 		self.drawing_area_configured = True
 		self.draw_at_x = 0
 		self.draw_at_y = 0
@@ -337,11 +340,24 @@ class SimpleGui():
 		self.pixmap_arrow = gtk.gdk.Pixmap(widget.window, width, height)
 		self.xgc_arrow = widget.window.new_gc()  
 		self.drawing_area_arrow_configured = True
-		
-		font = pango.FontDescription("Sans 9")
-		self.north_indicator_layout = widget.create_pango_layout("N")
-		self.north_indicator_layout.set_alignment(pango.ALIGN_CENTER)
-		self.north_indicator_layout.set_font_description(font)
+
+		if self.pixmap_north_indicator == None:
+		    # prepare font
+		    font = pango.FontDescription("Sans 9")
+		    north_indicator_layout = widget.create_pango_layout("N")
+		    north_indicator_layout.set_alignment(pango.ALIGN_CENTER)
+		    north_indicator_layout.set_font_description(font)
+
+		    self.pixmap_north_indicator = gtk.gdk.Pixmap(widget.window, self.NORTH_INDICATOR_SIZE, self.NORTH_INDICATOR_SIZE)
+		    self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
+		    self.pixmap_north_indicator.draw_rectangle(self.xgc_arrow, True, 0, 0, self.NORTH_INDICATOR_SIZE, self.NORTH_INDICATOR_SIZE)
+		    #self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
+		    #self.pixmap_north_indicator.draw_arc(self.xgc_arrow, True, 0, 0, self.NORTH_INDICATOR_SIZE, self.NORTH_INDICATOR_SIZE, 0, 64 * 360)
+		    x, y = north_indicator_layout.get_size()
+		    self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("yellow"))
+		    self.pixmap_north_indicator.draw_layout(self.xgc_arrow, (self.NORTH_INDICATOR_SIZE - x / pango.SCALE) / 2, (self.NORTH_INDICATOR_SIZE - y / pango.SCALE) / 2, north_indicator_layout)
+		    # print "%d %d" %((self.NORTH_INDICATOR_SIZE - x / pango.SCALE) / 2, (self.NORTH_INDICATOR_SIZE - y / pango.SCALE) / 2)
+
 
 		gobject.idle_add(self.__draw_arrow)
 		
@@ -405,10 +421,13 @@ class SimpleGui():
 			else:
 				t = "%.1f" % r.terrain
 			
-			rows.append((r.type, s, t, d, r.name, r.title))
+			rows.append((r.title, r.type, s, t, d, r.name, ))
 		self.cachelist.replaceContent(rows)
-		
+
+
 	def __draw_arrow(self):
+		import time
+		print "ad", time.time()
 		if not self.drawing_area_arrow_configured:
 			return
 		
@@ -421,15 +440,18 @@ class SimpleGui():
 			disabled = True
 		if not self.gps_has_fix:
 			disabled = True
-		
+			
+		self.pixmap_arrow.draw_rectangle(widget.get_style().bg_gc[gtk.STATE_NORMAL],
+			True, 0, 0, width, height)
+
 		if disabled:	
-			self.pixmap_arrow.draw_rectangle(self.xgc_arrow,
-				True, 0, 0, width, height)
-			self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("red"))
+			#self.pixmap_arrow.draw_rectangle(self.xgc_arrow,
+			#	True, 0, 0, width, height)
+			self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_DISABLED)
 			self.pixmap_arrow.draw_line(self.xgc_arrow, 0, 0, width, height)
 			self.pixmap_arrow.draw_line(self.xgc_arrow, 0, height, width, 0)
 			self.drawing_area_arrow.queue_draw()
-			self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
+			#self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
 		
 			return False
 
@@ -439,52 +461,55 @@ class SimpleGui():
 		display_distance = self.gps_data['position'].distance_to(self.current_target)
 		display_north = math.radians(self.gps_data['bearing'])
 
-		self.pixmap_arrow.draw_rectangle(widget.get_style().bg_gc[gtk.STATE_NORMAL],
-			True, 0, 0, width, height)
+		
 		# draw north indicator
-		self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
+		self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_NORTH)
 		self.xgc_arrow.line_width = 3
 		indicator_radius = 30
-		indicator_dist = height/2 - indicator_radius/2
-		center_x, center_y = width/2, height/2
-		self.pixmap_arrow.draw_arc(self.xgc_arrow, False, center_x - indicator_dist, center_y - indicator_dist, indicator_dist * 2, indicator_dist * 2, 0, 64*360)
+		indicator_dist = height / 2 - indicator_radius / 2
+		center_x, center_y = width / 2, height / 2
 
+		#  outer circle
 		
-		position_x = width/2 - math.sin(display_north)*indicator_dist
-		position_y = height/2 - math.cos(display_north)*indicator_dist
-		self.pixmap_arrow.draw_arc(self.xgc_arrow, True, position_x - indicator_radius/2, position_y - indicator_radius/2, indicator_radius, indicator_radius, 0, 64*360)
-		self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("red"))
-		#self.pixmap_arrow.draw_point(self.xgc_arrow, position_x, position_y)
-		self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("white"))
-		x, y = self.north_indicator_layout.get_size()
-		self.pixmap_arrow.draw_layout(self.xgc_arrow, position_x - x/(2*pango.SCALE), position_y - y/(2*pango.SCALE), self.north_indicator_layout)
 
+		self.pixmap_arrow.draw_arc(self.xgc_arrow, False, center_x - indicator_dist, center_y - indicator_dist, indicator_dist * 2, indicator_dist * 2, 0, 64 * 360)
+		#position_x - indicator_radius / 2, position_y - indicator_radius / 2,
+		
+		position_x = width / 2 - math.sin(display_north) * indicator_dist
+		position_y = height / 2 - math.cos(display_north) * indicator_dist
+		self.xgc_arrow.set_function(gtk.gdk.OR)
+		self.pixmap_arrow.draw_drawable(self.xgc_arrow, self.pixmap_north_indicator, 0, 0, position_x - self.NORTH_INDICATOR_SIZE/2, position_y - self.NORTH_INDICATOR_SIZE/2, -1, -1)
+		self.xgc_arrow.set_function(gtk.gdk.COPY)
 
 
 		if (display_distance < 50):
-			color = "red"
+			color = self.COLOR_ARROW_ATTARGET
 		elif (display_distance < 150):
-			color = "orange"
+			color = self.COLOR_ARROW_NEAR
 		else:
-			color = "green"
+			color = self.COLOR_ARROW_DEFAULT
 	
 		
-		self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse(color))
+		self.xgc_arrow.set_rgb_fg_color(color)
 
-		
-			
-		arrow_transformed = self.__get_arrow_transformed(x, y, width, height, display_bearing)
-			
-		
-		self.xgc_arrow.line_style = gtk.gdk.LINE_SOLID
-		self.xgc_arrow.line_width = 5
-		self.pixmap_arrow.draw_polygon(self.xgc_arrow, True, arrow_transformed)
-		self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
-		self.pixmap_arrow.draw_polygon(self.xgc_arrow, False, arrow_transformed)
+		if display_distance > 5:
+		    arrow_transformed = self.__get_arrow_transformed(x, y, width, height, display_bearing)
+		    #self.xgc_arrow.line_style = gtk.gdk.LINE_SOLID
+		    self.xgc_arrow.line_width = 5
+		    self.pixmap_arrow.draw_polygon(self.xgc_arrow, True, arrow_transformed)
+		    self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
+		    self.pixmap_arrow.draw_polygon(self.xgc_arrow, False, arrow_transformed)
+		else:
+		    # if we are closer than 5 meters, the arrow will almost certainlys
+		    # point into the wron direction. therefore, we don't draw the arrow.
+		    circle_size = max(height/3, width/3)
+		    self.pixmap_arrow.draw_arc(self.xgc_arrow, True, width/2 - circle_size/2, height/2 - circle_size/2, circle_size, circle_size, 0, 64 * 360)
+		    self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
+		    self.pixmap_arrow.draw_arc(self.xgc_arrow, False, width/2 - circle_size/2, height/2 - circle_size/2, circle_size, circle_size, 0, 64 * 360)
 
 		
 		self.drawing_area_arrow.queue_draw()
-		return True
+		return False
 
 	def __get_arrow_transformed(self, x, y, width, height, angle):
 		u = 1.0/3.0 # Offset to center of arrow, calculated as 2-x = sqrt(1^2+(x+1)^2)
@@ -933,10 +958,6 @@ class SimpleGui():
 		
 	def redraw_marks(self):
 
-		import inspect
-		def whosdaddy():
-		    return inspect.stack()[2][3]
-		print 'drawing called by %s' % whosdaddy()
 		self.__draw_marks()
 		self.refresh()
 	

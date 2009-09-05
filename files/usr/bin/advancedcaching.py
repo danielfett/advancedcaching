@@ -268,6 +268,14 @@ class Core():
 		self.settings = new_settings
 		self.downloader.update_userdata(self.settings['options_username'], self.settings['options_password'])
 		self.__write_config()
+
+
+	def on_notes_changed(self, cache, new_notes):
+		self.pointprovider.update_field(cache, 'notes', new_notes)
+
+	def on_fieldnotes_changed(self, cache, new_notes):
+		self.pointprovider.update_field(cache, 'fieldnotes', new_notes)
+
 		
 	def on_upload_fieldnotes(self):
 		self.gui.set_download_progress(0.5, "Uploading Fieldnotes...")

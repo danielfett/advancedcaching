@@ -16,7 +16,6 @@
             <property name="height_request">600</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="scrollable">True</property>
             <property name="tab_hborder">6</property>
             <property name="homogeneous">True</property>
             <child>
