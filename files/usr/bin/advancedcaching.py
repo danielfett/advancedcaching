@@ -249,9 +249,10 @@ class Core():
 		exporter.export(full)
 		i += 1.0
 				
-	    self.gui.hide_progress()
 	except Exception as e:
 	    self.gui.show_error(e)
+	finally:
+	    self.gui.hide_progress()
 	self.pointprovider.save()
 		
 	self.pointprovider.pop_filter()
@@ -288,12 +289,12 @@ class Core():
 	    fn.upload()
 			
 	except Exception as e:
-	    raise
-	    #self.gui.show_error(e)
+	    self.gui.show_error(e)
 	else:
 	    #self.gui.show_success("Field notes uploaded successfully.")
 	    for c in caches:
 		self.pointprovider.update_field(c, 'logas', geocaching.GeocacheCoordinate.LOG_NO_LOG)
+	finally:
 	    self.gui.hide_progress()
 		
     def __read_gps(self):
@@ -333,8 +334,6 @@ class Core():
 	return False
 		
     def __write_config(self):
-	
-		
 	filename = os.path.join(self.SETTINGS_DIR, 'config')
 	f = file(filename, 'w')
 	f.write(json.dumps(self.settings, sort_keys=True, indent=4))

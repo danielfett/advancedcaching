@@ -256,8 +256,7 @@
             <child>
               <widget class="GtkLabel" id="label1">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">map
-view</property>
+                <property name="label" translatable="yes">map</property>
               </widget>
               <packing>
                 <property name="position">1</property>
@@ -603,24 +602,24 @@ view</property>
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkVBox" id="vbox3">
+                      <widget class="GtkVBox" id="vbox7">
                         <property name="visible">True</property>
                         <property name="orientation">vertical</property>
                         <child>
-                          <widget class="GtkScrolledWindow" id="scrolledwindow2">
+                          <widget class="GtkScrolledWindow" id="scrolledwindow3">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="hscrollbar_policy">automatic</property>
                             <property name="vscrollbar_policy">automatic</property>
                             <child>
-                              <widget class="GtkViewport" id="viewport4">
+                              <widget class="GtkViewport" id="viewport5">
                                 <property name="visible">True</property>
                                 <property name="resize_mode">queue</property>
                                 <child>
-                                  <widget class="GtkTextView" id="textview_cache_notes">
+                                  <widget class="GtkTextView" id="textview_cache_fieldnotes">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
-                                    <signal name="key_release_event" handler="notes_changed"/>
+                                    <signal name="key_release_event" handler="on_fieldnotes_changed"/>
                                   </widget>
                                 </child>
                               </widget>
@@ -630,34 +629,14 @@ view</property>
                             <property name="position">0</property>
                           </packing>
                         </child>
-                      </widget>
-                      <packing>
-                        <property name="position">4</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <widget class="GtkLabel" id="label24">
-                        <property name="visible">True</property>
-                        <property name="label" translatable="yes">notes</property>
-                      </widget>
-                      <packing>
-                        <property name="position">4</property>
-                        <property name="tab_fill">False</property>
-                        <property name="type">tab</property>
-                      </packing>
-                    </child>
-                    <child>
-                      <widget class="GtkVBox" id="vbox7">
-                        <property name="visible">True</property>
-                        <property name="orientation">vertical</property>
                         <child>
-                          <widget class="GtkLabel" id="label28">
+                          <widget class="GtkLabel" id="label_cache_log_date">
                             <property name="visible">True</property>
-                            <property name="label" translatable="yes">to upload these notes, go to sync tab</property>
+                            <property name="label" translatable="yes">fieldnote date: not set</property>
                           </widget>
                           <packing>
                             <property name="expand">False</property>
-                            <property name="position">0</property>
+                            <property name="position">1</property>
                           </packing>
                         </child>
                         <child>
@@ -728,41 +707,62 @@ view</property>
                           </widget>
                           <packing>
                             <property name="expand">False</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label_cache_log_date">
-                            <property name="visible">True</property>
-                            <property name="label" translatable="yes">fieldnote date: not set</property>
-                          </widget>
-                          <packing>
-                            <property name="expand">False</property>
                             <property name="position">2</property>
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkScrolledWindow" id="scrolledwindow3">
+                          <widget class="GtkLabel" id="label28">
+                            <property name="visible">True</property>
+                            <property name="label" translatable="yes">to upload these notes, go to sync tab</property>
+                          </widget>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="position">3</property>
+                          </packing>
+                        </child>
+                      </widget>
+                      <packing>
+                        <property name="position">4</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkLabel" id="label27">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">field
+note</property>
+                      </widget>
+                      <packing>
+                        <property name="position">4</property>
+                        <property name="tab_fill">False</property>
+                        <property name="type">tab</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkVBox" id="vbox3">
+                        <property name="visible">True</property>
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <widget class="GtkScrolledWindow" id="scrolledwindow2">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="hscrollbar_policy">automatic</property>
                             <property name="vscrollbar_policy">automatic</property>
                             <child>
-                              <widget class="GtkViewport" id="viewport5">
+                              <widget class="GtkViewport" id="viewport4">
                                 <property name="visible">True</property>
                                 <property name="resize_mode">queue</property>
                                 <child>
-                                  <widget class="GtkTextView" id="textview_cache_fieldnotes">
+                                  <widget class="GtkTextView" id="textview_cache_notes">
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
-                                    <signal name="key_release_event" handler="on_fieldnotes_changed"/>
+                                    <signal name="key_release_event" handler="notes_changed"/>
                                   </widget>
                                 </child>
                               </widget>
                             </child>
                           </widget>
                           <packing>
-                            <property name="position">3</property>
+                            <property name="position">0</property>
                           </packing>
                         </child>
                       </widget>
@@ -771,10 +771,9 @@ view</property>
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkLabel" id="label27">
+                      <widget class="GtkLabel" id="label24">
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">field
-note</property>
+                        <property name="label" translatable="yes">notes</property>
                       </widget>
                       <packing>
                         <property name="position">5</property>
@@ -797,6 +796,7 @@ note</property>
                         <property name="label" translatable="yes">download details</property>
                         <property name="height_request">50</property>
                         <property name="visible">True</property>
+                        <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <signal name="clicked" handler="on_button_download_details_clicked"/>
@@ -810,6 +810,7 @@ note</property>
                         <property name="label" translatable="yes">set as target</property>
                         <property name="height_request">50</property>
                         <property name="visible">True</property>
+                        <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <signal name="clicked" handler="on_set_target_clicked"/>
@@ -831,9 +832,9 @@ note</property>
             </child>
             <child>
               <widget class="GtkLabel" id="label2">
+                <property name="height_request">30</property>
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">cache
-details</property>
+                <property name="label" translatable="yes">details</property>
               </widget>
               <packing>
                 <property name="position">2</property>
@@ -1061,8 +1062,7 @@ details</property>
             <child>
               <widget class="GtkLabel" id="label4">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">cache
-search</property>
+                <property name="label" translatable="yes">search</property>
               </widget>
               <packing>
                 <property name="position">3</property>
@@ -1343,8 +1343,8 @@ search</property>
                             <property name="label" translatable="yes">user name</property>
                           </widget>
                           <packing>
-                            <property name="top_attach">4</property>
-                            <property name="bottom_attach">5</property>
+                            <property name="top_attach">1</property>
+                            <property name="bottom_attach">2</property>
                             <property name="y_options">GTK_FILL</property>
                           </packing>
                         </child>
@@ -1355,8 +1355,8 @@ search</property>
                             <property name="label" translatable="yes">password</property>
                           </widget>
                           <packing>
-                            <property name="top_attach">5</property>
-                            <property name="bottom_attach">6</property>
+                            <property name="top_attach">2</property>
+                            <property name="bottom_attach">3</property>
                             <property name="x_options">GTK_FILL</property>
                             <property name="y_options">GTK_FILL</property>
                           </packing>
@@ -1372,8 +1372,8 @@ search</property>
                           <packing>
                             <property name="left_attach">1</property>
                             <property name="right_attach">2</property>
-                            <property name="top_attach">4</property>
-                            <property name="bottom_attach">5</property>
+                            <property name="top_attach">1</property>
+                            <property name="bottom_attach">2</property>
                             <property name="y_options">GTK_FILL</property>
                           </packing>
                         </child>
@@ -1389,8 +1389,8 @@ search</property>
                           <packing>
                             <property name="left_attach">1</property>
                             <property name="right_attach">2</property>
-                            <property name="top_attach">5</property>
-                            <property name="bottom_attach">6</property>
+                            <property name="top_attach">2</property>
+                            <property name="bottom_attach">3</property>
                             <property name="y_options">GTK_FILL</property>
                           </packing>
                         </child>
@@ -1398,13 +1398,13 @@ search</property>
                           <widget class="GtkLabel" id="label20">
                             <property name="visible">True</property>
                             <property name="xalign">0.10000000149011612</property>
-                            <property name="label" translatable="yes">map tile path
+                            <property name="label" translatable="yes">OSM map tile path
 (restart after 
 changing)</property>
                           </widget>
                           <packing>
-                            <property name="top_attach">7</property>
-                            <property name="bottom_attach">8</property>
+                            <property name="top_attach">4</property>
+                            <property name="bottom_attach">5</property>
                             <property name="x_options">GTK_FILL</property>
                             <property name="y_options">GTK_FILL</property>
                           </packing>
@@ -1420,8 +1420,8 @@ changing)</property>
                           <packing>
                             <property name="left_attach">1</property>
                             <property name="right_attach">2</property>
-                            <property name="top_attach">7</property>
-                            <property name="bottom_attach">8</property>
+                            <property name="top_attach">4</property>
+                            <property name="bottom_attach">5</property>
                             <property name="y_options">GTK_FILL</property>
                           </packing>
                         </child>
@@ -1434,8 +1434,8 @@ changing)</property>
 after first download)</property>
                           </widget>
                           <packing>
-                            <property name="top_attach">9</property>
-                            <property name="bottom_attach">10</property>
+                            <property name="top_attach">6</property>
+                            <property name="bottom_attach">7</property>
                             <property name="y_options">GTK_FILL</property>
                           </packing>
                         </child>
@@ -1450,8 +1450,8 @@ after first download)</property>
                           <packing>
                             <property name="left_attach">1</property>
                             <property name="right_attach">2</property>
-                            <property name="top_attach">9</property>
-                            <property name="bottom_attach">10</property>
+                            <property name="top_attach">6</property>
+                            <property name="bottom_attach">7</property>
                             <property name="y_options">GTK_FILL</property>
                           </packing>
                         </child>
@@ -1466,38 +1466,9 @@ after first download)</property>
                           </widget>
                           <packing>
                             <property name="right_attach">2</property>
-                            <property name="top_attach">10</property>
-                            <property name="bottom_attach">11</property>
+                            <property name="top_attach">7</property>
+                            <property name="bottom_attach">8</property>
                             <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkCheckButton" id="check_options_show_name">
-                            <property name="label" translatable="yes">show cache id on map</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">False</property>
-                            <property name="draw_indicator">True</property>
-                            <signal name="toggled" handler="save_config"/>
-                          </widget>
-                          <packing>
-                            <property name="right_attach">2</property>
-                            <property name="top_attach">1</property>
-                            <property name="bottom_attach">2</property>
-                            <property name="y_options">GTK_FILL</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label18">
-                            <property name="visible">True</property>
-                            <property name="xalign">0.05000000074505806</property>
-                            <property name="label" translatable="yes">&lt;b&gt;display&lt;/b&gt;</property>
-                            <property name="use_markup">True</property>
-                          </widget>
-                          <packing>
-                            <property name="right_attach">2</property>
-                            <property name="y_options">GTK_FILL</property>
-                            <property name="y_padding">10</property>
                           </packing>
                         </child>
                         <child>
@@ -1509,8 +1480,6 @@ after first download)</property>
                           </widget>
                           <packing>
                             <property name="right_attach">2</property>
-                            <property name="top_attach">3</property>
-                            <property name="bottom_attach">4</property>
                             <property name="y_options">GTK_FILL</property>
                             <property name="y_padding">10</property>
                           </packing>
@@ -1524,8 +1493,8 @@ after first download)</property>
                           </widget>
                           <packing>
                             <property name="right_attach">2</property>
-                            <property name="top_attach">6</property>
-                            <property name="bottom_attach">7</property>
+                            <property name="top_attach">3</property>
+                            <property name="bottom_attach">4</property>
                             <property name="y_options">GTK_FILL</property>
                             <property name="y_padding">10</property>
                           </packing>
@@ -1539,10 +1508,41 @@ after first download)</property>
                           </widget>
                           <packing>
                             <property name="right_attach">2</property>
+                            <property name="top_attach">5</property>
+                            <property name="bottom_attach">6</property>
+                            <property name="y_options">GTK_FILL</property>
+                            <property name="y_padding">10</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="label18">
+                            <property name="visible">True</property>
+                            <property name="xalign">0.05000000074505806</property>
+                            <property name="label" translatable="yes">&lt;b&gt;display&lt;/b&gt;</property>
+                            <property name="use_markup">True</property>
+                          </widget>
+                          <packing>
+                            <property name="right_attach">2</property>
                             <property name="top_attach">8</property>
                             <property name="bottom_attach">9</property>
                             <property name="y_options">GTK_FILL</property>
                             <property name="y_padding">10</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkCheckButton" id="check_options_show_name">
+                            <property name="label" translatable="yes">show cache id on map</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">False</property>
+                            <property name="draw_indicator">True</property>
+                            <signal name="toggled" handler="save_config"/>
+                          </widget>
+                          <packing>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">9</property>
+                            <property name="bottom_attach">10</property>
+                            <property name="y_options">GTK_FILL</property>
                           </packing>
                         </child>
                         <child>
@@ -1556,8 +1556,8 @@ after first download)</property>
                           </widget>
                           <packing>
                             <property name="right_attach">2</property>
-                            <property name="top_attach">2</property>
-                            <property name="bottom_attach">3</property>
+                            <property name="top_attach">10</property>
+                            <property name="bottom_attach">11</property>
                             <property name="y_options">GTK_FILL</property>
                           </packing>
                         </child>

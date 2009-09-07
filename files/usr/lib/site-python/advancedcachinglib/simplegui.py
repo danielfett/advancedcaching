@@ -80,6 +80,7 @@ class SimpleGui():
     COLOR_ARROW_ATTARGET = gtk.gdk.color_parse("red")
     COLOR_ARROW_DISABLED = gtk.gdk.color_parse("red")
     COLOR_ARROW_NORTH = gtk.gdk.color_parse("black")
+    COLOR_ARROW_OUTER_LINE = gtk.gdk.color_parse("black")
     NORTH_INDICATOR_SIZE = 30
 	
     SETTINGS_CHECKBOXES = [
@@ -353,7 +354,7 @@ class SimpleGui():
 	    #self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
 	    #self.pixmap_north_indicator.draw_arc(self.xgc_arrow, True, 0, 0, self.NORTH_INDICATOR_SIZE, self.NORTH_INDICATOR_SIZE, 0, 64 * 360)
 	    x, y = north_indicator_layout.get_size()
-	    self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("yellow"))
+	    self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("blue"))
 	    self.pixmap_north_indicator.draw_layout(self.xgc_arrow, (self.NORTH_INDICATOR_SIZE - x / pango.SCALE) / 2, (self.NORTH_INDICATOR_SIZE - y / pango.SCALE) / 2, north_indicator_layout)
 	    # print "%d %d" %((self.NORTH_INDICATOR_SIZE - x / pango.SCALE) / 2, (self.NORTH_INDICATOR_SIZE - y / pango.SCALE) / 2)
 
@@ -493,14 +494,14 @@ class SimpleGui():
 	    #self.xgc_arrow.line_style = gtk.gdk.LINE_SOLID
 	    self.xgc_arrow.line_width = 5
 	    self.pixmap_arrow.draw_polygon(self.xgc_arrow, True, arrow_transformed)
-	    self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
+	    self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_OUTER_LINE)
 	    self.pixmap_arrow.draw_polygon(self.xgc_arrow, False, arrow_transformed)
 	else:
 	    # if we are closer than 5 meters, the arrow will almost certainlys
 	    # point into the wron direction. therefore, we don't draw the arrow.
-	    circle_size = max(height / 3, width / 3)
+	    circle_size = max(height / 2.5, width / 2.5)
 	    self.pixmap_arrow.draw_arc(self.xgc_arrow, True, width / 2 - circle_size / 2, height / 2 - circle_size / 2, circle_size, circle_size, 0, 64 * 360)
-	    self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
+	    self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_OUTER_LINE)
 	    self.pixmap_arrow.draw_arc(self.xgc_arrow, False, width / 2 - circle_size / 2, height / 2 - circle_size / 2, circle_size, circle_size, 0, 64 * 360)
 
 		
@@ -923,29 +924,28 @@ class SimpleGui():
 		
 	x, y = self.__coord2point(self.gps_data['position'])
 	if self.gps_last_position != None:
-	    for a in [1]: # we need some break here (:
-				
-		l, m = self.gps_last_position
-		dist_from_last = (x - l) ** 2 + (y - m) ** 2
-			
-		# if we are tracking the user, redraw if far enough from center:
-		if self.button_track.get_active():
-		    n, o = self.map_width / 2, self.map_height / 2
-		    dist_from_center = (x - n) ** 2 + (y - o) ** 2
-		    if dist_from_center > self.REDRAW_DISTANCE_TRACKING ** 2:
-			self.set_center(self.gps_data['position'])
-			# update last position, as it is now drawed
-			self.gps_last_position = (x, y)
-			break
-						
-		# if we are tracking and we have not moved out of the center
-		# or if we are not tracking the user
-		# in each case, if we have moved far enough since last draw, redraw just the marks
-		if dist_from_last > self.REDRAW_DISTANCE_MINOR ** 2:
-		    self.redraw_marks()
+	    			
+	    l, m = self.gps_last_position
+	    dist_from_last = (x - l) ** 2 + (y - m) ** 2
+
+	    # if we are tracking the user, redraw if far enough from center:
+	    if self.button_track.get_active():
+		n, o = self.map_width / 2, self.map_height / 2
+		dist_from_center = (x - n) ** 2 + (y - o) ** 2
+		if dist_from_center > self.REDRAW_DISTANCE_TRACKING ** 2:
+		    self.set_center(self.gps_data['position'])
 		    # update last position, as it is now drawed
 		    self.gps_last_position = (x, y)
-		break
+		    return
+
+	    # if we are tracking and we have not moved out of the center
+	    # or if we are not tracking the user
+	    # in each case, if we have moved far enough since last draw, redraw just the marks
+	    if dist_from_last > self.REDRAW_DISTANCE_MINOR ** 2:
+		self.redraw_marks()
+		# update last position, as it is now drawed
+		self.gps_last_position = (x, y)
+	    return
 	else:
 	    self.redraw_marks()
 	    # also update when it was None
@@ -1053,28 +1053,18 @@ class SimpleGui():
 	self.core.on_cache_selected(cache)
 	self.set_center(cache)
 		
-		
-    def on_search_key_release(self, widget, event):
-	print event.keyval
-	if event.keyval == 65293:  # seems to be keycode of return key
-	    self.core.on_start_search_simple(self.widget.get_text())
-		
     def on_search_reset_clicked(self, something):
 	self.search_elements['name'].set_text('')
 	self.search_elements['found']['whatever'].set_active(True)
 	self.search_elements['type']['other'].set_active(True)
 	self.on_search_advanced_clicked(None)
 		
-		
-    def on_search_simple_key_release(self, something):
-	self.core.on_start_search_simple(self.widget.get_text())
-		
     def on_set_target_clicked(self, something):
 	if self.current_cache == None:
 	    return
 	else:
 	    self.set_target(self.current_cache)
-	    self.notebook_all.set_current_page(2)
+	    self.notebook_all.set_current_page(0)
 
     def on_set_target_center(self, something):
 	self.set_target(self.ts.num2deg(self.map_center_x, self.map_center_y))
@@ -1089,7 +1079,7 @@ class SimpleGui():
 	self.core.on_start_search_simple(self.entry_search.get_text())
 		
     def on_track_toggled(self, something):
-	if self.button_track.get_active():
+	if self.button_track.get_active() and self.gps_data != None and self.gps_data['position'] != None:
 	    self.set_center(self.gps_data['position'])
 
     def on_upload_fieldnotes(self, something):
@@ -1286,12 +1276,16 @@ class SimpleGui():
 	text_longdesc = self.__strip_html(cache.desc)
 	if text_longdesc == '':
 	    text_longdesc = '(no description available)'
-	self.cache_elements['desc'].set_text(text_shortdesc + "\n\n" + text_longdesc)
+	if not text_shortdesc == '':
+	    self.cache_elements['desc'].set_text(text_shortdesc + "\n\n" + text_longdesc)
+	else:
+	    self.cache_elements['desc'].set_text(text_longdesc)
 
 	# Set View
 	self.notebook_cache.set_current_page(0)
 	self.notebook_all.set_current_page(2)
-		
+
+	# Update view here for fast user feedback
 	self.do_events()
 
 	# hints
@@ -1338,7 +1332,7 @@ class SimpleGui():
 	self.image_no = 0
 
 	gobject.idle_add(self.__draw_marks)
-	self.refresh()
+	#self.refresh()
 		
     def show_error(self, errormsg):
 	error_dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR
@@ -1381,7 +1375,7 @@ class SimpleGui():
 	text = re.sub(r'<[^>]*?>', '', text)
 	text = self.__decode_htmlentities(text)
 	text = re.sub(r'[\n\r]+\s*[\n\r]+', '\n', text)
-	return text
+	return text.strip()
 		
 			
     def update_gps_display(self):
