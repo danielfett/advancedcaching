@@ -24,13 +24,12 @@
 #from advancedcachinglib.geocaching import FieldnotesUploader
 import json
 import sys
+import os
 
-sys.path.append('/usr/lib/site-python')
-
-from advancedcachinglib import downloader
-from advancedcachinglib import geocaching
-from advancedcachinglib import gpsreader
-from advancedcachinglib import provider
+from advancedcaching import downloader
+from advancedcaching import geocaching
+from advancedcaching import gpsreader
+from advancedcaching import provider
 import gobject
 import gtk
 import os
@@ -339,12 +338,22 @@ class Core():
 	f.write(json.dumps(self.settings, sort_keys=True, indent=4))
 
 
-	
+def determine_path ():
+    """Borrowed from wxglade.py"""
+    try:
+        root = __file__
+        if os.path.islink (root):
+            root = os.path.realpath (root)
+        return os.path.dirname (os.path.abspath (root))
+    except:
+        print "I'm sorry, but something is wrong."
+        print "There is no __file__ variable. Please contact the author."
+        sys.exit()
 
 			
-def runit():
+def start():
     gtk.gdk.threads_init()
-    core = Core(gui)
+    core = Core(gui, determine_path())
 
 
 if "--profile" in sys.argv:

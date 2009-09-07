@@ -1,0 +1,3 @@
+import advancedcaching.core 
+
+advancedcaching.core.start ()
