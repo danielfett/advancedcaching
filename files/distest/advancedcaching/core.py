@@ -44,10 +44,10 @@ if len(sys.argv) < 2:
 	
 arg = sys.argv[1].strip()
 if arg == '--simple':
-    from advancedcachinglib import simplegui
+    from advancedcaching import simplegui
     gui = simplegui.SimpleGui
 else:
-    from advancedcachinglib import biggui
+    from advancedcaching import biggui
     gui = biggui.BigGui
 
 	
@@ -112,10 +112,13 @@ class Core():
 	'options_hide_found': False
     }
     	
-    def __init__(self, guitype):
+    def __init__(self, guitype, root):
 	if not os.path.exists(self.SETTINGS_DIR):
 	    os.mkdir(self.SETTINGS_DIR)
-			
+
+
+	dataroot = os.path.join(root, 'data')
+	
 	#self.standbypreventer = Standbypreventer()
 	# seems to crash dbus/fso/whatever
 			
@@ -133,8 +136,7 @@ class Core():
 	#reader = GpxReader(pointprovider)
 	#reader.read_file('../../file.loc')
 		
-
-	self.gui = guitype(self, self.pointprovider, self.userpointprovider)
+	self.gui = guitype(self, self.pointprovider, self.userpointprovider, dataroot)
 	self.gui.write_settings(self.settings)
 		
 	self.gps_thread = gpsreader.GpsReader(self)
@@ -344,7 +346,7 @@ def determine_path ():
         root = __file__
         if os.path.islink (root):
             root = os.path.realpath (root)
-        return os.path.dirname (os.path.abspath (root))
+        return os.path.dirname(os.path.abspath (root))
     except:
         print "I'm sorry, but something is wrong."
         print "There is no __file__ variable. Please contact the author."

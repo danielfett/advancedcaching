@@ -37,10 +37,10 @@ import thread
 from time import gmtime
 from time import strftime
 
-from advancedcachinglib import extListview
-from advancedcachinglib import geo
-from advancedcachinglib import geocaching
-from advancedcachinglib import openstreetmap
+from advancedcaching import extListview
+from advancedcaching import geo
+from advancedcaching import geocaching
+from advancedcaching import openstreetmap
 import gobject
 import gtk
 import gtk.glade
@@ -48,7 +48,7 @@ from htmlentitydefs import name2codepoint as n2cp
 import os
 import pango
 import re
-#from advancedcachinglib import *
+#from advancedcaching import *
 
 
 class SimpleGui():
@@ -101,7 +101,7 @@ class SimpleGui():
 	'download_map_path'
     ]
 		
-    def __init__(self, core, pointprovider, userpointprovider):
+    def __init__(self, core, pointprovider, userpointprovider, dataroot):
 	self.ts = openstreetmap.TileServer()
 		
 	self.core = core
@@ -123,7 +123,8 @@ class SimpleGui():
 	self.image_zoomed = False
 	self.image_no = 0
 	self.images = []
-		
+
+	
 	self.pixmap_north_indicator = None
 	self.drawing_area_configured = self.drawing_area_arrow_configured = False
 	self.drag_offset_x = 0
@@ -135,7 +136,7 @@ class SimpleGui():
 	self.inhibit_expose = False
 	self.draw_lock = thread.allocate_lock()
 	global xml
-	xml = gtk.glade.XML("/usr/lib/advancedcaching/glade/freerunner.glade")
+	xml = gtk.glade.XML(os.path.join(dataroot, "freerunner.glade"))
 	self.window = xml.get_widget("window1")
 		
 	xml.signal_autoconnect({

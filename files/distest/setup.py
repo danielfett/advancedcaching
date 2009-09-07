@@ -11,8 +11,7 @@ setup(name='agtl',
 		'Development Status :: 4 - Beta',
 		'Environment :: X11 Applications',
 		'Intended Audience :: End Users/Desktop',
-		'License :: GNU General Public License (GPL)',
-		'Operating System :: Linux',
+		'License :: OSI Approved :: GNU General Public License (GPL)',
 		'Programming Language :: Python'
 	],
 
@@ -34,10 +33,5 @@ setup(name='agtl',
 	#
 	#This next part it for the Cheese Shop, look a little down the page.
 	#classifiers = []     
-	) 
-
-	#package_dir= {'agtl' : 'src'},
-	packages = ['advancedcachinglib'],
-	data_files = [('share/agtl/glade', glades), ('share/pixmaps', ['advancedcaching.png']), ('share/applications', ['advancedcaching.desktop'])],
-	scripts = ['advancedcaching.py']
+	
 )
