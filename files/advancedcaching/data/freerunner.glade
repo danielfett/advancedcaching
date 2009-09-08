@@ -176,7 +176,7 @@
                 </child>
                 <child>
                   <widget class="GtkHBox" id="hbox7">
-                    <property name="height_request">100</property>
+                    <property name="height_request">80</property>
                     <property name="visible">True</property>
                     <property name="spacing">5</property>
                     <property name="homogeneous">True</property>
@@ -256,7 +256,8 @@
             <child>
               <widget class="GtkLabel" id="label1">
                 <property name="visible">True</property>
-                <property name="label" translatable="yes">map</property>
+                <property name="label" translatable="yes">map
+view</property>
               </widget>
               <packing>
                 <property name="position">1</property>
@@ -810,7 +811,6 @@ note</property>
                         <property name="label" translatable="yes">set as target</property>
                         <property name="height_request">50</property>
                         <property name="visible">True</property>
-                        <property name="sensitive">False</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <signal name="clicked" handler="on_set_target_clicked"/>
