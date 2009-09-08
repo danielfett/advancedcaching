@@ -26,10 +26,10 @@ import json
 import sys
 import os
 
-from advancedcaching import downloader
-from advancedcaching import geocaching
-from advancedcaching import gpsreader
-from advancedcaching import provider
+import downloader
+import geocaching
+import gpsreader
+import provider
 import gobject
 import gtk
 import os
@@ -44,7 +44,7 @@ if len(sys.argv) < 2:
 	
 arg = sys.argv[1].strip()
 if arg == '--simple':
-    from advancedcaching import simplegui
+    import simplegui
     gui = simplegui.SimpleGui
 else:
     from advancedcaching import biggui
@@ -135,7 +135,7 @@ class Core():
 	#pointprovider = PointProvider(':memory:', self.downloader)
 	#reader = GpxReader(pointprovider)
 	#reader.read_file('../../file.loc')
-		
+	
 	self.gui = guitype(self, self.pointprovider, self.userpointprovider, dataroot)
 	self.gui.write_settings(self.settings)
 		
@@ -366,7 +366,7 @@ if "--profile" in sys.argv:
 
 if __name__ == "__main__":
     gtk.gdk.threads_init()
-    core = Core(gui)
+    core = Core(gui, determine_path())
 
 		
 

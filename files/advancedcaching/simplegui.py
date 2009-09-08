@@ -37,13 +37,14 @@ import thread
 from time import gmtime
 from time import strftime
 
-from advancedcaching import extListview
-from advancedcaching import geo
-from advancedcaching import geocaching
-from advancedcaching import openstreetmap
+import extListview
+import geo
+import geocaching
+import openstreetmap
 import gobject
 import gtk
 import gtk.glade
+import gtk.gdk
 from htmlentitydefs import name2codepoint as n2cp
 import os
 import pango
@@ -844,7 +845,7 @@ class SimpleGui():
 	x, y, width, height = event.area
 
 	#gc = widget.get_style().fg_gc[gtk.STATE_NORMAL]
-	#gc.set_function(gtk.gdk.COPY)
+	#self.xgc.set_function(gtk.gdk.COPY)
 	widget.window.draw_drawable(self.xgc,
 				    self.pixmap, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
 	self.xgc.set_function(gtk.gdk.AND)

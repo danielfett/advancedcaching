@@ -40,9 +40,9 @@ class TileLoader(threading.Thread):
     def run(self):
 	self.__log("start")
 	TileLoader.running_threads += 1
-	filename = os.path.join("%d" % self.zoom, "%d" % self.tile[0], "%d.png" % self.tile[1])
-	self.local_filename = "%s%s" % (self.base_dir, filename)
-	self.remote_filename = "http://tile.openstreetmap.org/mapnik/%s" % filename
+	self.local_filename = os.path.join(self.base_dir, str(self.zoom), str(self.tile[0]), "%d.png" % self.tile[1])
+	self.remote_filename = "http://tile.openstreetmap.org/mapnik/%d/%d/%d.png" % (self.zoom, self.tile[0], self.tile[1])
+	#self.remote_filename = "http://andy.sandbox.cloudmade.com/tiles/cycle/%d/%d/%d.png" % (self.zoom, self.tile[0], self.tile[1])
 	answer = True
 	if not os.path.isfile(self.local_filename):
 	    path_1 = "%s%d" % (self.base_dir, self.zoom)
@@ -180,7 +180,7 @@ class TileServer():
 
     def __init__(self):
 	self.zoom = 14
-	self.max_zoom = 17
+	self.max_zoom = 18
 		
     def get_zoom(self):
 	return self.zoom
