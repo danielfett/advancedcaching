@@ -21,7 +21,6 @@
 
 
 ### For loading the conf file
-#from advancedcachinglib.geocaching import FieldnotesUploader
 import json
 import sys
 import os

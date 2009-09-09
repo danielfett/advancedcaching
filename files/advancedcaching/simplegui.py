@@ -22,6 +22,10 @@
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime
 
 # todo:
+
+# check north indicator
+# speed up startup
+
 # add translation support?
 # download in seperate thread?
 # parse attributes
@@ -40,17 +44,16 @@ from time import strftime
 import extListview
 import geo
 import geocaching
-import openstreetmap
 import gobject
 import gtk
-import gtk.glade
 import gtk.gdk
+import gtk.glade
 from htmlentitydefs import name2codepoint as n2cp
+import openstreetmap
 import os
 import pango
 import re
 #from advancedcaching import *
-
 
 class SimpleGui():
     MAP_FACTOR = 0
@@ -215,7 +218,7 @@ class SimpleGui():
 	self.drawing_area_arrow.set_events(gtk.gdk.EXPOSURE_MASK)
 		
 	#self.zoom_adjustment = xml.get_widget('spinbutton_zoom').get_adjustment()
-		
+	print 'here'
 	self.cache_elements = {
 	    'name_downloaded':	xml.get_widget('link_cache_name'),
 	    'name_not_downloaded': xml.get_widget('button_cache_name'),
