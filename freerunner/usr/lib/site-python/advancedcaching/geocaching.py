@@ -5,7 +5,6 @@ import json
 
 import geo
 import os
-import string
 
 try:
     import Image
@@ -143,6 +142,7 @@ class CacheDownloader():
 	self.downloader = downloader
 	
     def __rot13(self, text):
+	import string
 	trans = string.maketrans(
 				 'nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM',
 				 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
