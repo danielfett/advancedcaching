@@ -14,14 +14,18 @@ import cStringIO
 
 class TileLoader(threading.Thread):
     downloading = []
-    semaphore = threading.Semaphore(20)
+    semaphore = threading.Semaphore(5)
     lock = thread.allocate_lock()
     cachelock = thread.allocate_lock()
     running_threads = 0
 
+    # we use a LRU cache here
     cache = {}
     cache_contents = []
-    CACHE_SIZE = 10
+
+    # use 5 MBs of cache. 15.000 is the average size
+    # of one tile.
+    CACHE_SIZE = (5*1024*1024)/15000
 
     #steps:
     # - check if file exists.
@@ -55,6 +59,8 @@ class TileLoader(threading.Thread):
 	    #print "auscache"
 	else:
 	    res = retrievefunction()
+	    if res == None:
+		return None
 	    if len(TileLoader.cache_contents) == self.CACHE_SIZE:
 		out = TileLoader.cache_contents.pop(0)
 		del TileLoader.cache[out]
@@ -72,10 +78,10 @@ class TileLoader(threading.Thread):
 
 		
     def load(self):
-	answer = None
-	if not os.path.isfile(self.local_filename):
-	    path_1 = "%s%d" % (self.base_dir, self.zoom)
-	    path_2 = "%s/%d" % (path_1, self.tile[0])
+	tiledata = self.get_cached("%s/%s/%s" % (self.zoom, self.tile[0], self.tile[1]), self.read_file)
+	if tiledata == None:
+	    path_1 = os.path.join(self.base_dir, str(self.zoom))
+	    path_2 = os.path.join(path_1, str(self.tile[0]))
 	    try:
 		if not os.path.exists(path_1):
 		    os.mkdir(path_1)
@@ -88,23 +94,31 @@ class TileLoader(threading.Thread):
 		# so just forget about the error
 
 
-	    answer = self.download(self.remote_filename, self.local_filename)
-	else:
-	    answer = self.get_cached("%s/%s/%s" % (self.zoom, self.tile[0], self.tile[1]), self.read_file)
+	    tiledata = self.download(self.remote_filename, self.local_filename)
 	
-	if answer != None:
+	if tiledata != None:
 	    pbl = gtk.gdk.PixbufLoader()
-	    pbl.write(answer.getvalue())
+	    pbl.write(tiledata.getvalue())
 	    self.pbuf = pbl.get_pixbuf()
+	    if self.pbuf == None:
+		print "Isnone: ", self.local_filename
 	    pbl.close()
 	    #self.pbuf = gtk.gdk.pixbuf_new_from_file(self.local_filename)
 	    gobject.idle_add(self.draw)
 	return True
 
     def read_file(self):
-	file = open(self.local_filename, 'rb')
 	# @type file file
-	return cStringIO.StringIO(file.read())
+	file = None
+	try:
+	    file = open(self.local_filename, 'rb')
+	    return cStringIO.StringIO(file.read())
+	except Exception as e:
+	    print e
+	    return None
+	finally:
+	    if file != None:
+		file.close()
 	
     '''
     def recover(self):
@@ -146,6 +160,7 @@ class TileLoader(threading.Thread):
 
     def download(self, remote, local):
 	file = None
+	'''
 	TileLoader.lock.acquire()
 	try:
 	    if (remote in TileLoader.downloading):
@@ -153,10 +168,12 @@ class TileLoader(threading.Thread):
 	    if os.path.exists(local):
 		return None
 	    TileLoader.downloading.append(remote)
+	except Exception as e:
+	    print e
 	finally:
 	    TileLoader.lock.release()
-		
-	TileLoader.semaphore.acquire()
+	'''
+	#TileLoader.semaphore.acquire()
 	try:
 	    if not self.zoom == self.gui.ts.zoom:
 		return None
@@ -169,11 +186,11 @@ class TileLoader(threading.Thread):
 	    webFile.close()
 	    localFile.write(file)
 	    localFile.close()
-	except:
-	    pass
+	except Exception as e:
+	    print e
 	finally:
-	    TileLoader.semaphore.release()
-	    TileLoader.downloading.remove(remote)
+	    #TileLoader.semaphore.release()
+	    #TileLoader.downloading.remove(remote)
 	    if file != None:
 		return cStringIO.StringIO(file)
 
