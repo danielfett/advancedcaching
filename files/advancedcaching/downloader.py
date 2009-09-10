@@ -31,6 +31,9 @@ class FileDownloader():
 	self.username = username
 	self.password = password
 	self.logged_in = False
+	cj = cookielib.FileCookieJar('/ram/cjar')
+	opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+	urllib2.install_opener(opener)
 		
     def update_userdata(self, username, password):
 	self.username = username
@@ -39,9 +42,6 @@ class FileDownloader():
 	print "Up"
 	
     def login(self):
-	cj = cookielib.CookieJar()
-	opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-	urllib2.install_opener(opener)
 		
 	url = 'http://www.geocaching.com/Default.aspx'
 	values = {'ctl00$MiniProfile$loginUsername':self.username,
