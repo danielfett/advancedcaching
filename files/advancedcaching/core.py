@@ -38,7 +38,7 @@ import os
 #import pstats
 
 
-if len(sys.argv) < 2:
+if len(sys.argv) == 1:
     print "Usage: %s --desktop (not really implemented yet) or %s --simple" % (sys.argv[0], sys.argv[0])
     exit()
 	
@@ -46,9 +46,12 @@ arg = sys.argv[1].strip()
 if arg == '--simple':
     import simplegui
     gui = simplegui.SimpleGui
-else:
-    from advancedcaching import biggui
+elif arg == '--desktop:
+    import biggui
     gui = biggui.BigGui
+else:
+	import cli
+	gui = cli.Cli
 
 	
 class Standbypreventer():
