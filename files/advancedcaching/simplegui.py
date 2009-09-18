@@ -32,6 +32,7 @@
 
  
 ### For the gui :-)
+from dist.agtl-0.2.0.advancedcaching.geocaching import GeocacheCoordinate
 import math
 import thread
 from time import gmtime
@@ -643,9 +644,9 @@ class SimpleGui():
 		if self.settings['options_hide_found']:
 		    continue
 		color = self.COLOR_FOUND
-	    elif c.type == "regular":
+	    elif c.type == GeocacheCoordinate.TYPE_REGULAR:
 		color = self.COLOR_REGULAR
-	    elif c.type == "multi":
+	    elif c.type == GeocacheCoordinate.TYPE_MULTI:
 		color = self.COLOR_MULTI
 	    else:
 		color = self.COLOR_DEFAULT
@@ -834,9 +835,7 @@ class SimpleGui():
 	self.pixmap_marks.draw_line(xgc, 0, self.map_height / 2, self.map_width / 2 - radius_inner, self.map_height / 2)
 	self.pixmap_marks.draw_line(xgc, self.map_width / 2 + radius_inner, self.map_height / 2, self.map_width, self.map_height / 2)
 		
-	#xgc.set_rgb_fg_color(gtk.gdk.color_parse("black"))
 	xgc.set_function(gtk.gdk.COPY)
-	#self.refresh()
 	return False
 	
     def expose_event(self, widget, event):
@@ -844,8 +843,6 @@ class SimpleGui():
 	    return
 	x, y, width, height = event.area
 
-	#gc = widget.get_style().fg_gc[gtk.STATE_NORMAL]
-	#self.xgc.set_function(gtk.gdk.COPY)
 	widget.window.draw_drawable(self.xgc,
 				    self.pixmap, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
 	self.xgc.set_function(gtk.gdk.AND)

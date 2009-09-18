@@ -39,6 +39,14 @@ class GeocacheCoordinate(geo.Coordinate):
     LOG_AS_NOTFOUND = 2
     LOG_AS_NOTE = 3
 
+    TYPE_REGULAR = 'regular'
+    TYPE_MULTI = 'multi'
+    TYPE_VIRTUAL = 'virtual'
+    TYPE_EVENT = 'event'
+    TYPE_MYSTERY = 'mystery'
+    TYPE_WEBCAM = 'webcam'
+    TYPE_UNKNOWN = 'unknown'
+
 
     SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT PRIMARY KEY', 'title': 'TEXT', 'shortdesc': 'TEXT', 'desc': 'TEXT', 'hints': 'TEXT', 'type': 'TEXT', 'size': 'INTEGER', 'difficulty': 'INTEGER', 'terrain': 'INTEGER', 'owner': 'TEXT', 'found': 'INTEGER', 'waypoints': 'text', 'images': 'text', 'notes': 'TEXT', 'fieldnotes': 'TEXT', 'logas': 'INTEGER', 'logdate': 'TEXT'}
     def __init__(self, lat, lon, name=''):
@@ -284,20 +292,20 @@ class CacheDownloader():
 	for b in a['cs']['cc']:
 	    c = GeocacheCoordinate(b['lat'], b['lon'], b['gc'])
 	    c.title = b['nn']
-	    if b['ctid'] == 3:
-		c.type = 'multi'
-	    elif b['ctid'] == 2:
-		c.type = 'regular'
+	    if b['ctid'] == 2:
+		c.type = GeocacheCoordinate.TYPE_REGULAR
+	    elif b['ctid'] == 3:
+		c.type = GeocacheCoordinate.TYPE_MULTI
 	    elif b['ctid'] == 4:
-		c.type = 'virtual'
+		c.type = GeocacheCoordinate.TYPE_VIRTUAL
 	    elif b['ctid'] == 6:
-		c.type = 'event'
+		c.type = GeocacheCoordinate.TYPE_EVENT
 	    elif b['ctid'] == 8:
-		c.type = 'unknown'
+		c.type = GeocacheCoordinate.TYPE_MYSTERY
 	    elif b['ctid'] == 11:
-		c.type = 'webcam'
+		c.type = GeocacheCoordinate.TYPE_WEBCAM
 	    else:
-		c.type = 'unknown'
+		c.type = GeocacheCoordinate.TYPE_UNKNOWN
 	    c.found = b['f']
 	    points.append(c)
 	return points
