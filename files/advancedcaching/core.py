@@ -188,7 +188,7 @@ class Core():
 
     # called by gui
     def on_download(self, location):
-	cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'])
+	cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
 	caches = cd.get_geocaches(location)
 	for c in caches:
 	    self.pointprovider.add_point(c)
@@ -197,17 +197,18 @@ class Core():
     # called by gui
     def on_download_cache(self, cache):
 	self.gui.set_download_progress(0.5, "Downloading %s..." % cache.name)
+
 	try:
-	cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
-	exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
+	    cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+	    exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
 	    full = cd.update_coordinate(cache)
 	    self.pointprovider.add_point(full, True)
 	    exporter.export(full)
 	    self.pointprovider.save()
-	except Exception as e:
-	    self.gui.show_error(e)
+        except Exception as e:
+		self.gui.show_error(e)
 	finally:
-	    self.gui.hide_progress()
+		self.gui.hide_progress()
 		
 		
 		

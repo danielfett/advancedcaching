@@ -1270,7 +1270,8 @@ class SimpleGui():
 						
 	# Description and short description
 	text_shortdesc = self.__strip_html(cache.shortdesc)
-	text_longdesc = self.__strip_html(cache.desc)
+	text_longdesc = self.__strip_html(re.sub(r'(?i)<img[^>]+?>', ' [to get all images, re-download description] ', re.sub(r'\[\[img:([^\]]+)\]\]', lambda a: self.__replace_image_callback(a, cache), cache.desc)))
+
 	if text_longdesc == '':
 	    text_longdesc = '(no description available)'
 	if not text_shortdesc == '':
@@ -1330,6 +1331,18 @@ class SimpleGui():
 
 	gobject.idle_add(self.__draw_marks)
 	#self.refresh()
+
+
+    def __replace_image_callback(self, match, coordinate):
+	if match.group(1) in coordinate.get_images().keys():
+	    desc = coordinate.get_images()[match.group(1)]
+	    if desc.strip() != ''
+		return ' [image: %s] ' %
+	    else:
+		return ' [image] '
+	else:
+	    return ' [image not found -- please re-download geocache description] '
+
 		
     def show_error(self, errormsg):
 	error_dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR
