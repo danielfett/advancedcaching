@@ -1336,8 +1336,8 @@ class SimpleGui():
     def __replace_image_callback(self, match, coordinate):
 	if match.group(1) in coordinate.get_images().keys():
 	    desc = coordinate.get_images()[match.group(1)]
-	    if desc.strip() != ''
-		return ' [image: %s] ' %
+	    if desc.strip() != '':
+		return ' [image: %s] ' % desc
 	    else:
 		return ' [image] '
 	else:

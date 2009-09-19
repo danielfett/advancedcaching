@@ -31,7 +31,7 @@ class FileDownloader():
 	self.username = username
 	self.password = password
 	self.logged_in = False
-	self.cj = cookielib.FileCookieJar('/ram/cjar')
+	self.cj = cookielib.MozillaCookieJar('/ram/cjar')
 	try:
 	    self.cj.load()
 	except Exception as e:
