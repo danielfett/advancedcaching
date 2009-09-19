@@ -32,7 +32,6 @@
 
  
 ### For the gui :-)
-from dist.agtl-0.2.0.advancedcaching.geocaching import GeocacheCoordinate
 import math
 import thread
 from time import gmtime
@@ -637,16 +636,15 @@ class SimpleGui():
 
 	xgc.set_function(gtk.gdk.COPY)
 
-	num = 0
 	for c in coords: # for each geocache
 	    radius = self.CACHE_DRAW_SIZE
 	    if c.found:
 		if self.settings['options_hide_found']:
 		    continue
 		color = self.COLOR_FOUND
-	    elif c.type == GeocacheCoordinate.TYPE_REGULAR:
+	    elif c.type == geocaching.GeocacheCoordinate.TYPE_REGULAR:
 		color = self.COLOR_REGULAR
-	    elif c.type == GeocacheCoordinate.TYPE_MULTI:
+	    elif c.type == geocaching.GeocacheCoordinate.TYPE_MULTI:
 		color = self.COLOR_MULTI
 	    else:
 		color = self.COLOR_DEFAULT
