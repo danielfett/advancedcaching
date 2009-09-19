@@ -1303,7 +1303,7 @@ class SimpleGui():
 	self.coordlist.replaceContent(rows)
 			
 	# Set button for downloading to correct state
-	self.button_download_details.set_sensitive(not cache.was_downloaded())
+	self.button_download_details.set_sensitive(True)
 		
 	# Load notes
 	self.cache_elements['notes'].set_text(cache.notes)

@@ -31,17 +31,20 @@ class FileDownloader():
 	self.username = username
 	self.password = password
 	self.logged_in = False
+	self.cj = cookielib.FileCookieJar('/ram/cjar')
+	try:
+	    self.cj.load()
+	except Exception as e:
+	    print "Could not load cookies: %s" % e
+	opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(self.cj))
+	urllib2.install_opener(opener)
 		
     def update_userdata(self, username, password):
 	self.username = username
 	self.password = password
 	self.logged_in = False
-	print "Up"
 	
     def login(self):
-	cj = cookielib.CookieJar()
-	opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-	urllib2.install_opener(opener)
 		
 	url = 'http://www.geocaching.com/Default.aspx'
 	values = {'ctl00$MiniProfile$loginUsername':self.username,
@@ -59,7 +62,14 @@ class FileDownloader():
 	response = urllib2.urlopen(req)
 	page = response.read()
 	if 'combination does not match' in page:
-	    raise Exception("Passwort oder Benutzername falsch!")
+	    raise Exception("Wrong password or username!")
+	else:
+	 #   try:
+	    self.cj.save()
+	    #except Exception as e:
+	#	print "Could not save cookies: %s" % e
+	    
+
 			
     def get_reader(self, url, values=None, data=None):
 	if not self.logged_in:
