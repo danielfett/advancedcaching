@@ -183,7 +183,10 @@ class CacheDownloader():
 	return re.sub('(<[bB][rR]\s*/?>|</[pP]>', '\n', text)
 
     def __treat_hints(self, hints):
-	return self.__strip_html(hints).strip()
+	hints = self.__strip_html(hints).strip()
+	hints = self.__rot13(hints)
+	hints = re.sub(r'\[([^\]]+)\]', lambda match: self.__rot13(match.group(0)), hints)
+	return hints
 
     def __treat_desc(self, desc):
 	desc = self.__treat_html(desc.rsplit('\n', 5)[0])
@@ -448,7 +451,7 @@ class CacheDownloader():
 	coordinate.terrain = 10 * float(terrain)
 	coordinate.shortdesc = self.__treat_shortdesc(shortdesc)
 	coordinate.desc = self.__treat_desc(desc)
-	coordinate.hints = self.__rot13(self.__treat_hints(hints))
+	coordinate.hints = self.__treat_hints(hints)
 	coordinate.set_waypoints(self.__treat_waypoints(waypoints))
 	self.__treat_images(images)
 	coordinate.set_images(self.images)

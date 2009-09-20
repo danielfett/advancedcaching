@@ -26,9 +26,7 @@
 # download in seperate thread?
 # parse attributes
 # add "next waypoint" button
-# don't decrypt text in []
 # add description to displayed images
-# rewrite downloader and exporter (download images in downloader)
 
  
 ### For the gui :-)
