@@ -46,7 +46,7 @@ arg = sys.argv[1].strip()
 if arg == '--simple':
     import simplegui
     gui = simplegui.SimpleGui
-elif arg == '--desktop:
+elif arg == '--desktop':
     import biggui
     gui = biggui.BigGui
 else:
