@@ -39,6 +39,14 @@ class GeocacheCoordinate(geo.Coordinate):
     LOG_AS_NOTFOUND = 2
     LOG_AS_NOTE = 3
 
+    TYPE_REGULAR = 'regular'
+    TYPE_MULTI = 'multi'
+    TYPE_VIRTUAL = 'virtual'
+    TYPE_EVENT = 'event'
+    TYPE_MYSTERY = 'mystery'
+    TYPE_WEBCAM = 'webcam'
+    TYPE_UNKNOWN = 'unknown'
+
 
     SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT PRIMARY KEY', 'title': 'TEXT', 'shortdesc': 'TEXT', 'desc': 'TEXT', 'hints': 'TEXT', 'type': 'TEXT', 'size': 'INTEGER', 'difficulty': 'INTEGER', 'terrain': 'INTEGER', 'owner': 'TEXT', 'found': 'INTEGER', 'waypoints': 'text', 'images': 'text', 'notes': 'TEXT', 'fieldnotes': 'TEXT', 'logas': 'INTEGER', 'logdate': 'TEXT'}
     def __init__(self, lat, lon, name=''):
@@ -156,8 +164,11 @@ class FieldnotesUploader():
 class CacheDownloader():
 	
 	
-    def __init__(self, downloader):
+    def __init__(self, downloader, path, download_images, resize = None):
 	self.downloader = downloader
+	self.path = path
+	self.download_images = download_images
+	self.resize = resize
 	
     def __rot13(self, text):
 	trans = string.maketrans(
@@ -172,10 +183,14 @@ class CacheDownloader():
 	return re.sub('(<[bB][rR]\s*/?>|</[pP]>', '\n', text)
 
     def __treat_hints(self, hints):
-	return self.__strip_html(hints).strip()
+	hints = self.__strip_html(hints).strip()
+	hints = self.__rot13(hints)
+	hints = re.sub(r'\[([^\]]+)\]', lambda match: self.__rot13(match.group(0)), hints)
+	return hints
 
     def __treat_desc(self, desc):
 	desc = self.__treat_html(desc.rsplit('\n', 5)[0])
+	desc = self.__replace_images(desc)
 	return desc.strip()
 	
     def __treat_shortdesc(self, desc):
@@ -186,8 +201,9 @@ class CacheDownloader():
 	
     def __treat_html(self, html):
 	strip_comments = re.compile('<!--.*?-->', re.DOTALL)
-	
-	return strip_comments.sub('', html)
+	html = strip_comments.sub('', html)
+	html = self.__replace_images(html)
+	return html
 		
     def __from_dm(self, direction, decimal, minutes):
 	if direction == None or decimal == None or minutes == None:
@@ -222,15 +238,62 @@ class CacheDownloader():
 			     })
 
 	return waypoints
+
     def __treat_images(self, data):
-	images = {}
 	finder = re.finditer('<a href="([^"]+)" rel="lightbox"><img src="../images/stockholm/16x16/images.gif" align="absmiddle" border="0">([^<]+)</a>', data)
 	for m in finder:
 	    if m.group(1) == None:
 		continue
-	    images[m.group(1)] = m.group(2)
-	return images
+	    id = self.__download_image(url = m.group(1))
+	    if id != None:
+		self.__add_image(id, m.group(2))
+
+    def __replace_images(self, data):
+	return re.sub('(?is)(<img[^>]+src=["\']?)([^ >"\']+)([^>]+?>)', self.__replace_image_callback, data)
+
+    def __replace_image_callback(self, m):
+	url = m.group(2)
+	if not url.startswith('http://'):
+	    return m.group(0)
+	id = self.__download_image(url)
+	if id == None:
+	    return m.group(0)
+	else:
+	    self.__add_image(id)
+	    return "[[img:%s]]" % id
+
+    def __download_image(self, url):
+	if url in self.downloaded_images.keys():
+	    return self.downloaded_images[url]
 	
+	ext = url.rsplit('.', 1)[1]
+	if not re.match('^[a-zA-Z0-9]+$', ext):
+	    ext = 'img'
+	filename = ''
+	id = "%s-image%d.%s" % (self.current_cache.name, self.current_image, ext)
+
+	if self.download_images:
+	    try:
+		filename = os.path.join(self.path, id)
+		f = open(filename, 'wb')
+		f.write(self.downloader.get_reader(url).read())
+		f.close()
+		if Image != None and self.resize != None and self.resize > 0:
+		    im = Image.open(filename)
+		    im.thumbnail((self.resize, self.resize), Image.ANTIALIAS)
+		    im.save(filename)
+	    except Exception as e:
+		print "could not download %s: %s" % (url, e)
+		return None
+
+	self.downloaded_images[url] = id
+	self.current_image += 1
+	return id
+
+    def __add_image(self, id, description = ''):
+	if ((id in self.images.keys() and len(description) > len(self.images[id]))
+	    or id not in self.images.keys()):
+	    self.images[id] = description
 	 
     def __decode_htmlentities(self, string):
 	def substitute_entity(match):
@@ -255,6 +318,10 @@ class CacheDownloader():
 	return entity_re.subn(substitute_entity, string)[0]
 		
     def update_coordinate(self, coordinate):
+	self.downloaded_images = {}
+	self.current_image = 0
+	self.images = {}
+	self.current_cache = coordinate
 	response = self.__get_cache_page(coordinate.name)
 	return self.__parse_cache_page(response, coordinate)
 	
@@ -284,20 +351,20 @@ class CacheDownloader():
 	for b in a['cs']['cc']:
 	    c = GeocacheCoordinate(b['lat'], b['lon'], b['gc'])
 	    c.title = b['nn']
-	    if b['ctid'] == 3:
-		c.type = 'multi'
-	    elif b['ctid'] == 2:
-		c.type = 'regular'
+	    if b['ctid'] == 2:
+		c.type = GeocacheCoordinate.TYPE_REGULAR
+	    elif b['ctid'] == 3:
+		c.type = GeocacheCoordinate.TYPE_MULTI
 	    elif b['ctid'] == 4:
-		c.type = 'virtual'
+		c.type = GeocacheCoordinate.TYPE_VIRTUAL
 	    elif b['ctid'] == 6:
-		c.type = 'event'
+		c.type = GeocacheCoordinate.TYPE_EVENT
 	    elif b['ctid'] == 8:
-		c.type = 'unknown'
+		c.type = GeocacheCoordinate.TYPE_MYSTERY
 	    elif b['ctid'] == 11:
-		c.type = 'webcam'
+		c.type = GeocacheCoordinate.TYPE_WEBCAM
 	    else:
-		c.type = 'unknown'
+		c.type = GeocacheCoordinate.TYPE_UNKNOWN
 	    c.found = b['f']
 	    points.append(c)
 	return points
@@ -384,19 +451,18 @@ class CacheDownloader():
 	coordinate.terrain = 10 * float(terrain)
 	coordinate.shortdesc = self.__treat_shortdesc(shortdesc)
 	coordinate.desc = self.__treat_desc(desc)
-	coordinate.hints = self.__rot13(self.__treat_hints(hints))
+	coordinate.hints = self.__treat_hints(hints)
 	coordinate.set_waypoints(self.__treat_waypoints(waypoints))
-	coordinate.set_images(self.__treat_images(images))
+	self.__treat_images(images)
+	coordinate.set_images(self.images)
 		
 	return coordinate
 		
 	
 class HTMLExporter():
-    def __init__(self, downloader, path, resize=None, download_images=True):
+    def __init__(self, downloader, path):
 	self.downloader = downloader
 	self.path = path
-	self.resize = resize
-	self.download_images = download_images
 	if not os.path.exists(path):
 	    try:
 		os.mkdir(path)
@@ -480,55 +546,26 @@ class HTMLExporter():
 	    f.write('   </table>\n')
 	f.write('  </fieldset>')
 	f.write('  <fieldset><legend>Cachebeschreibung</legend>\n')
-	f.write(self.__find_images(coordinate))
+	f.write(self.__replace_images(coordinate.desc, coordinate))
 	f.write('  </fieldset>')
 	if len(coordinate.get_images()) > 0:
 	    f.write('  <fieldset><legend>Bilder</legend>\n')
 	    for image, description in coordinate.get_images().items():
 		f.write('   <em>%s:</em><br />\n' % description)
-		f.write('   <img src="%s" />\n' % self.__download(image))
+		f.write('   <img src="%s" />\n' % image)
 		f.write('   <hr />\n')
 	    f.write('  </fieldset>')
-		
-    def __find_images(self, coordinate):
-	self.current_cache = coordinate.name
-	self.found_images = {}
-	self.current_image = 1
-	if self.download_images:
-	    return ''
-	return re.sub('(?is)(<img[^>]+src=["\']?)([^ >"\']+)([^>]+?>)', self.__download_and_rewrite, coordinate.desc)
-		
-    def __download_and_rewrite(self, m):
-	url = m.group(2)
-	print m.group(2)
-	if not url.startswith('http://'):
-	    return m.group(0)
-	return m.group(1) + self.__download(url) + m.group(3)
-		
-    def __download(self, url):
-	if url in self.found_images.keys():
-	    return self.found_images[url]
-	ext = url.rsplit('.', 1)[1]
-	if not re.match('/^[a-zA-Z0-9]+$/', ext):
-	    ext = 'img'
-	filename = ''
-	try:
-	    filename = os.path.join(self.path, "%s-image%d.%s" % (self.current_cache, self.current_image, ext))
-	    f = open(filename, 'wb')
-	    f.write(self.downloader.get_reader(url).read())
-	    f.close()
-	    if Image != None and self.resize != None and self.resize > 0:
-		im = Image.open(filename)
-		im.thumbnail((self.resize, self.resize), Image.ANTIALIAS)
-		im.save(filename)
-	except:
-	    print "could not download %s" % url
-			
-	self.found_images[url] = filename
-	self.current_image += 1
-	return filename
-		
-		
+
+    def __replace_images(self, text, coordinate):
+	return re.sub(r'\[\[img:([^\]]+)\]\]', lambda a: self.__replace_image_callback(a, coordinate), text)
+
+    def __replace_image_callback(self, match, coordinate):
+	if match.group(1) in coordinate.get_images().keys():
+	    return '<img src="%s" />' % match.group(1)
+	else:
+	    return ' [image not found -- please re-download geocache description] '
+
+	
 """
 class GpxReader():
 	def __init__(self, pointprovider):

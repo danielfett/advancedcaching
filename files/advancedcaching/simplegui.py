@@ -26,9 +26,7 @@
 # download in seperate thread?
 # parse attributes
 # add "next waypoint" button
-# don't decrypt text in []
 # add description to displayed images
-# rewrite downloader and exporter (download images in downloader)
 
  
 ### For the gui :-)
@@ -636,16 +634,15 @@ class SimpleGui():
 
 	xgc.set_function(gtk.gdk.COPY)
 
-	num = 0
 	for c in coords: # for each geocache
 	    radius = self.CACHE_DRAW_SIZE
 	    if c.found:
 		if self.settings['options_hide_found']:
 		    continue
 		color = self.COLOR_FOUND
-	    elif c.type == "regular":
+	    elif c.type == geocaching.GeocacheCoordinate.TYPE_REGULAR:
 		color = self.COLOR_REGULAR
-	    elif c.type == "multi":
+	    elif c.type == geocaching.GeocacheCoordinate.TYPE_MULTI:
 		color = self.COLOR_MULTI
 	    else:
 		color = self.COLOR_DEFAULT
@@ -834,9 +831,7 @@ class SimpleGui():
 	self.pixmap_marks.draw_line(xgc, 0, self.map_height / 2, self.map_width / 2 - radius_inner, self.map_height / 2)
 	self.pixmap_marks.draw_line(xgc, self.map_width / 2 + radius_inner, self.map_height / 2, self.map_width, self.map_height / 2)
 		
-	#xgc.set_rgb_fg_color(gtk.gdk.color_parse("black"))
 	xgc.set_function(gtk.gdk.COPY)
-	#self.refresh()
 	return False
 	
     def expose_event(self, widget, event):
@@ -844,8 +839,6 @@ class SimpleGui():
 	    return
 	x, y, width, height = event.area
 
-	#gc = widget.get_style().fg_gc[gtk.STATE_NORMAL]
-	#self.xgc.set_function(gtk.gdk.COPY)
 	widget.window.draw_drawable(self.xgc,
 				    self.pixmap, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
 	self.xgc.set_function(gtk.gdk.AND)
@@ -1275,7 +1268,8 @@ class SimpleGui():
 						
 	# Description and short description
 	text_shortdesc = self.__strip_html(cache.shortdesc)
-	text_longdesc = self.__strip_html(cache.desc)
+	text_longdesc = self.__strip_html(re.sub(r'(?i)<img[^>]+?>', ' [to get all images, re-download description] ', re.sub(r'\[\[img:([^\]]+)\]\]', lambda a: self.__replace_image_callback(a, cache), cache.desc)))
+
 	if text_longdesc == '':
 	    text_longdesc = '(no description available)'
 	if not text_shortdesc == '':
@@ -1308,7 +1302,7 @@ class SimpleGui():
 	self.coordlist.replaceContent(rows)
 			
 	# Set button for downloading to correct state
-	self.button_download_details.set_sensitive(not cache.was_downloaded())
+	self.button_download_details.set_sensitive(True)
 		
 	# Load notes
 	self.cache_elements['notes'].set_text(cache.notes)
@@ -1335,6 +1329,18 @@ class SimpleGui():
 
 	gobject.idle_add(self.__draw_marks)
 	#self.refresh()
+
+
+    def __replace_image_callback(self, match, coordinate):
+	if match.group(1) in coordinate.get_images().keys():
+	    desc = coordinate.get_images()[match.group(1)]
+	    if desc.strip() != '':
+		return ' [image: %s] ' % desc
+	    else:
+		return ' [image] '
+	else:
+	    return ' [image not found -- please re-download geocache description] '
+
 		
     def show_error(self, errormsg):
 	error_dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR
