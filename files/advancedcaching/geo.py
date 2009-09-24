@@ -22,8 +22,48 @@ import math
 import re
 
 def try_parse_coordinate(text):
-    re.match(r'''(?i)^[NS+-]?(\d\d?)[ °](\d\d?)[., ](\d+)[\s']*\s[EOW+-]?(\d{1,3})[ °](\d\d?)[., ](\d+)?[\s']*$''')
-    re.match(r'''(?i)^[NS+-]?(\d\d?)[., ](\d+)°?\s+[EOW+-]?(\d{1,3})[., ](\d+)°?\s*$''')
+    
+    text = text.strip()
+    #                         1        2          3           4            5         6            7           8
+    match = re.match(ur'''(?i)^([NS+-]?)(\d\d?)[ °](\d\d?)[., ](\d+)[\s']*\s([EOW+-]?)(\d{1,3})[ °](\d\d?)[., ](\d+)?[\s']*$''', text)
+    if match != None:
+        c = Coordinate(0, 0)
+        if match.group(1) in ['sS-']:
+            sign_lat = -1
+        else:   
+            sign_lat = 1
+        if match.group(5) in ['wW-']:
+            sign_lon = -1
+        else:   
+            sign_lon = 1
+        
+        c.from_dm(sign_lat * int(match.group(2)), 
+            sign_lat * float("%s.%s" % (match.group(3), match.group(4))),
+            sign_lon * int(match.group(6)),
+            sign_lon * float("%s.%s" % (match.group(7), match.group(8)))
+            )
+        return c
+    
+    #                         1        2           3         4         5             6
+    match = re.match(ur'''(?i)^([NS+-]?)\s?(\d\d?)[., ](\d+)°?\s*([EOW+-]?)\s?(\d{1,3})[., ](\d+)°?\s*$''', text)
+    
+    if match != None:
+        c = Coordinate(0, 0)
+        if match.group(1) in ['sS-']:
+            sign_lat = -1
+        else:   
+            sign_lat = 1
+        if match.group(4) in ['wW-']:
+            sign_lon = -1
+        else:   
+            sign_lon = 1
+                
+        # not using math magic here: this is more error-free :-)
+        c.lat = sign_lat * float("%s.%s" % (match.group(2), match.group(3)))
+        c.lon = sign_lon * float("%s.%s" % (match.group(5), match.group(6)))
+        return c
+    
+    raise Exception("Could not parse this input as a coordinate: %s\nExample Input: N49 44.111 E6 12.123" % text)
 
 class Coordinate():
     SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT'}
@@ -42,17 +82,17 @@ class Coordinate():
         self.lat = lat
         self.lon = lon
             
-    def __from_dm(self, latdd, latmm, londd, lonmm):
+    def from_dm(self, latdd, latmm, londd, lonmm):
         self.lat = latdd + (latmm / 60)
         self.lon = londd + (lonmm / 60)
             
     def from_dm_array(self, sign_lat, lat, sign_lon, lon):
         lat += [0, 0, 0, 0, 0, 0]
         lon += [0, 0, 0, 0, 0, 0, 0]
-        self.__from_dm(sign_lat * (lat[0] * 10 + lat[1]),
-                   float(str(lat[2]) + str(lat[3]) + "." + str(lat[4]) + str(lat[5]) + str(lat[6])),
+        self.from_dm(sign_lat * (lat[0] * 10 + lat[1]),
+                   sign_lat * float(str(lat[2]) + str(lat[3]) + "." + str(lat[4]) + str(lat[5]) + str(lat[6])),
                    sign_lon * (lon[0] * 100 + lon[1] * 10 + lon[2]),
-                   float(str(lon[3]) + str(lon[4]) + "." + str(lon[5]) + str(lon[6]) + str(lon[7])))
+                   sign_lon * float(str(lon[3]) + str(lon[4]) + "." + str(lon[5]) + str(lon[6]) + str(lon[7])))
 
     def from_d_array(self, sign_lat, lat, sign_lon, lon):
         self.lat = int(sign_lat) * float("%d%d.%d%d%d%d%d" % tuple(lat))

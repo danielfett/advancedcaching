@@ -46,6 +46,15 @@ class GeocacheCoordinate(geo.Coordinate):
     TYPE_MYSTERY = 'mystery'
     TYPE_WEBCAM = 'webcam'
     TYPE_UNKNOWN = 'unknown'
+    TYPES = [
+        TYPE_REGULAR,
+        TYPE_MULTI,
+        TYPE_VIRTUAL,
+        TYPE_EVENT,
+        TYPE_MYSTERY,
+        TYPE_WEBCAM,
+        TYPE_UNKNOWN
+    ]
 
 
     SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT PRIMARY KEY', 'title': 'TEXT', 'shortdesc': 'TEXT', 'desc': 'TEXT', 'hints': 'TEXT', 'type': 'TEXT', 'size': 'INTEGER', 'difficulty': 'INTEGER', 'terrain': 'INTEGER', 'owner': 'TEXT', 'found': 'INTEGER', 'waypoints': 'text', 'images': 'text', 'notes': 'TEXT', 'fieldnotes': 'TEXT', 'logas': 'INTEGER', 'logdate': 'TEXT'}
@@ -338,6 +347,8 @@ class CacheDownloader():
 	response = self.downloader.get_reader(url, values)
 
 	the_page = response.read()
+	#print the_page
+	#exit()
 
 	extractor = re.compile('.*<ExtraData><!\[CDATA\[(.*)\]\]>')
 	match = extractor.match(the_page)

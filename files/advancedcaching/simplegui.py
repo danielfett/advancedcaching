@@ -102,6 +102,8 @@ class SimpleGui():
     ]
                 
     def __init__(self, core, pointprovider, userpointprovider, dataroot):
+    
+        gtk.gdk.threads_init()
         self.ts = openstreetmap.TileServer()
                 
         self.core = core
@@ -1274,9 +1276,10 @@ class SimpleGui():
         if text_longdesc == '':
             text_longdesc = '(no description available)'
         if not text_shortdesc == '':
-            self.cache_elements['desc'].set_text(text_shortdesc + "\n\n" + text_longdesc)
+            showdesc = text_shortdesc + "\n\n" + text_longdesc
         else:
-            self.cache_elements['desc'].set_text(text_longdesc)
+            showdesc = text_longdesc
+        self.cache_elements['desc'].set_text(showdesc)
 
         # Set View
         self.notebook_cache.set_current_page(0)
@@ -1289,6 +1292,9 @@ class SimpleGui():
         text_hints = cache.hints.strip()
         if text_hints == '':
             text_hints = '(no hints available)'
+            showdesc += "\n[no hints]"
+        else:
+            showdesc += "\n[hints available]"
         self.cache_elements['hints'].set_text(text_hints)
 
         # Waypoints
@@ -1327,6 +1333,12 @@ class SimpleGui():
         # Load images
         self.load_images()
         self.image_no = 0
+        if len(self.images) > 0:
+            showdesc += "\n[%d image(s) available]" % len(self.images)
+        else:
+            showdesc += "\n[no images available]"
+        # now, update the main text field a second time
+        self.cache_elements['desc'].set_text(showdesc)
 
         gobject.idle_add(self.__draw_marks)
         #self.refresh()

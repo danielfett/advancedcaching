@@ -16,7 +16,7 @@ socket.setdefaulttimeout(10)
 
 class TileLoader(threading.Thread):
     downloading = []
-    semaphore = threading.Semaphore(20)
+    semaphore = threading.Semaphore(40)
     lock = thread.allocate_lock() #download-lock
     drawlock = thread.allocate_lock()
     running_threads = 0
@@ -45,7 +45,7 @@ class TileLoader(threading.Thread):
         self.__log("start")
         TileLoader.running_threads += 1
         self.local_filename = os.path.join(self.base_dir, str(self.zoom), str(self.tile[0]), "%d.png" % self.tile[1])
-        self.remote_filename = "http://tile.openstreetmap.org/mapnik/%d/%d/%d.png" % (self.zoom, self.tile[0], self.tile[1])
+        self.remote_filename = "http://128.40.168.104/mapnik/%d/%d/%d.png" % (self.zoom, self.tile[0], self.tile[1])
         #self.remote_filename = "http://andy.sandbox.cloudmade.com/tiles/cycle/%d/%d/%d.png" % (self.zoom, self.tile[0], self.tile[1])
         answer = True
         if not os.path.isfile(self.local_filename):
@@ -59,18 +59,23 @@ class TileLoader(threading.Thread):
                     os.mkdir(path_2)
             except:
                 pass
-                #this may file due to threading issues.
+                # this may fail due to threading issues.
                 # too lazy to do proper locking here
                 # so just forget about the error
                                                         
                         
             answer = self.download(self.remote_filename, self.local_filename)
         # now the file hopefully exists
-        if answer:
+        if answer == True:
+            print "loading"
             self.load()
-        else:
+            gobject.idle_add(self.draw)
+        elif answer == False:
+            print "loading default"
             self.pbuf = TileLoader.noimage
-        gobject.idle_add(self.draw)
+            gobject.idle_add(self.draw)
+        else:
+            print "nothing"
             
 
         self.__log("prep draw")
@@ -80,18 +85,14 @@ class TileLoader(threading.Thread):
         try:
             self.pbuf = gtk.gdk.pixbuf_new_from_file(self.local_filename)
             if self.pbuf.get_width() < self.gui.ts.tile_size() or self.pbuf.get_height() < self.gui.ts.tile_size():
-            	print "zuuuu klein!"
+            	raise Exception("Image too small, probably corrupted file")
             return True
         except Exception as e:
-            raise e
             if tryno == 0:
                 return self.recover()
             else:
-                # draw "empty" tile:
+                print e
                 self.pbuf = TileLoader.noimage
-                #TileLoader.running_threads -= 1
-                #if TileLoader.running_threads == 0:
-                    #gobject.idle_add(self.gui.draw_marks)
                 return True
                                 
     def recover(self):
@@ -148,18 +149,21 @@ class TileLoader(threading.Thread):
         print "lade runter", remote
         acquired = False
         self.__log("dl-start")
-        self.lock.acquire()
+        
+        TileLoader.lock.acquire()
         try:
-            if remote in self.downloading:
+            if remote in TileLoader.downloading:
+                print 'lädt schon: %s' % remote
                 return None
             if os.path.exists(local):
+                print 'ex schon: %s' % remote
                 return None
-            self.downloading.append(remote)
+            TileLoader.downloading.append(remote)
         finally:
-            self.lock.release()
-                
-        self.semaphore.acquire()
-        acquired = True
+            TileLoader.lock.release()
+            
+        #TileLoader.semaphore.acquire()
+        #acquired = True
         try:
             if not self.zoom == self.gui.ts.zoom:
                 return None
@@ -174,9 +178,10 @@ class TileLoader(threading.Thread):
         	return False
         finally:
             if acquired:
-            	self.semaphore.release()
-            self.downloading.remove(remote)
+            	TileLoader.semaphore.release()
+            TileLoader.downloading.remove(remote)
             self.__log("dl-end")
+            
             
     def __log(self, string):
         a = "%d  " % self.num
