@@ -28,6 +28,16 @@
 # add "next waypoint" button
 # add description to displayed images
 # only redraw if position is in current screen
+# add favorite-places-feature: mark fav. places and return to them later
+# add favorite-caches-feature into new search tab
+
+# go to search results in case of search
+# don't display all caches on 'revert'
+
+# to test:
+# new exporter
+# new search tab
+
 
  
 ### For the gui :-)
@@ -153,6 +163,7 @@ class SimpleGui():
                                #        'on_vscale_search_diff_change_value' : self.search_value_diff_change
                                'on_button_advanced_search_clicked': self.on_search_advanced_clicked,
                                'on_button_download_details_clicked': self.on_download_cache_clicked,
+                               'on_button_export_details_clicked' : self.on_export_cache_clicked,
                                'on_set_target_clicked': self.on_set_target_clicked,
                                'on_image_next_clicked': self.on_image_next_clicked,
                                'on_image_zoom_clicked': self.on_image_zoom_clicked,
@@ -198,6 +209,8 @@ class SimpleGui():
         self.label_latlon = xml.get_widget('label_latlon')
         self.label_target = xml.get_widget('label_target')
         self.progressbar_sats = xml.get_widget('progressbar_sats')
+        
+        self.input_export_path = xml.get_widget('input_export_path')
                 
                 
                 
@@ -888,6 +901,7 @@ class SimpleGui():
     def on_download_clicked(self, widget):
         self.do_events()
         self.core.on_download(self.get_visible_area())
+        
         self.__draw_map()
 
 
@@ -905,6 +919,12 @@ class SimpleGui():
     def on_download_cache_clicked(self, something):
         self.core.on_download_cache(self.current_cache)
         self.show_cache(self.current_cache)
+        
+    def on_export_cache_clicked(self, something):
+        if self.input_export_path.get_value().strip() == '':
+            self.show_error("Please input path to export to.")
+            return
+        self.core.on_export_cache(self.current_cache, self.input_export_path.get_value())
         
     def on_good_fix(self, gps_data):
         self.gps_data = gps_data

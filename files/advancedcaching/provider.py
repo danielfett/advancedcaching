@@ -59,6 +59,12 @@ class PointProvider():
             print "Updating your Database, adding Column %s to Table %s:\n%s" % (name, self.cache_table, cmd)
             c.execute(cmd)
         self.save()
+        
+    def get_table_info(self):
+        c = self.conn.cursor()
+        fields = copy.copy(self.ctype.SQLROW)
+        c.execute('PRAGMA TABLE_INFO(%s)' % self.cache_table)
+        return c.fetchall()
                 
     def save(self):
         self.conn.commit()
@@ -87,11 +93,25 @@ class PointProvider():
             return
                 
                 
+                
     # should be used with caution :-)
     def get_all(self):
         c = self.conn.cursor()
 
         c.execute('SELECT * FROM %s' % self.cache_table)
+        points = []
+        for row in c:
+            coord = self.ctype(row['lat'], row['lon'])
+            coord.unserialize(row)
+            points.append(coord)
+        c.close()
+        return points
+        
+    # should never ever be used with anything except a user provided query
+    def get_by_query(self, query):
+        c = self.conn.cursor()
+
+        c.execute(query)
         points = []
         for row in c:
             coord = self.ctype(row['lat'], row['lon'])

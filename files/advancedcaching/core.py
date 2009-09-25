@@ -37,6 +37,8 @@ If you don't like your mouse:
         Query the internal database for geocaches and do the desired actions.
 %(name)s import [importactions] filter [filter-options] do [actions]
         Import geocaches, put them into the internal database, filter the imported geocaches and run the actions. 
+%(name)s sql "SELECT * FROM geocaches WHERE ... ORDER BY ... LIMIT ..." do [actions]
+        Select geocaches from local database and run the actions afterwards. Additional use of the filter is also supported. To get more information, run "%(name)s sql".
 
 importactions:
         --fetch-index coord1 coord2
@@ -266,12 +268,23 @@ class Core():
             exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
             full = cd.update_coordinate(cache)
             self.pointprovider.add_point(full, True)
-            exporter.export(full)
             self.pointprovider.save()
         except Exception as e:
                 self.gui.show_error(e)
         finally:
                 self.gui.hide_progress()
+        return full
+                
+    def on_export_cache(self, cache, folder = None):
+        self.gui.set_download_progress(0.5, "Exporting %s..." % cache.name)
+        try:
+            exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
+            exporter.export(cache, folder)
+        except Exception as e:
+                self.gui.show_error(e)
+        finally:
+                self.gui.hide_progress()
+        
                 
                 
                 

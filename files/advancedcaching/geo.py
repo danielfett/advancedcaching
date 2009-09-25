@@ -25,7 +25,7 @@ def try_parse_coordinate(text):
     
     text = text.strip()
     #                         1        2          3           4            5         6            7           8
-    match = re.match(ur'''(?i)^([NS+-]?)(\d\d?)[ °](\d\d?)[., ](\d+)[\s']*\s([EOW+-]?)(\d{1,3})[ °](\d\d?)[., ](\d+)?[\s']*$''', text)
+    match = re.match(ur'''(?i)^([NS+-]?)(\d\d?)[ °](\d\d?)[., ](\d+)['\s,]+([EOW+-]?)(\d{1,3})[ °](\d\d?)[., ](\d+)?[\s']*$''', text)
     if match != None:
         c = Coordinate(0, 0)
         if match.group(1) in ['sS-']:
@@ -45,7 +45,7 @@ def try_parse_coordinate(text):
         return c
     
     #                         1        2           3         4         5             6
-    match = re.match(ur'''(?i)^([NS+-]?)\s?(\d\d?)[., ](\d+)°?\s*([EOW+-]?)\s?(\d{1,3})[., ](\d+)°?\s*$''', text)
+    match = re.match(ur'''(?i)^([NS+-]?)\s?(\d\d?)[., ](\d+)°?[\s,]+([EOW+-]?)\s?(\d{1,3})[., ](\d+)°?\s*$''', text)
     
     if match != None:
         c = Coordinate(0, 0)
@@ -67,6 +67,8 @@ def try_parse_coordinate(text):
 
 class Coordinate():
     SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT'}
+    
+    RADIUS_EARTH = 6371000
     
     FORMAT_D = 0
     FORMAT_DM = 1
@@ -132,6 +134,25 @@ class Coordinate():
         x = math.cos(lat1) * math.sin(lat2) - math.sin(lat1) * math.cos(lat2) * math.cos(dlon)
         bearing = math.degrees(math.atan2(y, x))
         return (360 + bearing) % 360
+        
+    def transform(self, bearing, distance):
+        # expect distance in meters and bearing in degrees
+        rlat1 = math.radians(self.lat)
+        rlon1 = math.radians(self.lon)
+        rbearing = math.radians(bearing)
+        rdistance = distance / self.RADIUS_EARTH # normalize linear distance to radian angle
+
+        rlat = math.asin( math.sin(rlat1) * math.cos(rdistance) + math.cos(rlat1) * math.sin(rdistance) * math.cos(rbearing) )
+
+        if math.cos(rlat) == 0 or abs(math.cos(rlat)) < 0.00001: # Endpoint a pole
+            rlon=rlon1
+        else:
+            rlon = ( (rlon1 - math.asin( math.sin(rbearing)* math.sin(rdistance) / math.cos(rlat) ) + math.pi ) % (2*math.pi) ) - math.pi
+
+        lat = math.degrees(rlat)
+        lon = math.degrees(rlon)
+        return Coordinate(lat, lon, self.name)
+    
 
     def get_lat(self, format):
         l = abs(self.lat)
@@ -156,12 +177,11 @@ class Coordinate():
             return "%s%3d° %06.3f'" % (c, math.floor(l), (l - math.floor(l)) * 60)
 
     def distance_to (self, target):
-        R = 6371000;
         dlat = math.pow(math.sin(math.radians(target.lat-self.lat) / 2), 2)
         dlon = math.pow(math.sin(math.radians(target.lon-self.lon) / 2), 2)
         a = dlat + math.cos(math.radians(self.lat)) * math.cos(math.radians(target.lat)) * dlon;
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a));
-        return R * c;
+        return self.RADIUS_EARTH * c;
 
     def __str__(self):
         return "%s %s" % (self.get_lat(Coordinate.FORMAT_DM), self.get_lon(Coordinate.FORMAT_DM))

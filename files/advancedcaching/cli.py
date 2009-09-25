@@ -1,11 +1,20 @@
 import geocaching
 import sys
 import geo
+import math
 
 class ParseError(Exception):
     def __init__(self, errormsg, token = None):
         self.msg = errormsg
         self.token = token
+        
+    def __str__(self):
+        return repr(self.msg)
+        
+        
+class RunError(Exception):
+    def __init__(self, errormsg):
+        self.msg = errormsg
         
     def __str__(self):
         return repr(self.msg)
@@ -36,6 +45,10 @@ class Cli():
             else:
                 print "# Parse Error after Token '%s':" % sys.argv[e.token]
             print "# %s" % e.msg
+        except RunError as e:
+            print "# Execution Error at token '%s': " % sys.argv[self.nt - 1]
+            print "# %s" % e.msg
+            
             
     def check_caches_retrieved(self):
         if self.caches == None:
@@ -47,12 +60,14 @@ class Cli():
         while self.has_next():
             if sys.argv[self.nt] == 'import':
                 self.parse_import()
+            elif sys.argv[self.nt] == 'sql':
+                self.parse_sql()
             elif sys.argv[self.nt] == 'filter':
                 self.parse_filter()
             elif sys.argv[self.nt] == 'do':
                 self.parse_actions()
             else: 
-                raise ParseError("Expected 'import', 'filter' or 'do'", self.nt - 1)
+                raise ParseError("Expected 'import', 'sql', 'filter' or 'do'", self.nt - 1)
             
         
     def parse_import(self):
@@ -66,14 +81,28 @@ class Cli():
             coord1 = self.parse_coord()
             coord2 = self.parse_coord()
             self.import_points(coord1, coord2)
-        #elif token == '--fetch-index-radius':
-        #    coord1 = self.parse_coord()
-        #    radius = self.parse_int()
-        #    self.import_points(coord1, radius)
+        elif token == '--fetch-index-radius':
+            coord1 = self.parse_coord()
+            radius = self.parse_int()
+            self.import_points(coord1, radius)
         else:
             # undo what we did.
             self.nt -= 1
             return
+            
+    def parse_sql(self):
+        self.nt += 1
+        if not self.has_next():
+            print "Table structure for geocaches:"
+            info = self.pointprovider.get_table_info()
+            for row in info:
+                print "\t".join([str(x) for x in row])
+            print "Example SQL-Query:"
+            print "SELECT * FROM geocaches WHERE type = 'multi' AND name LIKE 'GC1X%' AND found = 0 ORDER BY title DESC LIMIT 5"
+            raise ParseError("Expected sql string.")
+        text = self.parse_string()
+        self.caches = self.pointprovider.get_by_query(text)
+            
         
     def parse_filter(self):
         self.check_caches_retrieved()
@@ -250,8 +279,18 @@ class Cli():
             
         
     def import_points(self, c1, c2):
-        print "* Downloading Caches between %s and %s" % (c1, c2)
-        self.caches = self.core.on_download_caches((c1, c2))
+        if isinstance(c2, geo.Coordinate):
+            print "* Downloading Caches between %s and %s" % (c1, c2)
+            self.caches = self.core.on_download((c1, c2))
+        else:
+            # try to calculate some points northwest and southeast to the
+            # given point with approximately correct distances
+            new_c1 = c1.transform(-45, c2 * 1000 * math.sqrt(2))
+            new_c2 = c1.transform(-45 + 180, c2 * 1000 * math.sqrt(2))
+            print "* Downloading Caches in %d km distance to %s" % (c2, c1)
+            print "* Approximation: Caches between %s and %s" % (new_c1, new_c2)
+            self.caches = self.core.on_download((new_c1, new_c2))
+
         
     def add_filter_in(self, coord1, coord2):
         if isinstance(coord2, geo.Coordinate):
@@ -286,7 +325,7 @@ class Cli():
         elif op == self.MAX:
             self.caches = filter(lambda x: x.size <= size, self.caches)
         else:
-            raise ParseError("What Happen? Somebody set us up the geocache.")
+            raise RunError("What Happen? Somebody set us up the geocache.")
         print "* filter with size: %d left" % len(self.caches)
         
     def add_filter_difficulty(self, op, diff):
@@ -297,7 +336,7 @@ class Cli():
         elif op == self.MAX:
             self.caches = filter(lambda x: x.diff <= diff, self.caches)
         else:
-            raise ParseError("What Happen? Somebody set us up the geocache.")
+            raise RunError("What Happen? Somebody set us up the geocache.")
         print "* filter with difficulty: %d left" % len(self.caches)
             
     def add_filter_terrain(self, op, terr):
@@ -308,7 +347,7 @@ class Cli():
         elif op == self.MAX:
             self.caches = filter(lambda x: x.terr <= terr, self.caches)
         else:
-            raise ParseError("What Happen? Somebody set us up the geocache.")
+            raise RunError("What Happen? Somebody set us up the geocache.")
         print "* filter with terrain: %d left" % len(self.caches)
             
     def add_filter_types(self, types):
@@ -324,15 +363,35 @@ class Cli():
         print "* filter with name: %d left" % len(self.caches)
     
     def add_filter_id (self, idstring):
-        self.caches = filter(lambda x: idstring.lower() in x.id.lower(), self.caches)
+        self.caches = filter(lambda x: idstring.lower() in x.name.lower(), self.caches)
         print "* filter with id: %d left" % len(self.caches)
     
     def action_print (self):
         for c in self.caches:
             print "%s\t%s" % (c.title, c.name)
+            
+    def action_fetch_details(self):
+        i = 1 
+        for c in self.caches:
+            print "* (%d of %d)\tDownloading '%s'" % (i, len(self.caches), c.title)
+            self.core.on_download_cache(c)
+            i += 1
     
-    def action_export_html(self):
-        pass
+    def action_export_html(self, folder):
+        i = 1 
+        for c in self.caches:
+            print "* (%d of %d)\tExporting '%s'" % (i, len(self.caches), c.title)
+            self.core.on_export_cache(c, folder)
+            i += 1
     
     def action_export_gpx(self):
         pass
+        
+    def set_download_progress(self, some, thing):
+        pass
+        
+    def hide_progress(self):
+        pass
+        
+    def show_error(self, message):
+        raise RunError(message)
