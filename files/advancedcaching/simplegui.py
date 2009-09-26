@@ -19,7 +19,7 @@
 #
 
  
-# deps: python-html python-image python-netclient python-misc python-pygtk python-mime
+# deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
 
 # todo:
 # add translation support?
@@ -27,6 +27,8 @@
 # parse attributes
 # add "next waypoint" button
 # add description to displayed images
+# add functions for individual waypoints
+# add favorites
 
  
 ### For the gui :-)

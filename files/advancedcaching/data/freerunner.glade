@@ -295,7 +295,7 @@ view</property>
                   <widget class="GtkTable" id="table3">
                     <property name="visible">True</property>
                     <property name="n_rows">2</property>
-                    <property name="n_columns">4</property>
+                    <property name="n_columns">5</property>
                     <property name="homogeneous">True</property>
                     <child>
                       <widget class="GtkLabel" id="label9">
@@ -381,6 +381,34 @@ view</property>
                       <packing>
                         <property name="left_attach">1</property>
                         <property name="right_attach">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkHBox" id="hbox8">
+                        <property name="visible">True</property>
+                        <child>
+                          <widget class="GtkImage" id="image2">
+                            <property name="visible">True</property>
+                            <property name="pixbuf">star.png</property>
+                          </widget>
+                          <packing>
+                            <property name="position">0</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkImage" id="image1">
+                            <property name="visible">True</property>
+                            <property name="pixbuf">star-dis.png</property>
+                          </widget>
+                          <packing>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                      </widget>
+                      <packing>
+                        <property name="left_attach">4</property>
+                        <property name="right_attach">5</property>
+                        <property name="bottom_attach">2</property>
                       </packing>
                     </child>
                   </widget>
@@ -867,13 +895,17 @@ note</property>
                         <property name="primary_icon_stock">gtk-find</property>
                         <property name="primary_icon_tooltip_text">suchen...</property>
                       </widget>
+                      <packing>
+                        <property name="top_attach">1</property>
+                        <property name="bottom_attach">2</property>
+                      </packing>
                     </child>
                     <child>
                       <widget class="GtkHBox" id="hbox2">
                         <property name="visible">True</property>
                         <child>
                           <widget class="GtkRadioButton" id="radio_search_found_false">
-                            <property name="label" translatable="yes">only new</property>
+                            <property name="label" translatable="yes">new</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
@@ -903,7 +935,7 @@ note</property>
                         </child>
                         <child>
                           <widget class="GtkRadioButton" id="radio_search_found_whatever">
-                            <property name="label" translatable="yes">found+new</property>
+                            <property name="label" translatable="yes">both</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
@@ -916,11 +948,34 @@ note</property>
                             <property name="position">2</property>
                           </packing>
                         </child>
+                        <child>
+                          <widget class="GtkRadioButton" id="radio_search_found_favorites">
+                            <property name="label" translatable="yes">new </property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">False</property>
+                            <property name="active">True</property>
+                            <property name="draw_indicator">True</property>
+                            <property name="group">radio_search_found_false</property>
+                          </widget>
+                          <packing>
+                            <property name="expand">False</property>
+                            <property name="fill">False</property>
+                            <property name="position">3</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkImage" id="image3">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="yalign">0</property>
+                            <property name="pixbuf">star.png</property>
+                          </widget>
+                          <packing>
+                            <property name="position">4</property>
+                          </packing>
+                        </child>
                       </widget>
-                      <packing>
-                        <property name="top_attach">1</property>
-                        <property name="bottom_attach">2</property>
-                      </packing>
                     </child>
                     <child>
                       <widget class="GtkHBox" id="hbox3">
@@ -1650,6 +1705,24 @@ after first download)</property>
         <property name="label" translatable="yes">set center as target</property>
         <property name="use_underline">True</property>
         <signal name="activate" handler="on_set_target_center"/>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkSeparatorMenuItem" id="menuitem4">
+        <property name="visible">True</property>
+      </widget>
+    </child>
+    <child>
+      <widget class="GtkImageMenuItem" id="menuitem5">
+        <property name="label" translatable="yes">find next</property>
+        <property name="visible">True</property>
+        <property name="use_stock">False</property>
+        <child internal-child="image">
+          <widget class="GtkImage" id="image1">
+            <property name="visible">True</property>
+            <property name="pixbuf">star.png</property>
+          </widget>
+        </child>
       </widget>
     </child>
   </widget>

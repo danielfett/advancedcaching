@@ -346,7 +346,9 @@ class CacheDownloader():
 	text = match.group(1).replace("\\'", "'")
 	a = json.loads(text.replace('\t', ' '))
 	points = []
+	print the_page
 	if not 'cc' in a['cs'].keys():
+	    #raise Exception("Too much geocaches in the selected area!")
 	    return points
 	for b in a['cs']['cc']:
 	    c = GeocacheCoordinate(b['lat'], b['lon'], b['gc'])
