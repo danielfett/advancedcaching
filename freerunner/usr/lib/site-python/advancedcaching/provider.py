@@ -1,5 +1,23 @@
+import math
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
+#	Copyright (C) 2009 Daniel Fett
+# 	This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#	Author: Daniel Fett advancedcaching@fragcom.de
+#
 
 #import downloader
 import sqlite3
@@ -125,18 +143,26 @@ class PointProvider():
 			
 	c = self.conn.cursor()
 	# we don't have 'power' or other advanced mathematic operators
-	# in sqlite, so doing fake distance calculation here
-	query = 'SELECT * FROM %s WHERE %s ORDER BY ABS(lat-?)*ABS(lon-?) DESC LIMIT 1' % (self.cache_table, " AND ".join(filterstring))
+	# in sqlite, so doing distance calculation in python
+	query = 'SELECT * FROM %s WHERE %s' % (self.cache_table, " AND ".join(filterstring))
 		
-	filterargs.append(center.lat)
-	filterargs.append(center.lon)
 	c.execute(query, tuple(filterargs))
-		
+
+	mindist = () # we use this as positive infinity
+	mindistrow = None
 	for row in c:
-	    coord = self.ctype(row['lat'], row['lon'])
-	    coord.unserialize(row)
-	    return coord
-	return None
+	    # we have points very close to each other
+	    # for the sake of performance, using simpler
+	    # distance calc here
+	    dist = math.sqrt((row['lat'] - center.lat) ** 2 + (row['lon'] - center.lon) ** 2 )
+	    if dist < mindist:
+		mindistrow = row
+		mindist = dist
+	if mindistrow == None:
+	    return None
+	coord = self.ctype(mindistrow['lat'], mindistrow['lon'])
+	coord.unserialize(mindistrow)
+	return coord
 		
     def set_filter(self, found=None, has_details=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, adapt_filter=False):
 	# a value "None" means: apply no filtering on this value

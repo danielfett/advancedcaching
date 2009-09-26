@@ -38,7 +38,7 @@ import os
 #import pstats
 
 
-if len(sys.argv) < 2:
+if len(sys.argv) == 1:
     print "Usage: %s --desktop (not really implemented yet) or %s --simple" % (sys.argv[0], sys.argv[0])
     exit()
 	
@@ -46,9 +46,12 @@ arg = sys.argv[1].strip()
 if arg == '--simple':
     import simplegui
     gui = simplegui.SimpleGui
-else:
-    from advancedcaching import biggui
+elif arg == '--desktop':
+    import biggui
     gui = biggui.BigGui
+else:
+	import cli
+	gui = cli.Cli
 
 	
 class Standbypreventer():
@@ -188,7 +191,7 @@ class Core():
 
     # called by gui
     def on_download(self, location):
-	cd = geocaching.CacheDownloader(self.downloader)
+	cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
 	caches = cd.get_geocaches(location)
 	for c in caches:
 	    self.pointprovider.add_point(c)
@@ -197,24 +200,25 @@ class Core():
     # called by gui
     def on_download_cache(self, cache):
 	self.gui.set_download_progress(0.5, "Downloading %s..." % cache.name)
+
 	try:
-	    cd = geocaching.CacheDownloader(self.downloader)
-	    exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'], self.settings['download_noimages'])
+	    cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+	    exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
 	    full = cd.update_coordinate(cache)
 	    self.pointprovider.add_point(full, True)
 	    exporter.export(full)
 	    self.pointprovider.save()
-	except Exception as e:
-	    self.gui.show_error(e)
+        except Exception as e:
+		self.gui.show_error(e)
 	finally:
-	    self.gui.hide_progress()
+		self.gui.hide_progress()
 		
 		
 		
     # called by gui
     def on_download_descriptions(self, location, visibleonly=False):
-	cd = geocaching.CacheDownloader(self.downloader)
-	exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'], None, self.settings['download_noimages'])
+	cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+	exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
 		
 	self.pointprovider.push_filter()
 			

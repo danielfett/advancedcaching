@@ -38,7 +38,6 @@ class GpsReader():
 	self.gui = gui
 	self.status = "connecting..."
 	self.connected = False
-	self.connect()
 	self.last_bearing = None
 		
 	
