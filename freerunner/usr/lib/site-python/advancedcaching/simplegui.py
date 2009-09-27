@@ -19,7 +19,7 @@
 #
 
  
-# deps: python-html python-image python-netclient python-misc python-pygtk python-mime
+# deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
 
 # todo:
 # add translation support?
@@ -28,6 +28,16 @@
 # add "next waypoint" button
 # add description to displayed images
 # only redraw if position is in current screen
+# add favorite-places-feature: mark fav. places and return to them later
+# add favorite-caches-feature into new search tab
+
+# go to search results in case of search
+# don't display all caches on 'revert'
+
+# to test:
+# new exporter
+# new search tab
+
 
  
 ### For the gui :-)
@@ -39,12 +49,12 @@ from time import strftime
 import extListview
 import geo
 import geocaching
-import openstreetmap
 import gobject
 import gtk
-import gtk.glade
 import gtk.gdk
+import gtk.glade
 from htmlentitydefs import name2codepoint as n2cp
+import openstreetmap
 import os
 import pango
 import re
@@ -102,7 +112,10 @@ class SimpleGui():
     ]
                 
     def __init__(self, core, pointprovider, userpointprovider, dataroot):
+    
+        gtk.gdk.threads_init()
         self.ts = openstreetmap.TileServer()
+        openstreetmap.TileLoader.noimage = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage.png'))
                 
         self.core = core
         self.pointprovider = pointprovider
@@ -134,47 +147,48 @@ class SimpleGui():
         self.map_center_x, self.map_center_y = 100, 100
         self.inhibit_zoom = False
         self.inhibit_expose = False
-        self.draw_lock = thread.allocate_lock()
+        #self.draw_lock = thread.allocate_lock()
         global xml
         xml = gtk.glade.XML(os.path.join(dataroot, "freerunner.glade"))
         self.window = xml.get_widget("window1")
-                
-        xml.signal_autoconnect({
-                               "on_window1_destroy": self.destroy,
-                               "on_zoomin_clicked": self.on_zoomin_clicked,
-                               "on_zoomout_clicked": self.on_zoomout_clicked,
-                               'save_config': self.on_save_config,
-                               'notes_changed': self.on_notes_changed,
-                               #                        'on_button_download_now_clicked' : self.on_download_details_clicked,
-                               'on_spinbutton_zoom_change_value': self.on_zoom_changed,
-                               #        'on_vscale_search_terrain_change_value' : self.search_value_terrain_change,
-                               #        'on_vscale_search_diff_change_value' : self.search_value_diff_change
-                               'on_button_advanced_search_clicked': self.on_search_advanced_clicked,
-                               'on_button_download_details_clicked': self.on_download_cache_clicked,
-                               'on_set_target_clicked': self.on_set_target_clicked,
-                               'on_image_next_clicked': self.on_image_next_clicked,
-                               'on_image_zoom_clicked': self.on_image_zoom_clicked,
-                               'on_change_coord_clicked': self.on_change_coord_clicked,
-                               'on_track_toggled': self.on_track_toggled,
-                               'on_search_reset_clicked': self.on_search_reset_clicked,
-                               'dmap': self.dmap,
-                               'dunmap': self.dunmap,
-                               'on_download_details_map_clicked': self.on_download_details_map_clicked,
-                               # fieldnotes related
-                               'on_upload_fieldnotes': self.on_upload_fieldnotes,
-                               'on_fieldnotes_changed': self.on_fieldnotes_changed,
-                               'on_fieldnotes_log_changed': self.on_fieldnotes_log_changed,
-                               'on_label_fieldnotes_mapped': self.on_label_fieldnotes_mapped,
-                               # context menu:
-                               'on_actions_clicked': self.on_actions_clicked,
-                               'on_download_clicked': self.on_download_clicked,
-                               'on_download_details_sync_clicked': self.on_download_details_sync_clicked,
-                               'on_show_target_clicked': self.on_show_target_clicked,
-                               'on_set_target_center': self.on_set_target_center,
+        xml.signal_autoconnect(self)
+        #xml.signal_autoconnect({
+			       #"on_window_destroy": self.destroy,
+			       #"on_zoomin_clicked": self.on_zoomin_clicked,
+			       #"on_zoomout_clicked": self.on_zoomout_clicked,
+			       #'save_config': self.on_save_config,
+			       #'on_notes_changed': self.on_notes_changed,
+			       #                        'on_button_download_now_clicked' : self.on_download_details_clicked,
+			       #'on_spinbutton_zoom_change_value': self.on_zoom_changed,
+			       #        'on_vscale_search_terrain_change_value' : self.search_value_terrain_change,
+			       #        'on_vscale_search_diff_change_value' : self.search_value_diff_change
+			       #'on_button_advanced_search_clicked': self.on_search_advanced_clicked,
+			       #'on_button_download_details_clicked': self.on_download_cache_clicked,
+			       #'on_button_export_details_clicked': self.on_export_cache_clicked,
+			       #'on_set_target_clicked': self.on_set_target_clicked,
+			       #'on_image_next_clicked': self.on_image_next_clicked,
+			       #'on_image_zoom_clicked': self.on_image_zoom_clicked,
+			       #'on_change_coord_clicked': self.on_change_coord_clicked,
+			       #'on_track_toggled': self.on_track_toggled,
+			       #'on_search_reset_clicked': self.on_search_reset_clicked,
+			       #'dmap': self.dmap,
+			       #'dunmap': self.dunmap,
+			       #'on_download_details_map_clicked': self.on_download_details_map_clicked,
+			       # fieldnotes related
+			       #'on_upload_fieldnotes': self.on_upload_fieldnotes,
+			       #'on_fieldnotes_changed': self.on_fieldnotes_changed,
+			       #'on_fieldnotes_log_changed': self.on_fieldnotes_log_changed,
+			       #'on_label_fieldnotes_mapped': self.on_label_fieldnotes_mapped,
+			       ### context menu:
+			       #'on_actions_clicked': self.on_actions_clicked,
+			       #'on_download_clicked': self.on_download_clicked,
+			       #'on_download_details_sync_clicked': self.on_download_details_sync_clicked,
+			       #'on_show_target_clicked': self.on_show_target_clicked,
+			       #'on_set_target_center': self.on_set_target_center,
+			       #'on_marked_label_clicked' : self.on_marked_label_clicked,
 
-                               })
+	#		       })
 
-        openstreetmap.TileLoader.noimage = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage.png'))
 
         # map drawing area
         self.drawing_area = xml.get_widget("drawingarea")
@@ -196,6 +210,8 @@ class SimpleGui():
         self.label_latlon = xml.get_widget('label_latlon')
         self.label_target = xml.get_widget('label_target')
         self.progressbar_sats = xml.get_widget('progressbar_sats')
+        
+        self.input_export_path = xml.get_widget('input_export_path')
                 
                 
                 
@@ -262,21 +278,21 @@ class SimpleGui():
         # Create the renderer used in the listview
         txtRdr        = gtk.CellRendererText()
         (
-         ROW_TYPE,
-         ROW_SIZE,
-         ROW_TERRAIN,
-         ROW_DIFF,
-         ROW_ID,
-         ROW_TITLE,
-         ) = range(6)
+	 ROW_TYPE,
+	 ROW_SIZE,
+	 ROW_TERRAIN,
+	 ROW_DIFF,
+	 ROW_ID,
+	 ROW_TITLE,
+	 ) = range(6)
         columns = (
-                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE, ), False, True),
-                   ('typ', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE, ), False, True),
-                   ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
-                   ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
-                   ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
-                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID, ), False, True),
-                   )
+		   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
+		   ('typ', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
+		   ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
+		   ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
+		   ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
+		   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
+		   )
         self.cachelist = listview = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
         listview.connect('extlistview-button-pressed', self.on_search_cache_clicked)
         xml.get_widget('scrolledwindow_search').add(listview)
@@ -286,17 +302,17 @@ class SimpleGui():
         #txtRdr        = gtk.CellRendererText()
         #pixbufRdr = gtk.CellRendererPixbuf()
         (
-         COL_COORD_NAME,
-         COL_COORD_LATLON,
-         COL_COORD_ID,
-         COL_COORD_COMMENT,
-         ) = range(4)
+	 COL_COORD_NAME,
+	 COL_COORD_LATLON,
+	 COL_COORD_ID,
+	 COL_COORD_COMMENT,
+	 ) = range(4)
         columns = (
-                   ('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
-                   ('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
-                   ('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
-                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT, ), False, True),
-                   )
+		   ('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
+		   ('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
+		   ('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
+		   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT,), False, True),
+		   )
         self.coordlist = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
         self.coordlist.connect('extlistview-button-pressed', self.on_waypoint_clicked)
         xml.get_widget('scrolledwindow_coordlist').add(self.coordlist)
@@ -304,6 +320,11 @@ class SimpleGui():
         self.notebook_all.set_current_page(1)
         gobject.timeout_add_seconds(10, self.__check_notes_save)
 
+
+    def on_marked_label_clicked(self, event = None, widget = None):
+	w = xml.get_widget('check_cache_marked')
+	w.set_active(not w.get_active())
+	print w
 
     def dmap(self, widget):
         pass
@@ -395,7 +416,7 @@ class SimpleGui():
         entity_re = re.compile(r'&(#?)(x?)(\w+);')
         return entity_re.subn(substitute_entity, string)[0]
         
-    def destroy(self, target):
+    def on_window_destroy(self, target):
         self.core.on_destroy()
         gtk.main_quit()
 
@@ -423,7 +444,7 @@ class SimpleGui():
             else:
                 t = "%.1f" % r.terrain
                         
-            rows.append((r.title, r.type, s, t, d, r.name,))
+            rows.append((r.title, r.type, s, t, d, r.name, ))
         self.cachelist.replaceContent(rows)
 
 
@@ -440,7 +461,7 @@ class SimpleGui():
             disabled = True
                         
         self.pixmap_arrow.draw_rectangle(widget.get_style().bg_gc[gtk.STATE_NORMAL],
-                                         True, 0, 0, width, height)
+					 True, 0, 0, width, height)
 
         if disabled:
             #self.pixmap_arrow.draw_rectangle(self.xgc_arrow,
@@ -520,7 +541,7 @@ class SimpleGui():
         arrow_transformed = []
         for (x, y) in arrow:
             arrow_transformed.append((int(round(x * multiply * c + offset_x - y * multiply * s)),
-                                     int(round(y * multiply * c + offset_y + x * multiply * s))))
+				     int(round(y * multiply * c + offset_y + x * multiply * s))))
         return arrow_transformed
                 
                 
@@ -565,7 +586,7 @@ class SimpleGui():
         x, y, width, height = self.drawing_area.get_allocation()
         #gc = widget.get_style().fg_gc[gtk.STATE_NORMAL]
         self.drawing_area.window.draw_drawable(self.xgc,
-                                               self.pixmap, -self.draw_at_x + self.drag_offset_x - self.draw_root_x, -self.draw_at_y + self.drag_offset_y - self.draw_root_y, 0, 0, width, height)
+					       self.pixmap, -self.draw_at_x + self.drag_offset_x - self.draw_root_x, -self.draw_at_y + self.drag_offset_y - self.draw_root_y, 0, 0, width, height)
         return True
         
                 
@@ -618,7 +639,7 @@ class SimpleGui():
                         d.start()
         #print 'end draw map'
                         
-    def __draw_marks(self, thr=None):
+    def __draw_marks(self):
             
         #print "marking"
         xgc = self.xgc
@@ -634,6 +655,8 @@ class SimpleGui():
         draw_short = (len(coords) > self.TOO_MUCH_POINTS)
 
         xgc.set_function(gtk.gdk.COPY)
+	#xgc.set_dashes(1, (2, 2))
+	#xgc.line_style = gtk.gdk.LINE_ON_OFF_DASH
 
         for c in coords: # for each geocache
             radius = self.CACHE_DRAW_SIZE
@@ -653,9 +676,15 @@ class SimpleGui():
                         
             if draw_short:
                 radius = radius / 2.0
-                                
+	    
+	    xgc.set_rgb_fg_color(gtk.gdk.color_parse('yellow'))
+	    self.pixmap_marks.draw_rectangle(xgc, True, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
+
+
+	    xgc.set_rgb_fg_color(color)
             xgc.line_width = 3
             self.pixmap_marks.draw_rectangle(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
+
             if draw_short:
                 continue
                                 
@@ -841,10 +870,10 @@ class SimpleGui():
         x, y, width, height = event.area
 
         widget.window.draw_drawable(self.xgc,
-                                    self.pixmap, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
+				    self.pixmap, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
         self.xgc.set_function(gtk.gdk.AND)
         widget.window.draw_drawable(self.xgc,
-                                    self.pixmap_marks, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
+				    self.pixmap_marks, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
         self.xgc.set_function(gtk.gdk.COPY)
                 
         return False
@@ -853,7 +882,7 @@ class SimpleGui():
     def expose_event_arrow(self, widget, event):
         x, y, width, height = event.area
         widget.window.draw_drawable(self.xgc_arrow,
-                                    self.pixmap_arrow, x, y, x, y, width, height)
+				    self.pixmap_arrow, x, y, x, y, width, height)
         return False
 
 
@@ -886,6 +915,7 @@ class SimpleGui():
     def on_download_clicked(self, widget):
         self.do_events()
         self.core.on_download(self.get_visible_area())
+        
         self.__draw_map()
 
 
@@ -903,6 +933,12 @@ class SimpleGui():
     def on_download_cache_clicked(self, something):
         self.core.on_download_cache(self.current_cache)
         self.show_cache(self.current_cache)
+        
+    def on_export_cache_clicked(self, something):
+        if self.input_export_path.get_value().strip() == '':
+            self.show_error("Please input path to export to.")
+            return
+        self.core.on_export_cache(self.current_cache, self.input_export_path.get_value())
         
     def on_good_fix(self, gps_data):
         self.gps_data = gps_data
@@ -1103,7 +1139,7 @@ class SimpleGui():
             self.zoom()
                 
     def on_zoomin_clicked(self, widget):
-        self.zoom( + 1)
+        self.zoom(+ 1)
                 
     def on_zoomout_clicked(self, widget):
         self.zoom(-1)
@@ -1157,9 +1193,9 @@ class SimpleGui():
     def pixmappoint2coord(self, point):
         size = self.ts.tile_size()
         coord = self.ts.num2deg(
-                                (point[0] + self.map_center_x * size - self.map_width / 2) / size,
-                                (point[1] + self.map_center_y * size - self.map_height / 2) / size
-                                )
+				(point[0] + self.map_center_x * size - self.map_width / 2) / size,
+				(point[1] + self.map_center_y * size - self.map_height / 2) / size
+				)
         return coord
                 
     def point_in_screen(self, point):
@@ -1178,10 +1214,14 @@ class SimpleGui():
             settings['last_target_name'] = self.current_target.name
                         
         for x in self.SETTINGS_CHECKBOXES:
-            settings[x] = xml.get_widget('check_%s' % x).get_active()
+	    w = xml.get_widget('check_%s' % x)
+	    if w != None:
+		settings[x] = w.get_active()
                 
         for x in self.SETTINGS_INPUTS:
-            settings[x] = xml.get_widget('input_%s' % x).get_text()
+	    w = xml.get_widget('input_%s' % x)
+	    if w != None:
+		settings[x] = w.get_text()
                 
         self.settings = settings
                 
@@ -1200,16 +1240,16 @@ class SimpleGui():
     def screenpoint2coord(self, point):
         size = self.ts.tile_size()
         coord = self.ts.num2deg(
-                                ((point[0] - self.draw_root_x - self.draw_at_x) + self.map_center_x * size - self.map_width / 2) / size,
-                                ((point[1] - self.draw_root_y - self.draw_at_y) + self.map_center_y * size - self.map_height / 2) / size
-                                )
+				((point[0] - self.draw_root_x - self.draw_at_x) + self.map_center_x * size - self.map_width / 2) / size,
+				((point[1] - self.draw_root_y - self.draw_at_y) + self.map_center_y * size - self.map_height / 2) / size
+				)
         return coord
         
     def scroll(self, widget, event):
         if event.direction == gtk.gdk.SCROLL_DOWN:
             self.zoom(-1)
         else:
-            self.zoom( + 1)
+            self.zoom(+ 1)
         
                 
     def set_center(self, coord, noupdate=False):
@@ -1355,15 +1395,15 @@ class SimpleGui():
                 
     def show_error(self, errormsg):
         error_dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR
-                                      , message_format="%s" % errormsg
-                                      , buttons=gtk.BUTTONS_OK)
+				      , message_format="%s" % errormsg
+				      , buttons=gtk.BUTTONS_OK)
         error_dlg.run()
         error_dlg.destroy()
 
     def show_success(self, message):
         suc_dlg = gtk.MessageDialog(type=gtk.MESSAGE_INFO
-                                    , message_format=message
-                                    , buttons=gtk.BUTTONS_OK)
+				    , message_format=message
+				    , buttons=gtk.BUTTONS_OK)
         suc_dlg.run()
         suc_dlg.destroy()
 
@@ -1439,15 +1479,27 @@ class SimpleGui():
 
         for x in self.SETTINGS_CHECKBOXES:
             if x in self.settings.keys():
-                xml.get_widget('check_%s' % x).set_active(self.settings[x])
+		w = xml.get_widget('check_%s' % x)
+		if w == None:
+		    continue
+                w.set_active(self.settings[x])
             elif x in self.DEFAULT_SETTINGS.keys():
-                xml.get_widget('check_%s' % x).set_active(self.DEFAULT_SETTINGS[x])
+                w = xml.get_widget('check_%s' % x)
+		if w == None:
+		    continue
+                w.set_active(self.DEFAULT_SETTINGS[x])
         
         for x in self.SETTINGS_INPUTS:
             if x in self.settings.keys():
-                xml.get_widget('input_%s' % x).set_text(str(self.settings[x]))
+                w = xml.get_widget('input_%s' % x)
+		if w == None:
+		    continue
+                w.set_text(str(self.settings[x]))
             elif x in self.DEFAULT_SETTINGS.keys():
-                xml.get_widget('input_%s' % x).set_text(self.DEFAULT_SETTINGS[x])
+		w = xml.get_widget('input_%s' % x)
+		if w == None:
+		    continue
+		w.set_text(self.DEFAULT_SETTINGS[x])
                                         
         self.block_changes = False
                 

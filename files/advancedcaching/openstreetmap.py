@@ -10,27 +10,18 @@ import gtk
 import os
 import threading
 import urllib
-import socket
+# import socket
 
-socket.setdefaulttimeout(10)
+# socket.setdefaulttimeout(10)
+# makes problem on slow (gprs) connections
 
 class TileLoader(threading.Thread):
     downloading = []
     semaphore = threading.Semaphore(40)
     lock = thread.allocate_lock() #download-lock
-    drawlock = thread.allocate_lock()
     running_threads = 0
     noimage = None
-        
-    #steps:
-    # - check if file exists.
-    # - NO: Download tile
-    # - load pixbuf from file
-    # - find target position in current pixmap (lock!)
-    # - draw to pixmap (still locked!)
-    # - call queue_draw
-    # optional: acquire locks in all related parts of gui
-        
+                
     def __init__(self, tile, zoom, gui, base_dir, num=0):
         threading.Thread.__init__(self)
         self.daemon = False
@@ -104,7 +95,6 @@ class TileLoader(threading.Thread):
         return self.load(1)
                 
     def draw(self):
-        acquired = False
         try:
             self.__log("draw-start")
             widget = self.gui.drawing_area
@@ -138,9 +128,10 @@ class TileLoader(threading.Thread):
                                 
                                 
         finally:
+	    pass
             #if acquired:
             #    self.drawlock.release()
-             self.__log("draw-end")
+            # self.__log("draw-end")
             #return True
             #if TileLoader.running_threads <= 0:
                 #gobject.idle_add(self.gui.__draw_marks, self)
