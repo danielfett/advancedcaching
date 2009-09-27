@@ -1232,6 +1232,24 @@ max
                           </packing>
                         </child>
                         <child>
+                          <widget class="GtkButton" id="button2">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <child>
+                              <widget class="GtkLabel" id="label41">
+                                <property name="visible">True</property>
+                                <property name="label" translatable="yes">show
+&lt;span bgcolor="yellow"&gt;marked&lt;/span&gt;</property>
+                                <property name="use_markup">True</property>
+                              </widget>
+                            </child>
+                          </widget>
+                          <packing>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                        <child>
                           <widget class="GtkButton" id="button_advanced_search">
                             <property name="label" translatable="yes">gtk-find</property>
                             <property name="height_request">50</property>
@@ -1242,7 +1260,7 @@ max
                             <signal name="clicked" handler="on_search_advanced_clicked"/>
                           </widget>
                           <packing>
-                            <property name="position">1</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                       </widget>

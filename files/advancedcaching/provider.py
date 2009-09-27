@@ -1,25 +1,4 @@
 import math
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
-
-#        Copyright (C) 2009 Daniel Fett
-#         This program is free software: you can redistribute it and/or modify
-#   it under the terms of the GNU General Public License as published by
-#   the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
-#
-#   This program is distributed in the hope that it will be useful,
-#   but WITHOUT ANY WARRANTY; without even the implied warranty of
-#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#   GNU General Public License for more details.
-#
-#   You should have received a copy of the GNU General Public License
-#   along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-#        Author: Daniel Fett advancedcaching@fragcom.de
-#
-
-#import downloader
 import sqlite3
 
 import copy
@@ -27,7 +6,7 @@ import copy
 
 
 class PointProvider():
-    USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; U; Linux i686; de; rv:1.9.0.12) Gecko/2009070811  Windows NT Firefox/3.1'
+    MAX_RESULTS = 70
 
     def __init__(self, filename, downloader, ctype, table):
 
@@ -83,7 +62,7 @@ class PointProvider():
             else:
                 found = 0
             c = self.conn.cursor()
-            c.execute("SELECT found FROM %s WHERE name = ?" % self.cache_table, (p.name,))
+            c.execute("SELECT found FROM %s WHERE name = ?" % self.cache_table, (p.name, ))
             existing = (len(c.fetchall()) == 1)
             c.close()
             if existing:
@@ -99,39 +78,21 @@ class PointProvider():
         c = self.conn.cursor()
 
         c.execute('SELECT * FROM %s' % self.cache_table)
-        points = []
-        for row in c:
-            coord = self.ctype(row['lat'], row['lon'])
-            coord.unserialize(row)
-            points.append(coord)
-        c.close()
-        return points
+        return self.pack_result(c)
         
     # should never ever be used with anything except a user provided query
     def get_by_query(self, query):
         c = self.conn.cursor()
 
         c.execute(query)
-        points = []
-        for row in c:
-            coord = self.ctype(row['lat'], row['lon'])
-            coord.unserialize(row)
-            points.append(coord)
-        c.close()
-        return points
+        return self.pack_result(c)
                 
     def get_points(self, c1, c2):
                 
         c = self.conn.cursor()
 
         c.execute('SELECT * FROM %s WHERE (lat BETWEEN ? AND ?) AND (lon BETWEEN ? AND ?)' % self.cache_table, (min(c1.lat, c2.lat), max(c1.lat, c2.lat), min(c1.lon, c2.lon), max(c1.lon, c2.lon)))
-        points = []
-        for row in c:
-            coord = self.ctype(row['lat'], row['lon'])
-            coord.unserialize(row)
-            points.append(coord)
-        c.close()
-        return points
+        return self.pack_result(c)
                 
     def get_titles_and_names(self):
         c = self.conn.cursor()
@@ -155,13 +116,7 @@ class PointProvider():
         c = self.conn.cursor()
 
         c.execute('SELECT * FROM %s WHERE logas != %d' % (self.cache_table, self.ctype.LOG_NO_LOG))
-        points = []
-        for row in c:
-            coord = self.ctype(row['lat'], row['lon'])
-            coord.unserialize(row)
-            points.append(coord)
-        c.close()
-        return points
+        return self.pack_result(c)
 
         
     def get_nearest_point_filter(self, center, c1, c2):
@@ -187,7 +142,7 @@ class PointProvider():
             # we have points very close to each other
             # for the sake of performance, using simpler
             # distance calc here
-            dist = math.sqrt((row['lat'] - center.lat) ** 2 + (row['lon'] - center.lon) ** 2 )
+            dist = math.sqrt((row['lat'] - center.lat) ** 2 + (row['lon'] - center.lon) ** 2)
             if dist < mindist:
                 mindistrow = row
                 mindist = dist
@@ -267,11 +222,14 @@ class PointProvider():
             filterargs.append(max(c1.lon, c2.lon))
                         
         c = self.conn.cursor()
-        query = 'SELECT * FROM %s WHERE %s' % (self.cache_table, " AND ".join(filterstring))
+        query = 'SELECT * FROM %s WHERE %s LIMIT %s' % (self.cache_table, " AND ".join(filterstring), self.MAX_RESULTS + 1)
 
         c.execute(query, tuple(filterargs))
-        points = []
-        for row in c:
+	return self.pack_result(c)
+
+    def pack_result(self, cursor):
+	points = []
+        for row in cursor:
             coord = self.ctype(row['lat'], row['lon'])
             coord.unserialize(row)
             points.append(coord)

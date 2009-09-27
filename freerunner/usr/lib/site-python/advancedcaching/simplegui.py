@@ -192,7 +192,6 @@ class SimpleGui():
 
         # map drawing area
         self.drawing_area = xml.get_widget("drawingarea")
-        self.drawing_area.set_double_buffered(False)
         self.drawing_area_arrow = xml.get_widget("drawingarea_arrow")
         self.filtermsg = xml.get_widget('label_filtermsg')
         self.scrolledwindow_image = xml.get_widget('scrolledwindow_image')
@@ -213,8 +212,7 @@ class SimpleGui():
         
         self.input_export_path = xml.get_widget('input_export_path')
                 
-                
-                
+        self.drawing_area.set_double_buffered(False)
         self.drawing_area.connect("expose_event", self.expose_event)
         self.drawing_area.connect("configure_event", self.__configure_event)
         self.drawing_area.connect("button_press_event", self.__drag_start)
@@ -224,12 +222,10 @@ class SimpleGui():
         self.drawing_area.set_events(gtk.gdk.EXPOSURE_MASK | gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.BUTTON_RELEASE_MASK | gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.SCROLL)
                 
         # arrow drawing area
-                
         self.drawing_area_arrow.connect("expose_event", self.expose_event_arrow)
         self.drawing_area_arrow.connect("configure_event", self.__configure_event_arrow)
         self.drawing_area_arrow.set_events(gtk.gdk.EXPOSURE_MASK)
                 
-        #self.zoom_adjustment = xml.get_widget('spinbutton_zoom').get_adjustment()
                 
         self.cache_elements = {
             'name_downloaded':        xml.get_widget('link_cache_name'),
@@ -244,8 +240,6 @@ class SimpleGui():
             'fieldnotes': xml.get_widget('textview_cache_fieldnotes').get_buffer(),
             'hints': xml.get_widget('label_cache_hints'),
             'coords': xml.get_widget('label_cache_coords'),
-            #'log': xml.get_widget('link_cache_log'),
-            #'notebook': xml.get_widget('notebook_cache')
             'log_found': xml.get_widget('radiobutton_cache_log_found'),
             'log_notfound': xml.get_widget('radiobutton_cache_log_notfound'),
             'log_note': xml.get_widget('radiobutton_cache_log_note'),

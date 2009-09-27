@@ -42,7 +42,6 @@
  
 ### For the gui :-)
 import math
-import thread
 from time import gmtime
 from time import strftime
 
@@ -61,7 +60,7 @@ import re
 #from advancedcaching import *
 
 
-class SimpleGui():
+class SimpleGui(object):
     MAP_FACTOR = 0
     CACHE_SIZE = 20
     CLICK_RADIUS = 20
@@ -152,42 +151,7 @@ class SimpleGui():
         xml = gtk.glade.XML(os.path.join(dataroot, "freerunner.glade"))
         self.window = xml.get_widget("window1")
         xml.signal_autoconnect(self)
-        #xml.signal_autoconnect({
-			       #"on_window_destroy": self.destroy,
-			       #"on_zoomin_clicked": self.on_zoomin_clicked,
-			       #"on_zoomout_clicked": self.on_zoomout_clicked,
-			       #'save_config': self.on_save_config,
-			       #'on_notes_changed': self.on_notes_changed,
-			       #                        'on_button_download_now_clicked' : self.on_download_details_clicked,
-			       #'on_spinbutton_zoom_change_value': self.on_zoom_changed,
-			       #        'on_vscale_search_terrain_change_value' : self.search_value_terrain_change,
-			       #        'on_vscale_search_diff_change_value' : self.search_value_diff_change
-			       #'on_button_advanced_search_clicked': self.on_search_advanced_clicked,
-			       #'on_button_download_details_clicked': self.on_download_cache_clicked,
-			       #'on_button_export_details_clicked': self.on_export_cache_clicked,
-			       #'on_set_target_clicked': self.on_set_target_clicked,
-			       #'on_image_next_clicked': self.on_image_next_clicked,
-			       #'on_image_zoom_clicked': self.on_image_zoom_clicked,
-			       #'on_change_coord_clicked': self.on_change_coord_clicked,
-			       #'on_track_toggled': self.on_track_toggled,
-			       #'on_search_reset_clicked': self.on_search_reset_clicked,
-			       #'dmap': self.dmap,
-			       #'dunmap': self.dunmap,
-			       #'on_download_details_map_clicked': self.on_download_details_map_clicked,
-			       # fieldnotes related
-			       #'on_upload_fieldnotes': self.on_upload_fieldnotes,
-			       #'on_fieldnotes_changed': self.on_fieldnotes_changed,
-			       #'on_fieldnotes_log_changed': self.on_fieldnotes_log_changed,
-			       #'on_label_fieldnotes_mapped': self.on_label_fieldnotes_mapped,
-			       ### context menu:
-			       #'on_actions_clicked': self.on_actions_clicked,
-			       #'on_download_clicked': self.on_download_clicked,
-			       #'on_download_details_sync_clicked': self.on_download_details_sync_clicked,
-			       #'on_show_target_clicked': self.on_show_target_clicked,
-			       #'on_set_target_center': self.on_set_target_center,
-			       #'on_marked_label_clicked' : self.on_marked_label_clicked,
-
-	#		       })
+      
 
 
         # map drawing area
@@ -212,8 +176,6 @@ class SimpleGui():
         
         self.input_export_path = xml.get_widget('input_export_path')
                 
-                
-
         self.drawing_area.set_double_buffered(False)
         self.drawing_area.connect("expose_event", self.expose_event)
         self.drawing_area.connect("configure_event", self.__configure_event)
@@ -224,12 +186,10 @@ class SimpleGui():
         self.drawing_area.set_events(gtk.gdk.EXPOSURE_MASK | gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.BUTTON_RELEASE_MASK | gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.SCROLL)
                 
         # arrow drawing area
-                
         self.drawing_area_arrow.connect("expose_event", self.expose_event_arrow)
         self.drawing_area_arrow.connect("configure_event", self.__configure_event_arrow)
         self.drawing_area_arrow.set_events(gtk.gdk.EXPOSURE_MASK)
                 
-        #self.zoom_adjustment = xml.get_widget('spinbutton_zoom').get_adjustment()
                 
         self.cache_elements = {
             'name_downloaded':        xml.get_widget('link_cache_name'),
@@ -244,8 +204,6 @@ class SimpleGui():
             'fieldnotes': xml.get_widget('textview_cache_fieldnotes').get_buffer(),
             'hints': xml.get_widget('label_cache_hints'),
             'coords': xml.get_widget('label_cache_coords'),
-            #'log': xml.get_widget('link_cache_log'),
-            #'notebook': xml.get_widget('notebook_cache')
             'log_found': xml.get_widget('radiobutton_cache_log_found'),
             'log_notfound': xml.get_widget('radiobutton_cache_log_notfound'),
             'log_note': xml.get_widget('radiobutton_cache_log_note'),
@@ -287,13 +245,13 @@ class SimpleGui():
 	 ) = range(6)
         columns = (
 		   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
-		   ('typ', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
+		   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
 		   ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
 		   ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
 		   ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
 		   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
 		   )
-        self.cachelist = listview = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
+        self.cachelist = listview = extListview.ExtListView(columns, sortable=True, useMarkup=True, canShowHideColumns=False)
         listview.connect('extlistview-button-pressed', self.on_search_cache_clicked)
         xml.get_widget('scrolledwindow_search').add(listview)
                 
@@ -426,7 +384,14 @@ class SimpleGui():
                 
                 
     # called by core
-    def display_results_advanced(self, caches):
+    def display_results_advanced(self, caches, too_much = False):
+	label = xml.get_widget('label_too_much_results')
+	if too_much:
+	    text = 'Too much results. Only showing first %d.' % len(caches)
+	    label.set_visibility(True)
+	    label.set_text(text)
+	else:
+	    label.set_visibility(False)
         rows = []
         for r in caches:
             if r.size == -1:
@@ -443,8 +408,11 @@ class SimpleGui():
                 t = "?"
             else:
                 t = "%.1f" % r.terrain
-                        
-            rows.append((r.title, r.type, s, t, d, r.name, ))
+	    if r.marked:
+		title = '<span bgcolor="yellow" fgcolor="black">%s</span>' % self.escape_markup(r.title)
+	    else:
+		title = self.escape_markup(r.title)
+            rows.append((title, r.type, s, t, d, r.name, ))
         self.cachelist.replaceContent(rows)
 
 
@@ -1047,6 +1015,7 @@ class SimpleGui():
             self.core.on_config_changed(self.read_settings())
                 
     def on_search_advanced_clicked(self, something):
+	'''
         if self.search_elements['found']['true'].get_active():
             found = True
         elif self.search_elements['found']['false'].get_active():
@@ -1067,8 +1036,10 @@ class SimpleGui():
         if ctype != None or found != None or name_search != '':
             self.filtermsg.show()
         else:
-            self.filtermsg.hide()
-        self.core.on_start_search_advanced(found=found, name_search=name_search, ctype=ctype)
+            self.filtermsg.hide()'''
+	'''
+        #self.core.on_start_search_advanced(found=found, name_search=name_search, ctype=ctype)'''
+	self.core.on_start_search_advanced()
 
                 
     def on_search_details_toggled(self, some=None):
@@ -1514,6 +1485,9 @@ class SimpleGui():
         self.ts.set_zoom(newzoom)
         self.set_center(center)
                 
+    @staticmethod
+    def escape_markup(text):
+	return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
                 
 
 class Updown():

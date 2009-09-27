@@ -242,7 +242,7 @@ class Core():
                 
         self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype)
         points = self.pointprovider.get_points_filter()
-        self.gui.display_results_advanced(points)
+        self.gui.display_results_advanced(points, len(points) > self.pointprovider.MAX_RESULTS)
                                 
 
     # called by gui

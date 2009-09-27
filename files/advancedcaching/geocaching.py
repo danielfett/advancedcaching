@@ -58,7 +58,7 @@ class GeocacheCoordinate(geo.Coordinate):
     ]
 
 
-    SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT PRIMARY KEY', 'title': 'TEXT', 'shortdesc': 'TEXT', 'desc': 'TEXT', 'hints': 'TEXT', 'type': 'TEXT', 'size': 'INTEGER', 'difficulty': 'INTEGER', 'terrain': 'INTEGER', 'owner': 'TEXT', 'found': 'INTEGER', 'waypoints': 'text', 'images': 'text', 'notes': 'TEXT', 'fieldnotes': 'TEXT', 'logas': 'INTEGER', 'logdate': 'TEXT'}
+    SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT PRIMARY KEY', 'title': 'TEXT', 'shortdesc': 'TEXT', 'desc': 'TEXT', 'hints': 'TEXT', 'type': 'TEXT', 'size': 'INTEGER', 'difficulty': 'INTEGER', 'terrain': 'INTEGER', 'owner': 'TEXT', 'found': 'INTEGER', 'waypoints': 'text', 'images': 'text', 'notes': 'TEXT', 'fieldnotes': 'TEXT', 'logas': 'INTEGER', 'logdate': 'TEXT', 'marked' : 'INTEGER'}
     def __init__(self, lat, lon, name=''):
         geo.Coordinate.__init__(self, lat, lon, name)
         # NAME = GC-ID
@@ -78,6 +78,7 @@ class GeocacheCoordinate(geo.Coordinate):
         self.fieldnotes = ''
         self.log_as = self.LOG_NO_LOG
         self.log_date = ''
+	self.marked = False
 
     def serialize(self):
 
@@ -85,7 +86,32 @@ class GeocacheCoordinate(geo.Coordinate):
             found = 1
         else:
             found = 0
-        return {'lat': self.lat, 'lon': self.lon, 'name': self.name, 'title': self.title, 'shortdesc': self.shortdesc, 'desc': self.desc, 'hints': self.hints, 'type': self.type, 'size': self.size, 'difficulty': self.difficulty, 'terrain': self.terrain, 'owner': self.owner, 'found': found, 'waypoints': self.waypoints, 'images': self.images, 'notes': self.notes, 'fieldnotes': self.fieldnotes, 'logas': self.log_as, 'logdate': self.log_date}
+	if self.marked:
+	    marked = 1
+	else:
+	    marked = 0
+        return {
+	    'lat': self.lat,
+	    'lon': self.lon,
+	    'name': self.name,
+	    'title': self.title,
+	    'shortdesc': self.shortdesc,
+	    'desc': self.desc,
+	    'hints': self.hints,
+	    'type': self.type,
+	    'size': self.size,
+	    'difficulty': self.difficulty,
+	    'terrain': self.terrain,
+	    'owner': self.owner,
+	    'found': found,
+	    'waypoints': self.waypoints,
+	    'images': self.images,
+	    'notes': self.notes,
+	    'fieldnotes': self.fieldnotes,
+	    'logas': self.log_as,
+	    'logdate': self.log_date,
+	    'marked' : marked
+	}
                 
     def unserialize(self, data):
         self.lat = data['lat']
@@ -113,6 +139,7 @@ class GeocacheCoordinate(geo.Coordinate):
             self.fieldnotes = data['fieldnotes']
         self.log_as = data['logas']
         self.log_date = data['logdate']
+	self.marked = (data['marked'] == 1)
 
     def get_waypoints(self):
         if self.waypoints == None or self.waypoints == '':
