@@ -3,7 +3,6 @@
 
 import math
 import thread
-
 import geo
 import gobject
 import gtk
@@ -58,7 +57,6 @@ class TileLoader(threading.Thread):
             answer = self.download(self.remote_filename, self.local_filename)
         # now the file hopefully exists
         if answer == True:
-            print "loading"
             self.load()
             gobject.idle_add(self.draw)
         elif answer == False:
@@ -96,48 +94,39 @@ class TileLoader(threading.Thread):
                 
     def draw(self):
         try:
-            self.__log("draw-start")
-            widget = self.gui.drawing_area
-            gc = self.gui.xgc
-            gc.set_function(gtk.gdk.COPY)
-            gc.set_rgb_fg_color(gtk.gdk.color_parse("black"))
+            #gc.set_function(gtk.gdk.COPY)
+            #gc.set_rgb_fg_color(self.COLOR_BG)
             # to draw "night mode": INVERT
                         
-            a, b, width, height = widget.get_allocation()
             size = self.gui.ts.tile_size()
             x = self.gui.map_center_x
             y = self.gui.map_center_y
             xi = int(self.gui.map_center_x)
             yi = int(self.gui.map_center_y)
-            offset_x = int(self.gui.map_width / 2 - (x - int(x)) * size)
-            offset_y = int(self.gui.map_height / 2 -(y - int(y)) * size)
             span_x = int(math.ceil(float(self.gui.map_width) / (size * 2.0)))
             span_y = int(math.ceil(float(self.gui.map_height) / (size * 2.0)))
             if self.tile[0] in xrange(xi - span_x, xi + span_x + 1, 1) and self.tile[1] in xrange(yi - span_y, yi + span_y + 1, 1) and self.zoom == self.gui.ts.zoom:
+
+		offset_x = int(self.gui.map_width / 2 - (x - int(x)) * size)
+		offset_y = int(self.gui.map_height / 2 -(y - int(y)) * size)
                 dx = (self.tile[0] - xi) * size + offset_x
                 dy = (self.tile[1] - yi) * size + offset_y
-                                
-                #self.drawlock.acquire()
-                #acquired = True
+		
+		gc = self.gui.xgc
+
                 if self.pbuf != None:
                     self.gui.pixmap.draw_pixbuf(gc, self.pbuf, 0, 0, dx, dy, size, size)
                 else:
-                    self.gui.pixmap.draw_rectangle(gc, True, dx, dy, size, size)
+                    self.gui.pixmap.draw_pixbuf(gc, TileLoader.noimage, 0, 0, dx, dy, size, size)
                                 
-                widget.queue_draw_area(max(self.gui.draw_root_x + self.gui.draw_at_x  + dx, 0), max(self.gui.draw_root_y + self.gui.draw_at_y  + dy, 0), size, size)
+                self.gui.drawing_area.queue_draw_area(max(self.gui.draw_root_x + self.gui.draw_at_x  + dx, 0), max(self.gui.draw_root_y + self.gui.draw_at_y  + dy, 0), size, size)
                                 
                                 
         finally:
 	    pass
-            #if acquired:
-            #    self.drawlock.release()
-            # self.__log("draw-end")
-            #return True
-            #if TileLoader.running_threads <= 0:
-                #gobject.idle_add(self.gui.__draw_marks, self)
                 
     def download(self, remote, local):
-        print "lade runter", remote
+        print "downloading", remote
         acquired = False
         self.__log("dl-start")
         
@@ -153,8 +142,8 @@ class TileLoader(threading.Thread):
         finally:
             TileLoader.lock.release()
             
-        #TileLoader.semaphore.acquire()
-        #acquired = True
+        TileLoader.semaphore.acquire()
+        acquired = True
         try:
             if not self.zoom == self.gui.ts.zoom:
                 return None
@@ -175,9 +164,10 @@ class TileLoader(threading.Thread):
             
             
     def __log(self, string):
-        a = "%d  " % self.num
-        for i in xrange(self.num):
-            a += "   "
+	pass
+#        a = "%d  " % self.num
+#        for i in xrange(self.num):
+#            a += "   "
         #print a, string
                 
 class TileServer():

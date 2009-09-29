@@ -20,7 +20,6 @@
 
 
 import cookielib
-import mimetypes
 import urllib
 import urllib2
 
@@ -52,7 +51,6 @@ class FileDownloader():
 	    '__EVENTARGUMENT': ''
 	}
 
-	#headers = {'User-Agent' : self.USER_AGENT}
 	data = urllib.urlencode(values)
 	req = urllib2.Request(url, data)
 	req.add_header('User-Agent', self.USER_AGENT)
@@ -66,7 +64,7 @@ class FileDownloader():
     def get_reader(self, url, values=None, data=None):
 	if not self.logged_in:
 	    self.login()
-	#req.add'User-Agent' : self.USER_AGENT}
+	    
 	if values == None and data == None:
 	    req = urllib2.Request(url)
 	    req.add_header('User-Agent', self.USER_AGENT)
@@ -88,10 +86,10 @@ class FileDownloader():
 
     def encode_multipart_formdata(self, fields, files):
 	"""
-		fields is a sequence of (name, value) elements for regular form fields.
-		files is a sequence of (name, filename, value) elements for data to be uploaded as files
-		Return (content_type, body) ready for httplib.HTTP instance
-		"""
+	fields is a sequence of (name, value) elements for regular form fields.
+	files is a sequence of (name, filename, value) elements for data to be uploaded as files
+	Return (content_type, body) ready for httplib.HTTP instance
+	"""
 	BOUNDARY = '----------ThIs_Is_tHe_bouNdaRY_$'
 	CRLF = '\r\n'
 	L = []
@@ -113,4 +111,5 @@ class FileDownloader():
 	return content_type, body
 
     def get_content_type(self, filename):
+	import mimetypes
 	return mimetypes.guess_type(filename)[0] or 'application/octet-stream'

@@ -42,9 +42,6 @@
  
 ### For the gui :-)
 import math
-from time import gmtime
-from time import strftime
-
 import extListview
 import geo
 import geocaching
@@ -52,7 +49,6 @@ import gobject
 import gtk
 import gtk.gdk
 import gtk.glade
-from htmlentitydefs import name2codepoint as n2cp
 import openstreetmap
 import os
 import pango
@@ -71,6 +67,7 @@ class SimpleGui(object):
     REDRAW_DISTANCE_MINOR = 4 # distance from last displayed point in px
 
     # map markers colors
+    COLOR_MARKED = gtk.gdk.color_parse('yellow')
     COLOR_DEFAULT = gtk.gdk.color_parse('blue')
     COLOR_FOUND = gtk.gdk.color_parse('grey')
     COLOR_REGULAR = gtk.gdk.color_parse('green')
@@ -209,6 +206,7 @@ class SimpleGui(object):
             'log_note': xml.get_widget('radiobutton_cache_log_note'),
             'log_no': xml.get_widget('radiobutton_cache_log_no'),
             'log_date': xml.get_widget('label_cache_log_date'),
+            'marked': xml.get_widget('check_cache_marked'),
         }
                 
         self.search_elements = {
@@ -354,6 +352,7 @@ class SimpleGui(object):
                 
     def __decode_htmlentities(self, string):
         def substitute_entity(match):
+	    from htmlentitydefs import name2codepoint as n2cp
             ent = match.group(3)
             if match.group(1) == "#":
                 # decoding by number
@@ -534,10 +533,15 @@ class SimpleGui(object):
             c = self.screenpoint2coord([x, y])
             c1 = self.screenpoint2coord([x-self.CLICK_RADIUS, y-self.CLICK_RADIUS])
             c2 = self.screenpoint2coord([x + self.CLICK_RADIUS, y + self.CLICK_RADIUS])
-            cache = self.pointprovider.get_nearest_point_filter(c, c1, c2)
+	    if self.settings['options_hide_found']:
+		found = False
+	    else:
+		found = None
+            cache = self.pointprovider.get_nearest_point_filter(c, c1, c2, found)
             self.core.on_cache_selected(cache)
         self.draw_at_x = self.draw_at_y = 0
-        gobject.idle_add(self.__draw_map)
+	if offset_x != 0 or offset_y != 0:
+	    gobject.idle_add(self.__draw_map)
                 
                         
     def __drag_draw(self):
@@ -618,98 +622,103 @@ class SimpleGui(object):
         #
         # draw geocaches
         #
-                
-        coords = self.pointprovider.get_points_filter((self.pixmappoint2coord([0, 0]), self.pixmappoint2coord([self.map_width, self.map_height])))
-        draw_short = (len(coords) > self.TOO_MUCH_POINTS)
 
-        xgc.set_function(gtk.gdk.COPY)
-	#xgc.set_dashes(1, (2, 2))
-	#xgc.line_style = gtk.gdk.LINE_ON_OFF_DASH
+	if self.settings['options_hide_found']:
+	    found = False
+	else:
+	    found = None
+        coords = self.pointprovider.get_points_filter((self.pixmappoint2coord([0, 0]), self.pixmappoint2coord([self.map_width, self.map_height])), found)
+	if len(coords) < self.pointprovider.MAX_RESULTS:
 
-        for c in coords: # for each geocache
-            radius = self.CACHE_DRAW_SIZE
-            if c.found:
-                if self.settings['options_hide_found']:
-                    continue
-                color = self.COLOR_FOUND
-            elif c.type == geocaching.GeocacheCoordinate.TYPE_REGULAR:
-                color = self.COLOR_REGULAR
-            elif c.type == geocaching.GeocacheCoordinate.TYPE_MULTI:
-                color = self.COLOR_MULTI
-            else:
-                color = self.COLOR_DEFAULT
-                        
-            p = self.__coord2point(c)
-            xgc.set_rgb_fg_color(color)
-                        
-            if draw_short:
-                radius = radius / 2.0
-	    
-	    xgc.set_rgb_fg_color(gtk.gdk.color_parse('yellow'))
-	    self.pixmap_marks.draw_rectangle(xgc, True, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
+	    draw_short = (len(coords) > self.TOO_MUCH_POINTS)
+
+	    xgc.set_function(gtk.gdk.COPY)
+	    #xgc.set_dashes(1, (2, 2))
+	    #xgc.line_style = gtk.gdk.LINE_ON_OFF_DASH
+
+	    for c in coords: # for each geocache
+		radius = self.CACHE_DRAW_SIZE
+		if c.found:
+		    color = self.COLOR_FOUND
+		elif c.type == geocaching.GeocacheCoordinate.TYPE_REGULAR:
+		    color = self.COLOR_REGULAR
+		elif c.type == geocaching.GeocacheCoordinate.TYPE_MULTI:
+		    color = self.COLOR_MULTI
+		else:
+		    color = self.COLOR_DEFAULT
+
+		p = self.__coord2point(c)
+		xgc.set_rgb_fg_color(color)
+
+		if draw_short:
+		    radius = radius / 2.0
+
+		if c.marked:
+		    xgc.set_rgb_fg_color(self.COLOR_MARKED)
+		    self.pixmap_marks.draw_rectangle(xgc, True, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
 
 
-	    xgc.set_rgb_fg_color(color)
-            xgc.line_width = 3
-            self.pixmap_marks.draw_rectangle(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
+		xgc.set_rgb_fg_color(color)
+		xgc.line_width = 3
+		self.pixmap_marks.draw_rectangle(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
 
-            if draw_short:
-                continue
-                                
-                        
-            # print the name?
-            if self.settings['options_show_name']:
-                layout = self.drawing_area.create_pango_layout(c.name)
-                layout.set_font_description(self.CACHE_DRAW_FONT)
-                self.pixmap_marks.draw_layout(xgc, p[0] + 3 + radius, p[1] - 3 - radius, layout)
-                        
-            # if we have a description for this cache...
-            if c.was_downloaded():
-                # draw something like:
-                # ----
-                # ----
-                # ----
-                # besides the icon
-                width = 6
-                dist = 2
-                pos_x = p[0] + radius + 3 + 1
-                pos_y = p[1] + 2
-                xgc.line_width = 1
-                for i in xrange(0, 3):
-                    self.pixmap_marks.draw_line(xgc, pos_x, pos_y + dist * i, pos_x + width, pos_y + dist * i)
-                        
-            # if this cache is the active cache
-            if self.current_cache != None and c.name == self.current_cache.name:
-                xgc.line_width = 3
-                xgc.set_rgb_fg_color(self.COLOR_CURRENT_CACHE)
-                radius = 7
-                self.pixmap_marks.draw_rectangle(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
+		if draw_short:
+		    continue
 
-            xgc.set_rgb_fg_color(self.COLOR_CACHE_CENTER)
-            xgc.line_width = 1
-            self.pixmap_marks.draw_line(xgc, p[0], p[1] - 2, p[0], p[1] + 3) #  |
-            self.pixmap_marks.draw_line(xgc, p[0] - 2, p[1], p[0] + 3, p[1]) # ---
 
-        # draw additional waypoints
-        # --> print description!
-        if self.current_cache != None and self.current_cache.get_waypoints() != None:
-            xgc.set_function(gtk.gdk.AND)
-            xgc.set_rgb_fg_color(self.COLOR_WAYPOINTS)
-            xgc.line_width = 1
-            radius = 4
-            num = 0
-            for w in self.current_cache.get_waypoints():
-                if w['lat'] != -1 and w['lon'] != -1:
-                    num = num + 1
-                    p = self.__coord2point(geo.Coordinate(w['lat'], w['lon']))
-                    self.pixmap_marks.draw_line(xgc, p[0], p[1] - 3, p[0], p[1] + 4) #  |
-                    self.pixmap_marks.draw_line(xgc, p[0] - 3, p[1], p[0] + 4, p[1]) # ---
-                    self.pixmap_marks.draw_arc(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2, 0, 360 * 64)
-                    layout = self.drawing_area.create_pango_layout('')
-                    layout.set_markup('<i>%s</i>' % (w['id']))
-                    layout.set_font_description(self.CACHE_DRAW_FONT)
-                    self.pixmap_marks.draw_layout(xgc, p[0] + 3 + radius, p[1] - 3 - radius, layout)
-                
+		# print the name?
+		if self.settings['options_show_name']:
+		    layout = self.drawing_area.create_pango_layout(c.name)
+		    layout.set_font_description(self.CACHE_DRAW_FONT)
+		    self.pixmap_marks.draw_layout(xgc, p[0] + 3 + radius, p[1] - 3 - radius, layout)
+
+		# if we have a description for this cache...
+		if c.was_downloaded():
+		    # draw something like:
+		    # ----
+		    # ----
+		    # ----
+		    # besides the icon
+		    width = 6
+		    dist = 2
+		    pos_x = p[0] + radius + 3 + 1
+		    pos_y = p[1] + 2
+		    xgc.line_width = 1
+		    for i in xrange(0, 3):
+			self.pixmap_marks.draw_line(xgc, pos_x, pos_y + dist * i, pos_x + width, pos_y + dist * i)
+
+		# if this cache is the active cache
+		if self.current_cache != None and c.name == self.current_cache.name:
+		    xgc.line_width = 3
+		    xgc.set_rgb_fg_color(self.COLOR_CURRENT_CACHE)
+		    radius = 7
+		    self.pixmap_marks.draw_rectangle(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
+
+		xgc.set_rgb_fg_color(self.COLOR_CACHE_CENTER)
+		xgc.line_width = 1
+		self.pixmap_marks.draw_line(xgc, p[0], p[1] - 2, p[0], p[1] + 3) #  |
+		self.pixmap_marks.draw_line(xgc, p[0] - 2, p[1], p[0] + 3, p[1]) # ---
+
+	    # draw additional waypoints
+	    # --> print description!
+	    if self.current_cache != None and self.current_cache.get_waypoints() != None:
+		xgc.set_function(gtk.gdk.AND)
+		xgc.set_rgb_fg_color(self.COLOR_WAYPOINTS)
+		xgc.line_width = 1
+		radius = 4
+		num = 0
+		for w in self.current_cache.get_waypoints():
+		    if w['lat'] != -1 and w['lon'] != -1:
+			num = num + 1
+			p = self.__coord2point(geo.Coordinate(w['lat'], w['lon']))
+			self.pixmap_marks.draw_line(xgc, p[0], p[1] - 3, p[0], p[1] + 4) #  |
+			self.pixmap_marks.draw_line(xgc, p[0] - 3, p[1], p[0] + 4, p[1]) # ---
+			self.pixmap_marks.draw_arc(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2, 0, 360 * 64)
+			layout = self.drawing_area.create_pango_layout('')
+			layout.set_markup('<i>%s</i>' % (w['id']))
+			layout.set_font_description(self.CACHE_DRAW_FONT)
+			self.pixmap_marks.draw_layout(xgc, p[0] + 3 + radius, p[1] - 3 - radius, layout)
+
                         
         #
         # next, draw the user defined points
@@ -897,6 +906,20 @@ class SimpleGui(object):
                 
     def on_actions_clicked(self, widget, event):
         xml.get_widget('menu_actions').popup(None, None, None, event.button, event.get_time())
+
+    def on_cache_marked_toggled(self, widget):
+	if self.current_cache == None:
+	    return
+	self.update_mark(self.current_cache, widget.get_active())
+	
+    def update_mark(self, cache, status):
+	cache.marked = status
+	if status:
+	    s = 1
+	else:
+	    s = 0
+	self.pointprovider.update_field(cache, 'marked', s)
+
                 
     def on_download_cache_clicked(self, something):
         self.core.on_download_cache(self.current_cache)
@@ -993,6 +1016,8 @@ class SimpleGui(object):
         self.fieldnotes_changed = True
 
     def on_fieldnotes_log_changed(self, something):
+	from time import gmtime
+	from time import strftime
         if self.current_cache == None:
             return
         log = geocaching.GeocacheCoordinate.LOG_NO_LOG
@@ -1289,6 +1314,9 @@ class SimpleGui(object):
         else:
             showdesc = text_longdesc
         self.cache_elements['desc'].set_text(showdesc)
+
+	# is cache marked?
+	self.cache_elements['marked'].set_active(cache.marked)
 
         # Set View
         self.notebook_cache.set_current_page(0)

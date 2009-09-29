@@ -81,19 +81,16 @@ Preferred format for coordinates:
     N49.123456 E6.043212
 '''
 
-### For loading the conf file
-#from advancedcachinglib.geocaching import FieldnotesUploader
+
 import json
 import sys
-import os
 
 import downloader
 import geocaching
-import gpsreader
-import provider
 import gobject
-import gtk
+import gpsreader
 import os
+import provider
 
 #import cProfile
 #import pstats
@@ -111,8 +108,8 @@ elif arg == '--desktop':
     import biggui
     gui = biggui.BigGui
 else:
-        import cli
-        gui = cli.Cli
+    import cli
+    gui = cli.Cli
 
         
 class Standbypreventer():
@@ -204,29 +201,19 @@ class Core():
         self.gui.write_settings(self.settings)
                 
         self.gps_thread = gpsreader.GpsReader(self)
+        gobject.timeout_add(1000, self.__read_gps)
         
         self.gui.show()
-        gobject.timeout_add(1000, self.__read_gps)
                 
                 
                 
     def __del__(self):
         self.settings = self.gui.read_settings()
         self.__write_config()
-                
-    #def search_value_terrain_change(self, a):
-#                #print a, b, c
-    #if self.search_elements['terrain']['upper'].get_adjustment().get_value() < self.search_elements['terrain']['lower'].get_adjustment().get_value():
-    #        self.search_elements['terrain'][
-#def search_value_diff_change(self, widget):
-    #pass
+                                
                 
                 
-
-                
-                
-                
-# called by gui
+    # called by gui
     def on_cache_selected(self, cache):
         self.gui.show_cache(cache)
                 
@@ -253,11 +240,17 @@ class Core():
     # called by gui
     def on_download(self, location):
         cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
-        caches = cd.get_geocaches(location)
-        for c in caches:
-            self.pointprovider.add_point(c)
-        self.pointprovider.save()
-        return caches
+	try:
+	    caches = cd.get_geocaches(location)
+	except Exception as e:
+	    self.gui.show_error(e)
+	    print e
+	    return []
+	else:
+	    for c in caches:
+		self.pointprovider.add_point(c)
+	    self.pointprovider.save()
+	    return caches
 
     # called by gui
     def on_download_cache(self, cache):
@@ -265,12 +258,12 @@ class Core():
 
         try:
             cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
-            exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
             full = cd.update_coordinate(cache)
             self.pointprovider.add_point(full, True)
             self.pointprovider.save()
         except Exception as e:
                 self.gui.show_error(e)
+		return cache
         finally:
                 self.gui.hide_progress()
         return full
@@ -291,7 +284,7 @@ class Core():
     # called by gui
     def on_download_descriptions(self, location, visibleonly=False):
         cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
-        exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
+        #exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
                 
         self.pointprovider.push_filter()
                         
@@ -324,16 +317,16 @@ class Core():
                 self.gui.set_download_progress(i / count, "Downloading %s..." % cache.name)
                 full = cd.update_coordinate(cache)
                 self.pointprovider.add_point(full, True)
-                exporter.export(full)
+                #exporter.export(full)
                 i += 1.0
                                 
         except Exception as e:
             self.gui.show_error(e)
         finally:
             self.gui.hide_progress()
+	    self.pointprovider.pop_filter()
         self.pointprovider.save()
                 
-        self.pointprovider.pop_filter()
                 
         #if self.settings['download_create_index']:
         #        all_caches = pointprovider.get_points_filter(None, None, True)
@@ -431,19 +424,5 @@ def determine_path ():
 
                         
 def start():
-#    gtk.gdk.threads_init()
-    core = Core(gui, determine_path())
-
-'''
-if "--profile" in sys.argv:
-    import cProfile
-    command = """runit()"""
-    cProfile.runctx(command, globals(), locals(), filename="Advancedcaching.profile")
-    exit()
-
-if __name__ == "__main__":
-    gtk.gdk.threads_init()
-    core = Core(gui, determine_path())
-'''
-                
+    Core(gui, determine_path())
 

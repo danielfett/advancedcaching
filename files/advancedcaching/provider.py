@@ -6,7 +6,7 @@ import copy
 
 
 class PointProvider():
-    MAX_RESULTS = 70
+    MAX_RESULTS = 750
 
     def __init__(self, filename, downloader, ctype, table):
 
@@ -41,7 +41,6 @@ class PointProvider():
         
     def get_table_info(self):
         c = self.conn.cursor()
-        fields = copy.copy(self.ctype.SQLROW)
         c.execute('PRAGMA TABLE_INFO(%s)' % self.cache_table)
         return c.fetchall()
                 
@@ -57,10 +56,6 @@ class PointProvider():
         if replace:
             self.conn.execute("INSERT OR REPLACE INTO %s (`%s`) VALUES (%s)" % (self.cache_table, '`, `'.join(self.ctype.SQLROW.keys()), ', '.join([':%s' % k for k in self.ctype.SQLROW.keys()])), p.serialize())
         else:
-            if p.found:
-                found = 1
-            else:
-                found = 0
             c = self.conn.cursor()
             c.execute("SELECT found FROM %s WHERE name = ?" % self.cache_table, (p.name, ))
             existing = (len(c.fetchall()) == 1)
@@ -119,7 +114,7 @@ class PointProvider():
         return self.pack_result(c)
 
         
-    def get_nearest_point_filter(self, center, c1, c2):
+    def get_nearest_point_filter(self, center, c1, c2, found):
         filterstring = copy.copy(self.filterstring)
         filterargs = copy.copy(self.filterargs)
                 
@@ -128,7 +123,12 @@ class PointProvider():
         filterargs.append(max(c1.lat, c2.lat))
         filterargs.append(min(c1.lon, c2.lon))
         filterargs.append(max(c1.lon, c2.lon))
-                        
+
+        if found == True:
+            filterstring.append('(found = 1)')
+        elif found == False:
+            filterstring.append('(found = 0)')
+	    
         c = self.conn.cursor()
         # we don't have 'power' or other advanced mathematic operators
         # in sqlite, so doing distance calculation in python
@@ -209,7 +209,7 @@ class PointProvider():
     def pop_filter(self):
         self.filterstring, self.filterargs = self.filterstack.pop()
                 
-    def get_points_filter(self, location=None):
+    def get_points_filter(self, location=None, found=None):
         filterstring = copy.copy(self.filterstring)
         filterargs = copy.copy(self.filterargs)
                 
@@ -220,7 +220,13 @@ class PointProvider():
             filterargs.append(max(c1.lat, c2.lat))
             filterargs.append(min(c1.lon, c2.lon))
             filterargs.append(max(c1.lon, c2.lon))
-                        
+
+
+        if found == True:
+            filterstring.append('(found = 1)')
+        elif found == False:
+            filterstring.append('(found = 0)')
+
         c = self.conn.cursor()
         query = 'SELECT * FROM %s WHERE %s LIMIT %s' % (self.cache_table, " AND ".join(filterstring), self.MAX_RESULTS + 1)
 
@@ -233,7 +239,7 @@ class PointProvider():
             coord = self.ctype(row['lat'], row['lon'])
             coord.unserialize(row)
             points.append(coord)
-        c.close()
+        cursor.close()
         return points
                 
     def find_by_string(self, string):

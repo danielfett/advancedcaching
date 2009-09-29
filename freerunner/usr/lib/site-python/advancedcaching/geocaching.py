@@ -22,8 +22,6 @@ import json
 
 import geo
 import os
-import string
-import shutil
 
 try:
     import Image
@@ -31,7 +29,6 @@ except:
     print "Not using image resize feature"
 import re
 
-from htmlentitydefs import name2codepoint as n2cp
 
 
 class GeocacheCoordinate(geo.Coordinate):
@@ -208,6 +205,7 @@ class CacheDownloader():
         self.resize = resize
         
     def __rot13(self, text):
+	import string
         trans = string.maketrans(
                                  'nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM',
                                  'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
@@ -334,6 +332,7 @@ class CacheDownloader():
          
     def __decode_htmlentities(self, string):
         def substitute_entity(match):
+	    from htmlentitydefs import name2codepoint as n2cp
             ent = match.group(3)
             if match.group(1) == "#":
                 # decoding by number
@@ -460,8 +459,8 @@ class CacheDownloader():
                     difficulty = re.compile('.*"([0-9\\.]+) out of').match(line).group(1)
                 elif line.startswith('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>Terrain:'):
                     terrain = re.compile('.*"([0-9\\.]+) out of').match(line).group(1)
-                elif line.startswith('<a id="lnkPrintFriendly" class="lnk" href="cdpf.aspx?guid'):
-                    guid = re.compile('.*cdpf\\.aspx\?guid=([a-z0-9-]+)"').match(line).group(1)
+#                elif line.startswith('<a id="lnkPrintFriendly" class="lnk" href="cdpf.aspx?guid'):
+#                    guid = re.compile('.*cdpf\\.aspx\?guid=([a-z0-9-]+)"').match(line).group(1)
             if inshortdesc:
                 shortdesc += "%s\n" % line
                 
@@ -526,6 +525,7 @@ class HTMLExporter():
             src = os.path.realpath(os.path.join(self.path, image))
             dst = os.path.realpath(os.path.join(folder, image))
             if not src == dst and not os.path.exists(dst) and os.path.exists(src):
+		import shutil
                 shutil.copy(src, dst)
                 
     def __get_uri(self, coordinate, folder):

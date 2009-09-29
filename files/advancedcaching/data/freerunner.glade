@@ -806,11 +806,12 @@ note</property>
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkCheckButton" id="checkbutton1">
+                      <widget class="GtkCheckButton" id="check_cache_marked">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
                         <property name="draw_indicator">True</property>
+                        <signal name="toggled" handler="on_cache_marked_toggled"/>
                         <child>
                           <widget class="GtkLabel" id="label40">
                             <property name="visible">True</property>

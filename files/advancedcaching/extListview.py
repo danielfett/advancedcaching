@@ -56,7 +56,7 @@ from gobject import TYPE_STRING
 from gobject import signal_new
 import gtk
 from gtk import gdk
-import random
+
 
 
 # Internal d'n'd (reordering)
@@ -479,6 +479,7 @@ class ExtListView(gtk.TreeView):
 
 
     def shuffle(self):
+	import random
         """ Shuffle the content of the list """
         order = xrange(len(self.store))
         random.shuffle(order)
