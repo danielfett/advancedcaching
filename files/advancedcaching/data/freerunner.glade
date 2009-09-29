@@ -1101,7 +1101,7 @@ note</property>
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkComboBox" id="combobox1">
+                          <widget class="GtkComboBox" id="combo_search_status">
                             <property name="visible">True</property>
                             <property name="items" translatable="yes">all
 not found
@@ -1116,7 +1116,7 @@ marked &amp; new</property>
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkComboBox" id="combobox2">
+                          <widget class="GtkComboBox" id="combo_search_diff_sel">
                             <property name="visible">True</property>
                             <property name="items" translatable="yes">all
 min
@@ -1131,7 +1131,7 @@ max
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkComboBox" id="combobox3">
+                          <widget class="GtkComboBox" id="combo_search_diff">
                             <property name="visible">True</property>
                             <property name="items" translatable="yes">1..1.5
 2..2.5
@@ -1147,7 +1147,7 @@ max
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkComboBox" id="combobox4">
+                          <widget class="GtkComboBox" id="combo_search_terr_sel">
                             <property name="visible">True</property>
                             <property name="items" translatable="yes">all
 min
@@ -1162,7 +1162,7 @@ max
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkComboBox" id="combobox5">
+                          <widget class="GtkComboBox" id="combo_search_terr">
                             <property name="visible">True</property>
                             <property name="items" translatable="yes">1..1.5
 2..2.5
@@ -1188,7 +1188,7 @@ max
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkCheckButton" id="checkbutton2">
+                          <widget class="GtkCheckButton" id="check_search_inview">
                             <property name="label" translatable="yes">in current map view</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
@@ -1257,6 +1257,7 @@ max
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
+                            <signal name="clicked" handler="on_list_marked_clicked"/>
                             <child>
                               <widget class="GtkLabel" id="label41">
                                 <property name="visible">True</property>
@@ -1272,12 +1273,11 @@ max
                         </child>
                         <child>
                           <widget class="GtkButton" id="button_advanced_search">
-                            <property name="label" translatable="yes">gtk-find</property>
+                            <property name="label" translatable="yes">search</property>
                             <property name="height_request">50</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="use_stock">True</property>
                             <signal name="clicked" handler="on_search_advanced_clicked"/>
                           </widget>
                           <packing>
@@ -1309,6 +1309,7 @@ max
                     <child>
                       <widget class="GtkLabel" id="label_too_much_results">
                         <property name="visible">True</property>
+                        <property name="label" translatable="yes">Too much results, not showing all.</property>
                       </widget>
                       <packing>
                         <property name="expand">False</property>

@@ -224,11 +224,11 @@ class Core():
         self.__try_show_cache_by_search('%' + text + '%')
                 
     # called by gui
-    def on_start_search_advanced(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None):
+    def on_start_search_advanced(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location = None, marked = None):
                 
                 
-        self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype)
-        points = self.pointprovider.get_points_filter()
+        self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked = marked)
+        points = self.pointprovider.get_points_filter(location)
         self.gui.display_results_advanced(points, len(points) > self.pointprovider.MAX_RESULTS)
                                 
 
@@ -240,17 +240,17 @@ class Core():
     # called by gui
     def on_download(self, location):
         cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
-	try:
-	    caches = cd.get_geocaches(location)
-	except Exception as e:
-	    self.gui.show_error(e)
-	    print e
-	    return []
-	else:
-	    for c in caches:
-		self.pointprovider.add_point(c)
-	    self.pointprovider.save()
-	    return caches
+        try:
+            caches = cd.get_geocaches(location)
+        except Exception as e:
+            self.gui.show_error(e)
+            print e
+            return []
+        else:
+            for c in caches:
+                self.pointprovider.add_point(c)
+            self.pointprovider.save()
+            return caches
 
     # called by gui
     def on_download_cache(self, cache):
@@ -263,7 +263,7 @@ class Core():
             self.pointprovider.save()
         except Exception as e:
                 self.gui.show_error(e)
-		return cache
+                return cache
         finally:
                 self.gui.hide_progress()
         return full
@@ -324,7 +324,7 @@ class Core():
             self.gui.show_error(e)
         finally:
             self.gui.hide_progress()
-	    self.pointprovider.pop_filter()
+            self.pointprovider.pop_filter()
         self.pointprovider.save()
                 
                 

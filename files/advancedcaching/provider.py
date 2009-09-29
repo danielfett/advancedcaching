@@ -61,7 +61,7 @@ class PointProvider():
             existing = (len(c.fetchall()) == 1)
             c.close()
             if existing:
-                self.conn.execute("UPDATE %s SET found = ? WHERE name = ?" % self.cache_table, (p.found, p.name))
+                self.conn.execute("UPDATE %s SET found = ?, type = ? WHERE name = ?" % self.cache_table, (p.found, p.type, p.name))
             else:
                 self.conn.execute("INSERT INTO %s (`%s`) VALUES (%s)" % (self.cache_table, '`, `'.join(self.ctype.SQLROW.keys()), ', '.join([':%s' % k for k in self.ctype.SQLROW.keys()])), p.serialize())
             return
@@ -128,7 +128,7 @@ class PointProvider():
             filterstring.append('(found = 1)')
         elif found == False:
             filterstring.append('(found = 0)')
-	    
+    
         c = self.conn.cursor()
         # we don't have 'power' or other advanced mathematic operators
         # in sqlite, so doing distance calculation in python
@@ -152,7 +152,7 @@ class PointProvider():
         coord.unserialize(mindistrow)
         return coord
                 
-    def set_filter(self, found=None, has_details=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, adapt_filter=False, distance_filter=None):
+    def set_filter(self, found=None, has_details=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, adapt_filter=False, distance_filter=None, marked=None):
         # a value "None" means: apply no filtering on this value
                 
         if adapt_filter:
@@ -166,6 +166,11 @@ class PointProvider():
             filterstring.append('(found = 1)')
         elif found == False:
             filterstring.append('(found = 0)')
+
+        if marked == True:
+            filterstring.append('(marked = 1)')
+        elif marked == False:
+            filterstring.append('(marked = 0)')
                 
         if has_details == True:
             filterstring.append("(desc != '' or shortdesc != '')")
@@ -231,10 +236,10 @@ class PointProvider():
         query = 'SELECT * FROM %s WHERE %s LIMIT %s' % (self.cache_table, " AND ".join(filterstring), self.MAX_RESULTS + 1)
 
         c.execute(query, tuple(filterargs))
-	return self.pack_result(c)
+        return self.pack_result(c)
 
     def pack_result(self, cursor):
-	points = []
+        points = []
         for row in cursor:
             coord = self.ctype(row['lat'], row['lon'])
             coord.unserialize(row)
