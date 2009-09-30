@@ -119,9 +119,9 @@ class GeocacheCoordinate(geo.Coordinate):
         self.desc = data['desc']
         self.hints = data['hints']
         self.type = data['type']
-        self.size = data['size']
-        self.difficulty = data['difficulty']
-        self.terrain = data['terrain']
+        self.size = int(data['size'])
+        self.difficulty = float(data['difficulty'])
+        self.terrain = float(data['terrain'])
         self.owner = data['owner']
         self.found = (data['found'] == 1)
         self.waypoints = data['waypoints']

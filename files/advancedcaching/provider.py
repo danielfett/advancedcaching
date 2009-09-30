@@ -23,6 +23,7 @@ class PointProvider():
         c.execute('CREATE TABLE IF NOT EXISTS %s (%s)' % (self.cache_table, ', '.join([' '.join(m) for m in self.ctype.SQLROW.items()])))
         self.check_table()
         c.execute('CREATE INDEX IF NOT EXISTS %s_latlon ON %s (lat ASC, lon ASC)' % (self.cache_table, self.cache_table))
+        c.execute('CREATE INDEX IF NOT EXISTS %s_name ON %s (name ASC)' % (self.cache_table, self.cache_table))
         c.close()
 
     def check_table(self):

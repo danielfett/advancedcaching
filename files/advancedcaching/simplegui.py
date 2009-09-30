@@ -30,9 +30,11 @@
 # only redraw if position is in current screen
 # add favorite-places-feature: mark fav. places and return to them later
 # add favorite-caches-feature into new search tab
+# try to download caches in smaller portions
 
 # go to search results in case of search
 # don't display all caches on 'revert'
+# fix north indicator
 
 # to test:
 # new exporter
@@ -161,9 +163,11 @@ class SimpleGui(object):
         self.image_cache_caption = xml.get_widget('label_cache_image_caption')
         self.notebook_cache = xml.get_widget('notebook_cache')
         self.notebook_all = xml.get_widget('notebook_all')
+        self.notebook_search = xml.get_widget('notebook_search')
         self.progressbar = xml.get_widget('progress_download')
         self.button_download_details = xml.get_widget('button_download_details')
         self.button_track = xml.get_widget('togglebutton_track')
+        self.check_result_marked = xml.get_widget('check_result_marked')
                 
         self.label_bearing = xml.get_widget('label_bearing')
         self.label_dist = xml.get_widget('label_dist')
@@ -246,12 +250,12 @@ class SimpleGui(object):
         # Create the renderer used in the listview
         txtRdr        = gtk.CellRendererText()
         (
+         ROW_TITLE,
          ROW_TYPE,
          ROW_SIZE,
          ROW_TERRAIN,
          ROW_DIFF,
          ROW_ID,
-         ROW_TITLE,
          ) = range(6)
         columns = (
                    ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
@@ -262,6 +266,7 @@ class SimpleGui(object):
                    ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
                    )
         self.cachelist = listview = extListview.ExtListView(columns, sortable=True, useMarkup=True, canShowHideColumns=False)
+        self.cachelist_contents = []
         listview.connect('extlistview-button-pressed', self.on_search_cache_clicked)
         xml.get_widget('scrolledwindow_search').add(listview)
                 
@@ -398,11 +403,12 @@ class SimpleGui(object):
     def display_results_advanced(self, caches, too_much=False):
         label = xml.get_widget('label_too_much_results')
         if too_much:
-            text = 'Too much results. Only showing first %d.' % len(caches)
-            label.visible = True
+            text = 'Too much results. Only showing first %d.' % (len(caches)-1)
             label.set_text(text)
+            label.show()
         else:
-            label.visible = False
+            label.hide()
+        self.cachelist_contents = caches
         rows = []
         for r in caches:
             if r.size == -1:
@@ -419,13 +425,24 @@ class SimpleGui(object):
                 t = "?"
             else:
                 t = "%.1f" % r.terrain
-            if r.marked:
-                title = '<span bgcolor="yellow" fgcolor="black">%s</span>' % self.escape_markup(r.title)
-            else:
-                title = self.escape_markup(r.title)
+            title =  self.__format_cache_title(r)
             rows.append((title, r.type, s, t, d, r.name, ))
         self.cachelist.replaceContent(rows)
+        self.notebook_search.set_current_page(1)
+        self.redraw_marks()
 
+
+    @staticmethod
+    def __format_cache_title(cache):
+        m = cache.title.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        if cache.marked and cache.found:
+            return '<span bgcolor="yellow" fgcolor="gray">%s</span>' % m
+        elif cache.marked:
+            return '<span bgcolor="yellow" fgcolor="black">%s</span>' % m
+        elif cache.found:
+            return '<span fgcolor="gray">%s</span>' % m
+        else:
+            return m
 
     def __draw_arrow(self):                
         if not self.drawing_area_arrow_configured:
@@ -879,8 +896,6 @@ class SimpleGui(object):
         self.progressbar.hide()
                 
                         
-    def on_change_coord_clicked(self, something):
-        self.set_target(self.show_coordinate_input(self.current_target))
                 
     def load_images(self):
         if self.current_cache == None:
@@ -919,15 +934,34 @@ class SimpleGui(object):
     def on_cache_marked_toggled(self, widget):
         if self.current_cache == None:
             return
-        self.update_mark(self.current_cache, widget.get_active())
+        self.__update_mark(self.current_cache, widget.get_active())
 
-    def update_mark(self, cache, status):
+    def on_change_coord_clicked(self, something):
+        self.set_target(self.show_coordinate_input(self.current_target))
+
+    def __get_search_selected_cache(self):
+        index = self.cachelist.getFirstSelectedRowIndex()
+        if index == None:
+            return (None, None)
+        cache = self.cachelist_contents[index]
+        return (index, cache)
+        
+    def on_result_marked_toggled(self, widget):
+        (index, cache) = self.__get_search_selected_cache()
+        if cache == None:
+            return
+        self.__update_mark(cache, widget.get_active())
+        title = self.__format_cache_title(cache)
+        self.cachelist.setItem(index, 0, title)
+
+    def __update_mark(self, cache, status):
         cache.marked = status
         if status:
             s = 1
         else:
             s = 0
         self.pointprovider.update_field(cache, 'marked', s)
+        self.redraw_marks()
 
                 
     def on_download_cache_clicked(self, something):
@@ -1010,6 +1044,10 @@ class SimpleGui(object):
         else:
             widget.set_text("you have not created any new fieldnotes")
                 
+    def on_list_marked_clicked(self, widget):
+        self.core.on_start_search_advanced(marked = True)
+
+
     def on_no_fix(self, gps_data, status):
         self.gps_data = gps_data
         self.label_bearing.set_text("No Fix")
@@ -1047,6 +1085,28 @@ class SimpleGui(object):
     def on_save_config(self, something):
         if not self.block_changes:
             self.core.on_config_changed(self.read_settings())
+
+    def on_search_action_center_clicked(self, widget):
+        (index, cache) = self.__get_search_selected_cache()
+        if cache == None:
+            return
+        self.set_center(cache)
+        self.notebook_all.set_current_page(1)
+
+    def on_search_action_set_target_clicked(self, widget):
+        (index, cache) = self.__get_search_selected_cache()
+        if cache == None:
+            return
+        self.current_cache = cache
+        self.set_target(cache)
+        self.notebook_all.set_current_page(0)
+
+    def on_search_action_view_details_clicked(self, widget):
+        (index, cache) = self.__get_search_selected_cache()
+        if cache == None:
+            return
+        self.show_cache(cache)
+
                 
     def on_search_advanced_clicked(self, something):
         def get_val_from_text(input, use_max):
@@ -1111,26 +1171,24 @@ class SimpleGui(object):
 
         self.core.on_start_search_advanced(found = found, name_search = name_search, size = sizes, terrain = search['terr'], diff = search['diff'], ctype = types, location = location, marked = marked)
 
-                
-    def on_search_details_toggled(self, some = None):
-        for k, i in self.search_elements['frames'].items():
-            if k != 'type':
-                i.set_sensitive(not self.search_elements['no_details'].get_active())
-
     def on_search_cache_clicked(self, listview, event, element):
-        if event.type != gtk.gdk._2BUTTON_PRESS or element == None:
+        if element == None:
             return
-                
-        cachename = listview.getItem(element[0], 5)
-        cache = self.pointprovider.find_by_string(cachename)
-        self.core.on_cache_selected(cache)
-        self.set_center(cache)
+        (index, cache) = self.__get_search_selected_cache()
+        if cache == None:
+            return
+
+        if event.type == gtk.gdk._2BUTTON_PRESS:
+            self.core.on_cache_selected(cache)
+            self.set_center(cache)
+        else:
+            self.check_result_marked.set_active(cache.marked)
+            
                 
     def on_search_reset_clicked(self, something):
-        self.search_elements['name'].set_text('')
-        self.search_elements['found']['whatever'].set_active(True)
-        self.search_elements['type']['other'].set_active(True)
-        self.on_search_advanced_clicked(None)
+
+        self.core.on_start_search_advanced()
+
                 
     def on_set_target_clicked(self, something):
         if self.current_cache == None:
@@ -1147,9 +1205,6 @@ class SimpleGui(object):
             return
         else:
             self.set_center(self.current_target)
-
-    def on_start_search_simple(self, something):
-        self.core.on_start_search_simple(self.entry_search.get_text())
                 
     def on_track_toggled(self, something):
         if self.button_track.get_active() and self.gps_data != None and self.gps_data['position'] != None:
@@ -1311,7 +1366,7 @@ class SimpleGui(object):
     def set_target(self, cache):
         self.current_target = cache
         self.label_target.set_text("Target (%s): %s %s" % (cache.name, cache.get_lat(self.format), cache.get_lon(self.format)))
-        self.__draw_map()
+        self.set_center(cache)
                 
     def show(self):
         self.window.show_all()
@@ -1558,9 +1613,6 @@ class SimpleGui(object):
         self.ts.set_zoom(newzoom)
         self.set_center(center)
                 
-    @staticmethod
-    def escape_markup(text):
-        return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
                 
 
 class Updown():
