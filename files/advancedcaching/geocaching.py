@@ -196,8 +196,9 @@ class FieldnotesUploader():
         
 
 class CacheDownloader():
-        
-        
+
+    MAX_REC_DEPTH = 4
+    
     def __init__(self, downloader, path, download_images, resize = None):
         self.downloader = downloader
         self.path = path
@@ -364,7 +365,11 @@ class CacheDownloader():
     def __get_cache_page(self, cacheid):
         return self.downloader.get_reader('http://www.geocaching.com/seek/cache_details.aspx?wp=%s' % cacheid)
                 
-    def get_geocaches(self, location):
+    def get_geocaches(self, location, rec_depth = 0):
+        # don't recurse indefinitely
+        if rec_depth > self.MAX_REC_DEPTH:
+            return []
+
         c1, c2 = location
         url = 'http://www.geocaching.com/map/default.aspx?lat=49&lng=6'
         values = {'eo_cb_id':'ctl00_ContentBody_cbAjax',
@@ -386,7 +391,16 @@ class CacheDownloader():
         points = []
         print the_page
         if not 'cc' in a['cs'].keys():
-            raise Exception("Too much geocaches in the selected area - or none at all!")
+            if 'count' in a['cs'].keys() and 'count' != 0:
+                # let's try to download one half of the geocaches first
+                mlat = (c1.lat + c2.lat)/2
+                nc1 = geo.Coordinate(min(c1.lat, c2.lat), min(c1.lon, c2.lon))
+                mc1 = geo.Coordinate(mlat, max(c1.lon, c2.lon))
+                mc2 = geo.Coordinate(mlat, min(c1.lon, c2.lon))
+                nc2 = geo.Coordinate(max(c1.lat, c2.lat), max(c1.lon, c2.lon))
+                print "recursing..."
+                points += self.get_geocaches((nc1, mc1), rec_depth + 1)
+                points += self.get_geocaches((mc2, nc2), rec_depth + 1)
             return points
         for b in a['cs']['cc']:
             c = GeocacheCoordinate(b['lat'], b['lon'], b['gc'])

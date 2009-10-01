@@ -30,9 +30,11 @@
 # only redraw if position is in current screen
 # add favorite-places-feature: mark fav. places and return to them later
 # add favorite-caches-feature into new search tab
+# try to download caches in smaller portions
 
 # go to search results in case of search
 # don't display all caches on 'revert'
+# fix north indicator
 
 # to test:
 # new exporter
@@ -42,6 +44,7 @@
  
 ### For the gui :-)
 import math
+
 import extListview
 import geo
 import geocaching
@@ -160,9 +163,11 @@ class SimpleGui(object):
         self.image_cache_caption = xml.get_widget('label_cache_image_caption')
         self.notebook_cache = xml.get_widget('notebook_cache')
         self.notebook_all = xml.get_widget('notebook_all')
+        self.notebook_search = xml.get_widget('notebook_search')
         self.progressbar = xml.get_widget('progress_download')
         self.button_download_details = xml.get_widget('button_download_details')
         self.button_track = xml.get_widget('togglebutton_track')
+        self.check_result_marked = xml.get_widget('check_result_marked')
                 
         self.label_bearing = xml.get_widget('label_bearing')
         self.label_dist = xml.get_widget('label_dist')
@@ -210,21 +215,32 @@ class SimpleGui(object):
         }
                 
         self.search_elements = {
-            'name': xml.get_widget('entry_search_name'),
-            'found': {
-                'true': xml.get_widget('radio_search_found_true'),
-                'false': xml.get_widget('radio_search_found_false'),
-                'whatever': xml.get_widget('radio_search_found_whatever'),
-                },
             'type': {
-                'regular': xml.get_widget('check_search_type_traditional'),
-                'multi': xml.get_widget('check_search_type_multi'),
-                'unknown': xml.get_widget('check_search_type_unknown'),
-                'virtual': xml.get_widget('check_search_type_virtual'),
-                'other': xml.get_widget('check_search_type_other')
+                geocaching.GeocacheCoordinate.TYPE_REGULAR: xml.get_widget('check_search_type_traditional'),
+                geocaching.GeocacheCoordinate.TYPE_MULTI: xml.get_widget('check_search_type_multi'),
+                geocaching.GeocacheCoordinate.TYPE_MYSTERY: xml.get_widget('check_search_type_unknown'),
+                geocaching.GeocacheCoordinate.TYPE_VIRTUAL: xml.get_widget('check_search_type_virtual'),
+                'all': xml.get_widget('check_search_type_other')
                 },
-                        
-                        
+            'name': xml.get_widget('entry_search_name'),
+            'status': xml.get_widget('combo_search_status'),
+            'size': {
+                1: xml.get_widget('check_search_size_1'),
+                2: xml.get_widget('check_search_size_2'),
+                3: xml.get_widget('check_search_size_3'),
+                4: xml.get_widget('check_search_size_4'),
+                5: xml.get_widget('check_search_size_5'),
+            },
+            'diff': {
+                'selector': xml.get_widget('combo_search_diff_sel'),
+                'value': xml.get_widget('combo_search_diff'),
+            },
+            'terr': {
+                'selector': xml.get_widget('combo_search_terr_sel'),
+                'value': xml.get_widget('combo_search_terr'),
+            },
+            'inview': xml.get_widget('check_search_inview'),
+
         }
                 
         #
@@ -234,22 +250,23 @@ class SimpleGui(object):
         # Create the renderer used in the listview
         txtRdr        = gtk.CellRendererText()
         (
-	 ROW_TYPE,
-	 ROW_SIZE,
-	 ROW_TERRAIN,
-	 ROW_DIFF,
-	 ROW_ID,
-	 ROW_TITLE,
-	 ) = range(6)
+         ROW_TITLE,
+         ROW_TYPE,
+         ROW_SIZE,
+         ROW_TERRAIN,
+         ROW_DIFF,
+         ROW_ID,
+         ) = range(6)
         columns = (
-		   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
-		   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
-		   ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
-		   ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
-		   ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
-		   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
-		   )
+                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
+                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
+                   ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
+                   ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
+                   ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
+                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
+                   )
         self.cachelist = listview = extListview.ExtListView(columns, sortable=True, useMarkup=True, canShowHideColumns=False)
+        self.cachelist_contents = []
         listview.connect('extlistview-button-pressed', self.on_search_cache_clicked)
         xml.get_widget('scrolledwindow_search').add(listview)
                 
@@ -258,17 +275,17 @@ class SimpleGui(object):
         #txtRdr        = gtk.CellRendererText()
         #pixbufRdr = gtk.CellRendererPixbuf()
         (
-	 COL_COORD_NAME,
-	 COL_COORD_LATLON,
-	 COL_COORD_ID,
-	 COL_COORD_COMMENT,
-	 ) = range(4)
+         COL_COORD_NAME,
+         COL_COORD_LATLON,
+         COL_COORD_ID,
+         COL_COORD_COMMENT,
+         ) = range(4)
         columns = (
-		   ('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
-		   ('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
-		   ('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
-		   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT,), False, True),
-		   )
+                   ('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
+                   ('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
+                   ('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
+                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT,), False, True),
+                   )
         self.coordlist = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
         self.coordlist.connect('extlistview-button-pressed', self.on_waypoint_clicked)
         xml.get_widget('scrolledwindow_coordlist').add(self.coordlist)
@@ -277,10 +294,10 @@ class SimpleGui(object):
         gobject.timeout_add_seconds(10, self.__check_notes_save)
 
 
-    def on_marked_label_clicked(self, event = None, widget = None):
-	w = xml.get_widget('check_cache_marked')
-	w.set_active(not w.get_active())
-	print w
+    def on_marked_label_clicked(self, event=None, widget=None):
+        w = xml.get_widget('check_cache_marked')
+        w.set_active(not w.get_active())
+        print w
 
     def dmap(self, widget):
         pass
@@ -352,7 +369,7 @@ class SimpleGui(object):
                 
     def __decode_htmlentities(self, string):
         def substitute_entity(match):
-	    from htmlentitydefs import name2codepoint as n2cp
+            from htmlentitydefs import name2codepoint as n2cp
             ent = match.group(3)
             if match.group(1) == "#":
                 # decoding by number
@@ -383,14 +400,15 @@ class SimpleGui(object):
                 
                 
     # called by core
-    def display_results_advanced(self, caches, too_much = False):
-	label = xml.get_widget('label_too_much_results')
-	if too_much:
-	    text = 'Too much results. Only showing first %d.' % len(caches)
-	    label.set_visibility(True)
-	    label.set_text(text)
-	else:
-	    label.set_visibility(False)
+    def display_results_advanced(self, caches, too_much=False):
+        label = xml.get_widget('label_too_much_results')
+        if too_much:
+            text = 'Too much results. Only showing first %d.' % (len(caches)-1)
+            label.set_text(text)
+            label.show()
+        else:
+            label.hide()
+        self.cachelist_contents = caches
         rows = []
         for r in caches:
             if r.size == -1:
@@ -407,13 +425,24 @@ class SimpleGui(object):
                 t = "?"
             else:
                 t = "%.1f" % r.terrain
-	    if r.marked:
-		title = '<span bgcolor="yellow" fgcolor="black">%s</span>' % self.escape_markup(r.title)
-	    else:
-		title = self.escape_markup(r.title)
+            title =  self.__format_cache_title(r)
             rows.append((title, r.type, s, t, d, r.name, ))
         self.cachelist.replaceContent(rows)
+        self.notebook_search.set_current_page(1)
+        self.redraw_marks()
 
+
+    @staticmethod
+    def __format_cache_title(cache):
+        m = cache.title.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        if cache.marked and cache.found:
+            return '<span bgcolor="yellow" fgcolor="gray">%s</span>' % m
+        elif cache.marked:
+            return '<span bgcolor="yellow" fgcolor="black">%s</span>' % m
+        elif cache.found:
+            return '<span fgcolor="gray">%s</span>' % m
+        else:
+            return m
 
     def __draw_arrow(self):                
         if not self.drawing_area_arrow_configured:
@@ -428,7 +457,7 @@ class SimpleGui(object):
             disabled = True
                         
         self.pixmap_arrow.draw_rectangle(widget.get_style().bg_gc[gtk.STATE_NORMAL],
-					 True, 0, 0, width, height)
+                                         True, 0, 0, width, height)
 
         if disabled:
             #self.pixmap_arrow.draw_rectangle(self.xgc_arrow,
@@ -508,7 +537,7 @@ class SimpleGui(object):
         arrow_transformed = []
         for (x, y) in arrow:
             arrow_transformed.append((int(round(x * multiply * c + offset_x - y * multiply * s)),
-				     int(round(y * multiply * c + offset_y + x * multiply * s))))
+                                     int(round(y * multiply * c + offset_y + x * multiply * s))))
         return arrow_transformed
                 
                 
@@ -533,15 +562,15 @@ class SimpleGui(object):
             c = self.screenpoint2coord([x, y])
             c1 = self.screenpoint2coord([x-self.CLICK_RADIUS, y-self.CLICK_RADIUS])
             c2 = self.screenpoint2coord([x + self.CLICK_RADIUS, y + self.CLICK_RADIUS])
-	    if self.settings['options_hide_found']:
-		found = False
-	    else:
-		found = None
+            if self.settings['options_hide_found']:
+                found = False
+            else:
+                found = None
             cache = self.pointprovider.get_nearest_point_filter(c, c1, c2, found)
             self.core.on_cache_selected(cache)
         self.draw_at_x = self.draw_at_y = 0
-	if offset_x != 0 or offset_y != 0:
-	    gobject.idle_add(self.__draw_map)
+        if offset_x != 0 or offset_y != 0:
+            gobject.idle_add(self.__draw_map)
                 
                         
     def __drag_draw(self):
@@ -558,7 +587,7 @@ class SimpleGui(object):
         x, y, width, height = self.drawing_area.get_allocation()
         #gc = widget.get_style().fg_gc[gtk.STATE_NORMAL]
         self.drawing_area.window.draw_drawable(self.xgc,
-					       self.pixmap, -self.draw_at_x + self.drag_offset_x - self.draw_root_x, -self.draw_at_y + self.drag_offset_y - self.draw_root_y, 0, 0, width, height)
+                                               self.pixmap, -self.draw_at_x + self.drag_offset_x - self.draw_root_x, -self.draw_at_y + self.drag_offset_y - self.draw_root_y, 0, 0, width, height)
         return True
         
                 
@@ -623,101 +652,101 @@ class SimpleGui(object):
         # draw geocaches
         #
 
-	if self.settings['options_hide_found']:
-	    found = False
-	else:
-	    found = None
-        coords = self.pointprovider.get_points_filter((self.pixmappoint2coord([0, 0]), self.pixmappoint2coord([self.map_width, self.map_height])), found)
-	if len(coords) < self.pointprovider.MAX_RESULTS:
+        if self.settings['options_hide_found']:
+            found = False
+        else:
+            found = None
+        coords = self.pointprovider.get_points_filter(self.get_visible_area(), found)
+        if len(coords) < self.pointprovider.MAX_RESULTS:
 
-	    draw_short = (len(coords) > self.TOO_MUCH_POINTS)
+            draw_short = (len(coords) > self.TOO_MUCH_POINTS)
 
-	    xgc.set_function(gtk.gdk.COPY)
-	    #xgc.set_dashes(1, (2, 2))
-	    #xgc.line_style = gtk.gdk.LINE_ON_OFF_DASH
+            xgc.set_function(gtk.gdk.COPY)
+            #xgc.set_dashes(1, (2, 2))
+            #xgc.line_style = gtk.gdk.LINE_ON_OFF_DASH
 
-	    for c in coords: # for each geocache
-		radius = self.CACHE_DRAW_SIZE
-		if c.found:
-		    color = self.COLOR_FOUND
-		elif c.type == geocaching.GeocacheCoordinate.TYPE_REGULAR:
-		    color = self.COLOR_REGULAR
-		elif c.type == geocaching.GeocacheCoordinate.TYPE_MULTI:
-		    color = self.COLOR_MULTI
-		else:
-		    color = self.COLOR_DEFAULT
+            for c in coords: # for each geocache
+                radius = self.CACHE_DRAW_SIZE
+                if c.found:
+                    color = self.COLOR_FOUND
+                elif c.type == geocaching.GeocacheCoordinate.TYPE_REGULAR:
+                    color = self.COLOR_REGULAR
+                elif c.type == geocaching.GeocacheCoordinate.TYPE_MULTI:
+                    color = self.COLOR_MULTI
+                else:
+                    color = self.COLOR_DEFAULT
 
-		p = self.__coord2point(c)
-		xgc.set_rgb_fg_color(color)
+                p = self.__coord2point(c)
+                xgc.set_rgb_fg_color(color)
 
-		if draw_short:
-		    radius = radius / 2.0
+                if draw_short:
+                    radius = radius / 2.0
 
-		if c.marked:
-		    xgc.set_rgb_fg_color(self.COLOR_MARKED)
-		    self.pixmap_marks.draw_rectangle(xgc, True, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
-
-
-		xgc.set_rgb_fg_color(color)
-		xgc.line_width = 3
-		self.pixmap_marks.draw_rectangle(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
-
-		if draw_short:
-		    continue
+                if c.marked:
+                    xgc.set_rgb_fg_color(self.COLOR_MARKED)
+                    self.pixmap_marks.draw_rectangle(xgc, True, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
 
 
-		# print the name?
-		if self.settings['options_show_name']:
-		    layout = self.drawing_area.create_pango_layout(c.name)
-		    layout.set_font_description(self.CACHE_DRAW_FONT)
-		    self.pixmap_marks.draw_layout(xgc, p[0] + 3 + radius, p[1] - 3 - radius, layout)
+                xgc.set_rgb_fg_color(color)
+                xgc.line_width = 3
+                self.pixmap_marks.draw_rectangle(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
 
-		# if we have a description for this cache...
-		if c.was_downloaded():
-		    # draw something like:
-		    # ----
-		    # ----
-		    # ----
-		    # besides the icon
-		    width = 6
-		    dist = 2
-		    pos_x = p[0] + radius + 3 + 1
-		    pos_y = p[1] + 2
-		    xgc.line_width = 1
-		    for i in xrange(0, 3):
-			self.pixmap_marks.draw_line(xgc, pos_x, pos_y + dist * i, pos_x + width, pos_y + dist * i)
+                if draw_short:
+                    continue
 
-		# if this cache is the active cache
-		if self.current_cache != None and c.name == self.current_cache.name:
-		    xgc.line_width = 3
-		    xgc.set_rgb_fg_color(self.COLOR_CURRENT_CACHE)
-		    radius = 7
-		    self.pixmap_marks.draw_rectangle(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
 
-		xgc.set_rgb_fg_color(self.COLOR_CACHE_CENTER)
-		xgc.line_width = 1
-		self.pixmap_marks.draw_line(xgc, p[0], p[1] - 2, p[0], p[1] + 3) #  |
-		self.pixmap_marks.draw_line(xgc, p[0] - 2, p[1], p[0] + 3, p[1]) # ---
+                # print the name?
+                if self.settings['options_show_name']:
+                    layout = self.drawing_area.create_pango_layout(c.name)
+                    layout.set_font_description(self.CACHE_DRAW_FONT)
+                    self.pixmap_marks.draw_layout(xgc, p[0] + 3 + radius, p[1] - 3 - radius, layout)
 
-	    # draw additional waypoints
-	    # --> print description!
-	    if self.current_cache != None and self.current_cache.get_waypoints() != None:
-		xgc.set_function(gtk.gdk.AND)
-		xgc.set_rgb_fg_color(self.COLOR_WAYPOINTS)
-		xgc.line_width = 1
-		radius = 4
-		num = 0
-		for w in self.current_cache.get_waypoints():
-		    if w['lat'] != -1 and w['lon'] != -1:
-			num = num + 1
-			p = self.__coord2point(geo.Coordinate(w['lat'], w['lon']))
-			self.pixmap_marks.draw_line(xgc, p[0], p[1] - 3, p[0], p[1] + 4) #  |
-			self.pixmap_marks.draw_line(xgc, p[0] - 3, p[1], p[0] + 4, p[1]) # ---
-			self.pixmap_marks.draw_arc(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2, 0, 360 * 64)
-			layout = self.drawing_area.create_pango_layout('')
-			layout.set_markup('<i>%s</i>' % (w['id']))
-			layout.set_font_description(self.CACHE_DRAW_FONT)
-			self.pixmap_marks.draw_layout(xgc, p[0] + 3 + radius, p[1] - 3 - radius, layout)
+                # if we have a description for this cache...
+                if c.was_downloaded():
+                    # draw something like:
+                    # ----
+                    # ----
+                    # ----
+                    # besides the icon
+                    width = 6
+                    dist = 2
+                    pos_x = p[0] + radius + 3 + 1
+                    pos_y = p[1] + 2
+                    xgc.line_width = 1
+                    for i in xrange(0, 3):
+                        self.pixmap_marks.draw_line(xgc, pos_x, pos_y + dist * i, pos_x + width, pos_y + dist * i)
+
+                # if this cache is the active cache
+                if self.current_cache != None and c.name == self.current_cache.name:
+                    xgc.line_width = 3
+                    xgc.set_rgb_fg_color(self.COLOR_CURRENT_CACHE)
+                    radius = 7
+                    self.pixmap_marks.draw_rectangle(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
+
+                xgc.set_rgb_fg_color(self.COLOR_CACHE_CENTER)
+                xgc.line_width = 1
+                self.pixmap_marks.draw_line(xgc, p[0], p[1] - 2, p[0], p[1] + 3) #  |
+                self.pixmap_marks.draw_line(xgc, p[0] - 2, p[1], p[0] + 3, p[1]) # ---
+
+            # draw additional waypoints
+            # --> print description!
+            if self.current_cache != None and self.current_cache.get_waypoints() != None:
+                xgc.set_function(gtk.gdk.AND)
+                xgc.set_rgb_fg_color(self.COLOR_WAYPOINTS)
+                xgc.line_width = 1
+                radius = 4
+                num = 0
+                for w in self.current_cache.get_waypoints():
+                    if w['lat'] != -1 and w['lon'] != -1:
+                        num = num + 1
+                        p = self.__coord2point(geo.Coordinate(w['lat'], w['lon']))
+                        self.pixmap_marks.draw_line(xgc, p[0], p[1] - 3, p[0], p[1] + 4) #  |
+                        self.pixmap_marks.draw_line(xgc, p[0] - 3, p[1], p[0] + 4, p[1]) # ---
+                        self.pixmap_marks.draw_arc(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2, 0, 360 * 64)
+                        layout = self.drawing_area.create_pango_layout('')
+                        layout.set_markup('<i>%s</i>' % (w['id']))
+                        layout.set_font_description(self.CACHE_DRAW_FONT)
+                        self.pixmap_marks.draw_layout(xgc, p[0] + 3 + radius, p[1] - 3 - radius, layout)
 
                         
         #
@@ -846,11 +875,9 @@ class SimpleGui(object):
             return
         x, y, width, height = event.area
 
-        widget.window.draw_drawable(self.xgc,
-				    self.pixmap, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
+        widget.window.draw_drawable(self.xgc, self.pixmap, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
         self.xgc.set_function(gtk.gdk.AND)
-        widget.window.draw_drawable(self.xgc,
-				    self.pixmap_marks, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
+        widget.window.draw_drawable(self.xgc, self.pixmap_marks, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
         self.xgc.set_function(gtk.gdk.COPY)
                 
         return False
@@ -858,8 +885,7 @@ class SimpleGui(object):
         
     def expose_event_arrow(self, widget, event):
         x, y, width, height = event.area
-        widget.window.draw_drawable(self.xgc_arrow,
-				    self.pixmap_arrow, x, y, x, y, width, height)
+        widget.window.draw_drawable(self.xgc_arrow, self.pixmap_arrow, x, y, x, y, width, height)
         return False
 
 
@@ -870,12 +896,10 @@ class SimpleGui(object):
         self.progressbar.hide()
                 
                         
-    def on_change_coord_clicked(self, something):
-        self.set_target(self.show_coordinate_input(self.current_target))
                 
     def load_images(self):
         if self.current_cache == None:
-            self.update_cache_image(reset=True)
+            self.update_cache_image(reset = True)
             return
         try:
             files = os.listdir(self.settings['download_output_dir'])
@@ -887,7 +911,7 @@ class SimpleGui(object):
             self.images = images
         except Exception as e:
             print "Could not prepare images: %s" % e
-        self.update_cache_image(reset=True)
+        self.update_cache_image(reset = True)
 
     def on_download_clicked(self, widget):
         self.do_events()
@@ -908,17 +932,36 @@ class SimpleGui(object):
         xml.get_widget('menu_actions').popup(None, None, None, event.button, event.get_time())
 
     def on_cache_marked_toggled(self, widget):
-	if self.current_cache == None:
-	    return
-	self.update_mark(self.current_cache, widget.get_active())
-	
-    def update_mark(self, cache, status):
-	cache.marked = status
-	if status:
-	    s = 1
-	else:
-	    s = 0
-	self.pointprovider.update_field(cache, 'marked', s)
+        if self.current_cache == None:
+            return
+        self.__update_mark(self.current_cache, widget.get_active())
+
+    def on_change_coord_clicked(self, something):
+        self.set_target(self.show_coordinate_input(self.current_target))
+
+    def __get_search_selected_cache(self):
+        index = self.cachelist.getFirstSelectedRowIndex()
+        if index == None:
+            return (None, None)
+        cache = self.cachelist_contents[index]
+        return (index, cache)
+        
+    def on_result_marked_toggled(self, widget):
+        (index, cache) = self.__get_search_selected_cache()
+        if cache == None:
+            return
+        self.__update_mark(cache, widget.get_active())
+        title = self.__format_cache_title(cache)
+        self.cachelist.setItem(index, 0, title)
+
+    def __update_mark(self, cache, status):
+        cache.marked = status
+        if status:
+            s = 1
+        else:
+            s = 0
+        self.pointprovider.update_field(cache, 'marked', s)
+        self.redraw_marks()
 
                 
     def on_download_cache_clicked(self, something):
@@ -982,7 +1025,7 @@ class SimpleGui(object):
         
     def on_image_next_clicked(self, something):
         if len(self.images) == 0:
-            self.update_cache_image(reset=True)
+            self.update_cache_image(reset = True)
             return
         self.image_no += 1
         self.image_no %= len(self.images)
@@ -1001,6 +1044,10 @@ class SimpleGui(object):
         else:
             widget.set_text("you have not created any new fieldnotes")
                 
+    def on_list_marked_clicked(self, widget):
+        self.core.on_start_search_advanced(marked = True)
+
+
     def on_no_fix(self, gps_data, status):
         self.gps_data = gps_data
         self.label_bearing.set_text("No Fix")
@@ -1016,8 +1063,8 @@ class SimpleGui(object):
         self.fieldnotes_changed = True
 
     def on_fieldnotes_log_changed(self, something):
-	from time import gmtime
-	from time import strftime
+        from time import gmtime
+        from time import strftime
         if self.current_cache == None:
             return
         log = geocaching.GeocacheCoordinate.LOG_NO_LOG
@@ -1038,54 +1085,110 @@ class SimpleGui(object):
     def on_save_config(self, something):
         if not self.block_changes:
             self.core.on_config_changed(self.read_settings())
+
+    def on_search_action_center_clicked(self, widget):
+        (index, cache) = self.__get_search_selected_cache()
+        if cache == None:
+            return
+        self.set_center(cache)
+        self.notebook_all.set_current_page(1)
+
+    def on_search_action_set_target_clicked(self, widget):
+        (index, cache) = self.__get_search_selected_cache()
+        if cache == None:
+            return
+        self.current_cache = cache
+        self.set_target(cache)
+        self.notebook_all.set_current_page(0)
+
+    def on_search_action_view_details_clicked(self, widget):
+        (index, cache) = self.__get_search_selected_cache()
+        if cache == None:
+            return
+        self.show_cache(cache)
+
                 
     def on_search_advanced_clicked(self, something):
-	'''
-        if self.search_elements['found']['true'].get_active():
-            found = True
-        elif self.search_elements['found']['false'].get_active():
+        def get_val_from_text(input, use_max):
+            if not use_max:
+                valmap = {'1..1.5': 1, '2..2.5': 2, '3..3.5': 3, '4..4.5': 4, '5': 5}
+                default = 1
+            else:
+                valmap = {'1..1.5': 1.5, '2..2.5': 2.5, '3..3.5': 3.5, '4..4.5': 4.5, '5': 5}
+                default = 5
+            if input in valmap.keys():
+                return valmap[input]
+            else:
+                return default
+
+        types = [a for a in [geocaching.GeocacheCoordinate.TYPE_REGULAR,
+            geocaching.GeocacheCoordinate.TYPE_MULTI,
+            geocaching.GeocacheCoordinate.TYPE_MYSTERY,
+            geocaching.GeocacheCoordinate.TYPE_VIRTUAL] if self.search_elements['type'][a].get_active()]
+
+        if self.search_elements['type']['all'].get_active() or len(types) == 0:
+            types = None
+
+        name_search = self.search_elements['name'].get_text()
+
+        status = self.search_elements['status'].get_active_text()
+        if status == 'not found':
             found = False
+            marked = None
+        elif status == 'found':
+            found = True
+            marked = None
+        elif status == 'marked & new':
+            found = False
+            marked = True
         else:
             found = None
-                
-        name_search = self.search_elements['name'].get_text()
-                
-        if not self.search_elements['type']['other'].get_active():
-            ctype = []
-            for type, el in self.search_elements['type'].items():
-                if el.get_active():
-                    ctype.append(type)
-        else:
-            ctype = None
-                        
-        if ctype != None or found != None or name_search != '':
-            self.filtermsg.show()
-        else:
-            self.filtermsg.hide()'''
-	'''
-        #self.core.on_start_search_advanced(found=found, name_search=name_search, ctype=ctype)'''
-	self.core.on_start_search_advanced()
+            marked = None
 
-                
-    def on_search_details_toggled(self, some=None):
-        for k, i in self.search_elements['frames'].items():
-            if k != 'type':
-                i.set_sensitive(not self.search_elements['no_details'].get_active())
+        sizes = [a for a in [1, 2, 3, 4, 5] if self.search_elements['size'][a].get_active()]
+        if len(sizes) == 0:
+            sizes = None
+
+        search = {}
+        for i in ['diff', 'terr']:
+
+            sel = self.search_elements[i]['selector'].get_active_text()
+            value = self.search_elements[i]['value'].get_active_text()
+            if sel == 'min':
+                search[i] = (get_val_from_text(value, False), 5)
+            elif sel == 'max':
+                search[i] = (0, get_val_from_text(value, True))
+            elif sel == '=':
+                search[i] = (get_val_from_text(value, False), get_val_from_text(value, True))
+            else:
+                search[i] = None
+
+
+        if self.search_elements['inview'].get_active():
+            location = self.get_visible_area()
+        else:
+            location = None
+
+        self.core.on_start_search_advanced(found = found, name_search = name_search, size = sizes, terrain = search['terr'], diff = search['diff'], ctype = types, location = location, marked = marked)
 
     def on_search_cache_clicked(self, listview, event, element):
-        if event.type != gtk.gdk._2BUTTON_PRESS or element == None:
+        if element == None:
             return
-                
-        cachename = listview.getItem(element[0], 5)
-        cache = self.pointprovider.find_by_string(cachename)
-        self.core.on_cache_selected(cache)
-        self.set_center(cache)
+        (index, cache) = self.__get_search_selected_cache()
+        if cache == None:
+            return
+
+        if event.type == gtk.gdk._2BUTTON_PRESS:
+            self.core.on_cache_selected(cache)
+            self.set_center(cache)
+        else:
+            self.check_result_marked.set_active(cache.marked)
+            
                 
     def on_search_reset_clicked(self, something):
-        self.search_elements['name'].set_text('')
-        self.search_elements['found']['whatever'].set_active(True)
-        self.search_elements['type']['other'].set_active(True)
-        self.on_search_advanced_clicked(None)
+
+        self.core.on_start_search_advanced()
+
                 
     def on_set_target_clicked(self, something):
         if self.current_cache == None:
@@ -1102,9 +1205,6 @@ class SimpleGui(object):
             return
         else:
             self.set_center(self.current_target)
-
-    def on_start_search_simple(self, something):
-        self.core.on_start_search_simple(self.entry_search.get_text())
                 
     def on_track_toggled(self, something):
         if self.button_track.get_active() and self.gps_data != None and self.gps_data['position'] != None:
@@ -1140,7 +1240,7 @@ class SimpleGui(object):
     def on_zoomout_clicked(self, widget):
         self.zoom(-1)
                 
-    def update_cache_image(self, reset=False):
+    def update_cache_image(self, reset = False):
         if reset:
             self.image_cache.set_from_stock(gtk.STOCK_GO_FORWARD, -1)
             self.image_cache_caption.set_text("click 'next' to see images")
@@ -1188,10 +1288,10 @@ class SimpleGui(object):
                 
     def pixmappoint2coord(self, point):
         size = self.ts.tile_size()
-        coord = self.ts.num2deg(
-				(point[0] + self.map_center_x * size - self.map_width / 2) / size,
-				(point[1] + self.map_center_y * size - self.map_height / 2) / size
-				)
+        coord = self.ts.num2deg(\
+            (point[0] + self.map_center_x * size - self.map_width / 2) / size, \
+            (point[1] + self.map_center_y * size - self.map_height / 2) / size \
+            )
         return coord
                 
     def point_in_screen(self, point):
@@ -1199,10 +1299,10 @@ class SimpleGui(object):
 
     def read_settings(self):
         c = self.ts.num2deg(self.map_center_x, self.map_center_y)
-        settings = {
-            'map_position_lat': c.lat,
-            'map_position_lon': c.lon,
-            'map_zoom': self.ts.get_zoom()
+        settings = { \
+            'map_position_lat': c.lat,\
+            'map_position_lon': c.lon,\
+            'map_zoom': self.ts.get_zoom() \
         }
         if self.current_target != None:
             settings['last_target_lat'] = self.current_target.lat
@@ -1210,14 +1310,14 @@ class SimpleGui(object):
             settings['last_target_name'] = self.current_target.name
                         
         for x in self.SETTINGS_CHECKBOXES:
-	    w = xml.get_widget('check_%s' % x)
-	    if w != None:
-		settings[x] = w.get_active()
+            w = xml.get_widget('check_%s' % x)
+            if w != None:
+                settings[x] = w.get_active()
                 
         for x in self.SETTINGS_INPUTS:
-	    w = xml.get_widget('input_%s' % x)
-	    if w != None:
-		settings[x] = w.get_text()
+            w = xml.get_widget('input_%s' % x)
+            if w != None:
+                settings[x] = w.get_text()
                 
         self.settings = settings
                 
@@ -1235,10 +1335,10 @@ class SimpleGui(object):
                         
     def screenpoint2coord(self, point):
         size = self.ts.tile_size()
-        coord = self.ts.num2deg(
-				((point[0] - self.draw_root_x - self.draw_at_x) + self.map_center_x * size - self.map_width / 2) / size,
-				((point[1] - self.draw_root_y - self.draw_at_y) + self.map_center_y * size - self.map_height / 2) / size
-				)
+        coord = self.ts.num2deg( \
+            ((point[0] - self.draw_root_x - self.draw_at_x) + self.map_center_x * size - self.map_width / 2) / size,  \
+            ((point[1] - self.draw_root_y - self.draw_at_y) + self.map_center_y * size - self.map_height / 2) / size \
+            )
         return coord
         
     def scroll(self, widget, event):
@@ -1248,7 +1348,7 @@ class SimpleGui(object):
             self.zoom(+ 1)
         
                 
-    def set_center(self, coord, noupdate=False):
+    def set_center(self, coord, noupdate = False):
         #xml.get_widget("notebook_all").set_current_page(0)
         self.map_center_x, self.map_center_y = self.ts.deg2num(coord)
         self.draw_at_x = 0
@@ -1266,7 +1366,7 @@ class SimpleGui(object):
     def set_target(self, cache):
         self.current_target = cache
         self.label_target.set_text("Target (%s): %s %s" % (cache.name, cache.get_lat(self.format), cache.get_lon(self.format)))
-        self.__draw_map()
+        self.set_center(cache)
                 
     def show(self):
         self.window.show_all()
@@ -1315,8 +1415,8 @@ class SimpleGui(object):
             showdesc = text_longdesc
         self.cache_elements['desc'].set_text(showdesc)
 
-	# is cache marked?
-	self.cache_elements['marked'].set_active(cache.marked)
+        # is cache marked?
+        self.cache_elements['marked'].set_active(cache.marked)
 
         # Set View
         self.notebook_cache.set_current_page(0)
@@ -1393,16 +1493,16 @@ class SimpleGui(object):
 
                 
     def show_error(self, errormsg):
-        error_dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR
-				      , message_format="%s" % errormsg
-				      , buttons=gtk.BUTTONS_OK)
+        error_dlg = gtk.MessageDialog(type = gtk.MESSAGE_ERROR, \
+            message_format = "%s" % errormsg, \
+            buttons = gtk.BUTTONS_OK)
         error_dlg.run()
         error_dlg.destroy()
 
     def show_success(self, message):
-        suc_dlg = gtk.MessageDialog(type=gtk.MESSAGE_INFO
-				    , message_format=message
-				    , buttons=gtk.BUTTONS_OK)
+        suc_dlg = gtk.MessageDialog(type = gtk.MESSAGE_INFO \
+            , message_format = message \
+            , buttons = gtk.BUTTONS_OK)
         suc_dlg.run()
         suc_dlg.destroy()
 
@@ -1478,31 +1578,31 @@ class SimpleGui(object):
 
         for x in self.SETTINGS_CHECKBOXES:
             if x in self.settings.keys():
-		w = xml.get_widget('check_%s' % x)
-		if w == None:
-		    continue
+                w = xml.get_widget('check_%s' % x)
+                if w == None:
+                    continue
                 w.set_active(self.settings[x])
             elif x in self.DEFAULT_SETTINGS.keys():
                 w = xml.get_widget('check_%s' % x)
-		if w == None:
-		    continue
+                if w == None:
+                    continue
                 w.set_active(self.DEFAULT_SETTINGS[x])
         
         for x in self.SETTINGS_INPUTS:
             if x in self.settings.keys():
                 w = xml.get_widget('input_%s' % x)
-		if w == None:
-		    continue
+                if w == None:
+                    continue
                 w.set_text(str(self.settings[x]))
             elif x in self.DEFAULT_SETTINGS.keys():
-		w = xml.get_widget('input_%s' % x)
-		if w == None:
-		    continue
-		w.set_text(self.DEFAULT_SETTINGS[x])
+                w = xml.get_widget('input_%s' % x)
+                if w == None:
+                    continue
+                w.set_text(self.DEFAULT_SETTINGS[x])
                                         
         self.block_changes = False
                 
-    def zoom(self, direction=None):
+    def zoom(self, direction = None):
         size = self.ts.tile_size()
         center = self.ts.num2deg(self.map_center_x - float(self.draw_at_x) / size, self.map_center_y - float(self.draw_at_y) / size)
         if direction == None:
@@ -1513,9 +1613,6 @@ class SimpleGui(object):
         self.ts.set_zoom(newzoom)
         self.set_center(center)
                 
-    @staticmethod
-    def escape_markup(text):
-	return text.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
                 
 
 class Updown():

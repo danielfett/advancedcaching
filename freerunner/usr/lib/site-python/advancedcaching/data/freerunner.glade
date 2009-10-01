@@ -862,7 +862,7 @@ note</property>
               </packing>
             </child>
             <child>
-              <widget class="GtkNotebook" id="notebook1">
+              <widget class="GtkNotebook" id="notebook_search">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <child>
@@ -1101,7 +1101,7 @@ note</property>
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkComboBox" id="combobox1">
+                          <widget class="GtkComboBox" id="combo_search_status">
                             <property name="visible">True</property>
                             <property name="items" translatable="yes">all
 not found
@@ -1116,7 +1116,7 @@ marked &amp; new</property>
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkComboBox" id="combobox2">
+                          <widget class="GtkComboBox" id="combo_search_diff_sel">
                             <property name="visible">True</property>
                             <property name="items" translatable="yes">all
 min
@@ -1131,7 +1131,7 @@ max
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkComboBox" id="combobox3">
+                          <widget class="GtkComboBox" id="combo_search_diff">
                             <property name="visible">True</property>
                             <property name="items" translatable="yes">1..1.5
 2..2.5
@@ -1147,7 +1147,7 @@ max
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkComboBox" id="combobox4">
+                          <widget class="GtkComboBox" id="combo_search_terr_sel">
                             <property name="visible">True</property>
                             <property name="items" translatable="yes">all
 min
@@ -1162,7 +1162,7 @@ max
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkComboBox" id="combobox5">
+                          <widget class="GtkComboBox" id="combo_search_terr">
                             <property name="visible">True</property>
                             <property name="items" translatable="yes">1..1.5
 2..2.5
@@ -1188,7 +1188,7 @@ max
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkCheckButton" id="checkbutton2">
+                          <widget class="GtkCheckButton" id="check_search_inview">
                             <property name="label" translatable="yes">in current map view</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
@@ -1257,10 +1257,11 @@ max
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
+                            <signal name="clicked" handler="on_list_marked_clicked"/>
                             <child>
                               <widget class="GtkLabel" id="label41">
                                 <property name="visible">True</property>
-                                <property name="label" translatable="yes">list
+                                <property name="label" translatable="yes">show
 &lt;span bgcolor="yellow" fgcolor="black"&gt;marked&lt;/span&gt;</property>
                                 <property name="use_markup">True</property>
                               </widget>
@@ -1272,12 +1273,11 @@ max
                         </child>
                         <child>
                           <widget class="GtkButton" id="button_advanced_search">
-                            <property name="label" translatable="yes">gtk-find</property>
+                            <property name="label" translatable="yes">search</property>
                             <property name="height_request">50</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
-                            <property name="use_stock">True</property>
                             <signal name="clicked" handler="on_search_advanced_clicked"/>
                           </widget>
                           <packing>
@@ -1308,7 +1308,8 @@ max
                     <property name="orientation">vertical</property>
                     <child>
                       <widget class="GtkLabel" id="label_too_much_results">
-                        <property name="visible">True</property>
+                        <property name="no_show_all">True</property>
+                        <property name="label" translatable="yes">Too much results, not showing all.</property>
                       </widget>
                       <packing>
                         <property name="expand">False</property>
@@ -1335,24 +1336,40 @@ max
                         <property name="height_request">50</property>
                         <property name="visible">True</property>
                         <child>
-                          <widget class="GtkButton" id="button_view">
-                            <property name="label" translatable="yes">view details</property>
+                          <widget class="GtkButton" id="button_search_action_view_details1">
+                            <property name="label" translatable="yes">view 
+on map</property>
                             <property name="height_request">50</property>
                             <property name="visible">True</property>
-                            <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
+                            <signal name="clicked" handler="on_search_action_center_clicked"/>
                           </widget>
                           <packing>
                             <property name="position">0</property>
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkCheckButton" id="checkbutton3">
+                          <widget class="GtkButton" id="button_search_action_view_details">
+                            <property name="label" translatable="yes">view 
+details</property>
+                            <property name="height_request">50</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <signal name="clicked" handler="on_search_action_view_details_clicked"/>
+                          </widget>
+                          <packing>
+                            <property name="position">1</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkCheckButton" id="check_result_marked">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
                             <property name="draw_indicator">True</property>
+                            <signal name="toggled" handler="on_result_marked_toggled"/>
                             <child>
                               <widget class="GtkLabel" id="label43">
                                 <property name="visible">True</property>
@@ -1363,19 +1380,21 @@ max
                           </widget>
                           <packing>
                             <property name="expand">False</property>
-                            <property name="position">1</property>
+                            <property name="position">2</property>
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkButton" id="button_set_target1">
-                            <property name="label" translatable="yes">set as target</property>
+                          <widget class="GtkButton" id="button_search_action_set_target">
+                            <property name="label" translatable="yes">set as 
+target</property>
                             <property name="height_request">50</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">True</property>
+                            <signal name="clicked" handler="on_search_action_set_target_clicked"/>
                           </widget>
                           <packing>
-                            <property name="position">2</property>
+                            <property name="position">3</property>
                           </packing>
                         </child>
                       </widget>
@@ -2008,19 +2027,6 @@ after first download)</property>
   </widget>
   <widget class="GtkMenu" id="menu_actions">
     <property name="visible">True</property>
-    <child>
-      <widget class="GtkMenuItem" id="menu_action_goto_marked">
-        <property name="visible">True</property>
-        <property name="label" translatable="yes">go to nearest marked cache</property>
-        <property name="use_underline">True</property>
-        <signal name="activate" handler="on_goto_marked_clicked"/>
-      </widget>
-    </child>
-    <child>
-      <widget class="GtkSeparatorMenuItem" id="menuitem4">
-        <property name="visible">True</property>
-      </widget>
-    </child>
     <child>
       <widget class="GtkMenuItem" id="menu_action_set_target_center">
         <property name="visible">True</property>

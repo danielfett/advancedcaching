@@ -75,7 +75,7 @@ class GeocacheCoordinate(geo.Coordinate):
         self.fieldnotes = ''
         self.log_as = self.LOG_NO_LOG
         self.log_date = ''
-	self.marked = False
+        self.marked = False
 
     def serialize(self):
 
@@ -83,32 +83,32 @@ class GeocacheCoordinate(geo.Coordinate):
             found = 1
         else:
             found = 0
-	if self.marked:
-	    marked = 1
-	else:
-	    marked = 0
+        if self.marked:
+            marked = 1
+        else:
+            marked = 0
         return {
-	    'lat': self.lat,
-	    'lon': self.lon,
-	    'name': self.name,
-	    'title': self.title,
-	    'shortdesc': self.shortdesc,
-	    'desc': self.desc,
-	    'hints': self.hints,
-	    'type': self.type,
-	    'size': self.size,
-	    'difficulty': self.difficulty,
-	    'terrain': self.terrain,
-	    'owner': self.owner,
-	    'found': found,
-	    'waypoints': self.waypoints,
-	    'images': self.images,
-	    'notes': self.notes,
-	    'fieldnotes': self.fieldnotes,
-	    'logas': self.log_as,
-	    'logdate': self.log_date,
-	    'marked' : marked
-	}
+            'lat': self.lat,
+            'lon': self.lon,
+            'name': self.name,
+            'title': self.title,
+            'shortdesc': self.shortdesc,
+            'desc': self.desc,
+            'hints': self.hints,
+            'type': self.type,
+            'size': self.size,
+            'difficulty': self.difficulty,
+            'terrain': self.terrain,
+            'owner': self.owner,
+            'found': found,
+            'waypoints': self.waypoints,
+            'images': self.images,
+            'notes': self.notes,
+            'fieldnotes': self.fieldnotes,
+            'logas': self.log_as,
+            'logdate': self.log_date,
+            'marked' : marked
+        }
                 
     def unserialize(self, data):
         self.lat = data['lat']
@@ -119,9 +119,9 @@ class GeocacheCoordinate(geo.Coordinate):
         self.desc = data['desc']
         self.hints = data['hints']
         self.type = data['type']
-        self.size = data['size']
-        self.difficulty = data['difficulty']
-        self.terrain = data['terrain']
+        self.size = int(data['size'])
+        self.difficulty = float(data['difficulty'])
+        self.terrain = float(data['terrain'])
         self.owner = data['owner']
         self.found = (data['found'] == 1)
         self.waypoints = data['waypoints']
@@ -136,7 +136,7 @@ class GeocacheCoordinate(geo.Coordinate):
             self.fieldnotes = data['fieldnotes']
         self.log_as = data['logas']
         self.log_date = data['logdate']
-	self.marked = (data['marked'] == 1)
+        self.marked = (data['marked'] == 1)
 
     def get_waypoints(self):
         if self.waypoints == None or self.waypoints == '':
@@ -205,7 +205,7 @@ class CacheDownloader():
         self.resize = resize
         
     def __rot13(self, text):
-	import string
+        import string
         trans = string.maketrans(
                                  'nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM',
                                  'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
@@ -332,7 +332,7 @@ class CacheDownloader():
          
     def __decode_htmlentities(self, string):
         def substitute_entity(match):
-	    from htmlentitydefs import name2codepoint as n2cp
+            from htmlentitydefs import name2codepoint as n2cp
             ent = match.group(3)
             if match.group(1) == "#":
                 # decoding by number
@@ -384,9 +384,9 @@ class CacheDownloader():
         text = match.group(1).replace("\\'", "'")
         a = json.loads(text.replace('\t', ' '))
         points = []
-	print the_page
+        print the_page
         if not 'cc' in a['cs'].keys():
-	    #raise Exception("Too much geocaches in the selected area!")
+            raise Exception("Too much geocaches in the selected area - or none at all!")
             return points
         for b in a['cs']['cc']:
             c = GeocacheCoordinate(b['lat'], b['lon'], b['gc'])
@@ -525,7 +525,7 @@ class HTMLExporter():
             src = os.path.realpath(os.path.join(self.path, image))
             dst = os.path.realpath(os.path.join(folder, image))
             if not src == dst and not os.path.exists(dst) and os.path.exists(src):
-		import shutil
+                import shutil
                 shutil.copy(src, dst)
                 
     def __get_uri(self, coordinate, folder):

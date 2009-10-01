@@ -369,11 +369,11 @@ class Core():
             self.gui.hide_progress()
                 
     def __read_gps(self):
-        gps_data = self.gps_thread.get_data()
-        if (gps_data['position'] != None):
-            self.gui.on_good_fix(gps_data)
+        fix = self.gps_thread.get_data()
+        if fix.position != None:
+            self.gui.on_good_fix(fix)
         else:
-            self.gui.on_no_fix(gps_data, self.gps_thread.status)
+            self.gui.on_no_fix(fix, self.gps_thread.status)
         return True
                 
     def __read_config(self):

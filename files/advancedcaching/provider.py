@@ -6,7 +6,7 @@ import copy
 
 
 class PointProvider():
-    MAX_RESULTS = 750
+    MAX_RESULTS = 1000
 
     def __init__(self, filename, downloader, ctype, table):
 
