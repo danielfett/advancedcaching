@@ -68,6 +68,13 @@ class SimpleGui(object):
     CACHE_DRAW_FONT = pango.FontDescription("Sans 4")
     REDRAW_DISTANCE_TRACKING = 50 # distance from center of visible map in px
     REDRAW_DISTANCE_MINOR = 4 # distance from last displayed point in px
+    DISTANCE_DISABLE_ARROW = 5 # meters
+
+    MAX_NUM_RESULTS = 50
+
+
+    ARROW_OFFSET = 1.0 / 3.0 # Offset to center of arrow, calculated as 2-x = sqrt(1^2+(x+1)^2)
+    ARROW_SHAPE = [(0, -2 + ARROW_OFFSET), (1, + 1 + ARROW_OFFSET), (0, 0 + ARROW_OFFSET), (-1, 1 + ARROW_OFFSET)]
 
     # map markers colors
     COLOR_MARKED = gtk.gdk.color_parse('yellow')
@@ -194,7 +201,7 @@ class SimpleGui(object):
                 
                 
         self.cache_elements = {
-            'name_downloaded':        xml.get_widget('link_cache_name'),
+            'name_downloaded': xml.get_widget('link_cache_name'),
             'name_not_downloaded': xml.get_widget('button_cache_name'),
             'title': xml.get_widget('label_cache_title'),
             'type': xml.get_widget('label_cache_type'),
@@ -400,12 +407,14 @@ class SimpleGui(object):
                 
                 
     # called by core
-    def display_results_advanced(self, caches, too_much=False):
+    def display_results_advanced(self, caches):
         label = xml.get_widget('label_too_much_results')
+        too_much = len(caches) > self.MAX_NUM_RESULTS
         if too_much:
-            text = 'Too much results. Only showing first %d.' % (len(caches)-1)
+            text = 'Too much results. Only showing first %d.' % self.MAX_NUM_RESULTS
             label.set_text(text)
             label.show()
+            caches = caches[:self.MAX_NUM_RESULTS]
         else:
             label.hide()
         self.cachelist_contents = caches
@@ -450,33 +459,23 @@ class SimpleGui(object):
         widget = self.drawing_area_arrow
         x, y, width, height = widget.get_allocation()
                         
-        disabled = False
-        if self.current_target == None or self.gps_data == None or self.gps_data['position'] == None:
-            disabled = True
-        if not self.gps_has_fix:
-            disabled = True
+        disabled = (not self.gps_has_fix or self.current_target == None or self.gps_data == None or self.gps_data.position == None)
                         
         self.pixmap_arrow.draw_rectangle(widget.get_style().bg_gc[gtk.STATE_NORMAL],
                                          True, 0, 0, width, height)
 
         if disabled:
-            #self.pixmap_arrow.draw_rectangle(self.xgc_arrow,
-            #        True, 0, 0, width, height)
             self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_DISABLED)
             self.pixmap_arrow.draw_line(self.xgc_arrow, 0, 0, width, height)
             self.pixmap_arrow.draw_line(self.xgc_arrow, 0, height, width, 0)
             self.drawing_area_arrow.queue_draw()
-            #self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
                 
             return False
 
+        display_bearing = self.gps_data.position.bearing_to(self.current_target) - self.gps_data.bearing
+        display_distance = self.gps_data.position.distance_to(self.current_target)
+        display_north = math.radians(self.gps_data.bearing)
 
-
-        display_bearing = self.gps_data['position'].bearing_to(self.current_target) - self.gps_data['bearing']
-        display_distance = self.gps_data['position'].distance_to(self.current_target)
-        display_north = math.radians(self.gps_data['bearing'])
-
-                
         # draw north indicator
         self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_NORTH)
         self.xgc_arrow.line_width = 3
@@ -507,7 +506,7 @@ class SimpleGui(object):
                 
         self.xgc_arrow.set_rgb_fg_color(color)
 
-        if display_distance > 5:
+        if display_distance > self.DISTANCE_DISABLE_ARROW:
             arrow_transformed = self.__get_arrow_transformed(x, y, width, height, display_bearing)
             #self.xgc_arrow.line_style = gtk.gdk.LINE_SOLID
             self.xgc_arrow.line_width = 5
@@ -515,8 +514,8 @@ class SimpleGui(object):
             self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_OUTER_LINE)
             self.pixmap_arrow.draw_polygon(self.xgc_arrow, False, arrow_transformed)
         else:
-            # if we are closer than 5 meters, the arrow will almost certainlys
-            # point into the wron direction. therefore, we don't draw the arrow.
+            # if we are closer than a few meters, the arrow will almost certainly
+            # point in the wrong direction. therefore, we don't draw the arrow.
             circle_size = max(height / 2.5, width / 2.5)
             self.pixmap_arrow.draw_arc(self.xgc_arrow, True, width / 2 - circle_size / 2, height / 2 - circle_size / 2, circle_size, circle_size, 0, 64 * 360)
             self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_OUTER_LINE)
@@ -527,17 +526,15 @@ class SimpleGui(object):
         return False
 
     def __get_arrow_transformed(self, x, y, width, height, angle):
-        u = 1.0 / 3.0 # Offset to center of arrow, calculated as 2-x = sqrt(1^2+(x+1)^2)
-        arrow = [(0, -2 + u), (1, + 1 + u), (0, 0 + u), (-1, 1 + u)]
-        multiply = height / (2 * (2-u))
+        multiply = height / (2 * (2-self.ARROW_OFFSET))
         offset_x = width / 2
         offset_y = height / 2
         s = math.sin(math.radians(angle))
         c = math.cos(math.radians(angle))
         arrow_transformed = []
-        for (x, y) in arrow:
-            arrow_transformed.append((int(round(x * multiply * c + offset_x - y * multiply * s)),
-                                     int(round(y * multiply * c + offset_y + x * multiply * s))))
+        for (x, y) in self.ARROW_SHAPE:
+            arrow_transformed.append((int(x * multiply * c + offset_x - y * multiply * s),
+                                     int(y * multiply * c + offset_y + x * multiply * s)))
         return arrow_transformed
                 
                 
@@ -801,9 +798,9 @@ class SimpleGui(object):
                 
                 
                 
-        if self.gps_data != None and self.gps_data['position'] != None:
+        if self.gps_data != None and self.gps_data.position != None:
             # if we have a position, draw a black cross
-            p = self.__coord2point(self.gps_data['position'])
+            p = self.__coord2point(self.gps_data.position)
             if p != False:
                 self.gps_last_position = p
                 if self.point_in_screen(p):
@@ -825,8 +822,8 @@ class SimpleGui(object):
                 
                 '''
                                 # if we have a bearing, draw it.
-                                if self.gps_data['bearing'] != None:
-                                        bearing = self.gps_data['bearing']
+                                if self.gps_data.bearing. != None:
+                                        bearing = self.gps_data.bearing
                         
                                         xgc.line_width = 1
                                         length = 10
@@ -844,13 +841,13 @@ class SimpleGui(object):
                     if self.point_in_screen(t) and self.point_in_screen(p):
                         self.pixmap_marks.draw_line(xgc, p[0], p[1], t[0], t[1])
                     elif self.point_in_screen(p):
-                        direction = math.radians(self.current_target.bearing_to(self.gps_data['position']))
+                        direction = math.radians(self.current_target.bearing_to(self.gps_data.position))
                         # correct max length: sqrt(width**2 + height**2)
                         length = self.map_width
                         self.pixmap_marks.draw_line(xgc, p[0], p[1], int(p[0] - math.sin(direction) * length), int(p[1] + math.cos(direction) * length))
                                         
                     elif self.point_in_screen(t):
-                        direction = math.radians(self.gps_data['position'].bearing_to(self.current_target))
+                        direction = math.radians(self.gps_data.position.bearing_to(self.current_target))
                         length = self.map_width + self.map_height
                         self.pixmap_marks.draw_line(xgc, t[0], t[1], int(t[0] - math.sin(direction) * length), int(t[1] + math.cos(direction) * length))
                                         
@@ -988,7 +985,7 @@ class SimpleGui(object):
         if not self.drawing_area_configured:
             return False
                 
-        x, y = self.__coord2point(self.gps_data['position'])
+        x, y = self.__coord2point(self.gps_data.position)
         if self.gps_last_position != None:
                                     
             l, m = self.gps_last_position
@@ -999,7 +996,7 @@ class SimpleGui(object):
                 n, o = self.map_width / 2, self.map_height / 2
                 dist_from_center = (x - n) ** 2 + (y - o) ** 2
                 if dist_from_center > self.REDRAW_DISTANCE_TRACKING ** 2:
-                    self.set_center(self.gps_data['position'])
+                    self.set_center(self.gps_data.position)
                     # update last position, as it is now drawed
                     self.gps_last_position = (x, y)
                     return
@@ -1168,7 +1165,11 @@ class SimpleGui(object):
             location = self.get_visible_area()
         else:
             location = None
-
+        if found == None and name_search == None and sizes == None and \
+            search['terr'] == None and search['diff'] == None and types == None:
+            self.filtermsg.hide()
+        else:
+            self.filtermsg.show()
         self.core.on_start_search_advanced(found = found, name_search = name_search, size = sizes, terrain = search['terr'], diff = search['diff'], ctype = types, location = location, marked = marked)
 
     def on_search_cache_clicked(self, listview, event, element):
@@ -1186,7 +1187,7 @@ class SimpleGui(object):
             
                 
     def on_search_reset_clicked(self, something):
-
+        self.filtermsg.hide()
         self.core.on_start_search_advanced()
 
                 
@@ -1207,8 +1208,8 @@ class SimpleGui(object):
             self.set_center(self.current_target)
                 
     def on_track_toggled(self, something):
-        if self.button_track.get_active() and self.gps_data != None and self.gps_data['position'] != None:
-            self.set_center(self.gps_data['position'])
+        if self.button_track.get_active() and self.gps_data != None and self.gps_data.position != None:
+            self.set_center(self.gps_data.position)
 
     def on_upload_fieldnotes(self, something):
         self.core.on_upload_fieldnotes()
@@ -1539,17 +1540,17 @@ class SimpleGui(object):
     def update_gps_display(self):
         if self.gps_data == None:
             return
-        self.label_altitude.set_text("alt %3dm" % self.gps_data['altitude'])
-        self.label_bearing.set_text("%d°" % self.gps_data['bearing'])
-        self.label_latlon.set_text("<b>Current: %s %s</b>" % (self.gps_data['position'].get_lat(self.format), self.gps_data['position'].get_lon(self.format)))
+        self.label_altitude.set_text("alt %3dm" % self.gps_data.altitude)
+        self.label_bearing.set_text("%d°" % self.gps_data.bearing)
+        self.label_latlon.set_text("<b>Current: %s %s</b>" % (self.gps_data.position.get_lat(self.format), self.gps_data.position.get_lon(self.format)))
         self.label_latlon.set_use_markup(True)
                 
         if self.current_target == None:
             return
                         
-        display_dist = self.gps_data['position'].distance_to(self.current_target)
+        display_dist = self.gps_data.position.distance_to(self.current_target)
                 
-        target_distance = self.gps_data['position'].distance_to(self.current_target)
+        target_distance = self.gps_data.position.distance_to(self.current_target)
         if target_distance >= 1000:
             self.label_dist.set_text("<big><b>%3dkm</b></big>" % round(target_distance / 1000))
         elif display_dist >= 100:
@@ -1563,8 +1564,11 @@ class SimpleGui(object):
     def update_progressbar(self):
         if self.gps_data == None:
             return
-        self.progressbar_sats.set_fraction(float(self.gps_data['sats']) / 12.0)
-        self.progressbar_sats.set_text("Sats: %d/%s" % (self.gps_data['sats'], self.gps_data['sats_known']))
+        self.progressbar_sats.set_fraction(float(self.gps_data.sats) / 12.0)
+        if self.gps_data.dgps:
+            self.progressbar_sats.set_text("Sats: %d/%s (DGPS)" % (self.gps_data.sats, self.gps_data.sats_known))
+        else:
+            self.progressbar_sats.set_text("Sats: %d/%s" % (self.gps_data.sats, self.gps_data.sats_known))
                 
                 
     def write_settings(self, settings):

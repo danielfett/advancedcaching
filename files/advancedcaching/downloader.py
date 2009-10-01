@@ -67,20 +67,20 @@ class FileDownloader():
 
         if values == None and data == None:
             req = urllib2.Request(url)
-            req.add_header('User-Agent', self.USER_AGENT)
+            self.add_headers(req)
             return urllib2.urlopen(req)
 
         elif data == None:
             values = urllib.urlencode(values)
             req = urllib2.Request(url, values)
-            req.add_header('User-Agent', self.USER_AGENT)
+            self.add_headers(req)
             return urllib2.urlopen(req)
         elif values == None:
             content_type, body = data
             req = urllib2.Request(url)
             req.add_header('Content-Type', content_type)
             req.add_header('Content-Length', len(str(body)))
-            req.add_header('User-Agent', self.USER_AGENT)
+            self.add_headers(req)
             req.add_data(body)
             return urllib2.urlopen(req)
 
@@ -113,3 +113,8 @@ class FileDownloader():
     def get_content_type(self, filename):
         import mimetypes
         return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+
+    def add_headers(self, req):
+        req.add_header('User-Agent', self.USER_AGENT)
+        req.add_header('Cache-Control', 'no-cache')
+        req.add_header('Pragma', 'no-cache')

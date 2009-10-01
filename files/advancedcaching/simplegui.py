@@ -95,7 +95,7 @@ class SimpleGui(object):
     COLOR_ARROW_NEAR = gtk.gdk.color_parse("orange")
     COLOR_ARROW_ATTARGET = gtk.gdk.color_parse("red")
     COLOR_ARROW_DISABLED = gtk.gdk.color_parse("red")
-    COLOR_ARROW_NORTH = gtk.gdk.color_parse("black")
+    COLOR_ARROW_CIRCLE = gtk.gdk.color_parse("white")
     COLOR_ARROW_OUTER_LINE = gtk.gdk.color_parse("black")
     NORTH_INDICATOR_SIZE = 30
         
@@ -351,12 +351,12 @@ class SimpleGui(object):
             north_indicator_layout.set_font_description(font)
 
             self.pixmap_north_indicator = gtk.gdk.Pixmap(widget.window, self.NORTH_INDICATOR_SIZE, self.NORTH_INDICATOR_SIZE)
-            self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
+            self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("white"))
             self.pixmap_north_indicator.draw_rectangle(self.xgc_arrow, True, 0, 0, self.NORTH_INDICATOR_SIZE, self.NORTH_INDICATOR_SIZE)
             #self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
             #self.pixmap_north_indicator.draw_arc(self.xgc_arrow, True, 0, 0, self.NORTH_INDICATOR_SIZE, self.NORTH_INDICATOR_SIZE, 0, 64 * 360)
             x, y = north_indicator_layout.get_size()
-            self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("blue"))
+            self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
             self.pixmap_north_indicator.draw_layout(self.xgc_arrow, (self.NORTH_INDICATOR_SIZE - x / pango.SCALE) / 2, (self.NORTH_INDICATOR_SIZE - y / pango.SCALE) / 2, north_indicator_layout)
             # print "%d %d" %((self.NORTH_INDICATOR_SIZE - x / pango.SCALE) / 2, (self.NORTH_INDICATOR_SIZE - y / pango.SCALE) / 2)
 
@@ -477,7 +477,7 @@ class SimpleGui(object):
         display_north = math.radians(self.gps_data.bearing)
 
         # draw north indicator
-        self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_NORTH)
+        self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_CIRCLE)
         self.xgc_arrow.line_width = 3
         indicator_radius = 30
         indicator_dist = height / 2 - indicator_radius / 2
@@ -491,7 +491,7 @@ class SimpleGui(object):
                 
         position_x = width / 2 - math.sin(display_north) * indicator_dist
         position_y = height / 2 - math.cos(display_north) * indicator_dist
-        self.xgc_arrow.set_function(gtk.gdk.OR)
+        self.xgc_arrow.set_function(gtk.gdk.AND)
         self.pixmap_arrow.draw_drawable(self.xgc_arrow, self.pixmap_north_indicator, 0, 0, position_x - self.NORTH_INDICATOR_SIZE / 2, position_y - self.NORTH_INDICATOR_SIZE / 2, -1, -1)
         self.xgc_arrow.set_function(gtk.gdk.COPY)
 
@@ -1367,7 +1367,7 @@ class SimpleGui(object):
     def set_target(self, cache):
         self.current_target = cache
         self.label_target.set_text("Target (%s): %s %s" % (cache.name, cache.get_lat(self.format), cache.get_lon(self.format)))
-        self.set_center(cache)
+        #self.set_center(cache)
                 
     def show(self):
         self.window.show_all()
@@ -1564,7 +1564,7 @@ class SimpleGui(object):
     def update_progressbar(self):
         if self.gps_data == None:
             return
-        self.progressbar_sats.set_fraction(float(self.gps_data.sats) / 12.0)
+        self.progressbar_sats.set_fraction(self.gps_data.quality)
         if self.gps_data.dgps:
             self.progressbar_sats.set_text("Sats: %d/%s (DGPS)" % (self.gps_data.sats, self.gps_data.sats_known))
         else:

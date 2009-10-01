@@ -21,18 +21,28 @@
 import geo
 import socket
 
+class Fix():
+    def __init__(self,
+            position = None,
+            altitude = None,
+            bearing = None,
+            speed = None,
+            sats = 0,
+            sats_known = 0,
+            dgps = False):
+        self.position = position
+        self.altitude = altitude
+        self.bearing = bearing
+        self.speed = speed
+        self.sats = sats
+        self.sats_known = sats_known
+        self.dgps = dgps
+
 class GpsReader():
 
     BEARING_HOLD_SPEED = 3
 
-    EMPTY = {
-	'position': None,
-	'altitude': None,
-	'bearing': None,
-	'speed': None,
-	'sats': 0,
-	'sats_known': 0
-    }
+    EMPTY = Fix()
 
     def __init__(self, gui):
 	self.gui = gui
@@ -73,24 +83,22 @@ class GpsReader():
 	    if quality_data.strip() == "GPSD,Y=?":
 		sats = 0
 		sats_known = 0
+                dgps = False
 	    else:
 		sats = 0
+                dgps = False
 		groups = quality_data.split(':')
 		sats_known = int(groups[0].split(' ')[2])
 		for i in xrange(1, sats_known):
-		    if groups[i].split(' ')[4] == "1":
+                    sat_data = groups[i].split(' ')
+		    if sat_data[4] == "1":
 			sats = sats + 1
+                    if int(sat_data[0]) > 32:
+                        dgps = True
 			
 	    if data.strip() == "GPSD,O=?":
 		self.status = "No GPS signal"
-		return {
-		    'position': None,
-		    'altitude': None,
-		    'bearing': None,
-		    'speed': None,
-		    'sats': sats,
-		    'sats_known': sats_known
-		}
+		return Fix(sats = sats, sats_known = sats_known, dpgs = dgps)
 
 				
 	    # 2: Get current position, altitude, bearing and speed
@@ -98,11 +106,14 @@ class GpsReader():
 	    # example output:
 	    # GPSD,O=- 1243530779.000 ? 49.736876 6.686998 271.49 1.20 1.61 49.8566 0.050 -0.175 ? ? ? 3
 	    # GPSD,O=- 1251325613.000 ? 49.734453 6.686360 ? 10.55 ? 180.1476 1.350 ? ? ? ? 2
-
+            # that means:
+            # [tag, timestamp, time_error, lat, lon, alt, err_hor, err_vert, track, speed, delta_alt, err_track, err_speed, err_delta_alt, mode]
 	    # or
 	    # GPSD,O=?
 	    try:
-		[tag, timestamp, time_error, lat, lon, alt, err_hor, err_vert, track, speed, delta_alt, err_track, err_speed, err_delta_alt, mode] = data.split(' ')
+                splitted = data.split(' ')
+                lat, lon, alt = splitted[3:5]
+                track, speed = splitted[8:9]
 	    except:
 		print "GPSD Output: \n%s\n  -- cannot be parsed." % data
 		self.status = "Could not read GPSD output."
@@ -112,19 +123,21 @@ class GpsReader():
 	    else:
 		self.last_bearing = track
 				
-	    return {
-		'position': geo.Coordinate(float(lat), float(lon)),
-		'altitude': self.to_float(alt),
-		'bearing': self.to_float(track),
-		'speed': self.to_float(speed),
-		'sats': int(sats),
-		'sats_known': sats_known
-	    }
+	    return Fix(
+		position =geo.Coordinate(float(lat), float(lon)),
+		altitude = self.to_float(alt),
+		bearing = self.to_float(track),
+		speed = self.to_float(speed),
+		sats = int(sats),
+		sats_known = sats_known,
+                dgps = dgps
+                )
 	except Exception as e:
 	    print "Fehler beim Auslesen der Daten: %s " % e
 	    return self.EMPTY
-			
-    def to_float(self, string):
+
+    @staticmethod
+    def to_float(string):
 	try:
 	    return float(string)
 	except:
