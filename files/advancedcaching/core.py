@@ -229,7 +229,7 @@ class Core():
                 
         self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked = marked)
         points = self.pointprovider.get_points_filter(location)
-        self.gui.display_results_advanced(points, len(points) > self.pointprovider.MAX_RESULTS)
+        self.gui.display_results_advanced(points)
                                 
 
     # called by gui
@@ -239,6 +239,7 @@ class Core():
 
     # called by gui
     def on_download(self, location):
+        self.gui.set_download_progress(0.5, "Downloading...")
         cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         try:
             caches = cd.get_geocaches(location)
@@ -251,6 +252,8 @@ class Core():
                 self.pointprovider.add_point(c)
             self.pointprovider.save()
             return caches
+        finally:
+            self.gui.hide_progress()
 
     # called by gui
     def on_download_cache(self, cache):

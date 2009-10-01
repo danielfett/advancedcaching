@@ -409,7 +409,7 @@ class SimpleGui(object):
     # called by core
     def display_results_advanced(self, caches):
         label = xml.get_widget('label_too_much_results')
-        too_much = len(MAX_NUM_RESULTS) > self.MAX_NUM_RESULTS
+        too_much = len(caches) > self.MAX_NUM_RESULTS
         if too_much:
             text = 'Too much results. Only showing first %d.' % self.MAX_NUM_RESULTS
             label.set_text(text)
@@ -1165,7 +1165,11 @@ class SimpleGui(object):
             location = self.get_visible_area()
         else:
             location = None
-
+        if found == None and name_search == None and sizes == None and \
+            search['terr'] == None and search['diff'] == None and types == None:
+            self.filtermsg.hide()
+        else:
+            self.filtermsg.show()
         self.core.on_start_search_advanced(found = found, name_search = name_search, size = sizes, terrain = search['terr'], diff = search['diff'], ctype = types, location = location, marked = marked)
 
     def on_search_cache_clicked(self, listview, event, element):
@@ -1183,7 +1187,7 @@ class SimpleGui(object):
             
                 
     def on_search_reset_clicked(self, something):
-
+        self.filtermsg.hide()
         self.core.on_start_search_advanced()
 
                 
