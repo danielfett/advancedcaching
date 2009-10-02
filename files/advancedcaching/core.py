@@ -39,26 +39,40 @@ If you don't like your mouse:
         Select geocaches from local database and run the actions afterwards. Additional use of the filter is also supported. To get more information, run "%(name)s sql".
 
 importactions:
-        --fetch-index coord1 coord2
-        --fetch-index-radius coord1 radius
+        --in coord1 coord2
+                Fetches the index of geocaches between the given coordinates.
+                These are interpreted as the corners of a rectangle. All caches
+                within the rectangle are retrieved. No details are retrieved.
+        --around coord radius-in-km
+                Fetches the index of geocaches at the given coordinate and radius
+                kilometers around it. No details are retrieved.
 
 filter-options:
         --in coord1 coord2
+        --around coord1 radius-in-km
+                See import actions.
         -f|--found
-        -F|--not-found 
+        -F|--not-found
+                Filter out geocaches which have (not) been found by the user.
         -w|--was-downloaded
                 caches which have full detail information available
         
         -s|--size (min|max) 1..4|micro|small|regular|huge|other
+                Specify a minimum or maximum size. If min/max is not given, show
+                only geocaches with the given size.
         -d|--difficulty (min|max) 1.0..5.0
         -t|--terrain (min|max) 1.0..5.0
+                Filter out geocaches by difficulty or terrain.
         -T|--type type,type,...
          type: virtual|regular|unknown|multi|event
+                Only show geocaches of the given type(s)
         -o|--owner owner-search-string
         -n|--name name-search-string
         -i|--id id-search-string
+                Search owner, name (title) or id of the geocaches.
         --new
-                caches which were downloaded in current session
+                Caches which were downloaded in current session. Useful to
+                get alerted when new caches arrive.
 actions:
         --print 
                 Default action, prints tab-separated list of geocaches
@@ -80,12 +94,13 @@ Preferred format for coordinates:
     or
     'N49.123456 E6.043212'
 
-Instead of a coordinate, you may also query geonames.com for a place.
+Instead of a coordinate, you may also query geonames.com for a place name.
 Just start the string with 'q:':
     q:London
     'q:Brisbane, Australia'
 
 '''
+   
 
 
 import json
@@ -156,8 +171,7 @@ class Core():
     SETTINGS_DIR = os.path.expanduser('~/.agtl')
     CACHES_DB = os.path.join(SETTINGS_DIR, "caches.db")
     COOKIE_FILE = os.path.join(SETTINGS_DIR, "cookies.lwp")
-
-
+    
     DEFAULT_SETTINGS = {
         'download_visible': True,
         'download_notfound': True,
@@ -186,7 +200,6 @@ class Core():
     def __init__(self, guitype, root):
         if not os.path.exists(self.SETTINGS_DIR):
             os.mkdir(self.SETTINGS_DIR)
-
 
         dataroot = os.path.join(root, 'data')
         
@@ -227,7 +240,7 @@ class Core():
                                 
     def get_coord_by_name(self, query):
         return self.geonames.search(query)
-                
+
     # called by gui
     def on_cache_selected(self, cache):
         self.gui.show_cache(cache)

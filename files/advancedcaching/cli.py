@@ -102,11 +102,11 @@ class Cli():
         
         token = sys.argv[self.nt]
         self.nt += 1
-        if token == '--fetch-index':    
+        if token == '--in':
             coord1 = self.parse_coord()
             coord2 = self.parse_coord()
             self.import_points(coord1, coord2)
-        elif token == '--fetch-index-radius':
+        elif token == '--around':
             coord1 = self.parse_coord()
             radius = self.parse_int()
             self.import_points(coord1, radius)
@@ -141,7 +141,7 @@ class Cli():
                 coord1 = self.parse_coord()
                 coord2 = self.parse_coord()
                 self.add_filter_in(coord1, coord2)
-            elif token == '--in-radius':
+            elif token == '--around':
                 coord1 = self.parse_coord()
                 radius = self.parse_int()
                 self.add_filter_in(coord1, radius)
