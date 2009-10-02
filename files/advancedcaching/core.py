@@ -27,8 +27,6 @@ If you want to use the gui:
     Full User Interface, for desktop usage (not implemented yet)
     
 If you don't like your mouse:
-%(name)s post-note geocache-id --(found|not-found|note) text
-        Post fieldnote for given geocache. If text is not given, it is read from the standard input (stdio).
 %(name)s import [importactions] 
         Fetch geocaches from geocaching.com and write to the internal database.
 %(name)s import [importactions] do [actions]
@@ -49,6 +47,7 @@ filter-options:
         -f|--found
         -F|--not-found 
         -w|--was-downloaded
+                caches which have full detail information available
         
         -s|--size (min|max) 1..4|micro|small|regular|huge|other
         -d|--difficulty (min|max) 1.0..5.0
@@ -58,10 +57,11 @@ filter-options:
         -o|--owner owner-search-string
         -n|--name name-search-string
         -i|--id id-search-string
-        
+        --new
+                caches which were downloaded in current session
 actions:
         --print 
-                Default action, prints tab-separated mlist of geocaches
+                Default action, prints tab-separated list of geocaches
         --fetch-details
                 Downloads Descriptions etc. for selected geocaches
         --export-html folder
@@ -76,9 +76,15 @@ actions:
                 Draws a small JPEG image for every geocache. 
         
 Preferred format for coordinates:
-    N49 44.111 E6 29.123
+    'N49 44.111 E6 29.123'
     or
-    N49.123456 E6.043212
+    'N49.123456 E6.043212'
+
+Instead of a coordinate, you may also query geonames.com for a place.
+Just start the string with 'q:':
+    q:London
+    'q:Brisbane, Australia'
+
 '''
 
 
@@ -148,6 +154,10 @@ class Standbypreventer():
 
 class Core():
     SETTINGS_DIR = os.path.expanduser('~/.agtl')
+    CACHES_DB = os.path.join(SETTINGS_DIR, "caches.db")
+    COOKIE_FILE = os.path.join(SETTINGS_DIR, "cookies.lwp")
+
+
     DEFAULT_SETTINGS = {
         'download_visible': True,
         'download_notfound': True,
@@ -187,10 +197,10 @@ class Core():
                 
         #self.standbypreventer.set_status(Standbypreventer.STATUS_SCREEN_ON)
                 
-        self.downloader = downloader.FileDownloader(self.settings['options_username'], self.settings['options_password'])
+        self.downloader = downloader.FileDownloader(self.settings['options_username'], self.settings['options_password'], self.COOKIE_FILE)
                 
         #pointprovider = LiveCacheProvider()
-        self.pointprovider = provider.PointProvider("%s/caches.db" % self.SETTINGS_DIR, self.downloader, geocaching.GeocacheCoordinate, 'geocaches')
+        self.pointprovider = provider.PointProvider(self.CACHES_DB, self.downloader, geocaching.GeocacheCoordinate, 'geocaches')
         #self.userpointprovider = provider.PointProvider("%s/caches.db" % self.SETTINGS_DIR, self.downloader, geo.Coordinate, 'userpoints')
         self.userpointprovider = None
         #pointprovider = PointProvider(':memory:', self.downloader)
@@ -199,9 +209,13 @@ class Core():
         
         self.gui = guitype(self, self.pointprovider, self.userpointprovider, dataroot)
         self.gui.write_settings(self.settings)
-                
-        self.gps_thread = gpsreader.GpsReader(self)
-        gobject.timeout_add(1000, self.__read_gps)
+        if 'gpsprovider' in self.gui.USES:
+            self.gps_thread = gpsreader.GpsReader(self)
+            gobject.timeout_add(1000, self.__read_gps)
+
+        if 'geonames' in self.gui.USES:
+            import geonames
+            self.geonames = geonames.Geonames(self.downloader)
         
         self.gui.show()
                 
@@ -211,7 +225,8 @@ class Core():
         self.settings = self.gui.read_settings()
         self.__write_config()
                                 
-                
+    def get_coord_by_name(self, query):
+        return self.geonames.search(query)
                 
     # called by gui
     def on_cache_selected(self, cache):
@@ -248,10 +263,13 @@ class Core():
             print e
             return []
         else:
+            new_caches = []
             for c in caches:
-                self.pointprovider.add_point(c)
+                point_new = self.pointprovider.add_point(c)
             self.pointprovider.save()
-            return caches
+            if point_new:
+                new_caches.append(c)
+            return (caches, new_caches)
         finally:
             self.gui.hide_progress()
 

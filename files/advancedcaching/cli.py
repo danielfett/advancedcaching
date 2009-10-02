@@ -1,3 +1,23 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+
+#    Copyright (C) 2009 Daniel Fett
+#     This program is free software: you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+#    Author: Daniel Fett advancedcaching@fragcom.de
+#
+
 import geocaching
 import sys
 import geo
@@ -20,6 +40,7 @@ class RunError(Exception):
         return repr(self.msg)
 
 class Cli():
+    USES = ['geonames']
 
     # operators
     EQ = 0
@@ -30,6 +51,7 @@ class Cli():
         self.nt = 1
         self.core = core
         self.caches = None
+        self.new_caches = []
         self.pointprovider = pointprovider
         pass
         
@@ -37,6 +59,9 @@ class Cli():
         self.settings = settings
         
     def show(self):
+        print "$ The command line interface is not fully implemented yet, feel"
+        print "$ free to contribute at git://github.com/webhamster/advancedcaching.git"
+        
         try:
             self.parse_input()
         except ParseError as e:
@@ -199,10 +224,17 @@ class Cli():
             raise ParseError("Expected Coordinate but there was none.", self.nt-1)
         text = sys.argv[self.nt]
         self.nt += 1
-        try:
-            c = geo.try_parse_coordinate(text)
-        except Exception as e:
-            raise ParseError(e)
+        if text.startswith('q:'):
+            query = text[2:]
+            try:
+                c = self.core.get_coord_by_name(query)
+            except Exception as e:
+                raise ParseError(e)
+        else:
+            try:
+                c = geo.try_parse_coordinate(text)
+            except Exception as e:
+                raise ParseError(e)
             
         return c
         
@@ -281,7 +313,7 @@ class Cli():
     def import_points(self, c1, c2):
         if isinstance(c2, geo.Coordinate):
             print "* Downloading Caches between %s and %s" % (c1, c2)
-            self.caches = self.core.on_download((c1, c2))
+            self.caches, self.new_caches = self.core.on_download((c1, c2))
         else:
             # try to calculate some points northwest and southeast to the
             # given point with approximately correct distances
@@ -289,7 +321,7 @@ class Cli():
             new_c2 = c1.transform(-45 + 180, c2 * 1000 * math.sqrt(2))
             print "* Downloading Caches in %d km distance to %s" % (c2, c1)
             print "* Approximation: Caches between %s and %s" % (new_c1, new_c2)
-            self.caches = self.core.on_download((new_c1, new_c2))
+            self.caches, self.new_caches = self.core.on_download((new_c1, new_c2))
 
         
     def add_filter_in(self, coord1, coord2):
@@ -368,7 +400,7 @@ class Cli():
     
     def action_print (self):
         for c in self.caches:
-            print "%s\t%s" % (c.title, c.name)
+            print "%s\t%s (%s)" % (c.name, c.title, c.type)
             
     def action_fetch_details(self):
         i = 1 

@@ -56,6 +56,7 @@ class PointProvider():
                 
         if replace:
             self.conn.execute("INSERT OR REPLACE INTO %s (`%s`) VALUES (%s)" % (self.cache_table, '`, `'.join(self.ctype.SQLROW.keys()), ', '.join([':%s' % k for k in self.ctype.SQLROW.keys()])), p.serialize())
+            return None
         else:
             c = self.conn.cursor()
             c.execute("SELECT found FROM %s WHERE name = ?" % self.cache_table, (p.name, ))
@@ -63,9 +64,11 @@ class PointProvider():
             c.close()
             if existing:
                 self.conn.execute("UPDATE %s SET found = ?, type = ? WHERE name = ?" % self.cache_table, (p.found, p.type, p.name))
+                return True
             else:
                 self.conn.execute("INSERT INTO %s (`%s`) VALUES (%s)" % (self.cache_table, '`, `'.join(self.ctype.SQLROW.keys()), ', '.join([':%s' % k for k in self.ctype.SQLROW.keys()])), p.serialize())
-            return
+                return False
+            
                 
                 
                 
