@@ -22,20 +22,11 @@
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
 
 # todo:
-# add translation support?
-# download in seperate thread?
 # parse attributes
 # add "next waypoint" button
 # add description to displayed images
-# only redraw if position is in current screen
-# add favorite-places-feature: mark fav. places and return to them later
-# add favorite-caches-feature into new search tab
-# try to download caches in smaller portions
-
-# go to search results in case of search
-# don't display all caches on 'revert'
-# fix north indicator
-
+# add translation support?
+# download in seperate thread?
 # to test:
 # new exporter
 # new search tab
@@ -56,7 +47,6 @@ import openstreetmap
 import os
 import pango
 import re
-#from advancedcaching import *
 
 
 class SimpleGui(object):
@@ -641,7 +631,6 @@ class SimpleGui(object):
                         
     def __draw_marks(self):
             
-        #print "marking"
         xgc = self.xgc
         xgc.set_function(gtk.gdk.COPY)
         self.xgc.set_rgb_fg_color(gtk.gdk.color_parse('white'))
@@ -1005,9 +994,14 @@ class SimpleGui(object):
 
             # if we are tracking and we have not moved out of the center
             # or if we are not tracking the user
-            # in each case, if we have moved far enough since last draw, redraw just the marks
+            # in either case, if we have moved far enough since last draw, redraw just the marks
             if dist_from_last > self.REDRAW_DISTANCE_MINOR ** 2:
-                self.redraw_marks()
+                a, b = self.get_visible_area()
+                if self.gps_data.position.lat > min(a.lat, b.lat) \
+                    and self.gps_data.position.lat < max(a.lat, b.lat) \
+                    and self.gps_data.position.lon > min(a.lon, b.lon) \
+                    and self.gps_data.position.lon < max(a.lon, b.lon):
+                        self.redraw_marks()
                 # update last position, as it is now drawed
                 self.gps_last_position = (x, y)
             return

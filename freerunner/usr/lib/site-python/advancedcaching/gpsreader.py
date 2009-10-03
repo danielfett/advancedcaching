@@ -44,6 +44,8 @@ class GpsReader():
 
     BEARING_HOLD_SPEED = 3
     QUALITY_LOW_BOUND = 5.0 # meters of HDOP.
+    DGPS_ADVANTAGE = 1 # see below for usage
+
 
     EMPTY = Fix()
 
@@ -125,7 +127,15 @@ class GpsReader():
             track = self.to_float(track)
             speed = self.to_float(speed)
             err_hor = self.to_float(err_hor)
-            print err_hor
+
+            # it seems that gpsd doesn't take into account that the
+            # receiver may get signals from space base augmentation systems
+            # like egnos. therefore, we estimate that the error is about
+            # self.DGPS_ADVANTAGE meters lower. this is a complete guess.
+
+            if dgps:
+                err_hor -= self.DGPS_ADVANTAGE
+
             if err_hor <= 0:
                 quality = 1
             elif err_hor > self.QUALITY_LOW_BOUND:

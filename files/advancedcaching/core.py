@@ -233,7 +233,8 @@ class Core():
         self.gui = guitype(self, self.pointprovider, self.userpointprovider, dataroot)
         self.gui.write_settings(self.settings)
         if 'gpsprovider' in self.gui.USES:
-            self.gps_thread = gpsreader.GpsReader(self)
+            #self.gps_thread = gpsreader.GpsReader(self)
+            self.gps_thread = gpsreader.FakeGpsReader(self)
             gobject.timeout_add(1000, self.__read_gps)
 
         if 'geonames' in self.gui.USES:

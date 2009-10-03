@@ -1,3 +1,4 @@
+import os.path
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
@@ -18,7 +19,7 @@
 #        Author: Daniel Fett advancedcaching@fragcom.de
 #
 
-
+import os
 import cookielib
 import urllib
 import urllib2
@@ -26,22 +27,51 @@ import urllib2
 class FileDownloader():
     USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; U; Linux i686; de; rv:1.9.0.12) Gecko/2009070811  Windows NT Firefox/3.1'
 
-    def __init__(self, username, password):
+    def __init__(self, username, password, cookiefile):
         self.username = username
         self.password = password
+        self.cookiefile = cookiefile
         self.logged_in = False
 
     def update_userdata(self, username, password):
         self.username = username
         self.password = password
         self.logged_in = False
-        print "Up"
+        if os.path.exists(self.cookiefile):
+            try:
+                os.remove(self.cookiefile)
+            except:
+                pass
+
 
     def login(self):
-        cj = cookielib.CookieJar()
+        if self.username == '' or self.password == '':
+            raise Exception("Please configure your username and password.")
+        print "+ Checking Login status"
+        cj = cookielib.LWPCookieJar(self.cookiefile)
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
         urllib2.install_opener(opener)
 
+        try:
+            cj.load()
+            print "+ Loaded cookie file"
+        except:
+            print "+ Couldn't load cookie file"
+            pass
+        else:
+            print "+ Checking if still logged in..."
+            url = 'http://www.geocaching.com/seek/nearest.aspx'
+            page = self.get_reader(url, login = False)
+            for line in page:
+                if 'You are logged in as' in line:
+                    self.logged_in = True
+                    print "+ Seems as we're still logged in"
+                    return
+                elif 'You are not logged in.' in line:
+                    print "+ Nope, not logged in anymore"
+                    break
+        
+        print "+ Logging in"
         url = 'http://www.geocaching.com/Default.aspx'
         values = {'ctl00$MiniProfile$loginUsername':self.username,
             'ctl00$MiniProfile$loginPassword':self.password,
@@ -51,18 +81,20 @@ class FileDownloader():
             '__EVENTARGUMENT': ''
         }
 
-        data = urllib.urlencode(values)
-        req = urllib2.Request(url, data)
-        req.add_header('User-Agent', self.USER_AGENT)
-        response = urllib2.urlopen(req)
-        page = response.read()
+        page = self.get_reader(url, values, login = False).read()
+
         if 'combination does not match' in page:
             raise Exception("Wrong password or username!")
+        print "+ Great success."
+        self.logged_in = True
+        try:
+            cj.save()
+        except Exception as e:
+            print "+ Could not save cookies:", e
 
 
-
-    def get_reader(self, url, values=None, data=None):
-        if not self.logged_in:
+    def get_reader(self, url, values=None, data=None, login = True):
+        if login and not self.logged_in:
             self.login()
 
         if values == None and data == None:
@@ -109,8 +141,9 @@ class FileDownloader():
         body = CRLF.join(L)
         content_type = 'multipart/form-data; boundary=%s' % BOUNDARY
         return content_type, body
-
-    def get_content_type(self, filename):
+    
+    @staticmethod
+    def get_content_type(filename):
         import mimetypes
         return mimetypes.guess_type(filename)[0] or 'application/octet-stream'
 

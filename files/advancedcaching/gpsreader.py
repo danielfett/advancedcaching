@@ -167,3 +167,32 @@ class GpsReader():
 	    return float(string)
 	except:
 	    return 0.0
+
+
+class FakeGpsReader():
+
+
+    START_LAT = 49.6
+    START_LON = 6.6
+    INC = 0.001
+    
+
+    def __init__(self, gui):
+	self.gui = gui
+	self.status = "faking..."
+        self.current_lat, self.current_lon = (self.START_LAT, self.START_LON)
+
+    def get_data(self):
+        print "faking"
+        self.current_lat += self.INC
+        self.current_lon += self.INC
+        return Fix(
+            position =geo.Coordinate(self.current_lat, self.current_lon),
+            altitude = 212,
+            bearing = 120,
+            speed = 2,
+            sats = 42,
+            sats_known = 42,
+            dgps = True,
+            quality = 0
+            )

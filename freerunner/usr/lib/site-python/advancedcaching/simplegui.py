@@ -60,6 +60,8 @@ import re
 
 
 class SimpleGui(object):
+    USES = ['gpsprovider']
+
     MAP_FACTOR = 0
     CACHE_SIZE = 20
     CLICK_RADIUS = 20

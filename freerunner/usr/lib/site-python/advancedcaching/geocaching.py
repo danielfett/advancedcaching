@@ -379,8 +379,6 @@ class CacheDownloader():
         response = self.downloader.get_reader(url, values)
 
         the_page = response.read()
-        #print the_page
-        #exit()
 
         extractor = re.compile('.*<ExtraData><!\[CDATA\[(.*)\]\]>')
         match = extractor.match(the_page)
@@ -389,7 +387,7 @@ class CacheDownloader():
         text = match.group(1).replace("\\'", "'")
         a = json.loads(text.replace('\t', ' '))
         points = []
-        print the_page
+
         if not 'cc' in a['cs'].keys():
             if 'count' in a['cs'].keys() and 'count' != 0:
                 # let's try to download one half of the geocaches first

@@ -457,8 +457,9 @@ class Cli():
             print "* Not running command (no geocaches left)"
             return
         list = " -- ".join(["%s (%s)" % (a.title, a.type) for a in self.caches])
-        list_ascii = unicodedata.normalize('NFKD', list).encode('ascii','ignore')
-        os.system(commandline % ('"%s"' % list_ascii.encode('string-escape')))
+        if not isinstance(list, str):
+            list = unicodedata.normalize('NFKD', list).encode('ascii','ignore')
+        os.system(commandline % ('"%s"' % list.encode('string-escape')))
         
     def set_download_progress(self, some, thing):
         pass
