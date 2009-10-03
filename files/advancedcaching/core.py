@@ -85,6 +85,9 @@ actions:
                 Downloads Descriptions etc. for selected geocaches
         --export-html folder
                 Dumps HTML pages to given folder
+        --command command
+                Runs command if more than one geocache has survived the filtering.
+                The placeholder %%s is replaced by a shell-escaped list of geocaches.
 
         Not implemented yet:
         --export-gpx folder

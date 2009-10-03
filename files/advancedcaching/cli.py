@@ -22,6 +22,7 @@ import geocaching
 import sys
 import geo
 import math
+import os
 
 class ParseError(Exception):
     def __init__(self, errormsg, token = None):
@@ -231,6 +232,9 @@ class Cli():
                 zoom = self.parse_integer()
                 folder = self.parse_string()
                 self.action_draw_maps(zoom, folder)
+            elif token == '--command':
+                cmd = self.parse_string()
+                self.action_command(cmd)
             else:
                 raise ParseError("Unknown export action: %s" % token)
                 
@@ -446,6 +450,15 @@ class Cli():
     
     def action_export_gpx(self):
         pass
+
+    def action_command(self, commandline):
+        import unicodedata
+        if len(self.caches) == 0:
+            print "* Not running command (no geocaches left)"
+            return
+        list = " -- ".join(["%s (%s)" % (a.title, a.type) for a in self.caches])
+        list_ascii = unicodedata.normalize('NFKD', list).encode('ascii','ignore')
+        os.system(commandline % ('"%s"' % list_ascii.encode('string-escape')))
         
     def set_download_progress(self, some, thing):
         pass
