@@ -27,6 +27,8 @@ If you want to use the gui:
     Full User Interface, for desktop usage (not implemented yet)
     
 If you don't like your mouse:
+%(name)s set [options]
+        Change the configuration.
 %(name)s import [importactions] 
         Fetch geocaches from geocaching.com and write to the internal database.
 %(name)s import [importactions] do [actions]
@@ -37,7 +39,10 @@ If you don't like your mouse:
         Import geocaches, put them into the internal database, filter the imported geocaches and run the actions. 
 %(name)s sql "SELECT * FROM geocaches WHERE ... ORDER BY ... LIMIT ..." do [actions]
         Select geocaches from local database and run the actions afterwards. Additional use of the filter is also supported. To get more information, run "%(name)s sql".
-
+options:
+        --user(name) username
+        --pass(word) password
+                Your geocaching.com login data. 
 importactions:
         --in coord1 coord2
                 Fetches the index of geocaches between the given coordinates.
@@ -80,6 +85,8 @@ actions:
                 Downloads Descriptions etc. for selected geocaches
         --export-html folder
                 Dumps HTML pages to given folder
+
+        Not implemented yet:
         --export-gpx folder
                 Dumps geocaches into separate GPX files
         --export-single-gpx file
@@ -279,9 +286,10 @@ class Core():
             new_caches = []
             for c in caches:
                 point_new = self.pointprovider.add_point(c)
+                if point_new:
+                    new_caches.append(c)
             self.pointprovider.save()
-            if point_new:
-                new_caches.append(c)
+            
             return (caches, new_caches)
         finally:
             self.gui.hide_progress()

@@ -60,14 +60,15 @@ class PointProvider():
         else:
             c = self.conn.cursor()
             c.execute("SELECT found FROM %s WHERE name = ?" % self.cache_table, (p.name, ))
-            existing = (len(c.fetchall()) == 1)
+            num = len(c.fetchall())
+            existing = (num == 1)
             c.close()
             if existing:
                 self.conn.execute("UPDATE %s SET found = ?, type = ? WHERE name = ?" % self.cache_table, (p.found, p.type, p.name))
-                return True
+                return False
             else:
                 self.conn.execute("INSERT INTO %s (`%s`) VALUES (%s)" % (self.cache_table, '`, `'.join(self.ctype.SQLROW.keys()), ', '.join([':%s' % k for k in self.ctype.SQLROW.keys()])), p.serialize())
-                return False
+                return True
             
                 
                 

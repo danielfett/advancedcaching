@@ -83,6 +83,8 @@ class Cli():
 
     def parse_input (self):
         while self.has_next():
+            if sys.argv[self.nt] == 'set':
+                self.parse_set()
             if sys.argv[self.nt] == 'import':
                 self.parse_import()
             elif sys.argv[self.nt] == 'sql':
@@ -93,7 +95,25 @@ class Cli():
                 self.parse_actions()
             else: 
                 raise ParseError("Expected 'import', 'sql', 'filter' or 'do'", self.nt - 1)
-            
+
+
+    def parse_set(self):
+        self.nt += 1
+        if not self.has_next():
+            raise ParseError("Expected some options.")
+        while self.has_next():
+            token = sys.argv[self.nt]
+            self.nt += 1
+            if token == '--pass' or token == '--password':
+                password = self.parse_string()
+                self.set_password(password)
+            elif token == '--user' or token == '--username':
+                username = self.parse_string()
+                self.set_username(username)
+            else:
+                raise ParseError("I don't understand '%s'" % token)
+        print "* Finished setting options. Exiting."
+        sys.exit()
         
     def parse_import(self):
         self.nt += 1
@@ -175,6 +195,8 @@ class Cli():
             elif token == '-i' or token == '--id':
                 id = self.parse_string()
                 self.add_filter_id (id)
+            elif token == '--new':
+                self.caches = self.new_caches
             else:
                 # undo what we did.
                 self.nt -= 1 
@@ -307,8 +329,14 @@ class Cli():
             return 10 * float(text)
         except:
             raise ParseError("Could not parse '%s' as a valid number." % text)
-            
-            
+
+    def set_username(self, string):
+        self.settings['options_username'] = string
+        self.core.on_config_changed(self.settings)
+
+    def set_password(self, string):
+        self.settings['options_password'] = string
+        self.core.on_config_changed(self.settings)
         
     def import_points(self, c1, c2):
         if isinstance(c2, geo.Coordinate):

@@ -1,3 +1,4 @@
+import os.path
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
@@ -18,7 +19,7 @@
 #        Author: Daniel Fett advancedcaching@fragcom.de
 #
 
-
+import os
 import cookielib
 import urllib
 import urllib2
@@ -36,28 +37,41 @@ class FileDownloader():
         self.username = username
         self.password = password
         self.logged_in = False
-        os.remove(self.cookiefile)
+        if os.path.exists(self.cookiefile):
+            try:
+                os.remove(self.cookiefile)
+            except:
+                pass
+
 
     def login(self):
+        if self.username == '' or self.password == '':
+            raise Exception("Please configure your username and password.")
+        print "+ Checking Login status"
         cj = cookielib.LWPCookieJar(self.cookiefile)
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
         urllib2.install_opener(opener)
 
         try:
             cj.load()
+            print "+ Loaded cookie file"
         except:
+            print "+ Couldn't load cookie file"
             pass
         else:
+            print "+ Checking if still logged in..."
             url = 'http://www.geocaching.com/seek/nearest.aspx'
             page = self.get_reader(url, login = False)
             for line in page:
                 if 'You are logged in as' in line:
                     self.logged_in = True
+                    print "+ Seems as we're still logged in"
                     return
                 elif 'You are not logged in.' in line:
+                    print "+ Nope, not logged in anymore"
                     break
         
-
+        print "+ Logging in"
         url = 'http://www.geocaching.com/Default.aspx'
         values = {'ctl00$MiniProfile$loginUsername':self.username,
             'ctl00$MiniProfile$loginPassword':self.password,
@@ -71,11 +85,12 @@ class FileDownloader():
 
         if 'combination does not match' in page:
             raise Exception("Wrong password or username!")
+        print "+ Great success."
         self.logged_in = True
         try:
             cj.save()
         except Exception as e:
-            print "Could not save cookies:", e
+            print "+ Could not save cookies:", e
 
 
     def get_reader(self, url, values=None, data=None, login = True):
