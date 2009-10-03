@@ -41,7 +41,6 @@ import geo
 import geocaching
 import gobject
 import gtk
-import gtk.gdk
 import gtk.glade
 import openstreetmap
 import os
@@ -269,10 +268,6 @@ class SimpleGui(object):
         listview.connect('extlistview-button-pressed', self.on_search_cache_clicked)
         xml.get_widget('scrolledwindow_search').add(listview)
                 
-        # Create the renderer used in the listview for coordinates
-                
-        #txtRdr        = gtk.CellRendererText()
-        #pixbufRdr = gtk.CellRendererPixbuf()
         (
          COL_COORD_NAME,
          COL_COORD_LATLON,

@@ -204,18 +204,21 @@ class CacheDownloader():
         self.path = path
         self.download_images = download_images
         self.resize = resize
-        
-    def __rot13(self, text):
+
+    @staticmethod
+    def __rot13(text):
         import string
         trans = string.maketrans(
                                  'nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM',
                                  'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
         return text.translate(trans)
 
-    def __strip_html(self, text):
+    @staticmethod
+    def __strip_html(text):
         return re.sub(r'<[^>]*?>', '', text)
 
-    def __replace_br(self, text):
+    @staticmethod
+    def __replace_br(text):
         return re.sub('(<[bB][rR]\s*/?>|</[pP]>', '\n', text)
 
     def __treat_hints(self, hints):
@@ -240,8 +243,9 @@ class CacheDownloader():
         html = strip_comments.sub('', html)
         html = self.__replace_images(html)
         return html
-                
-    def __from_dm(self, direction, decimal, minutes):
+
+    @staticmethod
+    def __from_dm(direction, decimal, minutes):
         if direction == None or decimal == None or minutes == None:
             return -1
         if direction in "SsWw":
@@ -330,8 +334,9 @@ class CacheDownloader():
         if ((id in self.images.keys() and len(description) > len(self.images[id]))
             or id not in self.images.keys()):
             self.images[id] = description
-         
-    def __decode_htmlentities(self, string):
+
+    @staticmethod
+    def __decode_htmlentities(string):
         def substitute_entity(match):
             from htmlentitydefs import name2codepoint as n2cp
             ent = match.group(3)

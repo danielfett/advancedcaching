@@ -1,8 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-#	Copyright (C) 2009 Daniel Fett
-# 	This program is free software: you can redistribute it and/or modify
+#        Copyright (C) 2009 Daniel Fett
+#         This program is free software: you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
 #   the Free Software Foundation, either version 3 of the License, or
 #   (at your option) any later version.
@@ -15,7 +15,7 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-#	Author: Daniel Fett advancedcaching@fragcom.de
+#        Author: Daniel Fett advancedcaching@fragcom.de
 #
 
 import geo
@@ -50,79 +50,79 @@ class GpsReader():
     EMPTY = Fix()
 
     def __init__(self, gui):
-	self.gui = gui
-	self.status = "connecting..."
-	self.connected = False
-	self.last_bearing = 0
-		
-	
+        self.gui = gui
+        self.status = "connecting..."
+        self.connected = False
+        self.last_bearing = 0
+
+
     def connect(self):
-	try:
-			
-	    self.gpsd_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	    self.gpsd_connection.connect(("127.0.0.1", 2947))
-	    self.status = "connected"
-	    self.connected = True
-	except:
-	    self.status = "Could not connect to GPSD on Localhost, Port 2947"
-	    print "Could not connect"
-	    self.connected = False
-		
+        try:
+
+            self.gpsd_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.gpsd_connection.connect(("127.0.0.1", 2947))
+            self.status = "connected"
+            self.connected = True
+        except:
+            self.status = "Could not connect to GPSD on Localhost, Port 2947"
+            print "Could not connect"
+            self.connected = False
+
     def get_data(self):
-	try:
-	    if not self.connected:
-		self.connect()
-		if not self.connected:
-		    return self.EMPTY
-	    self.gpsd_connection.send("%s\r\n" % 'o')
-	    data = self.gpsd_connection.recv(512)
-	    self.gpsd_connection.send("%s\r\n" % 'y')
-	    quality_data = self.gpsd_connection.recv(512)
-	    # 1: Parse Quality Data
-			
-	    # example output:
-	    # GPSD,Y=- 1243847265.000 10:32 3 105 0 0:2 36 303 20 0:16 9 65 26
-	    #  1:13 87 259 35 1:4 60 251 30 1:23 54 60 37 1:25 51 149 24 0:8 2
-	    #  188 0 0:7 33 168 24 1:20 26 110 28 1:
-	    if quality_data.strip() == "GPSD,Y=?":
-		sats = 0
-		sats_known = 0
+        try:
+            if not self.connected:
+                self.connect()
+                if not self.connected:
+                    return self.EMPTY
+            self.gpsd_connection.send("%s\r\n" % 'o')
+            data = self.gpsd_connection.recv(512)
+            self.gpsd_connection.send("%s\r\n" % 'y')
+            quality_data = self.gpsd_connection.recv(512)
+            # 1: Parse Quality Data
+
+            # example output:
+            # GPSD,Y=- 1243847265.000 10:32 3 105 0 0:2 36 303 20 0:16 9 65 26
+            #  1:13 87 259 35 1:4 60 251 30 1:23 54 60 37 1:25 51 149 24 0:8 2
+            #  188 0 0:7 33 168 24 1:20 26 110 28 1:
+            if quality_data.strip() == "GPSD,Y=?":
+                sats = 0
+                sats_known = 0
                 dgps = False
-	    else:
-		sats = 0
+            else:
+                sats = 0
                 dgps = False
-		groups = quality_data.split(':')
-		sats_known = int(groups[0].split(' ')[2])
-		for i in xrange(1, sats_known):
+                groups = quality_data.split(':')
+                sats_known = int(groups[0].split(' ')[2])
+                for i in xrange(1, sats_known):
                     sat_data = groups[i].split(' ')
-		    if sat_data[4] == "1":
-			sats = sats + 1
+                    if sat_data[4] == "1":
+                        sats = sats + 1
                     if int(sat_data[0]) > 32:
                         dgps = True
 
-			
-	    if data.strip() == "GPSD,O=?":
-		self.status = "No GPS signal"
-		return Fix(sats = sats, sats_known = sats_known, dgps = dgps)
 
-				
-	    # 2: Get current position, altitude, bearing and speed
-			
-	    # example output:
-	    # GPSD,O=- 1243530779.000 ? 49.736876 6.686998 271.49 1.20 1.61 49.8566 0.050 -0.175 ? ? ? 3
-	    # GPSD,O=- 1251325613.000 ? 49.734453 6.686360 ? 10.55 ? 180.1476 1.350 ? ? ? ? 2
+            if data.strip() == "GPSD,O=?":
+                self.status = "No GPS signal"
+                return Fix(sats = sats, sats_known = sats_known, dgps = dgps)
+
+
+            # 2: Get current position, altitude, bearing and speed
+
+            # example output:
+            # GPSD,O=- 1243530779.000 ? 49.736876 6.686998 271.49 1.20 1.61 49.8566 0.050 -0.175 ? ? ? 3
+            # GPSD,O=- 1251325613.000 ? 49.734453 6.686360 ? 10.55 ? 180.1476 1.350 ? ? ? ? 2
             # that means:
             # [tag, timestamp, time_error, lat, lon, alt, err_hor, err_vert, track, speed, delta_alt, err_track, err_speed, err_delta_alt, mode]
             #  0    1          2           3    4    5    6        7         8      9      10         11         12         13             14
-	    # or
-	    # GPSD,O=?
-	    try:
+            # or
+            # GPSD,O=?
+            try:
                 splitted = data.split(' ')
                 lat, lon, alt, err_hor = splitted[3:7]
                 track, speed = splitted[8:10]
-	    except:
-		print "GPSD Output: \n%s\n  -- cannot be parsed." % data
-		self.status = "Could not read GPSD output."
+            except:
+                print "GPSD Output: \n%s\n  -- cannot be parsed." % data
+                self.status = "Could not read GPSD output."
             alt = self.to_float(alt)
             track = self.to_float(track)
             speed = self.to_float(speed)
@@ -143,30 +143,30 @@ class GpsReader():
             else:
                 quality = 1-err_hor/self.QUALITY_LOW_BOUND
 
-	    if speed < self.BEARING_HOLD_SPEED:
-		track = self.last_bearing
-	    else:
-		self.last_bearing = track
-	    return Fix(
-		position =geo.Coordinate(float(lat), float(lon)),
-		altitude = alt,
-		bearing = track,
-		speed = speed,
-		sats = int(sats),
-		sats_known = sats_known,
+            if speed < self.BEARING_HOLD_SPEED:
+                track = self.last_bearing
+            else:
+                self.last_bearing = track
+            return Fix(
+                position =geo.Coordinate(float(lat), float(lon)),
+                altitude = alt,
+                bearing = track,
+                speed = speed,
+                sats = int(sats),
+                sats_known = sats_known,
                 dgps = dgps,
                 quality = quality
                 )
-	except Exception as e:
-	    print "Fehler beim Auslesen der Daten: %s " % e
-	    return self.EMPTY
+        except Exception as e:
+            print "Fehler beim Auslesen der Daten: %s " % e
+            return self.EMPTY
 
     @staticmethod
     def to_float(string):
-	try:
-	    return float(string)
-	except:
-	    return 0.0
+        try:
+            return float(string)
+        except:
+            return 0.0
 
 
 class FakeGpsReader():
@@ -178,8 +178,8 @@ class FakeGpsReader():
     
 
     def __init__(self, gui):
-	self.gui = gui
-	self.status = "faking..."
+        self.gui = gui
+        self.status = "faking..."
         self.current_lat, self.current_lon = (self.START_LAT, self.START_LON)
 
     def get_data(self):

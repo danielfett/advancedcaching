@@ -30,13 +30,12 @@ class TileLoader(threading.Thread):
         self.base_dir = base_dir
         self.pbuf = None
         self.num = num
-               
-    def run(self):
-        self.__log("start")
-        TileLoader.running_threads += 1
         self.local_filename = os.path.join(self.base_dir, str(self.zoom), str(self.tile[0]), "%d.png" % self.tile[1])
         self.remote_filename = "http://128.40.168.104/mapnik/%d/%d/%d.png" % (self.zoom, self.tile[0], self.tile[1])
         #self.remote_filename = "http://andy.sandbox.cloudmade.com/tiles/cycle/%d/%d/%d.png" % (self.zoom, self.tile[0], self.tile[1])
+               
+    def run(self):
+        self.__log("start")
         answer = True
         if not os.path.isfile(self.local_filename):
             print "Datei existiert nicht: '%s' " % self.local_filename
@@ -74,7 +73,7 @@ class TileLoader(threading.Thread):
         try:
             self.pbuf = gtk.gdk.pixbuf_new_from_file(self.local_filename)
             if self.pbuf.get_width() < self.gui.ts.tile_size() or self.pbuf.get_height() < self.gui.ts.tile_size():
-            	raise Exception("Image too small, probably corrupted file")
+                raise Exception("Image too small, probably corrupted file")
             return True
         except Exception as e:
             if tryno == 0:
@@ -107,23 +106,23 @@ class TileLoader(threading.Thread):
             span_y = int(math.ceil(float(self.gui.map_height) / (size * 2.0)))
             if self.tile[0] in xrange(xi - span_x, xi + span_x + 1, 1) and self.tile[1] in xrange(yi - span_y, yi + span_y + 1, 1) and self.zoom == self.gui.ts.zoom:
 
-		offset_x = int(self.gui.map_width / 2 - (x - int(x)) * size)
-		offset_y = int(self.gui.map_height / 2 -(y - int(y)) * size)
+                offset_x = int(self.gui.map_width / 2 - (x - int(x)) * size)
+                offset_y = int(self.gui.map_height / 2 -(y - int(y)) * size)
                 dx = (self.tile[0] - xi) * size + offset_x
                 dy = (self.tile[1] - yi) * size + offset_y
-		
-		gc = self.gui.xgc
+
+                gc = self.gui.xgc
 
                 if self.pbuf != None:
                     self.gui.pixmap.draw_pixbuf(gc, self.pbuf, 0, 0, dx, dy, size, size)
                 else:
                     self.gui.pixmap.draw_pixbuf(gc, TileLoader.noimage, 0, 0, dx, dy, size, size)
-                                
+
                 self.gui.drawing_area.queue_draw_area(max(self.gui.draw_root_x + self.gui.draw_at_x  + dx, 0), max(self.gui.draw_root_y + self.gui.draw_at_y  + dy, 0), size, size)
-                                
+
                                 
         finally:
-	    pass
+            pass
                 
     def download(self, remote, local):
         print "downloading", remote
@@ -154,17 +153,17 @@ class TileLoader(threading.Thread):
                 return False
             return True
         except Exception as e:
-        	print "Download Error", e
-        	return False
+            print "Download Error", e
+            return False
         finally:
             if acquired:
-            	TileLoader.semaphore.release()
+                TileLoader.semaphore.release()
             TileLoader.downloading.remove(remote)
             self.__log("dl-end")
             
             
     def __log(self, string):
-	pass
+        pass
 #        a = "%d  " % self.num
 #        for i in xrange(self.num):
 #            a += "   "
@@ -183,8 +182,9 @@ class TileServer():
         if zoom < 1 or zoom > self.max_zoom:
             return
         self.zoom = zoom
-                
-    def tile_size(self):
+
+    @staticmethod
+    def tile_size():
         return 256
                 
     def deg2tilenum(self, lat_deg, lon_deg):
@@ -209,3 +209,5 @@ class TileServer():
         lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * ytile / n)))
         lat_deg = lat_rad * 180.0 / math.pi
         return geo.Coordinate(lat_deg, lon_deg)
+
+

@@ -132,7 +132,7 @@ if len(sys.argv) == 1:
     exit()
         
 arg = sys.argv[1].strip()
-if arg == '--simple':
+if arg == '--simple' or True:
     import simplegui
     gui = simplegui.SimpleGui
 elif arg == '--desktop':
@@ -233,8 +233,8 @@ class Core():
         self.gui = guitype(self, self.pointprovider, self.userpointprovider, dataroot)
         self.gui.write_settings(self.settings)
         if 'gpsprovider' in self.gui.USES:
-            #self.gps_thread = gpsreader.GpsReader(self)
-            self.gps_thread = gpsreader.FakeGpsReader(self)
+            self.gps_thread = gpsreader.GpsReader(self)
+            #self.gps_thread = gpsreader.FakeGpsReader(self)
             gobject.timeout_add(1000, self.__read_gps)
 
         if 'geonames' in self.gui.USES:
@@ -308,10 +308,10 @@ class Core():
             self.pointprovider.add_point(full, True)
             self.pointprovider.save()
         except Exception as e:
-                self.gui.show_error(e)
-                return cache
+            self.gui.show_error(e)
+            return cache
         finally:
-                self.gui.hide_progress()
+            self.gui.hide_progress()
         return full
                 
     def on_export_cache(self, cache, folder = None):
@@ -320,9 +320,9 @@ class Core():
             exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
             exporter.export(cache, folder)
         except Exception as e:
-                self.gui.show_error(e)
+            self.gui.show_error(e)
         finally:
-                self.gui.hide_progress()
+            self.gui.hide_progress()
         
                 
                 
@@ -436,7 +436,7 @@ class Core():
                 if k in tmp_settings.keys() != None:
                     self.settings[k] = tmp_settings[k]
                 else:
-                    self.settings[k] = self.DEFAULT_SETTINGS[k]
+                    self.settings[k] = v
         else:
             self.settings = self.DEFAULT_SETTINGS
                 

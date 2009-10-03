@@ -1,4 +1,3 @@
-import os.path
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
@@ -41,6 +40,7 @@ class FileDownloader():
             try:
                 os.remove(self.cookiefile)
             except:
+                print "* Could not remove cookie file?!"
                 pass
 
 
@@ -57,7 +57,6 @@ class FileDownloader():
             print "+ Loaded cookie file"
         except:
             print "+ Couldn't load cookie file"
-            pass
         else:
             print "+ Checking if still logged in..."
             url = 'http://www.geocaching.com/seek/nearest.aspx'
