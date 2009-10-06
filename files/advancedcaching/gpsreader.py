@@ -42,7 +42,7 @@ class Fix():
 
 class GpsReader():
 
-    BEARING_HOLD_SPEED = 3
+    BEARING_HOLD_SPEED = 0.833 # meters per second ~= 3 km/h
     QUALITY_LOW_BOUND = 5.0 # meters of HDOP.
     DGPS_ADVANTAGE = 1 # see below for usage
 
