@@ -219,9 +219,12 @@ class PointProvider():
     def pop_filter(self):
         self.filterstring, self.filterargs = self.filterstack.pop()
                 
-    def get_points_filter(self, location=None, found=None):
+    def get_points_filter(self, location=None, found=None, max_results = None):
         filterstring = copy.copy(self.filterstring)
         filterargs = copy.copy(self.filterargs)
+
+        if max_results == None:
+            max_results = self.MAX_RESULTS
                 
         if location != None:
             c1, c2 = location
@@ -238,7 +241,7 @@ class PointProvider():
             filterstring.append('(found = 0)')
 
         c = self.conn.cursor()
-        query = 'SELECT * FROM %s WHERE %s LIMIT %s' % (self.cache_table, " AND ".join(filterstring), self.MAX_RESULTS + 1)
+        query = 'SELECT * FROM %s WHERE %s LIMIT %s' % (self.cache_table, " AND ".join(filterstring), max_results)
 
         c.execute(query, tuple(filterargs))
         return self.pack_result(c)
