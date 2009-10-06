@@ -157,7 +157,7 @@ class PointProvider():
         coord.unserialize(mindistrow)
         return coord
                 
-    def set_filter(self, found=None, has_details=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, adapt_filter=False, distance_filter=None, marked=None):
+    def set_filter(self, found=None, has_details=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, adapt_filter=False, marked=None):
         # a value "None" means: apply no filtering on this value
                 
         if adapt_filter:

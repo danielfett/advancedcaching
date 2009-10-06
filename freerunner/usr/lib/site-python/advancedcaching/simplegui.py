@@ -22,23 +22,12 @@
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
 
 # todo:
-# add translation support?
-# download in seperate thread?
+# download logs
 # parse attributes
 # add "next waypoint" button
 # add description to displayed images
-# only redraw if position is in current screen
-# add favorite-places-feature: mark fav. places and return to them later
-# add favorite-caches-feature into new search tab
-# try to download caches in smaller portions
-
-# go to search results in case of search
-# don't display all caches on 'revert'
-# fix north indicator
-
-# to test:
-# new exporter
-# new search tab
+# add translation support?
+# download in seperate thread?
 
 
  
@@ -50,13 +39,11 @@ import geo
 import geocaching
 import gobject
 import gtk
-import gtk.gdk
 import gtk.glade
 import openstreetmap
 import os
 import pango
 import re
-#from advancedcaching import *
 
 
 class SimpleGui(object):
@@ -130,7 +117,8 @@ class SimpleGui(object):
         self.userpointprovider = userpointprovider
                 
         self.format = geo.Coordinate.FORMAT_DM
-                
+
+        # @type self.current_cache geocaching.GeocacheCoordinate
         self.current_cache = None
                 
         self.current_target = None
@@ -279,10 +267,6 @@ class SimpleGui(object):
         listview.connect('extlistview-button-pressed', self.on_search_cache_clicked)
         xml.get_widget('scrolledwindow_search').add(listview)
                 
-        # Create the renderer used in the listview for coordinates
-                
-        #txtRdr        = gtk.CellRendererText()
-        #pixbufRdr = gtk.CellRendererPixbuf()
         (
          COL_COORD_NAME,
          COL_COORD_LATLON,
@@ -641,7 +625,6 @@ class SimpleGui(object):
                         
     def __draw_marks(self):
             
-        #print "marking"
         xgc = self.xgc
         xgc.set_function(gtk.gdk.COPY)
         self.xgc.set_rgb_fg_color(gtk.gdk.color_parse('white'))
@@ -896,21 +879,12 @@ class SimpleGui(object):
                 
                         
                 
-    def load_images(self):
+    def __load_images(self):
         if self.current_cache == None:
-            self.update_cache_image(reset = True)
+            self.__update_cache_image(reset = True)
             return
-        try:
-            files = os.listdir(self.settings['download_output_dir'])
-            images = []
-            for f in files:
-                if f.startswith('%s-image' % self.current_cache.name):
-                    images.append(os.path.join(self.settings['download_output_dir'], f))
-                                
-            self.images = images
-        except Exception as e:
-            print "Could not prepare images: %s" % e
-        self.update_cache_image(reset = True)
+        self.images = self.current_cache.get_images().items()
+        self.__update_cache_image(reset = True)
 
     def on_download_clicked(self, widget):
         self.do_events()
@@ -1005,9 +979,14 @@ class SimpleGui(object):
 
             # if we are tracking and we have not moved out of the center
             # or if we are not tracking the user
-            # in each case, if we have moved far enough since last draw, redraw just the marks
+            # in either case, if we have moved far enough since last draw, redraw just the marks
             if dist_from_last > self.REDRAW_DISTANCE_MINOR ** 2:
-                self.redraw_marks()
+                a, b = self.get_visible_area()
+                if self.gps_data.position.lat > min(a.lat, b.lat) \
+                    and self.gps_data.position.lat < max(a.lat, b.lat) \
+                    and self.gps_data.position.lon > min(a.lon, b.lon) \
+                    and self.gps_data.position.lon < max(a.lon, b.lon):
+                        self.redraw_marks()
                 # update last position, as it is now drawed
                 self.gps_last_position = (x, y)
             return
@@ -1024,16 +1003,16 @@ class SimpleGui(object):
         
     def on_image_next_clicked(self, something):
         if len(self.images) == 0:
-            self.update_cache_image(reset = True)
+            self.__update_cache_image(reset = True)
             return
         self.image_no += 1
         self.image_no %= len(self.images)
-        self.update_cache_image()
+        self.__update_cache_image()
                 
         
     def on_image_zoom_clicked(self, something):
         self.image_zoomed = not self.image_zoomed
-        self.update_cache_image()
+        self.__update_cache_image()
 
     def on_label_fieldnotes_mapped(self, widget):
         self.__check_notes_save()
@@ -1243,45 +1222,32 @@ class SimpleGui(object):
     def on_zoomout_clicked(self, widget):
         self.zoom(-1)
                 
-    def update_cache_image(self, reset = False):
+    def __update_cache_image(self, reset = False):
         if reset:
-            self.image_cache.set_from_stock(gtk.STOCK_GO_FORWARD, -1)
-            self.image_cache_caption.set_text("click 'next' to see images")
-            return
-        try:
-            mw, mh = self.scrolledwindow_image.get_allocation().width - 10, self.scrolledwindow_image.get_allocation().height - 10
-            if self.current_cache == None or len(self.images) <= self.image_no:
-                self.update_cache_image(True)
+            self.image_zoomed = False
+            self.image_no = 0
+            if len(self.images) == 0:
+                self.image_cache.set_from_stock(gtk.STOCK_CANCEL   , -1)
+                self.image_cache_caption.set_text("There's nothing to see here.")
                 return
-            filename = os.path.join(self.settings['download_output_dir'], self.images[self.image_no])
+        try:
+            if self.current_cache == None or len(self.images) <= self.image_no:
+                self.__update_cache_image(True)
+                return
+            filename = os.path.join(self.settings['download_output_dir'], self.images[self.image_no][0])
             if not os.path.exists(filename):
                 self.image_cache_caption.set_text("not found: %s" % filename)
                 self.image_cache.set_from_stock(gtk.STOCK_GO_FORWARD, -1)
                 return
-                        
-            pb = gtk.gdk.pixbuf_new_from_file(filename)
-                
+            
             if not self.image_zoomed:
-                w = float(pb.get_width())
-                h = float(pb.get_height())
-                if w > mw:
-                    factor = mw / w
-                    w = w * factor
-                    h = h * factor
-                if h > mh:
-                    factor = mh / h
-                    w = w * factor
-                    h = h * factor
-                pb = pb.scale_simple(w, h, gtk.gdk.INTERP_BILINEAR)
-                
+                mw, mh = self.scrolledwindow_image.get_allocation().width - 10, self.scrolledwindow_image.get_allocation().height - 10
+                pb = gtk.gdk.pixbuf_new_from_file_at_size(filename, mw, mh)
+            else:
+                pb = gtk.gdk.pixbuf_new_from_file(filename)
                         
             self.image_cache.set_from_pixbuf(pb)
-            imgs = self.current_cache.get_images()
-            print imgs
-            if self.images[self.image_no] in imgs.keys():
-                caption = imgs[self.images[self.image_no]]
-            else:
-                caption = "(no caption)"
+            caption = self.images[self.image_no][1]
 
             self.image_cache_caption.set_text("<b>%d</b> %s" % (self.image_no, caption))
             self.image_cache_caption.set_use_markup(True)
@@ -1471,7 +1437,7 @@ class SimpleGui(object):
             self.cache_elements['log_date'].set_text('fieldnote date: not set')
 
         # Load images
-        self.load_images()
+        self.__load_images()
         self.image_no = 0
         if len(self.images) > 0:
             showdesc += "\n[%d image(s) available]" % len(self.images)

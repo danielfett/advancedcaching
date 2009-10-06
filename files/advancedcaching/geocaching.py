@@ -23,9 +23,11 @@ import json
 import geo
 import os
 
+global Image
 try:
     import Image
 except:
+    Image = None
     print "Not using image resize feature"
 import re
 
@@ -314,6 +316,7 @@ class CacheDownloader():
 
         if self.download_images:
             try:
+                print "+ Downloading %s" % url
                 filename = os.path.join(self.path, id)
                 f = open(filename, 'wb')
                 f.write(self.downloader.get_reader(url).read())
@@ -499,7 +502,7 @@ class CacheDownloader():
             coordinate.size = 3
         elif size == 'big':
             coordinate.size = 4
-        elif size == 'huge':
+        elif size == 'not_chosen':
             coordinate.size = 5
         else:
             print "Size not known: %s" % size

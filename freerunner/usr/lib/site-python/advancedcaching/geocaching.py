@@ -23,9 +23,11 @@ import json
 import geo
 import os
 
+global Image
 try:
     import Image
 except:
+    Image = None
     print "Not using image resize feature"
 import re
 
@@ -204,18 +206,21 @@ class CacheDownloader():
         self.path = path
         self.download_images = download_images
         self.resize = resize
-        
-    def __rot13(self, text):
+
+    @staticmethod
+    def __rot13(text):
         import string
         trans = string.maketrans(
                                  'nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM',
                                  'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
         return text.translate(trans)
 
-    def __strip_html(self, text):
+    @staticmethod
+    def __strip_html(text):
         return re.sub(r'<[^>]*?>', '', text)
 
-    def __replace_br(self, text):
+    @staticmethod
+    def __replace_br(text):
         return re.sub('(<[bB][rR]\s*/?>|</[pP]>', '\n', text)
 
     def __treat_hints(self, hints):
@@ -240,8 +245,9 @@ class CacheDownloader():
         html = strip_comments.sub('', html)
         html = self.__replace_images(html)
         return html
-                
-    def __from_dm(self, direction, decimal, minutes):
+
+    @staticmethod
+    def __from_dm(direction, decimal, minutes):
         if direction == None or decimal == None or minutes == None:
             return -1
         if direction in "SsWw":
@@ -310,6 +316,7 @@ class CacheDownloader():
 
         if self.download_images:
             try:
+                print "+ Downloading %s" % url
                 filename = os.path.join(self.path, id)
                 f = open(filename, 'wb')
                 f.write(self.downloader.get_reader(url).read())
@@ -330,8 +337,9 @@ class CacheDownloader():
         if ((id in self.images.keys() and len(description) > len(self.images[id]))
             or id not in self.images.keys()):
             self.images[id] = description
-         
-    def __decode_htmlentities(self, string):
+
+    @staticmethod
+    def __decode_htmlentities(string):
         def substitute_entity(match):
             from htmlentitydefs import name2codepoint as n2cp
             ent = match.group(3)
@@ -494,7 +502,7 @@ class CacheDownloader():
             coordinate.size = 3
         elif size == 'big':
             coordinate.size = 4
-        elif size == 'huge':
+        elif size == 'not_chosen':
             coordinate.size = 5
         else:
             print "Size not known: %s" % size

@@ -42,7 +42,7 @@ class Fix():
 
 class GpsReader():
 
-    BEARING_HOLD_SPEED = 0.833 # meters per second ~= 3 km/h
+    BEARING_HOLD_SPEED = 0.62 # meters per second. empirical value.
     QUALITY_LOW_BOUND = 5.0 # meters of HDOP.
     DGPS_ADVANTAGE = 1 # see below for usage
 
@@ -54,6 +54,8 @@ class GpsReader():
         self.status = "connecting..."
         self.connected = False
         self.last_bearing = 0
+        # enable this to track speeds and see the max speed
+        # self.speeds = []
 
 
     def connect(self):
@@ -142,6 +144,10 @@ class GpsReader():
                 quality = 0
             else:
                 quality = 1-err_hor/self.QUALITY_LOW_BOUND
+
+            # enable this to track speeds and see the max speed
+            #self.speeds.append(speed)
+            #print "Aktuell %f, max: %f" % (speed, max(self.speeds))
 
             if speed < self.BEARING_HOLD_SPEED:
                 track = self.last_bearing

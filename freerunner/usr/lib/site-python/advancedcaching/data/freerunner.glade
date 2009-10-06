@@ -555,11 +555,10 @@ view</property>
                             <property name="visible">True</property>
                             <child>
                               <widget class="GtkButton" id="button_image_zoom">
-                                <property name="label" translatable="yes">gtk-zoom-in</property>
+                                <property name="label" translatable="yes">change zoom</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
-                                <property name="use_stock">True</property>
                                 <signal name="clicked" handler="on_image_zoom_clicked"/>
                               </widget>
                               <packing>
