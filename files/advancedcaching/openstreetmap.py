@@ -32,6 +32,7 @@ class TileLoader(threading.Thread):
         self.num = num
         self.local_filename = os.path.join(self.base_dir, str(self.zoom), str(self.tile[0]), "%d.png" % self.tile[1])
         self.remote_filename = "http://128.40.168.104/mapnik/%d/%d/%d.png" % (self.zoom, self.tile[0], self.tile[1])
+        self.my_noimage = None
         #self.remote_filename = "http://andy.sandbox.cloudmade.com/tiles/cycle/%d/%d/%d.png" % (self.zoom, self.tile[0], self.tile[1])
                
     def run(self):
@@ -52,21 +53,48 @@ class TileLoader(threading.Thread):
                 # too lazy to do proper locking here
                 # so just forget about the error
                                                         
-                        
+
+            gobject.idle_add(lambda: self.draw(self.get_no_image()))
             answer = self.download(self.remote_filename, self.local_filename)
         # now the file hopefully exists
         if answer == True:
             self.load()
-            gobject.idle_add(self.draw)
+            gobject.idle_add(lambda: self.draw(self.pbuf))
         elif answer == False:
             print "loading default"
-            self.pbuf = TileLoader.noimage
-            gobject.idle_add(self.draw)
+            gobject.idle_add(lambda: self.draw(self.get_no_image()))
         else:
             print "nothing"
             
 
         self.__log("prep draw")
+
+    def get_no_image(self):
+        if self.my_noimage != None:
+            return self.my_noimage
+        size = self.gui.ts.tile_size()
+        # we have no image available. so what do now?
+        # first, check if we've the "supertile" available (zoomed out)
+        supertile_zoom = self.zoom - 1
+        supertile_x = int(self.tile[0]/2)
+        supertile_y = int(self.tile[1]/2)
+        supertile_name = os.path.join(self.base_dir, str(supertile_zoom), str(supertile_x), "%d.png" % supertile_y)
+        if os.path.exists(supertile_name):
+            print "Loading supertile for %d %d, which is %d %d" % (self.tile[0], self.tile[1], supertile_x, supertile_y)
+            # great! now find the right spot.
+            # the supertile is 'size' px wide and high.
+            off_x = (self.tile[0]/2.0 - supertile_x) * size
+            off_y = (self.tile[1]/2.0 - supertile_y) * size
+            print off_x, off_y
+            pbuf = gtk.gdk.pixbuf_new_from_file(supertile_name)
+            #pbuf.scale(pbuf, 0, 0, size/2, size/2, off_x, off_y, 2, 2, gtk.gdk.INTERP_BILINEAR)
+            dest = gtk.gdk.Pixbuf(pbuf.get_colorspace(), pbuf.get_has_alpha(), pbuf.get_bits_per_sample(), size, size)
+            pbuf.scale(dest, 0, 0, 256, 256, -off_x*2, -off_y*2, 2, 2, gtk.gdk.INTERP_BILINEAR)
+            self.my_noimage = dest
+            return dest
+        else:
+            self.my_noimage = TileLoader.noimage
+            return TileLoader.noimage
                 
     def load(self, tryno=0):
         # load the pixbuf to memory
@@ -91,7 +119,7 @@ class TileLoader(threading.Thread):
         self.download(self.remote_filename, self.local_filename)
         return self.load(1)
                 
-    def draw(self):
+    def draw(self, pbuf):
         try:
             #gc.set_function(gtk.gdk.COPY)
             #gc.set_rgb_fg_color(self.COLOR_BG)
@@ -113,8 +141,8 @@ class TileLoader(threading.Thread):
 
                 gc = self.gui.xgc
 
-                if self.pbuf != None:
-                    self.gui.pixmap.draw_pixbuf(gc, self.pbuf, 0, 0, dx, dy, size, size)
+                if pbuf != None:
+                    self.gui.pixmap.draw_pixbuf(gc, pbuf, 0, 0, dx, dy, size, size)
                 else:
                     self.gui.pixmap.draw_pixbuf(gc, TileLoader.noimage, 0, 0, dx, dy, size, size)
 
