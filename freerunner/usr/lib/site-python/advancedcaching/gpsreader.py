@@ -30,7 +30,8 @@ class Fix():
             sats = 0,
             sats_known = 0,
             dgps = False,
-            quality = 0):
+            quality = 0,
+            error = 0):
         self.position = position
         self.altitude = altitude
         self.bearing = bearing
@@ -39,6 +40,7 @@ class Fix():
         self.sats_known = sats_known
         self.dgps = dgps
         self.quality = quality
+        self.error = error
 
 class GpsReader():
 
@@ -130,6 +132,8 @@ class GpsReader():
             speed = self.to_float(speed)
             err_hor = self.to_float(err_hor)
 
+            # the following is probably wrong:
+            #
             # it seems that gpsd doesn't take into account that the
             # receiver may get signals from space base augmentation systems
             # like egnos. therefore, we estimate that the error is about
@@ -161,7 +165,8 @@ class GpsReader():
                 sats = int(sats),
                 sats_known = sats_known,
                 dgps = dgps,
-                quality = quality
+                quality = quality,
+                error = err_hor
                 )
         except Exception as e:
             print "Fehler beim Auslesen der Daten: %s " % e

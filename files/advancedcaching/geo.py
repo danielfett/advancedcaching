@@ -161,9 +161,9 @@ class Coordinate():
         else:
             c = 'S'
         if format == self.FORMAT_D:
-            return "%s%8.5f°" % (c, l)
+            return "%s %.5f°" % (c, l)
         elif format == self.FORMAT_DM:
-            return "%s%2d° %06.3f'" % (c, math.floor(l), (l - math.floor(l)) * 60)
+            return "%s %d° %06.3f'" % (c, math.floor(l), (l - math.floor(l)) * 60)
 
     def get_lon(self, format):
         l = abs(self.lon)
@@ -172,9 +172,9 @@ class Coordinate():
         else:
             c = 'W'
         if format == self.FORMAT_D:
-            return "%s%9.5f°" % (c, l)
+            return "%s %.5f°" % (c, l)
         elif format == self.FORMAT_DM:
-            return "%s%3d° %06.3f'" % (c, math.floor(l), (l - math.floor(l)) * 60)
+            return "%s %d° %06.3f'" % (c, math.floor(l), (l - math.floor(l)) * 60)
 
     def distance_to (self, target):
         dlat = math.pow(math.sin(math.radians(target.lat-self.lat) / 2), 2)

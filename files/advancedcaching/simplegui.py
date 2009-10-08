@@ -93,6 +93,10 @@ class SimpleGui(object):
     COLOR_ARROW_CIRCLE = gtk.gdk.color_parse("white")
     COLOR_ARROW_OUTER_LINE = gtk.gdk.color_parse("black")
     NORTH_INDICATOR_SIZE = 30
+
+    # quality indicator
+    COLOR_QUALITY_OUTER = gtk.gdk.color_parse("black")
+    COLOR_QUALITY_INNER = gtk.gdk.color_parse("green")
         
     SETTINGS_CHECKBOXES = [
         'download_visible',
@@ -177,7 +181,7 @@ class SimpleGui(object):
         self.label_altitude = xml.get_widget('label_altitude')
         self.label_latlon = xml.get_widget('label_latlon')
         self.label_target = xml.get_widget('label_target')
-        self.progressbar_sats = xml.get_widget('progressbar_sats')
+        self.label_quality = xml.get_widget('label_quality')
         
         self.input_export_path = xml.get_widget('input_export_path')
                 
@@ -455,6 +459,16 @@ class SimpleGui(object):
                         
         self.pixmap_arrow.draw_rectangle(widget.get_style().bg_gc[gtk.STATE_NORMAL],
                                          True, 0, 0, width, height)
+
+        # draw signal indicator
+        self.xgc_arrow.line_width = 1
+        signal_width = 15
+        self.xgc_arrow.set_rgb_fg_color(self.COLOR_QUALITY_OUTER)
+        self.pixmap_arrow.draw_rectangle(self.xgc_arrow, True, width - signal_width - 2, 0, signal_width + 2, height)
+        self.xgc_arrow.set_rgb_fg_color(self.COLOR_QUALITY_INNER)
+        usable_height = height - 1
+        target_height = int(round(usable_height*self.gps_data.quality))
+        self.pixmap_arrow.draw_rectangle(self.xgc_arrow, True, width - signal_width - 1, usable_height - target_height, signal_width, target_height)
 
         if disabled:
             self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_DISABLED)
@@ -744,7 +758,7 @@ class SimpleGui(object):
                 found = None
             coords = self.pointprovider.get_points_filter(self.get_visible_area(), found, self.MAX_NUM_RESULTS_SHOW)
             if len(coords) >= self.MAX_NUM_RESULTS_SHOW:
-                self.__draw_marks_message('Too much geocaches to display.')
+                self.__draw_marks_message('Too many geocaches to display.')
             else:
                 self.__draw_marks_caches(coords)
             
@@ -1352,7 +1366,8 @@ class SimpleGui(object):
                 
     def set_target(self, cache):
         self.current_target = cache
-        self.label_target.set_text("Target (%s): %s %s" % (cache.name, cache.get_lat(self.format), cache.get_lon(self.format)))
+        self.label_target.set_text("<span size='large'>%s\n%s</span>" % (cache.get_lat(self.format), cache.get_lon(self.format)))
+        self.label_target.set_use_markup(True)
         #self.set_center(cache)
                 
     def show(self):
@@ -1528,7 +1543,7 @@ class SimpleGui(object):
             return
         self.label_altitude.set_text("alt %3dm" % self.gps_data.altitude)
         self.label_bearing.set_text("%d°" % self.gps_data.bearing)
-        self.label_latlon.set_text("<b>Current: %s %s</b>" % (self.gps_data.position.get_lat(self.format), self.gps_data.position.get_lon(self.format)))
+        self.label_latlon.set_text("<span size='large'>%s\n%s</span>" % (self.gps_data.position.get_lat(self.format), self.gps_data.position.get_lon(self.format)))
         self.label_latlon.set_use_markup(True)
                 
         if self.current_target == None:
@@ -1538,23 +1553,23 @@ class SimpleGui(object):
                 
         target_distance = self.gps_data.position.distance_to(self.current_target)
         if target_distance >= 1000:
-            self.label_dist.set_text("<big><b>%3dkm</b></big>" % round(target_distance / 1000))
+            label = "%3dkm" % round(target_distance / 1000)
         elif display_dist >= 100:
-            self.label_dist.set_text("<big><b>%3dm</b></big>" % round(target_distance))
+            label = "%3dm" % round(target_distance)
         else:
-            self.label_dist.set_text("<big><b>%2.1fm</b></big>" % round(target_distance, 1))
+            label = "%2.1fm" % round(target_distance, 1)
+        self.label_dist.set_text("<span size='large'>%s</span>" % label)
         self.label_dist.set_use_markup(True)
-
-                
-
-    def update_progressbar(self):
+        
         if self.gps_data == None:
             return
-        self.progressbar_sats.set_fraction(self.gps_data.quality)
-        if self.gps_data.dgps:
-            self.progressbar_sats.set_text("Sats: %d/%s (DGPS)" % (self.gps_data.sats, self.gps_data.sats_known))
+        if self.gps_data.sats == 0:
+            label = "No sats available"
         else:
-            self.progressbar_sats.set_text("Sats: %d/%s" % (self.gps_data.sats, self.gps_data.sats_known))
+            label = "%d/%d sats, error: ±%3.1fm" % (self.gps_data.sats, self.gps_data.sats_known, self.gps_data.error)
+            if self.gps_data.dgps:
+                label += " DGPS"
+        self.label_quality.set_text(label)
                 
                 
     def write_settings(self, settings):
