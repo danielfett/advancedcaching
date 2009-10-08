@@ -90,7 +90,7 @@ class SimpleGui(object):
     COLOR_ARROW_NEAR = gtk.gdk.color_parse("orange")
     COLOR_ARROW_ATTARGET = gtk.gdk.color_parse("red")
     COLOR_ARROW_DISABLED = gtk.gdk.color_parse("red")
-    COLOR_ARROW_CIRCLE = gtk.gdk.color_parse("white")
+    COLOR_ARROW_CIRCLE = gtk.gdk.color_parse("darkgray")
     COLOR_ARROW_OUTER_LINE = gtk.gdk.color_parse("black")
     NORTH_INDICATOR_SIZE = 30
 
@@ -459,7 +459,14 @@ class SimpleGui(object):
                         
         self.pixmap_arrow.draw_rectangle(widget.get_style().bg_gc[gtk.STATE_NORMAL],
                                          True, 0, 0, width, height)
+                                         
+        if disabled:
+            self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_DISABLED)
 
+            self.drawing_area_arrow.queue_draw()
+                
+            return False
+        
         # draw signal indicator
         self.xgc_arrow.line_width = 1
         signal_width = 15
@@ -469,14 +476,6 @@ class SimpleGui(object):
         usable_height = height - 1
         target_height = int(round(usable_height*self.gps_data.quality))
         self.pixmap_arrow.draw_rectangle(self.xgc_arrow, True, width - signal_width - 1, usable_height - target_height, signal_width, target_height)
-
-        if disabled:
-            self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_DISABLED)
-            self.pixmap_arrow.draw_line(self.xgc_arrow, 0, 0, width, height)
-            self.pixmap_arrow.draw_line(self.xgc_arrow, 0, height, width, 0)
-            self.drawing_area_arrow.queue_draw()
-                
-            return False
 
         display_bearing = self.gps_data.position.bearing_to(self.current_target) - self.gps_data.bearing
         display_distance = self.gps_data.position.distance_to(self.current_target)
@@ -982,9 +981,9 @@ class SimpleGui(object):
     def on_good_fix(self, gps_data):
         self.gps_data = gps_data
         self.gps_has_fix = True
-        self.update_gps_display()
         self.__draw_arrow()
-        self.update_progressbar()
+        #self.do_events()
+        self.update_gps_display()
                 
         if self.dragging:
             return
@@ -1063,8 +1062,8 @@ class SimpleGui(object):
         self.label_bearing.set_text("No Fix")
         self.label_latlon.set_text(status)
         self.gps_has_fix = False
+        self.update_gps_display()
         self.__draw_arrow()
-        self.update_progressbar()
 
     def on_notes_changed(self, something, somethingelse):
         self.notes_changed = True
@@ -1541,6 +1540,17 @@ class SimpleGui(object):
     def update_gps_display(self):
         if self.gps_data == None:
             return
+
+        if self.gps_data.sats == 0:
+            label = "No sats available"
+        else:
+            label = "%d/%d sats, error: ±%3.1fm" % (self.gps_data.sats, self.gps_data.sats_known, self.gps_data.error)
+            if self.gps_data.dgps:
+                label += " DGPS"
+        self.label_quality.set_text(label)
+        if self.gps_data.altitude == None or self.gps_data.bearing == None:
+            return
+
         self.label_altitude.set_text("alt %3dm" % self.gps_data.altitude)
         self.label_bearing.set_text("%d°" % self.gps_data.bearing)
         self.label_latlon.set_text("<span size='large'>%s\n%s</span>" % (self.gps_data.position.get_lat(self.format), self.gps_data.position.get_lon(self.format)))
@@ -1561,15 +1571,7 @@ class SimpleGui(object):
         self.label_dist.set_text("<span size='large'>%s</span>" % label)
         self.label_dist.set_use_markup(True)
         
-        if self.gps_data == None:
-            return
-        if self.gps_data.sats == 0:
-            label = "No sats available"
-        else:
-            label = "%d/%d sats, error: ±%3.1fm" % (self.gps_data.sats, self.gps_data.sats_known, self.gps_data.error)
-            if self.gps_data.dgps:
-                label += " DGPS"
-        self.label_quality.set_text(label)
+        
                 
                 
     def write_settings(self, settings):
