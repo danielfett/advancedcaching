@@ -424,12 +424,12 @@ class SimpleGui(object):
             if r.difficulty == -1:
                 d = "?"
             else:
-                d = "%.1f" % r.difficulty
+                d = "%.1f" % r.difficulty / 10
                                 
             if r.terrain == -1:
                 t = "?"
             else:
-                t = "%.1f" % r.terrain
+                t = "%.1f" % r.terrain / 10
             title =  self.__format_cache_title(r)
             rows.append((title, r.type, s, t, d, r.name, ))
         self.cachelist.replaceContent(rows)
