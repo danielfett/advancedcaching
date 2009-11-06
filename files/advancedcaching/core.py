@@ -354,7 +354,7 @@ class Core():
             self.pointprovider.set_filter(found=found, has_details=has_details, adapt_filter=False)
             caches = self.pointprovider.get_points_filter()
                 
-                
+        print caches       
                 
         count = len(caches)
         i = 0.0
@@ -367,11 +367,12 @@ class Core():
                 i += 1.0
                                 
         except Exception as e:
+            raise e
             self.gui.show_error(e)
         finally:
             self.gui.hide_progress()
             self.pointprovider.pop_filter()
-        self.pointprovider.save()
+            self.pointprovider.save()
                 
                 
         #if self.settings['download_create_index']:
