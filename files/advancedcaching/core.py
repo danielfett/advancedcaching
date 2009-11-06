@@ -23,7 +23,7 @@ usage = r'''Here's how to use this app:
 If you want to use the gui:
 %(name)s --simple
     Simple User Interface, for mobile devices such as the Openmoko Freerunner
-%(name)s --full
+%(name)s --desktop
     Full User Interface, for desktop usage (not implemented yet)
     
 If you don't like your mouse:
@@ -132,7 +132,7 @@ if len(sys.argv) == 1:
     exit()
         
 arg = sys.argv[1].strip()
-if arg == '--simple' or True:
+if arg == '--simple':
     import simplegui
     gui = simplegui.SimpleGui
 elif arg == '--desktop':

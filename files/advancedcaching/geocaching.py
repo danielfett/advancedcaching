@@ -206,7 +206,9 @@ class CacheDownloader():
         self.path = path
         self.download_images = download_images
         self.resize = resize
-
+        if not os.path.exists(path):
+            raise Exception("Path does not exist: %s" % path)
+        
     @staticmethod
     def __rot13(text):
         import string
