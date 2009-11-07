@@ -367,7 +367,6 @@ class Core():
                 i += 1.0
                                 
         except Exception as e:
-            raise e
             self.gui.show_error(e)
         finally:
             self.gui.hide_progress()

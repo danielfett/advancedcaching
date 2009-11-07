@@ -387,11 +387,10 @@ class CacheDownloader():
         response = self.downloader.get_reader(url, values)
 
         the_page = response.read()
-
-        extractor = re.compile('.*<ExtraData><!\[CDATA\[(.*)\]\]>')
+        extractor = re.compile('.*<ExtraData><!\[CDATA\[(.*)\]\]>', re.DOTALL)
         match = extractor.match(the_page)
         if match == None:
-            raise Exception('Seite konnte nicht abgerufen werden')
+            raise Exception('Could not load map of geocaches')
         text = match.group(1).replace("\\'", "'")
         a = json.loads(text.replace('\t', ' '))
         points = []
