@@ -48,6 +48,7 @@ import re
 
 class SimpleGui(object):
     USES = ['gpsprovider']
+    XMLFILE = "freerunner.glade"
 
     MAP_FACTOR = 0
     CACHE_SIZE = 20
@@ -153,14 +154,16 @@ class SimpleGui(object):
         self.map_center_x, self.map_center_y = 100, 100
         self.inhibit_zoom = False
         self.inhibit_expose = False
-        #self.draw_lock = thread.allocate_lock()
+        
+        
         global xml
-        xml = gtk.glade.XML(os.path.join(dataroot, "freerunner.glade"))
+        xml = gtk.glade.XML(os.path.join(dataroot, self.XMLFILE))
+        self.load_ui()
+        
+    def load_ui(self):
         self.window = xml.get_widget("window1")
         xml.signal_autoconnect(self)
-      
-
-
+        
         # map drawing area
         self.drawing_area = xml.get_widget("drawingarea")
         self.drawing_area_arrow = xml.get_widget("drawingarea_arrow")
@@ -257,38 +260,38 @@ class SimpleGui(object):
         # Create the renderer used in the listview
         txtRdr        = gtk.CellRendererText()
         (
-         ROW_TITLE,
-         ROW_TYPE,
-         ROW_SIZE,
-         ROW_TERRAIN,
-         ROW_DIFF,
-         ROW_ID,
-         ) = range(6)
+            ROW_TITLE,
+            ROW_TYPE,
+            ROW_SIZE,
+            ROW_TERRAIN,
+            ROW_DIFF,
+            ROW_ID,
+        ) = range(6)
         columns = (
-                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
-                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
-                   ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
-                   ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
-                   ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
-                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
-                   )
+            ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
+            ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
+            ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
+            ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
+            ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
+            ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
+        )
         self.cachelist = listview = extListview.ExtListView(columns, sortable=True, useMarkup=True, canShowHideColumns=False)
         self.cachelist_contents = []
         listview.connect('extlistview-button-pressed', self.on_search_cache_clicked)
         xml.get_widget('scrolledwindow_search').add(listview)
                 
         (
-         COL_COORD_NAME,
-         COL_COORD_LATLON,
-         COL_COORD_ID,
-         COL_COORD_COMMENT,
-         ) = range(4)
+            COL_COORD_NAME,
+            COL_COORD_LATLON,
+            COL_COORD_ID,
+            COL_COORD_COMMENT,
+        ) = range(4)
         columns = (
-                   ('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
-                   ('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
-                   ('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
-                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT,), False, True),
-                   )
+            ('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
+            ('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
+            ('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
+            ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT,), False, True),
+        )
         self.coordlist = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
         self.coordlist.connect('extlistview-button-pressed', self.on_waypoint_clicked)
         xml.get_widget('scrolledwindow_coordlist').add(self.coordlist)
@@ -424,12 +427,12 @@ class SimpleGui(object):
             if r.difficulty == -1:
                 d = "?"
             else:
-                d = "%.1f" % r.difficulty / 10
+                d = "%.1f" % (r.difficulty / 10)
                                 
             if r.terrain == -1:
                 t = "?"
             else:
-                t = "%.1f" % r.terrain / 10
+                t = "%.1f" % (r.terrain / 10)
             title =  self.__format_cache_title(r)
             rows.append((title, r.type, s, t, d, r.name, ))
         self.cachelist.replaceContent(rows)
@@ -914,7 +917,10 @@ class SimpleGui(object):
         if self.current_cache == None:
             self.__update_cache_image(reset = True)
             return
-        self.images = self.current_cache.get_images().items()
+        if len(self.current_cache.get_images()) > 0:
+            self.images = self.current_cache.get_images().items()
+        else:
+            self.images = {}
         self.__update_cache_image(reset = True)
 
     def on_download_clicked(self, widget):
