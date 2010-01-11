@@ -19,6 +19,8 @@
 #
 
 import json
+import time
+import locale
 
 import geo
 import os
@@ -56,8 +58,11 @@ class GeocacheCoordinate(geo.Coordinate):
         TYPE_UNKNOWN
     ]
 
+    STATUS_NORMAL = 0
+    STATUS_DISABLED = 1
 
-    SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT PRIMARY KEY', 'title': 'TEXT', 'shortdesc': 'TEXT', 'desc': 'TEXT', 'hints': 'TEXT', 'type': 'TEXT', 'size': 'INTEGER', 'difficulty': 'INTEGER', 'terrain': 'INTEGER', 'owner': 'TEXT', 'found': 'INTEGER', 'waypoints': 'text', 'images': 'text', 'notes': 'TEXT', 'fieldnotes': 'TEXT', 'logas': 'INTEGER', 'logdate': 'TEXT', 'marked' : 'INTEGER'}
+
+    SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT PRIMARY KEY', 'title': 'TEXT', 'shortdesc': 'TEXT', 'desc': 'TEXT', 'hints': 'TEXT', 'type': 'TEXT', 'size': 'INTEGER', 'difficulty': 'INTEGER', 'terrain': 'INTEGER', 'owner': 'TEXT', 'found': 'INTEGER', 'waypoints': 'text', 'images': 'text', 'notes': 'TEXT', 'fieldnotes': 'TEXT', 'logas': 'INTEGER', 'logdate': 'TEXT', 'marked' : 'INTEGER', 'logs' : 'TEXT', 'status' : 'INTEGER'}
     def __init__(self, lat, lon, name=''):
         geo.Coordinate.__init__(self, lat, lon, name)
         # NAME = GC-ID
@@ -78,6 +83,8 @@ class GeocacheCoordinate(geo.Coordinate):
         self.log_as = self.LOG_NO_LOG
         self.log_date = ''
         self.marked = False
+        self.logs = ''
+        self.status = self.STATUS_NORMAL
 
     def serialize(self):
 
@@ -109,7 +116,9 @@ class GeocacheCoordinate(geo.Coordinate):
             'fieldnotes': self.fieldnotes,
             'logas': self.log_as,
             'logdate': self.log_date,
-            'marked' : marked
+            'marked' : marked,
+            'logs' : self.logs,
+            'status' : self.status
         }
                 
     def unserialize(self, data):
@@ -139,6 +148,11 @@ class GeocacheCoordinate(geo.Coordinate):
         self.log_as = data['logas']
         self.log_date = data['logdate']
         self.marked = (data['marked'] == 1)
+        if data['logs'] == None:
+            self.logs = ''
+        else:
+            self.logs = data['logs']
+        self.status = data['status']
 
     def get_waypoints(self):
         if self.waypoints == None or self.waypoints == '':
@@ -218,8 +232,11 @@ class CacheDownloader():
         return text.translate(trans)
 
     @staticmethod
-    def __strip_html(text):
-        return re.sub(r'<[^>]*?>', '', text)
+    def __strip_html(text, soft = False):
+        if not soft:
+            return re.sub(r'<[^>]*?>', '', text)
+        else:
+            return re.sub(r'<[^>]*?>', ' ', text)
 
     @staticmethod
     def __replace_br(text):
@@ -233,7 +250,6 @@ class CacheDownloader():
 
     def __treat_desc(self, desc):
         desc = self.__treat_html(desc.rsplit('\n', 5)[0])
-        desc = self.__replace_images(desc)
         return desc.strip()
         
     def __treat_shortdesc(self, desc):
@@ -284,7 +300,7 @@ class CacheDownloader():
         return waypoints
 
     def __treat_images(self, data):
-        finder = re.finditer('<a href="([^"]+)" rel="lightbox"><img src="../images/stockholm/16x16/images.gif" align="absmiddle" border="0">([^<]+)</a>', data)
+        finder = re.finditer('<a href="([^"]+)" rel="lightbox"><img src="\\.\\./images/stockholm/16x16/images\\.gif" align="absmiddle" border="0">([^<]+)</a>', data)
         for m in finder:
             if m.group(1) == None:
                 continue
@@ -306,6 +322,25 @@ class CacheDownloader():
             self.__add_image(id)
             return "[[img:%s]]" % id
 
+    def __treat_logs(self, logs):
+        lines = logs.split('<tr>') # lines 0 and 1 are useless!
+        for l in lines:
+            #lines = [re.sub("\w+", ' ', self.__decode_htmlentities(self.__strip_html(x, True)), '').sub('[ view this log ]') for x in lines[2:]]
+            m = re.match(r"""<td[^>]+?><font[^>]+?><STRONG><img src='http://www\.geocaching\.com/images/icons/icon_([a-z]+)\.gif' """ +
+                r"""align='absmiddle'>&nbsp;([^<]+?) by <a name[^>]+?><a href[^>]+?>([^<]+?)</a></strong>[^<]+?<br />(.+?)""" +
+                r"""<br /><br />\[<a href="[^"]+?" >view this log</a>\] </font></td></tr>""", l)
+            if m == None:
+                print "Could not parse Log-Line:\nBEGIN\n%s\nEND\n\n" % l
+            else:
+                type = m.group(1)
+                locale.setlocale(locale.LC_ALL, 'en_US')
+                date = time.strptime(m.group(2), "%B %d, %Y")
+                locale.resetlocale(locale.LC_ALL)
+                finder = m.group(3)
+                text = self.__strip_html(self.__replace_br(m.group(4)))
+                print "###### TYP: %S DATE %S FINDER %S TEXT: %s" % (type, date, finder, text)
+        print '\n--------------\n'.join(lines)
+
     def __download_image(self, url):
         if url in self.downloaded_images.keys():
             return self.downloaded_images[url]
@@ -318,8 +353,8 @@ class CacheDownloader():
 
         if self.download_images:
             try:
-                print "+ Downloading %s" % url
                 filename = os.path.join(self.path, id)
+                print "+ Downloading %s to %s" % (url, filename)
                 f = open(filename, 'wb')
                 f.write(self.downloader.get_reader(url).read())
                 f.close()
@@ -433,7 +468,7 @@ class CacheDownloader():
     def __parse_cache_page(self, cache_page, coordinate):
         indesc = inshortdesc = inhints = inwaypoints = False
         inhead = True
-        shortdesc = desc = hints = waypoints = images = ''
+        shortdesc = desc = hints = waypoints = images = logs = ''
         for line in cache_page:
             line = line.strip()
             #line = unicode(line, errors='replace')
@@ -470,6 +505,8 @@ class CacheDownloader():
                 inwaypoints = False
             elif line.startswith('<span id="Images"'):
                 images = line
+            elif line.startswith('<span id="CacheLogs">'):
+                logs = line
                                         
             if inhead:
                 if line.startswith('<span id="CacheOwner">'):
@@ -514,6 +551,8 @@ class CacheDownloader():
         coordinate.desc = self.__treat_desc(desc)
         coordinate.hints = self.__treat_hints(hints)
         coordinate.set_waypoints(self.__treat_waypoints(waypoints))
+        coordinate.logs = self.__treat_logs(logs)
+        print coordinate.logs
         self.__treat_images(images)
         coordinate.set_images(self.images)
                 

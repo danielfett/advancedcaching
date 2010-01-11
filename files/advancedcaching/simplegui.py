@@ -1500,6 +1500,8 @@ class SimpleGui(object):
 
                 
     def show_error(self, errormsg):
+        if isinstance(errormsg, Exception):
+            raise errormsg
         error_dlg = gtk.MessageDialog(type = gtk.MESSAGE_ERROR, \
             message_format = "%s" % errormsg, \
             buttons = gtk.BUTTONS_OK)
