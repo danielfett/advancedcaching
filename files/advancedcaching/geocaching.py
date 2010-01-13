@@ -19,7 +19,7 @@
 #
 
 import json
-
+import math
 import geo
 import os
 
@@ -78,6 +78,12 @@ class GeocacheCoordinate(geo.Coordinate):
         self.log_as = self.LOG_NO_LOG
         self.log_date = ''
         self.marked = False
+        
+    def get_difficulty(self):
+        return "%.1f" % (self.difficulty / 10.0)
+        
+    def get_terrain(self):
+        return "%.1f" % (self.terrain / 10.0)
 
     def serialize(self):
 
@@ -159,7 +165,17 @@ class GeocacheCoordinate(geo.Coordinate):
                 
     def was_downloaded(self):
         return (self.shortdesc != '' or self.desc != '')
-
+        
+    def get_bounds(self):
+        minlat = maxlat = self.lat
+        minlon = maxlon = self.lon
+        for wpt in self.get_waypoints():
+            minlat = math.min(minlat, wpt['lat'])
+            maxlat = math.max(maxlat, wpt['lat'])
+            minlon = math.min(minlon, wpt['lon'])
+            maxlon = math.max(maxlon, wpt['lon'])
+            
+        return (minlat, maxlat, minlon, maxlon)
 
 class FieldnotesUploader():
     def __init__(self, downloader):
@@ -223,10 +239,10 @@ class CacheDownloader():
 
     @staticmethod
     def __replace_br(text):
-        return re.sub('(<[bB][rR]\s*/?>|</[pP]>', '\n', text)
+        return re.sub('<[bB][rR]\s*/?>|</[pP]>', '\n', text)
 
     def __treat_hints(self, hints):
-        hints = self.__strip_html(hints).strip()
+        hints = self.__strip_html(self.__replace_br(hints)).strip()
         hints = self.__rot13(hints)
         hints = re.sub(r'\[([^\]]+)\]', lambda match: self.__rot13(match.group(0)), hints)
         return hints
@@ -284,18 +300,19 @@ class CacheDownloader():
         return waypoints
 
     def __treat_images(self, data):
-        finder = re.finditer('<a href="([^"]+)" rel="lightbox"><img src="../images/stockholm/16x16/images.gif" align="absmiddle" border="0">([^<]+)</a>', data)
+        finder = re.finditer('<a href="([^"]+)" rel="lightbox" class="lnk"<img src="/images/stockholm/16x16/images.gif" />(.+?</a>.+?)<br />(?=<a)', data)
         for m in finder:
             if m.group(1) == None:
                 continue
             id = self.__download_image(url = m.group(1))
             if id != None:
-                self.__add_image(id, m.group(2))
+                self.__add_image(id, self.__strip_html(m.group(2)))
 
     def __replace_images(self, data):
-        return re.sub('(?is)(<img[^>]+src=["\']?)([^ >"\']+)([^>]+?>)', self.__replace_image_callback, data)
+        return re.sub(r'''(?is)(<img[^>]+src=\n?["']?)([^ >"']+)([^>]+?/?>)''', self.__replace_image_callback, data)
 
     def __replace_image_callback(self, m):
+        print "cb %s" % m.group(2)
         url = m.group(2)
         if not url.startswith('http://'):
             return m.group(0)
@@ -307,6 +324,7 @@ class CacheDownloader():
             return "[[img:%s]]" % id
 
     def __download_image(self, url):
+        print "+ Checking download for %s" % url
         if url in self.downloaded_images.keys():
             return self.downloaded_images[url]
         
@@ -438,29 +456,26 @@ class CacheDownloader():
             line = line.strip()
             #line = unicode(line, errors='replace')
         
-            if line.startswith('<span id="ShortDescription">'):
+            if line.startswith('<span id="ctl00_ContentBody_ShortDescription">'):
                 inhead = False
                 inshortdesc = True
-            elif line.startswith('<span id="LongDescription">'):
+            elif line.startswith('<span id="ctl00_ContentBody_LongDescription">'):
                 inhead = False
                 inshortdesc = False
                 indesc = True
-            elif line.startswith('<strong>Additional Hints&nbsp;(</strong>'):
+            elif line.startswith('<div class="CacheDetailNavigationWidget">'):
                 inhead = False
                 inshortdesc = False
                 indesc = False
                 inhints = False
-            elif line.startswith('<span id="Hints"'):
-                inhead = False
-                inshortdesc = False
-                indesc = False
-                inhints = True
-            elif line.startswith('<span id="decryptHint"'):
+            elif line.startswith('<p><span id="ctl00_ContentBody_Hints" class="displayMe">'):
+                hints = re.compile('<span id="ctl00_ContentBody_Hints"[^>]+>(.*?)</span>').search(line).group(1)
+            elif line.startswith('<div id="ctl00_ContentBody_uxlrgMap" class="fr"> '):
                 inhead = False
                 inshortdesc = False
                 indesc = False
                 inhints = False
-            elif line.startswith('<strong>Additional Waypoints</strong>'):
+            elif line.startswith('<p><p><strong>Additional Waypoints</strong></p></p>'):
                 inhead = False
                 inshortdesc = False
                 indesc = False
@@ -468,18 +483,17 @@ class CacheDownloader():
                 inwaypoints = True
             elif line.startswith('</table>') and inwaypoints:
                 inwaypoints = False
-            elif line.startswith('<span id="Images"'):
+            elif line.startswith('<p><span id="ctl00_ContentBody_Images">'):
                 images = line
-                                        
+            elif line.startswith('<span id="ctl00_ContentBody_LatLon" style="font-weight:bold;">'):
+                coords = re.compile('lat=([0-9.]+)&amp;lon=([0-9.]+)&amp;').search(line)
             if inhead:
-                if line.startswith('<span id="CacheOwner">'):
+                if line.startswith('<p><strong>A cache '):
                     owner = re.compile(".*by <[^>]+>([^<]+)</a>").match(line).group(1)
-                elif line.startswith('<img src="../images/icons/container/'):
+                elif line.startswith('<p class="NoSpacing"><strong>Size:</strong>'):
                     size = re.compile(".*container/([^\\.]+)\\.").match(line).group(1)
-                elif line.startswith('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>Difficulty:'):
-                    difficulty = re.compile('.*"([0-9\\.]+) out of').match(line).group(1)
-                elif line.startswith('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>Terrain:'):
-                    terrain = re.compile('.*"([0-9\\.]+) out of').match(line).group(1)
+                    difficulty = re.compile('<span id="ctl00_ContentBody_Difficulty"><[^>]+alt="([0-9\\.]+) out of').search(line).group(1)
+                    terrain = re.compile('<span id="ctl00_ContentBody_Terrain"><[^>]+alt="([0-9\\.]+) out of').search(line).group(1)
 #                elif line.startswith('<a id="lnkPrintFriendly" class="lnk" href="cdpf.aspx?guid'):
 #                    guid = re.compile('.*cdpf\\.aspx\?guid=([a-z0-9-]+)"').match(line).group(1)
             if inshortdesc:
@@ -488,8 +502,8 @@ class CacheDownloader():
             if indesc:
                 desc += "%s\n" % line
                 
-            if inhints:
-                hints += "%s\n" % line
+            #if inhints:
+            #    hints += "%s\n" % line
                 
             if inwaypoints:
                 waypoints += "%s  " % line
@@ -508,6 +522,8 @@ class CacheDownloader():
         else:
             print "Size not known: %s" % size
             coordinate.size = 5
+        coordinate.lat = float(coords.group(1))
+        coordinate.lon = float(coords.group(2))
         coordinate.difficulty = 10 * float(difficulty)
         coordinate.terrain = 10 * float(terrain)
         coordinate.shortdesc = self.__treat_shortdesc(shortdesc)
