@@ -102,7 +102,8 @@ class FileDownloader():
             return urllib2.urlopen(req)
 
         elif data == None:
-            values = urllib.urlencode(values)
+            if (isinstance(values, dict)):
+                values = urllib.urlencode( values)
             req = urllib2.Request(url, values)
             self.add_headers(req)
             return urllib2.urlopen(req)

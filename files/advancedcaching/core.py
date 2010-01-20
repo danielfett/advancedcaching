@@ -51,6 +51,9 @@ importactions:
         --around coord radius-in-km
                 Fetches the index of geocaches at the given coordinate and radius
                 kilometers around it. No details are retrieved.
+        --at-route coord1 coord2 radius-in-km
+                Find caches along the route from coord1 to coord2. Uses OpenRouteService
+                and is not available for routes outside of europe.
 
 filter-options:
         --in coord1 coord2
@@ -251,6 +254,11 @@ class Core():
                                 
     def get_coord_by_name(self, query):
         return self.geonames.search(query)
+
+    def get_route(self, c1, c2, r):
+        c1 = self.geonames.find_nearest_intersection(c1)
+        c2 = self.geonames.find_nearest_intersection(c2)
+        return self.geonames.find_route(c1, c2, r)
 
     # called by gui
     def on_cache_selected(self, cache):
