@@ -365,7 +365,8 @@ class Cli():
         points = self.core.get_route(c1, c2, r)
         print "* Found route, now retrieving partial cache overviews"
         for p in points:
-            self.import_points(p, r)
+            self.import_points(p[0], p[1])
+            #pass
         print "* Done."
 
         
@@ -444,6 +445,7 @@ class Cli():
         print "* filter with id: %d left" % len(self.caches)
     
     def action_print (self):
+        print "Found %d Caches:" % len(self.caches)
         for c in self.caches:
             print "%s\t%s (%s)" % (c.name, c.title, c.type)
             

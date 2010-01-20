@@ -116,6 +116,7 @@ Just start the string with 'q:':
    
 
 
+from geo import Coordinate
 import json
 import sys
 
@@ -125,6 +126,7 @@ import gobject
 import gpsreader
 import os
 import provider
+import math
 
 #import cProfile
 #import pstats
@@ -258,7 +260,38 @@ class Core():
     def get_route(self, c1, c2, r):
         c1 = self.geonames.find_nearest_intersection(c1)
         c2 = self.geonames.find_nearest_intersection(c2)
-        return self.geonames.find_route(c1, c2, r)
+        route = self.geonames.find_route(c1, c2, r)
+        out = []
+        together = []
+        TOL = 15
+        MAX_TOGETHER = 20
+        for i in range(len(route)):
+            if len(together) == 0:
+                together = [route[i]] 
+            if (i < len(route) - 1):
+                brg = route[i].bearing_to(route[i+1])
+                
+            if len(together) < MAX_TOGETHER \
+                and (i < len(route) - 1) \
+                and (abs(brg - 90) < TOL
+                or abs(brg + 90) < TOL
+                or abs(brg) < TOL
+                or abs (brg - 180) < TOL) \
+                and route[i].distance_to(route[i+1]) < (r*1000*2):
+                    together.append(route[i+1])
+            else:
+                min_lat = min([x.lat for x in together])
+                min_lon = min([x.lon for x in together])
+                max_lat = max([x.lat for x in together])
+                max_lon = max([x.lon for x in together])
+                c1 = Coordinate(min_lat, min_lon)
+                c2 = Coordinate(max_lat, max_lon)
+                new_c1 = c1.transform(-45, r * 1000 * math.sqrt(2))
+                new_c2 = c2.transform(-45 + 180, r * 1000 * math.sqrt(2))
+                out.append((new_c1, new_c2))
+                together = []
+        print "* Needing %d unique queries" % len(out)
+        return out
 
     # called by gui
     def on_cache_selected(self, cache):
