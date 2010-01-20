@@ -31,7 +31,8 @@ class PointProvider():
         fields = copy.copy(self.ctype.SQLROW)
         c.execute('PRAGMA TABLE_INFO(%s)' % self.cache_table)
         for row in c:
-            del fields[row[1]]
+            if row[1] in fields.keys():
+                del fields[row[1]]
 
         # add all remaining fields
         for name, type in fields.items():
