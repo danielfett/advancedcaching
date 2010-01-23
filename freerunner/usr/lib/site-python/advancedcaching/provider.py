@@ -31,7 +31,8 @@ class PointProvider():
         fields = copy.copy(self.ctype.SQLROW)
         c.execute('PRAGMA TABLE_INFO(%s)' % self.cache_table)
         for row in c:
-            del fields[row[1]]
+            if row[1] in fields.keys():
+                del fields[row[1]]
 
         # add all remaining fields
         for name, type in fields.items():
@@ -64,7 +65,7 @@ class PointProvider():
             existing = (num == 1)
             c.close()
             if existing:
-                self.conn.execute("UPDATE %s SET found = ?, type = ? WHERE name = ?" % self.cache_table, (p.found, p.type, p.name))
+                self.conn.execute("UPDATE %s SET found = ?, type = ?, lat = ?, lon = ?, status = ? WHERE name = ?" % self.cache_table, (p.found, p.type, p.lat, p.lon, p.status, p.name))
                 return False
             else:
                 self.conn.execute("INSERT INTO %s (`%s`) VALUES (%s)" % (self.cache_table, '`, `'.join(self.ctype.SQLROW.keys()), ', '.join([':%s' % k for k in self.ctype.SQLROW.keys()])), p.serialize())
