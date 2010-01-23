@@ -1402,13 +1402,13 @@ class SimpleGui(object):
         if cache.terrain == -1:
             self.cache_elements['terrain'].set_text("?")
         else:
-            self.cache_elements['terrain'].set_text("%.1f/5" % (cache.terrain / 10.0))
+            self.cache_elements['terrain'].set_text("%s/5" % cache.get_terrain())
 
         # Difficulty
         if cache.difficulty == -1:
             self.cache_elements['difficulty'].set_text("?")
         else:
-            self.cache_elements['difficulty'].set_text("%.1f/5" % (cache.difficulty / 10.0))
+            self.cache_elements['difficulty'].set_text("%s/5" % cache.get_difficulty())
                                                 
         # Description and short description
         text_shortdesc = self.__strip_html(cache.shortdesc)
