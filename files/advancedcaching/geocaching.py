@@ -327,7 +327,7 @@ class CacheDownloader():
         return waypoints
 
     def __treat_images(self, data):
-        finder = re.finditer('<a href="([^"]+)" rel="lightbox" class="lnk"><img src="/images/stockholm/16x16/images.gif" />(.+?</a>.+?)<br />(?=<a)', data)
+        finder = re.finditer('<a href="([^"]+)" rel="lightbox" class="lnk"><img src="/images/stockholm/16x16/images.gif" />(.+?)</a><br /><br />', data)
         for m in finder:
             if m.group(1) == None:
                 continue
