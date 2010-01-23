@@ -214,7 +214,7 @@ class SimpleGui(object):
             'desc': xml.get_widget('textview_cache_desc').get_buffer(),
             'notes': xml.get_widget('textview_cache_notes').get_buffer(),
             'fieldnotes': xml.get_widget('textview_cache_fieldnotes').get_buffer(),
-            'hints': xml.get_widget('label_cache_hints'),
+            'hints': xml.get_widget('label_cache_hints').get_buffer(),
             'coords': xml.get_widget('label_cache_coords'),
             'log_found': xml.get_widget('radiobutton_cache_log_found'),
             'log_notfound': xml.get_widget('radiobutton_cache_log_notfound'),
@@ -1432,13 +1432,36 @@ class SimpleGui(object):
         # Update view here for fast user feedback
         self.do_events()
 
+        # logs
+        logs = cache.get_logs()
+        if len(logs) > 0:
+            text_hints = 'LOGS:\n'
+            for l in logs:
+                if l['type'] == geocaching.GeocacheCoordinate.LOG_TYPE_FOUND:
+                    t = 'FOUND'
+                elif l['type'] == geocaching.GeocacheCoordinate.LOG_TYPE_NOTFOUND:
+                    t = 'NOT FOUND'
+                elif l['type'] == geocaching.GeocacheCoordinate.LOG_TYPE_NOTE:
+                    t = 'NOTE'
+                elif l['type'] == geocaching.GeocacheCoordinate.LOG_TYPE_MAINTENANCE:
+                    t = 'MAINTENANCE'
+                else:
+                    t = l['type'].upper()
+                text_hints += '%s by %s at %4d/%d/%d: %s\n\n' % (t, l['finder'], int(l['year']), int(l['month']), int(l['day']), l['text'])
+            text_hints += '\n----------------\n'
+        else:
+            text_hints = 'NO LOGS.\n\n'
+        
+
         # hints
-        text_hints = cache.hints.strip()
-        if text_hints == '':
-            text_hints = '(no hints available)'
+        hints = cache.hints.strip()
+        if hints == '':
+            hints = '(no hints available)'
             showdesc += "\n[no hints]"
         else:
             showdesc += "\n[hints available]"
+        text_hints += 'HINTS:\n'+hints
+
         self.cache_elements['hints'].set_text(text_hints)
 
         # Waypoints

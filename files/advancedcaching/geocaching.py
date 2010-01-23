@@ -19,12 +19,10 @@
 #
 
 import json
-import time
-import locale
-
+import math
 import geo
 import os
-
+import datetime
 global Image
 try:
     import Image
@@ -61,6 +59,11 @@ class GeocacheCoordinate(geo.Coordinate):
     STATUS_NORMAL = 0
     STATUS_DISABLED = 1
 
+    LOG_TYPE_FOUND = 'smile'
+    LOG_TYPE_NOTFOUND = 'sad'
+    LOG_TYPE_NOTE = 'note'
+    LOG_TYPE_MAINTENANCE = 'maint'
+
 
     SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT PRIMARY KEY', 'title': 'TEXT', 'shortdesc': 'TEXT', 'desc': 'TEXT', 'hints': 'TEXT', 'type': 'TEXT', 'size': 'INTEGER', 'difficulty': 'INTEGER', 'terrain': 'INTEGER', 'owner': 'TEXT', 'found': 'INTEGER', 'waypoints': 'text', 'images': 'text', 'notes': 'TEXT', 'fieldnotes': 'TEXT', 'logas': 'INTEGER', 'logdate': 'TEXT', 'marked' : 'INTEGER', 'logs' : 'TEXT', 'status' : 'INTEGER'}
     def __init__(self, lat, lon, name=''):
@@ -85,6 +88,12 @@ class GeocacheCoordinate(geo.Coordinate):
         self.marked = False
         self.logs = ''
         self.status = self.STATUS_NORMAL
+        
+    def get_difficulty(self):
+        return "%.1f" % (self.difficulty / 10.0)
+        
+    def get_terrain(self):
+        return "%.1f" % (self.terrain / 10.0)
 
     def serialize(self):
 
@@ -159,6 +168,11 @@ class GeocacheCoordinate(geo.Coordinate):
             return []
         return json.loads(self.waypoints)
 
+    def get_logs(self):
+        if self.logs == None or self.logs == '':
+            return []
+        return json.loads(self.logs)
+
     def get_images(self):
         if self.images == None or self.images == '':
             return []
@@ -167,13 +181,26 @@ class GeocacheCoordinate(geo.Coordinate):
     def set_waypoints(self, wps):
         self.waypoints = json.dumps(wps)
 
+    def set_logs(self, ls):
+        self.logs = json.dumps(ls)
+
     def set_images(self, imgs):
         self.images = json.dumps(imgs)
                 
                 
     def was_downloaded(self):
         return (self.shortdesc != '' or self.desc != '')
-
+        
+    def get_bounds(self):
+        minlat = maxlat = self.lat
+        minlon = maxlon = self.lon
+        for wpt in self.get_waypoints():
+            minlat = math.min(minlat, wpt['lat'])
+            maxlat = math.max(maxlat, wpt['lat'])
+            minlon = math.min(minlon, wpt['lon'])
+            maxlon = math.max(maxlon, wpt['lon'])
+            
+        return (minlat, maxlat, minlon, maxlon)
 
 class FieldnotesUploader():
     def __init__(self, downloader):
@@ -240,10 +267,10 @@ class CacheDownloader():
 
     @staticmethod
     def __replace_br(text):
-        return re.sub('(<[bB][rR]\s*/?>|</[pP]>', '\n', text)
+        return re.sub('<[bB][rR]\s*/?>|</[pP]>', '\n', text)
 
     def __treat_hints(self, hints):
-        hints = self.__strip_html(hints).strip()
+        hints = self.__strip_html(self.__replace_br(hints)).strip()
         hints = self.__rot13(hints)
         hints = re.sub(r'\[([^\]]+)\]', lambda match: self.__rot13(match.group(0)), hints)
         return hints
@@ -300,18 +327,19 @@ class CacheDownloader():
         return waypoints
 
     def __treat_images(self, data):
-        finder = re.finditer('<a href="([^"]+)" rel="lightbox"><img src="\\.\\./images/stockholm/16x16/images\\.gif" align="absmiddle" border="0">([^<]+)</a>', data)
+        finder = re.finditer('<a href="([^"]+)" rel="lightbox" class="lnk"><img src="/images/stockholm/16x16/images.gif" />(.+?</a>.+?)<br />(?=<a)', data)
         for m in finder:
             if m.group(1) == None:
                 continue
             id = self.__download_image(url = m.group(1))
             if id != None:
-                self.__add_image(id, m.group(2))
+                self.__add_image(id, self.__strip_html(m.group(2)))
 
     def __replace_images(self, data):
-        return re.sub('(?is)(<img[^>]+src=["\']?)([^ >"\']+)([^>]+?>)', self.__replace_image_callback, data)
+        return re.sub(r'''(?is)(<img[^>]+src=\n?["']?)([^ >"']+)([^>]+?/?>)''', self.__replace_image_callback, data)
 
     def __replace_image_callback(self, m):
+        print "cb %s" % m.group(2)
         url = m.group(2)
         if not url.startswith('http://'):
             return m.group(0)
@@ -324,24 +352,35 @@ class CacheDownloader():
 
     def __treat_logs(self, logs):
         lines = logs.split('<tr>') # lines 0 and 1 are useless!
+        output = []
         for l in lines:
             #lines = [re.sub("\w+", ' ', self.__decode_htmlentities(self.__strip_html(x, True)), '').sub('[ view this log ]') for x in lines[2:]]
-            m = re.match(r"""<td[^>]+?><font[^>]+?><STRONG><img src='http://www\.geocaching\.com/images/icons/icon_([a-z]+)\.gif' """ +
-                r"""align='absmiddle'>&nbsp;([^<]+?) by <a name[^>]+?><a href[^>]+?>([^<]+?)</a></strong>[^<]+?<br />(.+?)""" +
-                r"""<br /><br />\[<a href="[^"]+?" >view this log</a>\] </font></td></tr>""", l)
+            m = re.match(r"""<td[^>]+><strong><img src="http://www\.geocaching\.com/images/icons/icon_([a-z]+)\.gif" alt="" />""" +
+                r"""&nbsp;([^ ]+) (\d+)(, (\d+))? by <a href[^>]+>([^<]+)</a></strong> \(\d+ found\)<br />(.+)""" +
+                r"""<br /><br /><small>""", l, re.DOTALL)
             if m == None:
-                print "Could not parse Log-Line:\nBEGIN\n%s\nEND\n\n" % l
+                print "Could not parse Log-Line:\nBEGIN\n%s\nEND\n\n This can be normal." % l
             else:
                 type = m.group(1)
-                locale.setlocale(locale.LC_ALL, 'en_US')
-                date = time.strptime(m.group(2), "%B %d, %Y")
-                locale.resetlocale(locale.LC_ALL)
-                finder = m.group(3)
-                text = self.__strip_html(self.__replace_br(m.group(4)))
-                print "###### TYP: %S DATE %S FINDER %S TEXT: %s" % (type, date, finder, text)
-        print '\n--------------\n'.join(lines)
+                month = self.__month_to_number(m.group(2))
+                day = m.group(3)
+                year = m.group(5)
+                if year == '' or year == None:
+                    year = datetime.datetime.now().year
+                finder = m.group(6)
+                text = self.__strip_html(self.__replace_br(m.group(7)), True)
+                output.append(dict(type=type, month=month, day=day, year=year, finder=finder, text=text))
+        return output
+
+    def __month_to_number(self, text):
+        months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+        if text in months:
+            return months.index(text) + 1
+        print "Unknown month: " + text
+        return 0
 
     def __download_image(self, url):
+        print "+ Checking download for %s" % url
         if url in self.downloaded_images.keys():
             return self.downloaded_images[url]
         
@@ -445,6 +484,7 @@ class CacheDownloader():
                 points += self.get_geocaches((mc2, nc2), rec_depth + 1)
             return points
         for b in a['cs']['cc']:
+            print b
             c = GeocacheCoordinate(b['lat'], b['lon'], b['gc'])
             c.title = b['nn']
             if b['ctid'] == 2:
@@ -462,61 +502,56 @@ class CacheDownloader():
             else:
                 c.type = GeocacheCoordinate.TYPE_UNKNOWN
             c.found = b['f']
+            if not b['ia']:
+                c.status = GeocacheCoordinate.STATUS_DISABLED
             points.append(c)
         return points
                 
     def __parse_cache_page(self, cache_page, coordinate):
-        indesc = inshortdesc = inhints = inwaypoints = False
+        indesc = inshortdesc = inwaypoints = False
         inhead = True
         shortdesc = desc = hints = waypoints = images = logs = ''
         for line in cache_page:
             line = line.strip()
             #line = unicode(line, errors='replace')
         
-            if line.startswith('<span id="ShortDescription">'):
+            if line.startswith('<span id="ctl00_ContentBody_ShortDescription">'):
                 inhead = False
                 inshortdesc = True
-            elif line.startswith('<span id="LongDescription">'):
+            elif line.startswith('<span id="ctl00_ContentBody_LongDescription">'):
                 inhead = False
                 inshortdesc = False
                 indesc = True
-            elif line.startswith('<strong>Additional Hints&nbsp;(</strong>'):
+            elif line.startswith('<div class="CacheDetailNavigationWidget">'):
                 inhead = False
                 inshortdesc = False
                 indesc = False
-                inhints = False
-            elif line.startswith('<span id="Hints"'):
+            elif line.startswith('<p><span id="ctl00_ContentBody_Hints" class="displayMe">'):
+                hints = re.compile('<span id="ctl00_ContentBody_Hints"[^>]+>(.*?)</span>').search(line).group(1)
+            elif line.startswith('<div id="ctl00_ContentBody_uxlrgMap" class="fr"> '):
                 inhead = False
                 inshortdesc = False
                 indesc = False
-                inhints = True
-            elif line.startswith('<span id="decryptHint"'):
+            elif line.startswith('<p><p><strong>Additional Waypoints</strong></p></p>'):
                 inhead = False
                 inshortdesc = False
                 indesc = False
-                inhints = False
-            elif line.startswith('<strong>Additional Waypoints</strong>'):
-                inhead = False
-                inshortdesc = False
-                indesc = False
-                inhints = False
                 inwaypoints = True
             elif line.startswith('</table>') and inwaypoints:
                 inwaypoints = False
-            elif line.startswith('<span id="Images"'):
+            elif line.startswith('<p><span id="ctl00_ContentBody_Images">'):
                 images = line
-            elif line.startswith('<span id="CacheLogs">'):
+            elif line.startswith('<span id="ctl00_ContentBody_LatLon" style="font-weight:bold;">'):
+                coords = re.compile('lat=([0-9.]+)&amp;lon=([0-9.]+)&amp;').search(line)
+            elif line.startswith('<p><span id="ctl00_ContentBody_CacheLogs">'):
                 logs = line
-                                        
             if inhead:
-                if line.startswith('<span id="CacheOwner">'):
+                if line.startswith('<p><strong>A cache '):
                     owner = re.compile(".*by <[^>]+>([^<]+)</a>").match(line).group(1)
-                elif line.startswith('<img src="../images/icons/container/'):
+                elif line.startswith('<p class="NoSpacing"><strong>Size:</strong>'):
                     size = re.compile(".*container/([^\\.]+)\\.").match(line).group(1)
-                elif line.startswith('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>Difficulty:'):
-                    difficulty = re.compile('.*"([0-9\\.]+) out of').match(line).group(1)
-                elif line.startswith('&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>Terrain:'):
-                    terrain = re.compile('.*"([0-9\\.]+) out of').match(line).group(1)
+                    difficulty = re.compile('<span id="ctl00_ContentBody_Difficulty"><[^>]+alt="([0-9\\.]+) out of').search(line).group(1)
+                    terrain = re.compile('<span id="ctl00_ContentBody_Terrain"><[^>]+alt="([0-9\\.]+) out of').search(line).group(1)
 #                elif line.startswith('<a id="lnkPrintFriendly" class="lnk" href="cdpf.aspx?guid'):
 #                    guid = re.compile('.*cdpf\\.aspx\?guid=([a-z0-9-]+)"').match(line).group(1)
             if inshortdesc:
@@ -525,8 +560,8 @@ class CacheDownloader():
             if indesc:
                 desc += "%s\n" % line
                 
-            if inhints:
-                hints += "%s\n" % line
+            #if inhints:
+            #    hints += "%s\n" % line
                 
             if inwaypoints:
                 waypoints += "%s  " % line
@@ -545,13 +580,15 @@ class CacheDownloader():
         else:
             print "Size not known: %s" % size
             coordinate.size = 5
+        coordinate.lat = float(coords.group(1))
+        coordinate.lon = float(coords.group(2))
         coordinate.difficulty = 10 * float(difficulty)
         coordinate.terrain = 10 * float(terrain)
         coordinate.shortdesc = self.__treat_shortdesc(shortdesc)
         coordinate.desc = self.__treat_desc(desc)
         coordinate.hints = self.__treat_hints(hints)
         coordinate.set_waypoints(self.__treat_waypoints(waypoints))
-        coordinate.logs = self.__treat_logs(logs)
+        coordinate.set_logs(self.__treat_logs(logs))
         print coordinate.logs
         self.__treat_images(images)
         coordinate.set_images(self.images)

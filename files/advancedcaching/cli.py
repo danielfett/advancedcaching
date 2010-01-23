@@ -131,6 +131,11 @@ class Cli():
             coord1 = self.parse_coord()
             radius = self.parse_int()
             self.import_points(coord1, radius)
+        elif token == '--at-route':
+            coord1 = self.parse_coord()
+            coord2 = self.parse_coord()
+            radius = self.parse_int()
+            self.import_points_route(coord1, coord2, radius)
         else:
             # undo what we did.
             self.nt -= 1
@@ -355,6 +360,15 @@ class Cli():
             print "* Approximation: Caches between %s and %s" % (new_c1, new_c2)
             self.caches, self.new_caches = self.core.on_download((new_c1, new_c2))
 
+    def import_points_route(self, c1, c2, r):
+        print "* Querying OpenRouteService for route from startpoint to endpoint"
+        points = self.core.get_route(c1, c2, r)
+        print "* Found route, now retrieving partial cache overviews"
+        for p in points:
+            self.import_points(p[0], p[1])
+            #pass
+        print "* Done."
+
         
     def add_filter_in(self, coord1, coord2):
         if isinstance(coord2, geo.Coordinate):
@@ -431,6 +445,7 @@ class Cli():
         print "* filter with id: %d left" % len(self.caches)
     
     def action_print (self):
+        print "Found %d Caches:" % len(self.caches)
         for c in self.caches:
             print "%s\t%s (%s)" % (c.name, c.title, c.type)
             
