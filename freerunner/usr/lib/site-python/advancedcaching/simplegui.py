@@ -48,6 +48,7 @@ import re
 
 class SimpleGui(object):
     USES = ['gpsprovider']
+    XMLFILE = "freerunner.glade"
 
     MAP_FACTOR = 0
     CACHE_SIZE = 20
@@ -153,14 +154,16 @@ class SimpleGui(object):
         self.map_center_x, self.map_center_y = 100, 100
         self.inhibit_zoom = False
         self.inhibit_expose = False
-        #self.draw_lock = thread.allocate_lock()
+        
+        
         global xml
-        xml = gtk.glade.XML(os.path.join(dataroot, "freerunner.glade"))
+        xml = gtk.glade.XML(os.path.join(dataroot, self.XMLFILE))
+        self.load_ui()
+        
+    def load_ui(self):
         self.window = xml.get_widget("window1")
         xml.signal_autoconnect(self)
-      
-
-
+        
         # map drawing area
         self.drawing_area = xml.get_widget("drawingarea")
         self.drawing_area_arrow = xml.get_widget("drawingarea_arrow")
@@ -211,7 +214,7 @@ class SimpleGui(object):
             'desc': xml.get_widget('textview_cache_desc').get_buffer(),
             'notes': xml.get_widget('textview_cache_notes').get_buffer(),
             'fieldnotes': xml.get_widget('textview_cache_fieldnotes').get_buffer(),
-            'hints': xml.get_widget('label_cache_hints'),
+            'hints': xml.get_widget('label_cache_hints').get_buffer(),
             'coords': xml.get_widget('label_cache_coords'),
             'log_found': xml.get_widget('radiobutton_cache_log_found'),
             'log_notfound': xml.get_widget('radiobutton_cache_log_notfound'),
@@ -257,38 +260,38 @@ class SimpleGui(object):
         # Create the renderer used in the listview
         txtRdr        = gtk.CellRendererText()
         (
-         ROW_TITLE,
-         ROW_TYPE,
-         ROW_SIZE,
-         ROW_TERRAIN,
-         ROW_DIFF,
-         ROW_ID,
-         ) = range(6)
+            ROW_TITLE,
+            ROW_TYPE,
+            ROW_SIZE,
+            ROW_TERRAIN,
+            ROW_DIFF,
+            ROW_ID,
+        ) = range(6)
         columns = (
-                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
-                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
-                   ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
-                   ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
-                   ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
-                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
-                   )
+            ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
+            ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
+            ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
+            ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
+            ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
+            ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
+        )
         self.cachelist = listview = extListview.ExtListView(columns, sortable=True, useMarkup=True, canShowHideColumns=False)
         self.cachelist_contents = []
         listview.connect('extlistview-button-pressed', self.on_search_cache_clicked)
         xml.get_widget('scrolledwindow_search').add(listview)
                 
         (
-         COL_COORD_NAME,
-         COL_COORD_LATLON,
-         COL_COORD_ID,
-         COL_COORD_COMMENT,
-         ) = range(4)
+            COL_COORD_NAME,
+            COL_COORD_LATLON,
+            COL_COORD_ID,
+            COL_COORD_COMMENT,
+        ) = range(4)
         columns = (
-                   ('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
-                   ('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
-                   ('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
-                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT,), False, True),
-                   )
+            ('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
+            ('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
+            ('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
+            ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT,), False, True),
+        )
         self.coordlist = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
         self.coordlist.connect('extlistview-button-pressed', self.on_waypoint_clicked)
         xml.get_widget('scrolledwindow_coordlist').add(self.coordlist)
@@ -424,12 +427,12 @@ class SimpleGui(object):
             if r.difficulty == -1:
                 d = "?"
             else:
-                d = "%.1f" % r.difficulty / 10
+                d = "%.1f" % (r.difficulty / 10)
                                 
             if r.terrain == -1:
                 t = "?"
             else:
-                t = "%.1f" % r.terrain / 10
+                t = "%.1f" % (r.terrain / 10)
             title =  self.__format_cache_title(r)
             rows.append((title, r.type, s, t, d, r.name, ))
         self.cachelist.replaceContent(rows)
@@ -704,6 +707,13 @@ class SimpleGui(object):
                 radius = 7
                 self.pixmap_marks.draw_rectangle(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
 
+            # if this cache is disabled
+            if c.status == geocaching.GeocacheCoordinate.STATUS_DISABLED:
+                xgc.line_width = 3
+                xgc.set_rgb_fg_color(self.COLOR_CURRENT_CACHE)
+                radius = 7
+                self.pixmap_marks.draw_line(xgc, p[0]-radius, p[1]-radius, p[0]+radius, p[1]+radius)
+
             xgc.set_rgb_fg_color(self.COLOR_CACHE_CENTER)
             xgc.line_width = 1
             self.pixmap_marks.draw_line(xgc, p[0], p[1] - 2, p[0], p[1] + 3) #  |
@@ -914,7 +924,10 @@ class SimpleGui(object):
         if self.current_cache == None:
             self.__update_cache_image(reset = True)
             return
-        self.images = self.current_cache.get_images().items()
+        if len(self.current_cache.get_images()) > 0:
+            self.images = self.current_cache.get_images().items()
+        else:
+            self.images = {}
         self.__update_cache_image(reset = True)
 
     def on_download_clicked(self, widget):
@@ -1406,6 +1419,8 @@ class SimpleGui(object):
                                                 
         # Description and short description
         text_shortdesc = self.__strip_html(cache.shortdesc)
+        if cache.status == geocaching.GeocacheCoordinate.STATUS_DISABLED:
+            text_shortdesc = 'ATTENTION! This Cache is Disabled!\n--------------\n' + text_shortdesc
         text_longdesc = self.__strip_html(re.sub(r'(?i)<img[^>]+?>', ' [to get all images, re-download description] ', re.sub(r'\[\[img:([^\]]+)\]\]', lambda a: self.__replace_image_callback(a, cache), cache.desc)))
 
         if text_longdesc == '':
@@ -1426,13 +1441,36 @@ class SimpleGui(object):
         # Update view here for fast user feedback
         self.do_events()
 
+        # logs
+        logs = cache.get_logs()
+        if len(logs) > 0:
+            text_hints = 'LOGS:\n'
+            for l in logs:
+                if l['type'] == geocaching.GeocacheCoordinate.LOG_TYPE_FOUND:
+                    t = 'FOUND'
+                elif l['type'] == geocaching.GeocacheCoordinate.LOG_TYPE_NOTFOUND:
+                    t = 'NOT FOUND'
+                elif l['type'] == geocaching.GeocacheCoordinate.LOG_TYPE_NOTE:
+                    t = 'NOTE'
+                elif l['type'] == geocaching.GeocacheCoordinate.LOG_TYPE_MAINTENANCE:
+                    t = 'MAINTENANCE'
+                else:
+                    t = l['type'].upper()
+                text_hints += '%s by %s at %4d/%d/%d: %s\n\n' % (t, l['finder'], int(l['year']), int(l['month']), int(l['day']), l['text'])
+            text_hints += '\n----------------\n'
+        else:
+            text_hints = 'NO LOGS.\n\n'
+        
+
         # hints
-        text_hints = cache.hints.strip()
-        if text_hints == '':
-            text_hints = '(no hints available)'
+        hints = cache.hints.strip()
+        if hints == '':
+            hints = '(no hints available)'
             showdesc += "\n[no hints]"
         else:
             showdesc += "\n[hints available]"
+        text_hints += 'HINTS:\n'+hints
+
         self.cache_elements['hints'].set_text(text_hints)
 
         # Waypoints
@@ -1494,6 +1532,8 @@ class SimpleGui(object):
 
                 
     def show_error(self, errormsg):
+        if isinstance(errormsg, Exception):
+            raise errormsg
         error_dlg = gtk.MessageDialog(type = gtk.MESSAGE_ERROR, \
             message_format = "%s" % errormsg, \
             buttons = gtk.BUTTONS_OK)

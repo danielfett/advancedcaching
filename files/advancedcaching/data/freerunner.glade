@@ -431,16 +431,27 @@ view</property>
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkLabel" id="label_cache_hints">
+                      <widget class="GtkScrolledWindow" id="scrolledwindow5">
                         <property name="visible">True</property>
-                        <property name="xalign">0.10000000149011612</property>
-                        <property name="yalign">0.10000000149011612</property>
-                        <property name="ypad">15</property>
-                        <property name="use_markup">True</property>
-                        <property name="wrap">True</property>
-                        <property name="wrap_mode">word-char</property>
-                        <property name="selectable">True</property>
-                        <property name="width_chars">35</property>
+                        <property name="can_focus">True</property>
+                        <property name="hscrollbar_policy">automatic</property>
+                        <property name="vscrollbar_policy">automatic</property>
+                        <child>
+                          <widget class="GtkViewport" id="viewport1">
+                            <property name="visible">True</property>
+                            <property name="resize_mode">queue</property>
+                            <child>
+                              <widget class="GtkTextView" id="label_cache_hints">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="pixels_above_lines">5</property>
+                                <property name="editable">False</property>
+                                <property name="wrap_mode">word-char</property>
+                                <property name="cursor_visible">False</property>
+                              </widget>
+                            </child>
+                          </widget>
+                        </child>
                       </widget>
                       <packing>
                         <property name="position">1</property>
@@ -449,7 +460,8 @@ view</property>
                     <child>
                       <widget class="GtkLabel" id="label17">
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">hints</property>
+                        <property name="label" translatable="yes">logs&amp;
+hints</property>
                       </widget>
                       <packing>
                         <property name="position">1</property>
@@ -559,7 +571,7 @@ view</property>
                             </child>
                             <child>
                               <widget class="GtkButton" id="button_image_next">
-                                <property name="label" translatable="yes">gtk-go-forward</property>
+                                <property name="label">gtk-go-forward</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
@@ -1201,7 +1213,7 @@ max
                         <property name="homogeneous">True</property>
                         <child>
                           <widget class="GtkButton" id="button3">
-                            <property name="label" translatable="yes">gtk-revert-to-saved</property>
+                            <property name="label">gtk-revert-to-saved</property>
                             <property name="height_request">50</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
@@ -1427,7 +1439,7 @@ list</property>
                             </child>
                             <child>
                               <widget class="GtkButton" id="button1">
-                                <property name="label" translatable="yes">gtk-ok</property>
+                                <property name="label">gtk-ok</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
@@ -1585,7 +1597,7 @@ list</property>
                             </child>
                             <child>
                               <widget class="GtkButton" id="button_download_now">
-                                <property name="label" translatable="yes">gtk-ok</property>
+                                <property name="label">gtk-ok</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
@@ -1653,7 +1665,7 @@ list</property>
                             </child>
                             <child>
                               <widget class="GtkButton" id="button_export_details">
-                                <property name="label" translatable="yes">gtk-ok</property>
+                                <property name="label">gtk-ok</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
