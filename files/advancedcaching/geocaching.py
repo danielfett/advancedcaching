@@ -305,14 +305,14 @@ class CacheDownloader():
     def __treat_waypoints(self, data):
 
         waypoints = []
-        finder = re.finditer(r'<tr bgcolor="#ffffff">\s+<td valign="top" align="center" width="16"><img [^>]+></td>\s*' +
-                             r'<td valign="top" align="center" width="16"><img [^>]+></td>\s*' +
-                             r'<td valign="top" align="left">(?P<id_prefix>[^<]+)</td>\s*' +
-                             r'<td valign="top" align="left">(?P<id>[^<]+)</td>\s*' +
-                             r'<td valign="top" align="left"><a href=[^>]+>(?P<name>[^<]+)</a>[^<]+</td>\s*' +
-                             r'<td valign="top" align="left">(\?\?\?|(?P<lat_sign>N|S) (?P<lat_d>\d+)° (?P<lat_m>[0-9\.]+) (?P<lon_sign>E|W) (?P<lon_d>\d+)° (?P<lon_m>[0-9\.]+))</td>\s*' +
-                             r'<td valign="top" align="left"></td>\s+</tr>\s*<tr bgcolor="#FFFFFF">\s+<td colspan="2" ' +
-                             r'valign="top">Note:</td>\s*<td valign="top" align="left" colspan="4">(?P<comment>.*?)</td>\s*<td>&nbsp;</td>\s*</tr> ', data, re.DOTALL)
+        finder = re.finditer(r'<tr class="BorderBottom">\s+<td><img [^>]+></td>\s*' +
+                             r'<td><img [^>]+></td>\s*' +
+                             r'<td>(?P<id_prefix>[^<]+)</td>\s*' +
+                             r'<td>(?P<id>[^<]+)</td>\s*' +
+                             r'<td><a href=[^>]+>(?P<name>[^<]+)</a>[^<]+</td>\s*' +
+                             r'<td>(\?\?\?|(?P<lat_sign>N|S) (?P<lat_d>\d+)° (?P<lat_m>[0-9\.]+) (?P<lon_sign>E|W) (?P<lon_d>\d+)° (?P<lon_m>[0-9\.]+))</td>\s*' +
+                             r'<td></td>\s+</tr>\s*<tr>\s+<td>Note:</td>' +
+                             r'\s*<td colspan="4">(?P<comment>.*?)</td>\s*<td>&nbsp;</td>\s*</tr> ', data, re.DOTALL)
         for m in finder:
             if m.group(1) == None:
                 continue

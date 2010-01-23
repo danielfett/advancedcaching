@@ -707,6 +707,13 @@ class SimpleGui(object):
                 radius = 7
                 self.pixmap_marks.draw_rectangle(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
 
+            # if this cache is disabled
+            if c.status == geocaching.GeocacheCoordinate.STATUS_DISABLED:
+                xgc.line_width = 3
+                xgc.set_rgb_fg_color(self.COLOR_CURRENT_CACHE)
+                radius = 7
+                self.pixmap_marks.draw_line(xgc, p[0]-radius, p[1]-radius, p[0]+radius, p[1]+radius)
+
             xgc.set_rgb_fg_color(self.COLOR_CACHE_CENTER)
             xgc.line_width = 1
             self.pixmap_marks.draw_line(xgc, p[0], p[1] - 2, p[0], p[1] + 3) #  |
@@ -1412,6 +1419,8 @@ class SimpleGui(object):
                                                 
         # Description and short description
         text_shortdesc = self.__strip_html(cache.shortdesc)
+        if cache.status == geocaching.GeocacheCoordinate.STATUS_DISABLED:
+            text_shortdesc = 'ATTENTION! This Cache is Disabled!\n--------------\n' + text_shortdesc
         text_longdesc = self.__strip_html(re.sub(r'(?i)<img[^>]+?>', ' [to get all images, re-download description] ', re.sub(r'\[\[img:([^\]]+)\]\]', lambda a: self.__replace_image_callback(a, cache), cache.desc)))
 
         if text_longdesc == '':
