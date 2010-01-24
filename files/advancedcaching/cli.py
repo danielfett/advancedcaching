@@ -178,15 +178,15 @@ class Cli():
             elif token == '-w' or token == '--was-downloaded':
                 self.add_filter_has_details(True)
             elif token == '-s' or token == '--size':
-                op = self.parse_minmax()
+                op = self.parse_operator()
                 size = self.parse_size()
                 self.add_filter_size(op, size)
             elif token == '-d' or token == '--difficulty':
-                op = self.parse_minmax()
+                op = self.parse_operator()
                 diff = self.parse_decimal()
                 self.add_filter_difficulty(op, diff)
             elif token == '-t' or token == '--terrain':
-                op = self.parse_minmax()
+                op = self.parse_operator()
                 terr = self.parse_decimal()
                 self.add_filter_terrain(op, terr)
             elif token == '-T' or token == '--type':
@@ -222,11 +222,12 @@ class Cli():
                 self.action_fetch_details()
             elif token == '--export-html':
                 folder = self.parse_string()
-                self.action_export_html(folder)
+                self.action_export('html', folder)
             elif token == '--export-gpx':
                 folder = self.parse_string()
-                self.action_export_gpx(folder)
+                self.action_export('gpx', folder)
             elif token == '--export-single-gpx':
+                raise ParseError("Exporting to a single gpx file is currently not supported, sorry.")
                 filename = self.parse_string()
                 self.action_export_single_gpx(filename)
             elif token == '--draw-map':
@@ -456,15 +457,12 @@ class Cli():
             self.core.on_download_cache(c)
             i += 1
     
-    def action_export_html(self, folder):
-        i = 1 
+    def action_export(self, format, folder):
+        i = 1
         for c in self.caches:
-            print "* (%d of %d)\tExporting '%s'" % (i, len(self.caches), c.title)
-            self.core.on_export_cache(c, folder)
+            print "* (%d of %d)\tExporting to %s: '%s'" % (i, len(self.caches), format, c.title)
+            self.core.on_export_cache(c, format, folder)
             i += 1
-    
-    def action_export_gpx(self):
-        pass
 
     def action_command(self, commandline):
         import unicodedata

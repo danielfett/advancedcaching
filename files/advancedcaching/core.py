@@ -127,6 +127,7 @@ import gpsreader
 import os
 import provider
 import math
+from exporter import GpxExporter
 
 #import cProfile
 #import pstats
@@ -354,11 +355,15 @@ class Core():
         finally:
             self.gui.hide_progress()
         return full
-                
-    def on_export_cache(self, cache, folder = None):
+
+    def on_export_cache(self, cache, format, folder):
+        if (format == 'gpx'):
+            exporter = GpxExporter()
+        else:
+            raise Exception("Format currently not supported: %s" % format)
+
         self.gui.set_download_progress(0.5, "Exporting %s..." % cache.name)
         try:
-            exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
             exporter.export(cache, folder)
         except Exception as e:
             self.gui.show_error(e)
