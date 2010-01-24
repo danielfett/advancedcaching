@@ -178,6 +178,7 @@ class SimpleGui(object):
         self.button_download_details = xml.get_widget('button_download_details')
         self.button_track = xml.get_widget('togglebutton_track')
         self.check_result_marked = xml.get_widget('check_result_marked')
+        self.label_fieldnotes = xml.get_widget('label_fieldnotes')
                 
         self.label_bearing = xml.get_widget('label_bearing')
         self.label_dist = xml.get_widget('label_dist')
@@ -1059,6 +1060,8 @@ class SimpleGui(object):
         self.__update_cache_image()
 
     def on_label_fieldnotes_mapped(self, widget):
+        if (widget == None):
+            widget = self.label_fieldnotes
         self.__check_notes_save()
         l = self.pointprovider.get_new_fieldnotes_count()
         if l > 0:

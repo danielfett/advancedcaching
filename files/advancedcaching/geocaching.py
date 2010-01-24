@@ -203,6 +203,8 @@ class GeocacheCoordinate(geo.Coordinate):
         return (minlat, maxlat, minlon, maxlon)
 
 class FieldnotesUploader():
+    URL = 'http://www.geocaching.com/my/uploadfieldnotes.aspx'
+    
     def __init__(self, downloader):
         self.downloader = downloader
         self.notes = []
@@ -225,12 +227,18 @@ class FieldnotesUploader():
         self.notes.append('%s,%sT10:00Z,%s,"%s"' % (geocache.name, geocache.log_date, log, text))
 
     def upload(self):
+        page = self.downloader.get_reader(self.URL).read()
+        m = re.search('<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="([^"]+)" />', page)
+        if m == None:
+            raise Exception("Could not download fieldnotes page.")
+        viewstate = m.group(1)
         text = "\r\n".join(self.notes).encode("UTF-16")
-        response = self.downloader.get_reader('http://www.geocaching.com/my/uploadfieldnotes.aspx',
+        response = self.downloader.get_reader(self.URL,
                                               data=self.downloader.encode_multipart_formdata(
-                                              [('btnUpload', 'Upload Field Note'), ('__VIEWSTATE', '/wEPDwUJMTAzMzMxMDA0ZBgBBR5fX0NvbnRyb2xzUmVxdWlyZVBvc3RCYWNrS2V5X18WAQUPY2hrU3VwcHJlc3NEYXRl81S0OxJD683dU+w4wK4MfecRC8k=')],
-                                              [('fileUpload', 'geocache_visits.txt', text)]
+                                                [('ctl00$ContentBody$btnUpload', 'Upload Field Note'), ('ctl00$ContentBody$chkSuppressDate', ''), ('__VIEWSTATE', viewstate)],
+                                                [('ctl00$ContentBody$fuFieldNote', 'geocache_visits.txt', text)]
                                               ))
+
         res = response.read()
         if not "successfully uploaded" in res:
             raise Exception("Something went wrong while uploading the field notes.")
