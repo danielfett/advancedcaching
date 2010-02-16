@@ -18,7 +18,11 @@
 #        Author: Daniel Fett advancedcaching@fragcom.de
 #
 
-import json
+try:
+    import json
+    json.dumps
+except (ImportError, AttributeError):
+    import simplejson as json	 
 import math
 import geo
 import os
@@ -58,11 +62,14 @@ class GeocacheCoordinate(geo.Coordinate):
 
     STATUS_NORMAL = 0
     STATUS_DISABLED = 1
+    STATUS_TEXT = ['normal', 'not available!']
 
     LOG_TYPE_FOUND = 'smile'
     LOG_TYPE_NOTFOUND = 'sad'
     LOG_TYPE_NOTE = 'note'
     LOG_TYPE_MAINTENANCE = 'maint'
+
+    SIZES = ['small', 'micro', 'regular', 'big', 'other']
 
 
     SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT PRIMARY KEY', 'title': 'TEXT', 'shortdesc': 'TEXT', 'desc': 'TEXT', 'hints': 'TEXT', 'type': 'TEXT', 'size': 'INTEGER', 'difficulty': 'INTEGER', 'terrain': 'INTEGER', 'owner': 'TEXT', 'found': 'INTEGER', 'waypoints': 'text', 'images': 'text', 'notes': 'TEXT', 'fieldnotes': 'TEXT', 'logas': 'INTEGER', 'logdate': 'TEXT', 'marked' : 'INTEGER', 'logs' : 'TEXT', 'status' : 'INTEGER'}
@@ -90,10 +97,13 @@ class GeocacheCoordinate(geo.Coordinate):
         self.status = self.STATUS_NORMAL
         
     def get_difficulty(self):
-        return "%.1f" % (self.difficulty / 10.0)
+        return "%.1f" % (self.difficulty / 10.0) if self.difficulty != -1 else '?'
         
     def get_terrain(self):
-        return "%.1f" % (self.terrain / 10.0)
+        return "%.1f" % (self.terrain / 10.0) if self.difficulty != -1 else '?'
+
+    def get_status(self):
+        return self.STATUS_TEXT[self.status]
 
     def serialize(self):
 
@@ -201,6 +211,12 @@ class GeocacheCoordinate(geo.Coordinate):
             maxlon = math.max(maxlon, wpt['lon'])
             
         return (minlat, maxlat, minlon, maxlon)
+    
+    def get_size_string(self):
+        if self.size == -1:
+            return '?'
+        else:
+            return self.SIZES[self.size]
 
 class FieldnotesUploader():
     URL = 'http://www.geocaching.com/my/uploadfieldnotes.aspx'
@@ -347,7 +363,6 @@ class CacheDownloader():
         return re.sub(r'''(?is)(<img[^>]+src=\n?["']?)([^ >"']+)([^>]+?/?>)''', self.__replace_image_callback, data)
 
     def __replace_image_callback(self, m):
-        print "cb %s" % m.group(2)
         url = m.group(2)
         if not url.startswith('http://'):
             return m.group(0)
@@ -367,7 +382,8 @@ class CacheDownloader():
                 r"""&nbsp;([^ ]+) (\d+)(, (\d+))? by <a href[^>]+>([^<]+)</a></strong> \(\d+ found\)<br />(.+)""" +
                 r"""<br /><br /><small>""", l, re.DOTALL)
             if m == None:
-                print "Could not parse Log-Line:\nBEGIN\n%s\nEND\n\n This can be normal." % l
+                #print "Could not parse Log-Line:\nBEGIN\n%s\nEND\n\n This can be normal." % l
+                pass
             else:
                 type = m.group(1)
                 month = self.__month_to_number(m.group(2))
@@ -409,7 +425,7 @@ class CacheDownloader():
                     im = Image.open(filename)
                     im.thumbnail((self.resize, self.resize), Image.ANTIALIAS)
                     im.save(filename)
-            except Exception as e:
+            except Exception, e:
                 print "could not download %s: %s" % (url, e)
                 return None
 
@@ -451,6 +467,7 @@ class CacheDownloader():
         self.current_image = 0
         self.images = {}
         self.current_cache = coordinate
+        print "* Downloading %s..." % (coordinate.name)
         response = self.__get_cache_page(coordinate.name)
         return self.__parse_cache_page(response, coordinate)
         
@@ -487,12 +504,11 @@ class CacheDownloader():
                 mc1 = geo.Coordinate(mlat, max(c1.lon, c2.lon))
                 mc2 = geo.Coordinate(mlat, min(c1.lon, c2.lon))
                 nc2 = geo.Coordinate(max(c1.lat, c2.lat), max(c1.lon, c2.lon))
-                print "recursing..."
+                #print "recursing..."
                 points += self.get_geocaches((nc1, mc1), rec_depth + 1)
                 points += self.get_geocaches((mc2, nc2), rec_depth + 1)
             return points
         for b in a['cs']['cc']:
-            print b
             c = GeocacheCoordinate(b['lat'], b['lon'], b['gc'])
             c.title = b['nn']
             if b['ctid'] == 2:
@@ -554,7 +570,7 @@ class CacheDownloader():
             elif line.startswith('<p><span id="ctl00_ContentBody_CacheLogs">'):
                 logs = line
             if inhead:
-                if line.startswith('<p><strong>A cache '):
+                if line.startswith('<p><strong>A cache') or line.startswith('<p><strong>An Event'):
                     owner = re.compile(".*by <[^>]+>([^<]+)</a>").match(line).group(1)
                 elif line.startswith('<p class="NoSpacing"><strong>Size:</strong>'):
                     size = re.compile(".*container/([^\\.]+)\\.").match(line).group(1)
@@ -597,7 +613,6 @@ class CacheDownloader():
         coordinate.hints = self.__treat_hints(hints)
         coordinate.set_waypoints(self.__treat_waypoints(waypoints))
         coordinate.set_logs(self.__treat_logs(logs))
-        print coordinate.logs
         self.__treat_images(images)
         coordinate.set_images(self.images)
                 

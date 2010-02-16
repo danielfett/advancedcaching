@@ -121,7 +121,7 @@ class TileLoader(threading.Thread):
             if self.pbuf.get_width() < self.gui.ts.tile_size() or self.pbuf.get_height() < self.gui.ts.tile_size():
                 raise Exception("Image too small, probably corrupted file")
             return True
-        except Exception as e:
+        except Exception, e:
             if tryno == 0:
                 return self.recover()
             else:
@@ -198,7 +198,7 @@ class TileLoader(threading.Thread):
                 print "File not found: %s" % remote
                 return False
             return True
-        except Exception as e:
+        except Exception, e:
             print "Download Error", e
             return False
         finally:

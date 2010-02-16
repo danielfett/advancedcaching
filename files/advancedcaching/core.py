@@ -117,7 +117,11 @@ Just start the string with 'q:':
 
 
 from geo import Coordinate
-import json
+try:
+    import json
+    json.dumps
+except (ImportError, AttributeError):
+    import simplejson as json
 import sys
 
 import downloader
@@ -143,6 +147,9 @@ if arg == '--simple':
 elif arg == '--desktop':
     import biggui
     gui = biggui.BigGui
+elif arg == '--hildon':
+    import hildongui
+    gui = hildongui.HildonGui
 else:
     import cli
     gui = cli.Cli
@@ -179,7 +186,7 @@ class Standbypreventer():
     def __try_run(self, command):
         try:
             os.system(command)
-        except Exception as e:
+        except Exception, e:
             print "Could not prevent Standby: %s" % e
 
 class Core():
@@ -234,7 +241,6 @@ class Core():
         #pointprovider = PointProvider(':memory:', self.downloader)
         #reader = GpxReader(pointprovider)
         #reader.read_file('../../file.loc')
-        
         self.gui = guitype(self, self.pointprovider, self.userpointprovider, dataroot)
         self.gui.write_settings(self.settings)
         if 'gpsprovider' in self.gui.USES:
@@ -245,7 +251,7 @@ class Core():
         if 'geonames' in self.gui.USES:
             import geonames
             self.geonames = geonames.Geonames(self.downloader)
-        
+        print self.gui.show
         self.gui.show()
                 
                 
@@ -323,7 +329,7 @@ class Core():
         cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         try:
             caches = cd.get_geocaches(location)
-        except Exception as e:
+        except Exception, e:
             self.gui.show_error(e)
             print e
             return []
@@ -348,7 +354,7 @@ class Core():
             full = cd.update_coordinate(cache)
             self.pointprovider.add_point(full, True)
             self.pointprovider.save()
-        except Exception as e:
+        except Exception, e:
             self.gui.show_error(e)
             return cache
         finally:
@@ -360,7 +366,7 @@ class Core():
         try:
             exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
             exporter.export(cache, folder)
-        except Exception as e:
+        except Exception, e:
             self.gui.show_error(e)
         finally:
             self.gui.hide_progress()
@@ -407,7 +413,7 @@ class Core():
                 #exporter.export(full)
                 i += 1.0
                                 
-        except Exception as e:
+        except Exception, e:
             self.gui.show_error(e)
         finally:
             self.gui.hide_progress()
@@ -446,7 +452,7 @@ class Core():
                 fn.add_fieldnote(c)
             fn.upload()
                         
-        except Exception as e:
+        except Exception, e:
             self.gui.show_error(e)
         else:
             #self.gui.show_success("Field notes uploaded successfully.")
@@ -512,4 +518,7 @@ def determine_path ():
                         
 def start():
     Core(gui, determine_path())
+
+if __name__ == "__main__":
+    start()
 

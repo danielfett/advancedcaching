@@ -20,7 +20,11 @@
 
 import geo
 import urllib
-import json
+try:
+    import json
+    json.dumps
+except (ImportError, AttributeError):
+    import simplejson as json
 
 
 class Geonames():

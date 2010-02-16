@@ -168,7 +168,7 @@ class GpsReader():
                 quality = quality,
                 error = err_hor
                 )
-        except Exception as e:
+        except Exception, e:
             print "Fehler beim Auslesen der Daten: %s " % e
             return self.EMPTY
 

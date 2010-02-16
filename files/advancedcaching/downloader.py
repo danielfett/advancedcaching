@@ -88,7 +88,7 @@ class FileDownloader():
         self.logged_in = True
         try:
             cj.save()
-        except Exception as e:
+        except Exception, e:
             print "+ Could not save cookies:", e
 
 

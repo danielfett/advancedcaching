@@ -65,13 +65,13 @@ class Cli():
         
         try:
             self.parse_input()
-        except ParseError as e:
+        except ParseError, e:
             if e.token == None:
                 print "# Parse Error at token '%s': " % sys.argv[self.nt - 1]
             else:
                 print "# Parse Error after Token '%s':" % sys.argv[e.token]
             print "# %s" % e.msg
-        except RunError as e:
+        except RunError, e:
             print "# Execution Error at token '%s': " % sys.argv[self.nt - 1]
             print "# %s" % e.msg
             
@@ -259,12 +259,12 @@ class Cli():
             query = text[2:]
             try:
                 c = self.core.get_coord_by_name(query)
-            except Exception as e:
+            except Exception, e:
                 raise ParseError(e)
         else:
             try:
                 c = geo.try_parse_coordinate(text)
-            except Exception as e:
+            except Exception, e:
                 raise ParseError(e)
             
         return c
