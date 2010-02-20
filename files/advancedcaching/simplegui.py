@@ -1266,10 +1266,10 @@ class SimpleGui(object):
         if not self.inhibit_zoom:
             self.zoom()
                 
-    def on_zoomin_clicked(self, widget):
+    def on_zoomin_clicked(self, widget, data):
         self.zoom(+ 1)
                 
-    def on_zoomout_clicked(self, widget):
+    def on_zoomout_clicked(self, widget, data):
         self.zoom(-1)
                 
     def _update_cache_image(self, reset = False):

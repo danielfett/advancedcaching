@@ -102,45 +102,30 @@ class HildonGui(SimpleGui):
         '''
 
         self.label_dist = gtk.Label()
-        self.label_dist.set_markup("Distance\n<small>312 km</small>")
+        self.label_dist.set_markup("")
         self.label_dist.set_alignment(0, 0)
 
         self.label_bearing = gtk.Label()
-        self.label_bearing.set_markup("Bearing\n<small>123°</small>")
+        self.label_bearing.set_markup("")
         self.label_bearing.set_alignment(0, 0)
 
         self.label_altitude = gtk.Label()
-        self.label_altitude.set_markup("Altitude\n<small>123 m</small>")
+        self.label_altitude.set_markup("")
         self.label_altitude.set_alignment(0, 0)
 
         self.label_latlon = gtk.Label()
-        self.label_latlon.set_markup("Current Position\n<small>N49 54.121 E4 12.249</small>")
+        self.label_latlon.set_markup("")
         self.label_latlon.set_alignment(0, 0)
 
         self.label_quality = gtk.Label()
-        self.label_quality.set_markup("Accurancy\n<small>4/12 Sats, +- 12m</small>")
+        self.label_quality.set_markup("")
         self.label_quality.set_alignment(0, 0)
 
         button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_title("Target")
-        button.set_value('N49 54.121 E4 12.249')
+        button.set_value('none set')
         button.connect('clicked', self._on_show_dialog_change_target, None)
         self.label_target = button
-
-
-        '''
-        gpsinfo = gtk.VBox()
-        gpsinfo.pack_start(self.label_dist, True, False)
-        gpsinfo.pack_start(self.label_bearing, True, False)
-        gpsinfo.pack_start(self.label_altitude, True, False)
-        gpsinfo.pack_start(self.label_latlon, True, False)
-        gpsinfo.pack_start(self.label_quality, True, False)
-        gpsinfo.pack_start(self.label_target, True, False)
-
-
-        self.main_gpspage.pack_start(self.drawing_area_arrow, True, True)
-        self.main_gpspage.pack_start(gpsinfo, False, True)
-        '''
 
 
         self.main_gpspage.attach(self.drawing_area_arrow, 1, 2, 0, 6, gtk.EXPAND | gtk.FILL, gtk.EXPAND)
@@ -881,24 +866,20 @@ class HildonGui(SimpleGui):
         suc_dlg.destroy()
                                 
     def update_gps_display(self):
-        print 'updating gps display'
         if self.gps_data == None:
             return
 
         if self.gps_data.sats == 0:
-            label = "No sats available"
+            text = "No sats available"
         else:
-            label = "%d/%d sats, error: ±%3.1fm" % (self.gps_data.sats, self.gps_data.sats_known, self.gps_data.error)
-            if self.gps_data.dgps:
-                label += " DGPS"
-        self.label_quality.set_text(label)
+            text = "%d/%d sats, error: ±%3.1fm" % (self.gps_data.sats, self.gps_data.sats_known, self.gps_data.error)
+        self.label_quality.set_markup("Accurancy\n<small>%s</small>" % text)
         if self.gps_data.altitude == None or self.gps_data.bearing == None:
             return
 
-        self.label_altitude.set_text("alt %3dm" % self.gps_data.altitude)
-        self.label_bearing.set_text("%d°" % self.gps_data.bearing)
-        self.label_latlon.set_text("<span size='large'>%s\n%s</span>" % (self.gps_data.position.get_lat(self.format), self.gps_data.position.get_lon(self.format)))
-        self.label_latlon.set_use_markup(True)
+        self.label_altitude.set_markup("Altitude\n<small>%3d m</small>" % self.gps_data.altitude)
+        self.label_bearing.set_markup("Bearing\n<small>%d°</small>" % self.gps_data.bearing)
+        self.label_latlon.set_markup("Current Position\n<small>%s %s</small>" % (self.gps_data.position.get_lat(self.format), self.gps_data.position.get_lon(self.format)))
                 
         if self.current_target == None:
             return
@@ -907,16 +888,12 @@ class HildonGui(SimpleGui):
                 
         target_distance = self.gps_data.position.distance_to(self.current_target)
         if target_distance >= 1000:
-            label = "%3dkm" % round(target_distance / 1000)
+            label = "%dkm" % round(target_distance / 1000)
         elif display_dist >= 100:
-            label = "%3dm" % round(target_distance)
+            label = "%dm" % round(target_distance)
         else:
-            label = "%2.1fm" % round(target_distance, 1)
-        self.label_dist.set_text("<span size='large'>%s</span>" % label)
-        self.label_dist.set_use_markup(True)
-        
-        
-                
+            label = "%.1fm" % round(target_distance, 1)
+        self.label_dist.set_markup("Distance\n<small>%s</small>" % label)
                 
     def write_settings(self, settings):
         self.settings = settings
