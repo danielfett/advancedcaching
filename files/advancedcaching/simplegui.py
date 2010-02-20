@@ -198,7 +198,7 @@ class SimpleGui(object):
         self.drawing_area.connect("scroll_event", self._scroll)
         self.drawing_area.connect("button_release_event", self._drag_end)
         self.drawing_area.connect("motion_notify_event", self._drag)
-        self.drawing_area.set_events(gtk.gdk.EXPOSURE_MASK | gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.BUTTON_RELEASE_MASK | gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.SCROLL)
+        self.drawing_area.set_events(gtk.gdk.EXPOSURE_MASK | gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.BUTTON_RELEASE_MASK | gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.SCROLL | gtk.gdk.BUTTON_MOTION_MASK)
                 
         # arrow drawing area
         self.drawing_area_arrow.connect("expose_event", self._expose_event_arrow)
@@ -460,7 +460,7 @@ class SimpleGui(object):
         if not self.drawing_area_arrow_configured:
             return
         widget = self.drawing_area_arrow
-        x, y, width, height = widget.get_allocation()
+        x, z, width, height = widget.get_allocation()
                         
         disabled = (not self.gps_has_fix or self.current_target == None or self.gps_data == None or self.gps_data.position == None)
                         
@@ -504,7 +504,7 @@ class SimpleGui(object):
         position_x = width / 2 - math.sin(display_north) * indicator_dist
         position_y = height / 2 - math.cos(display_north) * indicator_dist
         self.xgc_arrow.set_function(gtk.gdk.AND)
-        self.pixmap_arrow.draw_drawable(self.xgc_arrow, self.pixmap_north_indicator, 0, 0, position_x - self.NORTH_INDICATOR_SIZE / 2, position_y - self.NORTH_INDICATOR_SIZE / 2, -1, -1)
+        self.pixmap_arrow.draw_drawable(self.xgc_arrow, self.pixmap_north_indicator, 0, 0, int(position_x - self.NORTH_INDICATOR_SIZE / 2), int(position_y - self.NORTH_INDICATOR_SIZE / 2), -1, -1)
         self.xgc_arrow.set_function(gtk.gdk.COPY)
 
 
@@ -553,9 +553,10 @@ class SimpleGui(object):
     def _drag(self, widget, event):
         print 'dreck'
         if not self.dragging:
-            return
+            return True
         self.drag_offset_x = self.drag_start_x - event.x
         self.drag_offset_y = self.drag_start_y - event.y
+        return True
                 
     def _drag_end(self, widget, event):
         if not self.dragging:

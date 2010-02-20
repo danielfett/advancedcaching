@@ -141,7 +141,7 @@ class HildonGui(SimpleGui):
         self.main_gpspage.attach(self.label_latlon, 1, 2,  3, 4, gtk.FILL, gtk.EXPAND)
         self.main_gpspage.attach(self.label_quality, 1, 2, 4, 5, gtk.FILL, gtk.EXPAND)
         self.main_gpspage.attach(self.label_target, 1, 2, 5, 6, gtk.FILL, gtk.EXPAND)
-        self.main_gpspage.attach(self.drawing_area_arrow, 0, 1, 0, 6, gtk.EXPAND, gtk.EXPAND)
+        self.main_gpspage.attach(self.drawing_area_arrow, 0, 1, 0, 6, gtk.EXPAND | gtk.FILL, gtk.EXPAND | gtk.FILL)
 
         self.main_mappage = gtk.VBox()
         self.drawing_area = gtk.DrawingArea()
@@ -186,7 +186,6 @@ class HildonGui(SimpleGui):
         self.drawing_area.set_events(gtk.gdk.EXPOSURE_MASK | gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.BUTTON_RELEASE_MASK | gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.SCROLL)
 
         # arrow drawing area
-        self.drawing_area_arrow.set_double_buffered(False)
         self.drawing_area_arrow.connect("expose_event", self._expose_event_arrow)
         self.drawing_area_arrow.connect("configure_event", self._configure_event_arrow)
         self.drawing_area_arrow.set_events(gtk.gdk.EXPOSURE_MASK)
