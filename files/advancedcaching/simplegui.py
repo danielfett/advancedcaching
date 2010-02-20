@@ -341,6 +341,7 @@ class SimpleGui(object):
                 
                 
     def _configure_event_arrow(self, widget, event):
+        print "configuring arrow"
         x, y, width, height = widget.get_allocation()
         self.pixmap_arrow = gtk.gdk.Pixmap(widget.window, width, height)
         self.xgc_arrow = widget.window.new_gc()
@@ -456,8 +457,10 @@ class SimpleGui(object):
             return m
 
     def _draw_arrow(self):
+        print 'drawing... '
         if not self.drawing_area_arrow_configured:
             return
+        print '..arrow'
         widget = self.drawing_area_arrow
         x, y, width, height = widget.get_allocation()
                         

@@ -154,14 +154,14 @@ class HildonGui(SimpleGui):
 
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
         button.set_label("+")
-        button.connect("clicked", self._on_zoomin_clicked, None)
+        button.connect("clicked", self.on_zoomin_clicked, None)
         buttons.pack_start(button, True, True)
 
 
 
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
         button.set_label("-")
-        button.connect("clicked", self._on_zoomout_clicked, None)
+        button.connect("clicked", self.on_zoomout_clicked, None)
         buttons.pack_start(button, True, True)
         self.main_mappage.pack_start(self.drawing_area, True)
         self.main_mappage.pack_start(buttons, False)
@@ -452,12 +452,6 @@ class HildonGui(SimpleGui):
     def _on_tracked_toggled(self, widget, data):
         pass
         
-    def _on_zoom_in(self, widget, data):
-        pass
-        
-        
-    def _on_zoom_out(self, widget, data):
-        pass
         
         
         
@@ -826,11 +820,6 @@ class HildonGui(SimpleGui):
         if not self.inhibit_zoom:
             self.zoom()
                 
-    def _on_zoomin_clicked(self, widget):
-        self.zoom( + 1)
-                
-    def _on_zoomout_clicked(self, widget):
-        self.zoom(-1)
                 
                 
                 
@@ -888,11 +877,11 @@ class HildonGui(SimpleGui):
                 
         target_distance = self.gps_data.position.distance_to(self.current_target)
         if target_distance >= 1000:
-            label = "%dkm" % round(target_distance / 1000)
+            label = "%d km" % round(target_distance / 1000)
         elif display_dist >= 100:
-            label = "%dm" % round(target_distance)
+            label = "%d m" % round(target_distance)
         else:
-            label = "%.1fm" % round(target_distance, 1)
+            label = "%.1f m" % round(target_distance, 1)
         self.label_dist.set_markup("Distance\n<small>%s</small>" % label)
                 
     def write_settings(self, settings):
