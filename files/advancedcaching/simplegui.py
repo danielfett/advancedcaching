@@ -457,10 +457,8 @@ class SimpleGui(object):
             return m
 
     def _draw_arrow(self):
-        print 'drawing... '
         if not self.drawing_area_arrow_configured:
             return
-        print '..arrow'
         widget = self.drawing_area_arrow
         x, y, width, height = widget.get_allocation()
                         
