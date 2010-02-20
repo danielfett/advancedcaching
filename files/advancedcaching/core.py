@@ -244,9 +244,13 @@ class Core():
         self.gui = guitype(self, self.pointprovider, self.userpointprovider, dataroot)
         self.gui.write_settings(self.settings)
         if 'gpsprovider' in self.gui.USES:
-            self.gps_thread = gpsreader.GpsReader(self)
+            self.gps_thread = gpsreader.GpsReader()
             #self.gps_thread = gpsreader.FakeGpsReader(self)
             gobject.timeout_add(1000, self.__read_gps)
+        elif 'locationgpsprovider' in self.gui.USES:
+            self.gps_thread = gpsreader.LocationGpsReader(self.__read_gps_cb_error, self.__read_gps_cb_changed)
+
+
 
         if 'geonames' in self.gui.USES:
             import geonames
@@ -467,6 +471,19 @@ class Core():
             self.gui.on_good_fix(fix)
         else:
             self.gui.on_no_fix(fix, self.gps_thread.status)
+        return True
+
+    def __read_gps_cb_error(self, control, error):
+        fix = gpsreader.Fix()
+        msg = gpsreader.LocationGpsReader.get_error_from_code(error)
+        self.gui.on_no_fix(fix, msg)
+        return True
+
+    def __read_gps_cb_changed(self, device):
+        fix = gpsreader.Fix.from_tuple(device.fix, device)
+        # @type fix gpsreader.Fix
+        if fix.position != None:
+            self.gui.on_good_fix(fix)
         return True
                 
     def __read_config(self):

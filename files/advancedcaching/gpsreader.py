@@ -42,6 +42,21 @@ class Fix():
         self.quality = quality
         self.error = error
 
+    @staticmethod
+    def from_tuple(f, device):
+        a = Fix()
+        if (not f[1] & (location.GPS_DEVICE_LATLONG_SET | location.GPS_DEVICE_ALTITUDE_SET | location.GPS_DEVICE_TRACK_SET)):
+            return a
+        a.position = Coordinate(f[4], f[5])
+        a.altitude = f[7]
+        a.bearing = f[9]
+        a.speed = f[11]
+        a.sats = device.satellites_in_use
+        a.sats_known = device.satellites_in_view
+        a.dgps = False
+        a.quality = f[6]
+        return a
+
 class GpsReader():
 
     BEARING_HOLD_SPEED = 0.62 # meters per second. empirical value.
@@ -51,8 +66,7 @@ class GpsReader():
 
     EMPTY = Fix()
 
-    def __init__(self, gui):
-        self.gui = gui
+    def __init__(self):
         self.status = "connecting..."
         self.connected = False
         self.last_bearing = 0
@@ -188,8 +202,7 @@ class FakeGpsReader():
     INC = 0.001
     
 
-    def __init__(self, gui):
-        self.gui = gui
+    def __init__(self):
         self.status = "faking..."
         self.current_lat, self.current_lon = (self.START_LAT, self.START_LON)
 
@@ -207,3 +220,32 @@ class FakeGpsReader():
             dgps = True,
             quality = 0
             )
+
+
+class LocationGpsReader():
+    def __init__(self, cb_error, cb_changed):
+        import location
+        import gobject
+        
+        print "+ Using liblocation GPS device"
+
+        control = location.GPSDControl.get_default()
+        device = location.GPSDevice()
+        control.set_properties(preferred_method = location.METHOD_GNSS | location.METHOD_AGNSS, preferred_interval=location.INTERVAL_1S)
+        control.connect("error-verbose", cb_error)
+        device.connect("changed", cb_changed)
+        control.start()
+
+    @staticmethod
+    def get_error_from_code(error):
+        import location
+        if error == location.ERROR_USER_REJECTED_DIALOG:
+            return "Requested GPS method not enabled"
+        elif error == location.ERROR_USER_REJECTED_SETTINGS:
+            return "Location disabled due to change in settings"
+        elif error == location.ERROR_BT_GPS_NOT_AVAILABLE:
+            return "Problems with BT GPS"
+        elif error == location.ERROR_METHOD_NOT_ALLOWED_IN_OFFLINE_MODE:
+            return "Requested method is not allowed in offline mode"
+        elif error == location.ERROR_SYSTEM:
+            return "System error"
