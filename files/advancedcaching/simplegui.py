@@ -34,15 +34,18 @@
 ### For the gui :-)
 import math
 
-import extListview
 import geo
 import geocaching
 import gobject
 import gtk
-import gtk.glade
+try:
+    import gtk.glade
+    import extListview
+    import pango
+except (ImportError):
+    print "Please install glade and pango."
 import openstreetmap
 import os
-import pango
 import re
 
 class SimpleGui(object):
