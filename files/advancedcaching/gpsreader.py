@@ -21,6 +21,11 @@
 import geo
 import socket
 
+try:
+    import location
+except (ImportError):
+    print "If you're on maemo, please install python-location"
+
 class Fix():
     def __init__(self,
             position = None,
@@ -224,9 +229,6 @@ class FakeGpsReader():
 
 class LocationGpsReader():
     def __init__(self, cb_error, cb_changed):
-        import location
-        import gobject
-        
         print "+ Using liblocation GPS device"
 
         control = location.GPSDControl.get_default()
@@ -234,11 +236,15 @@ class LocationGpsReader():
         control.set_properties(preferred_method = location.METHOD_GNSS | location.METHOD_AGNSS, preferred_interval=location.INTERVAL_1S)
         control.connect("error-verbose", cb_error)
         device.connect("changed", cb_changed)
-        control.start()
+        self.control = control
+        self.device = device
+
+    def start(self):
+        self.control.start()
+        return False
 
     @staticmethod
     def get_error_from_code(error):
-        import location
         if error == location.ERROR_USER_REJECTED_DIALOG:
             return "Requested GPS method not enabled"
         elif error == location.ERROR_USER_REJECTED_SETTINGS:

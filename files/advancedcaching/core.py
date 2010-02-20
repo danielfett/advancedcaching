@@ -254,7 +254,7 @@ class Core():
             gobject.timeout_add(1000, self.__read_gps)
         elif 'locationgpsprovider' in self.gui.USES:
             self.gps_thread = gpsreader.LocationGpsReader(self.__read_gps_cb_error, self.__read_gps_cb_changed)
-
+            gobject.idle_add(self.gps_thread.start)
 
 
         if 'geonames' in self.gui.USES:
