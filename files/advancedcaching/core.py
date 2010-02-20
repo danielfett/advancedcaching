@@ -193,6 +193,11 @@ class Core():
     SETTINGS_DIR = os.path.expanduser('~/.agtl')
     CACHES_DB = os.path.join(SETTINGS_DIR, "caches.db")
     COOKIE_FILE = os.path.join(SETTINGS_DIR, "cookies.lwp")
+
+    MAEMO_HOME = os.path.expanduser("~/MyDocs/")
+    MAPS_DIR = 'Maps/OSM/'
+    MAPS_DIR_DEFAULT = os.path.expanduser('~/' + MAPS_DIR)
+    MAPS_DIR_MAEMO = MAEMO_HOME + MAPS_DIR
     
     DEFAULT_SETTINGS = {
         'download_visible': True,
@@ -215,7 +220,7 @@ class Core():
         'last_target_lon': 10,
         'last_target_name': 'default',
         'download_noimages': False,
-        'download_map_path': os.path.expanduser('~/Maps/OSM/'),
+        'download_map_path': MAPS_DIR_DEFAULT if not os.path.exists(MAEMO_HOME) else MAPS_DIR_MAEMO,
         'options_hide_found': False
     }
             
@@ -480,6 +485,7 @@ class Core():
         return True
 
     def __read_gps_cb_changed(self, device):
+        print 'got fix'
         fix = gpsreader.Fix.from_tuple(device.fix, device)
         # @type fix gpsreader.Fix
         if fix.position != None:

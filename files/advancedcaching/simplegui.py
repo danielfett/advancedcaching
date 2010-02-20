@@ -41,9 +41,9 @@ import gtk
 try:
     import gtk.glade
     import extListview
-    import pango
 except (ImportError):
     print "Please install glade and pango."
+import pango
 import openstreetmap
 import os
 import re

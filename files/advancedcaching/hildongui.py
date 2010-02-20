@@ -881,6 +881,7 @@ class HildonGui(SimpleGui):
         suc_dlg.destroy()
                                 
     def update_gps_display(self):
+        print 'updating gps display'
         if self.gps_data == None:
             return
 
