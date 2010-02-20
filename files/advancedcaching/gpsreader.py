@@ -52,7 +52,7 @@ class Fix():
         a = Fix()
         if (not f[1] & (location.GPS_DEVICE_LATLONG_SET | location.GPS_DEVICE_ALTITUDE_SET | location.GPS_DEVICE_TRACK_SET)):
             return a
-        a.position = Coordinate(f[4], f[5])
+        a.position = geo.Coordinate(f[4], f[5])
         a.altitude = f[7]
         a.bearing = f[9]
         a.speed = f[11]
