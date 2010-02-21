@@ -402,7 +402,7 @@ class SimpleGui(object):
         entity_re = re.compile(r'&(#?)(x?)(\w+);')
         return entity_re.subn(substitute_entity, string)[0]
         
-    def on_window_destroy(self, target):
+    def on_window_destroy(self, target, more, data):
         self.core.on_destroy()
         gtk.main_quit()
 

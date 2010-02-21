@@ -196,8 +196,8 @@ class Core():
 
     MAEMO_HOME = os.path.expanduser("~/MyDocs/")
     MAPS_DIR = 'Maps/OSM/'
-    MAPS_DIR_DEFAULT = os.path.expanduser('~/' + MAPS_DIR)
-    MAPS_DIR_MAEMO = MAEMO_HOME + MAPS_DIR
+
+    DATA_DIR = os.path.expanduser('~/') if not os.path.exists(MAEMO_HOME) else MAEMO_HOME
     
     DEFAULT_SETTINGS = {
         'download_visible': True,
@@ -207,7 +207,7 @@ class Core():
         'download_create_index': True,
         'download_run_after': False,
         'download_run_after_string': '',
-        'download_output_dir': os.path.expanduser('~/caches/'),
+        'download_output_dir': os.path.expanduser(DATA_DIR + 'caches/'),
         'map_position_lat': 49.7540,
         'map_position_lon': 6.66135,
         'map_zoom': 7,
@@ -220,7 +220,7 @@ class Core():
         'last_target_lon': 10,
         'last_target_name': 'default',
         'download_noimages': False,
-        'download_map_path': MAPS_DIR_DEFAULT if not os.path.exists(MAEMO_HOME) else MAPS_DIR_MAEMO,
+        'download_map_path': DATA_DIR + MAPS_DIR,
         'options_hide_found': False
     }
             

@@ -57,7 +57,7 @@ class TileLoader(threading.Thread):
         self.__log("start")
         answer = True
         if not os.path.isfile(self.local_filename):
-            print "Datei existiert nicht: '%s' " % self.local_filename
+            #print "Datei existiert nicht: '%s' " % self.local_filename
             path_1 = "%s%d" % (self.base_dir, self.zoom)
             path_2 = "%s/%d" % (path_1, self.tile[0])
             try:
@@ -104,7 +104,6 @@ class TileLoader(threading.Thread):
             # the supertile is 'size' px wide and high.
             off_x = (self.tile[0]/2.0 - supertile_x) * size
             off_y = (self.tile[1]/2.0 - supertile_y) * size
-            print off_x, off_y
             pbuf = gtk.gdk.pixbuf_new_from_file(supertile_name)
             #pbuf.scale(pbuf, 0, 0, size/2, size/2, off_x, off_y, 2, 2, gtk.gdk.INTERP_BILINEAR)
             dest = gtk.gdk.Pixbuf(pbuf.get_colorspace(), pbuf.get_has_alpha(), pbuf.get_bits_per_sample(), size, size)

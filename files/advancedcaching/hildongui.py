@@ -90,7 +90,7 @@ class HildonGui(SimpleGui):
         program = hildon.Program.get_instance()
         self.window = hildon.StackableWindow()
         program.add_window(self.window)
-        self.window.connect("delete_event", gtk.main_quit, None)
+        self.window.connect("delete_event", self.on_window_destroy, None)
         self.window.add(self._create_main_view())
         self.window.set_app_menu(self._create_main_menu())
 
@@ -399,15 +399,20 @@ class HildonGui(SimpleGui):
         opts.attach(gtk.Label("Username"), 0, 1, 0, 1)
         username = hildon.Entry(gtk.HILDON_SIZE_AUTO)
         opts.attach(username, 1, 2, 0, 1)
+        username.set_text(self.settings['options_username'])
         
         opts.attach(gtk.Label("Password"), 0, 1, 1, 2)
         password = hildon.Entry(gtk.HILDON_SIZE_AUTO)
         password.set_visibility(False)
         opts.attach(password, 1, 2, 1, 2)
+        password.set_text(self.settings['options_password'])
         
         check_dl_images = gtk.CheckButton("Don't Download Images")
+        check_dl_images.set_active(self.settings['download_noimages'])
         check_show_cache_id = gtk.CheckButton("Show Geocache ID on Map")
+        check_show_cache_id.set_active(self.settings['options_show_name'])
         check_hide_found = gtk.CheckButton("Hide Found Geocaches on Map")
+        check_hide_found.set_active(self.settings['options_hide_found'])
         
         opts.attach(check_dl_images, 0, 2, 2, 3)
         opts.attach(check_show_cache_id, 0, 2, 3, 4)
@@ -419,7 +424,13 @@ class HildonGui(SimpleGui):
         dialog.show_all()
         result = dialog.run()
         dialog.hide()
-                
+        if result == gtk.RESPONSE_ACCEPT:
+            self.settings['options_username'] = username.get_text()
+            self.settings['options_password'] = password.get_text()
+            self.settings['download_noimages'] = check_dl_images.get_active()
+            self.settings['options_show_name'] = check_show_cache_id.get_active()
+            self.settings['options_hide_found'] = check_hide_found.get_active()
+
     def _on_show_dialog_change_target(self, widget, data):
         if self.current_target != None:
             c = self.current_target
@@ -930,6 +941,23 @@ class HildonGui(SimpleGui):
         else:
             label = "%.1f m" % round(target_distance, 1)
         self.label_dist.set_markup("Distance\n<small>%s</small>" % label)
+
+    def read_settings(self):
+        c = self.ts.num2deg(self.map_center_x, self.map_center_y)
+        settings = {
+            'map_position_lat': c.lat,
+            'map_position_lon': c.lon,
+            'map_zoom': self.ts.get_zoom(),
+        }
+        if self.current_target != None:
+            settings['last_target_lat'] = self.current_target.lat
+            settings['last_target_lon'] = self.current_target.lon
+
+        for i in ['options_username', 'options_password', 'download_noimages', 'options_show_name', 'options_hide_found']:
+            settings[i] = self.settings[i]
+        self.settings = settings
+        return settings
+
                 
     def write_settings(self, settings):
         self.settings = settings
@@ -937,34 +965,8 @@ class HildonGui(SimpleGui):
         self.ts.set_zoom(self.settings['map_zoom'])
         self.set_center(geo.Coordinate(self.settings['map_position_lat'], self.settings['map_position_lon']))
 
-        return
         if 'last_target_lat' in self.settings.keys():
             self.set_target(geo.Coordinate(self.settings['last_target_lat'], self.settings['last_target_lon'], self.settings['last_target_name']))
-
-        for x in self.SETTINGS_CHECKBOXES:
-            if x in self.settings.keys():
-                w = xml.get_widget('check_%s' % x)
-                if w == None:
-                    continue
-                w.set_active(self.settings[x])
-            elif x in self.DEFAULT_SETTINGS.keys():
-                w = xml.get_widget('check_%s' % x)
-                if w == None:
-                    continue
-                w.set_active(self.DEFAULT_SETTINGS[x])
-        
-        for x in self.SETTINGS_INPUTS:
-            if x in self.settings.keys():
-                w = xml.get_widget('input_%s' % x)
-                if w == None:
-                    continue
-                w.set_text(str(self.settings[x]))
-            elif x in self.DEFAULT_SETTINGS.keys():
-                w = xml.get_widget('input_%s' % x)
-                if w == None:
-                    continue
-                w.set_text(self.DEFAULT_SETTINGS[x])
-                                        
         self.block_changes = False
                 
     def zoom(self, direction=None):
