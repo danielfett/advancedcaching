@@ -62,6 +62,8 @@ class SimpleGui(object):
     MESSAGE_DRAW_FONT = pango.FontDescription("Sans 5")
     MESSAGE_DRAW_COLOR = gtk.gdk.color_parse('black')
 
+    MIN_DRAG_REDRAW_DISTANCE = 5
+
 
     REDRAW_DISTANCE_TRACKING = 50 # distance from center of visible map in px
     REDRAW_DISTANCE_MINOR = 4 # distance from last displayed point in px
@@ -551,7 +553,6 @@ class SimpleGui(object):
                 
                 
     def _drag(self, widget, event):
-        print 'dreck'
         if not self.dragging:
             return True
         self.drag_offset_x = self.drag_start_x - event.x
@@ -589,7 +590,7 @@ class SimpleGui(object):
             return False
 
         delta = math.sqrt((self.last_drag_offset_x - self.drag_offset_x) ** 2 + (self.last_drag_offset_y - self.drag_offset_y) ** 2)
-        if delta < 5:
+        if delta < self.MIN_DRAG_REDRAW_DISTANCE:
             return True
 
         self.last_drag_offset_x = self.drag_offset_x
@@ -936,7 +937,7 @@ class SimpleGui(object):
             self.images = {}
         self._update_cache_image(reset = True)
 
-    def on_download_clicked(self, widget):
+    def on_download_clicked(self, widget, data = None):
         self.do_events()
         self.core.on_download(self.get_visible_area())
         
@@ -1240,7 +1241,7 @@ class SimpleGui(object):
         else:
             self.set_center(self.current_target)
                 
-    def on_track_toggled(self, something):
+    def on_track_toggled(self, something, data = None):
         if self.button_track.get_active() and self.gps_data != None and self.gps_data.position != None:
             self.set_center(self.gps_data.position)
 

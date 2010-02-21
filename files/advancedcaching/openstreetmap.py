@@ -79,10 +79,11 @@ class TileLoader(threading.Thread):
             self.load()
             gobject.idle_add(lambda: self.draw(self.pbuf))
         elif answer == False:
-            print "loading default"
+            #print "loading default"
             gobject.idle_add(lambda: self.draw(self.get_no_image()))
         else:
-            print "nothing"
+            #print "nothing"
+            pass
             
 
         self.__log("prep draw")
@@ -98,7 +99,7 @@ class TileLoader(threading.Thread):
         supertile_y = int(self.tile[1]/2)
         supertile_name = os.path.join(self.base_dir, str(supertile_zoom), str(supertile_x), "%d.png" % supertile_y)
         if os.path.exists(supertile_name):
-            print "Loading supertile for %d %d, which is %d %d" % (self.tile[0], self.tile[1], supertile_x, supertile_y)
+            #print "Loading supertile for %d %d, which is %d %d" % (self.tile[0], self.tile[1], supertile_x, supertile_y)
             # great! now find the right spot.
             # the supertile is 'size' px wide and high.
             off_x = (self.tile[0]/2.0 - supertile_x) * size
@@ -171,17 +172,17 @@ class TileLoader(threading.Thread):
             pass
                 
     def download(self, remote, local):
-        print "downloading", remote
+        #print "downloading", remote
         acquired = False
         self.__log("dl-start")
         
         TileLoader.lock.acquire()
         try:
             if remote in TileLoader.downloading:
-                print 'lädt schon: %s' % remote
+                #print 'lädt schon: %s' % remote
                 return None
             if os.path.exists(local):
-                print 'ex schon: %s' % remote
+                #print 'ex schon: %s' % remote
                 return None
             TileLoader.downloading.append(remote)
         finally:
@@ -193,7 +194,7 @@ class TileLoader(threading.Thread):
             if not self.zoom == self.gui.ts.zoom:
                 return None
             info = urllib.urlretrieve(remote, local)    
-            print "feddisch!"
+            #print "feddisch!"
             if "text/html" in info[1]['Content-Type']:
                 print "File not found: %s" % remote
                 return False

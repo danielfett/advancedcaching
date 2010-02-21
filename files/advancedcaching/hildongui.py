@@ -45,7 +45,15 @@ from simplegui import SimpleGui
 class HildonGui(SimpleGui):
 
     USES = ['locationgpsprovider']
-    
+
+    MIN_DRAG_REDRAW_DISTANCE = 0
+
+    # arrow colors and sizes
+    COLOR_ARROW_DISABLED = gtk.gdk.color_parse("red")
+    COLOR_ARROW_CIRCLE = gtk.gdk.color_parse("darkgray")
+    COLOR_ARROW_OUTER_LINE = gtk.gdk.color_parse("black")
+    NORTH_INDICATOR_SIZE = 30
+
     def __init__(self, core, pointprovider, userpointprovider, dataroot):
         gtk.gdk.threads_init()
         self.ts = openstreetmap.TileServer()
@@ -126,15 +134,7 @@ class HildonGui(SimpleGui):
         button.set_value('none set')
         button.connect('clicked', self._on_show_dialog_change_target, None)
         self.label_target = button
-        '''
-        self.main_gpspage.attach(self.label_dist, 0, 1, 0, 1, gtk.FILL, gtk.EXPAND)
-        self.main_gpspage.attach(self.label_bearing, 0, 1, 1, 2, gtk.FILL, gtk.EXPAND)
-        self.main_gpspage.attach(self.label_altitude, 0, 1, 2, 3, gtk.FILL, gtk.EXPAND)
-        self.main_gpspage.attach(self.label_latlon, 0, 1, 3, 4, gtk.FILL, gtk.EXPAND)
-        self.main_gpspage.attach(self.label_quality, 0, 1, 4, 5, gtk.FILL, gtk.EXPAND)
-        self.main_gpspage.attach(self.label_target, 0, 1, 5, 6, gtk.FILL, gtk.EXPAND)
-        self.main_gpspage.attach(self.drawing_area_arrow, 1, 2, 0, 6, gtk.EXPAND | gtk.FILL, gtk.EXPAND)
-        '''
+
         self.main_gpspage.attach(self.label_dist, 1, 2,  0, 1, gtk.FILL, gtk.EXPAND)
         self.main_gpspage.attach(self.label_bearing, 1, 2,  1, 2, gtk.FILL, gtk.EXPAND)
         self.main_gpspage.attach(self.label_altitude, 1, 2,  2, 3, gtk.FILL, gtk.EXPAND)
@@ -170,13 +170,15 @@ class HildonGui(SimpleGui):
         button.set_label("-")
         button.connect("clicked", self.on_zoomout_clicked, None)
         buttons.pack_start(button, True, True)
-        self.main_mappage.pack_start(self.drawing_area, True)
+        #self.main_mappage.pack_start(self.drawing_area, True)
+        pan = hildon.PannableArea()
+        pan.add(self.drawing_area)
+        self.main_mappage.pack_start(pan, True)
         self.main_mappage.pack_start(buttons, False)
         root.pack_start(self.main_gpspage, True)
         root.pack_start(self.main_mappage, True)
 
 
-        self.drawing_area.set_double_buffered(False)
         self.drawing_area.connect("expose_event", self._expose_event)
         self.drawing_area.connect("configure_event", self._configure_event)
         self.drawing_area.connect("button_press_event", self._drag_start)
@@ -184,13 +186,17 @@ class HildonGui(SimpleGui):
         self.drawing_area.connect("button_release_event", self._drag_end)
         self.drawing_area.connect("motion_notify_event", self._drag)
         self.drawing_area.set_events(gtk.gdk.EXPOSURE_MASK | gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.BUTTON_RELEASE_MASK | gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.SCROLL)
+        
 
         # arrow drawing area
+        
         self.drawing_area_arrow.connect("expose_event", self._expose_event_arrow)
         self.drawing_area_arrow.connect("configure_event", self._configure_event_arrow)
         self.drawing_area_arrow.set_events(gtk.gdk.EXPOSURE_MASK)
+        
+
         return root
-            
+
     def _create_main_menu(self):
         menu = hildon.AppMenu()
     
@@ -415,30 +421,39 @@ class HildonGui(SimpleGui):
         dialog.hide()
                 
     def _on_show_dialog_change_target(self, widget, data):
+        if self.current_target != None:
+            c = self.current_target
+        elif self.gps_data != None and self.gps_data.position != None:
+            c = self.gps_data.position
+        else:
+            c = geo.Coordinate(0, 0)
         dialog = gtk.Dialog("change target", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
         h_lat = gtk.HBox()        
-        l_lat = gtk.Label("Latitude: ")
+        l_lat = gtk.Label("Lat/Lon: ")
         e_lat = gtk.Entry()
-        e_lat.set_text("N49 44.123")
+        e_lat.set_text("%s %s" % (c.get_lat(self.format), c.get_lon(self.format)))
         h_lat.pack_start(l_lat, True)
         h_lat.pack_start(e_lat, True)
-        
-        h_lon = gtk.HBox()        
-        l_lon = gtk.Label("Longitude: ")
-        e_lon = gtk.Entry()
-        e_lon.set_text("E6 22.123")
-        h_lon.pack_start(l_lon, True)
-        h_lon.pack_start(e_lon, True)
+
+        #e_lat.set_property("input-mode", gtk.HILDON_INPUT_MODE_HINT_NUMERICSPECIAL)
         
         dialog.vbox.pack_start(h_lat)
-        dialog.vbox.pack_start(h_lon)
+
+        def sel_coord(widget, data, list):
+            coord = list[widget.get_selected_rows(0)[0][0]]
+            e_lat.set_text("%s %s" % (coord.get_lat(self.format), coord.get_lon(self.format)))
+
+        if self.current_cache != None:
+            sel, list = self._get_coord_selector(self.current_cache, sel_coord, True)
+            sel.set_size_request(-1, 200)
+            dialog.vbox.pack_start(sel)
         
         
         dialog.show_all()
         result = dialog.run()
         dialog.hide()
         if result == gtk.RESPONSE_ACCEPT:
-            self.set_target(geo.try_parse_coordinate("%s %s" % (e_lat.get_text(), e_lon.get_text())))
+            self.set_target(geo.try_parse_coordinate(e_lat.get_text()))
 
     def set_active_page(self, map):
         self.button_toggle_view_gps.set_active(not map)
@@ -471,6 +486,7 @@ class HildonGui(SimpleGui):
         if cache == None:
             return
         self.current_cache = cache
+        self.button_show_details.set_value(cache.title)
 
         win = hildon.StackableWindow()
         win.set_title(cache.title)
@@ -577,19 +593,21 @@ class HildonGui(SimpleGui):
         
         # coords
 
-        p = gtk.VBox()
-        c['coords'] = hildon.TouchSelector(text=True)
-        c['coords'].set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_SINGLE)
 
-        format = lambda n: "%s %s" % (re.sub(r' ', '', n.get_lat(self.format)), re.sub(r' ', '', n.get_lon(self.format)))
-        c['coords'].append_text("First Waypoint: %s" % format(cache))
-        for w in cache.get_waypoints():
-            latlon = format(geo.Coordinate(w['lat'], w['lon'])) if not (w['lat'] == -1 and w['lon'] == -1) else "???"
-            c['coords'].append_text("%s - %s - %s\n%s", (w['name'], latlon, w['id'], self._strip_html(w['comment'])))
-        
+        p = gtk.VBox()
+        c['coords'], list = self._get_coord_selector(cache, lambda x, y, z: True)
+
+
+        def set_coord_as_target(widget):
+            c = list[c['coords'].get_selected_rows(0)[0][0]]
+            if c == None:
+                return
+            self.set_target()
+            self.hide_cache_view()
+
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
         button.set_label("set as target")
-        button.connect("clicked", self._on_set_coordinate_as_target, None)
+        button.connect("clicked", set_coord_as_target)
         
         p.pack_start(c['coords'], True, True)
         p.pack_start(button, False, True)
@@ -633,6 +651,30 @@ class HildonGui(SimpleGui):
         
         win.set_app_menu(menu)        
         win.show_all()
+
+    def _get_coord_selector(self, cache, callback, no_empty = False):
+        selector = hildon.TouchSelector(text=True)
+        selector.get_column(0).get_cells()[0].set_property('xalign', 0)
+        selector.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_SINGLE)
+
+        format = lambda n: "%s %s" % (re.sub(r' ', '', n.get_lat(self.format)), re.sub(r' ', '', n.get_lon(self.format)))
+        selector.append_text("First Waypoint: %s" % format(cache))
+        list = {0: cache}
+        i = 1
+        for w in cache.get_waypoints():
+            if not (w['lat'] == -1 and w['lon'] == -1):
+                coord = geo.Coordinate(w['lat'], w['lon'])
+                latlon = format(coord)
+            elif no_empty:
+                continue
+            else:
+                coord = None
+                latlon = '???'
+            selector.append_text("%s - %s - %s\n%s" % (w['name'], latlon, w['id'], self._strip_html(w['comment'])))
+            list[i] = coord
+            i += 1
+        selector.connect('changed', callback, list)
+        return selector, list
         
     def _on_cache_marked_toggle(self, widget, data):
         if self.current_cache == None:
@@ -645,8 +687,6 @@ class HildonGui(SimpleGui):
     def _on_set_as_target(self, widget, data):
         pass
         
-    def _on_set_coordinate_as_target(self, widget, data):
-        pass
         
         
     def _on_show_log_fieldnote_dialog(self, widget, data):

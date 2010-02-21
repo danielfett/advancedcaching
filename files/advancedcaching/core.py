@@ -260,7 +260,6 @@ class Core():
         if 'geonames' in self.gui.USES:
             import geonames
             self.geonames = geonames.Geonames(self.downloader)
-        print self.gui.show
         self.gui.show()
                 
                 

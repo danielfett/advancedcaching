@@ -24,8 +24,10 @@ import re
 def try_parse_coordinate(text):
     
     text = text.strip()
+    # got some problems with the degree symbol in regexes.
+    text = text.replace('°', ' ')
     #                         1        2          3           4            5         6            7           8
-    match = re.match(ur'''(?i)^([NS+-]?)(\d\d?)[ °](\d\d?)[., ](\d+)['\s,]+([EOW+-]?)(\d{1,3})[ °](\d\d?)[., ](\d+)?[\s']*$''', text)
+    match = re.match(ur'''(?i)^([NS+-]?)\s?(\d\d?)[ °]{0,2}(\d\d?)[., ](\d+)['\s,]+([EOW+-]?)\s?(\d{1,3})[ °]{0,2}(\d\d?)[., ](\d+)?[\s']*$''', text)
     if match != None:
         c = Coordinate(0, 0)
         if match.group(1) in ['sS-']:
@@ -45,7 +47,7 @@ def try_parse_coordinate(text):
         return c
     
     #                         1        2           3         4         5             6
-    match = re.match(ur'''(?i)^([NS+-]?)\s?(\d\d?)[., ](\d+)°?[\s,]+([EOW+-]?)\s?(\d{1,3})[., ](\d+)°?\s*$''', text)
+    match = re.match(ur'''(?i)^([NS+-]?)\s?(\d\d?)[., ](\d+)[°']?[\s,]+([EOW+-]?)\s?(\d{1,3})[., ](\d+)['°]?\s*$''', text)
     
     if match != None:
         c = Coordinate(0, 0)
@@ -63,7 +65,7 @@ def try_parse_coordinate(text):
         c.lon = sign_lon * float("%s.%s" % (match.group(5), match.group(6)))
         return c
     
-    raise Exception("Could not parse this input as a coordinate: %s\nExample Input: N49 44.111 E6 12.123" % text)
+    raise Exception("Could not parse this input as a coordinate: '%s'\nExample Input: N49 44.111 E6 12.123" % text)
 
 class Coordinate():
     SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT'}

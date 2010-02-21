@@ -59,7 +59,8 @@ class Fix():
         a.sats = device.satellites_in_use
         a.sats_known = device.satellites_in_view
         a.dgps = False
-        a.quality = f[6]
+        a.quality = 0
+        a.error = f[6]/100.0
         return a
 
 class GpsReader():
