@@ -27,6 +27,7 @@ import math
 import geo
 import os
 import datetime
+import threading
 global Image
 try:
     import Image
@@ -34,6 +35,7 @@ except:
     Image = None
     print "Not using image resize feature"
 import re
+import gobject
 
 
 
@@ -262,11 +264,19 @@ class FieldnotesUploader():
             return True
         
 
-class CacheDownloader():
+class CacheDownloader(gobject.GObject):
+    __gsignals__ = { 'updated-geocaches': (gobject.SIGNAL_RUN_FIRST,\
+                                 gobject.TYPE_NONE,\
+                                 (gobject.TYPE_PYOBJECT,)),
+                    'download-error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+                    }
 
+    lock = threading.Lock()
+                                 
     MAX_REC_DEPTH = 4
     
     def __init__(self, downloader, path, download_images, resize = None):
+        gobject.GObject.__init__(self)
         self.downloader = downloader
         self.path = path
         self.download_images = download_images
@@ -478,8 +488,13 @@ class CacheDownloader():
         return self.downloader.get_reader('http://www.geocaching.com/seek/cache_details.aspx?wp=%s' % cacheid)
                 
     def get_geocaches(self, location, rec_depth = 0):
+        if not CacheDownloader.lock.acquire(False):
+            self.emit('download-error', Exception("Already downloading."))
+            print "downloading"
+            return
         # don't recurse indefinitely
         if rec_depth > self.MAX_REC_DEPTH:
+            CacheDownloader.lock.release()
             return []
 
         c1, c2 = location
@@ -488,13 +503,19 @@ class CacheDownloader():
             'eo_cb_param':'{"c": 1, "m": "", "d": "%f|%f|%f|%f"}' % (max(c1.lat, c2.lat), min(c1.lat, c2.lat), max(c1.lon, c2.lon), min(c1.lon, c2.lon)),
             'eo_version':'5.0.51.2'
         }
-        response = self.downloader.get_reader(url, values)
 
-        the_page = response.read()
-        extractor = re.compile('.*<ExtraData><!\[CDATA\[(.*)\]\]>', re.DOTALL)
-        match = extractor.match(the_page)
-        if match == None:
-            raise Exception('Could not load map of geocaches')
+        try:
+            response = self.downloader.get_reader(url, values)
+            the_page = response.read()
+
+            extractor = re.compile('.*<ExtraData><!\[CDATA\[(.*)\]\]>', re.DOTALL)
+            match = extractor.match(the_page)
+            if match == None:
+                raise Exception('Could not load map of geocaches')
+        except Exception, e:
+            self.emit('download-error', e)
+            CacheDownloader.lock.release()
+            return []
         text = match.group(1).replace("\\'", "'")
         a = json.loads(text.replace('\t', ' '))
         points = []
@@ -508,6 +529,8 @@ class CacheDownloader():
                 mc2 = geo.Coordinate(mlat, min(c1.lon, c2.lon))
                 nc2 = geo.Coordinate(max(c1.lat, c2.lat), max(c1.lon, c2.lon))
                 #print "recursing..."
+
+                CacheDownloader.lock.release()
                 points += self.get_geocaches((nc1, mc1), rec_depth + 1)
                 points += self.get_geocaches((mc2, nc2), rec_depth + 1)
             return points
@@ -532,6 +555,9 @@ class CacheDownloader():
             if not b['ia']:
                 c.status = GeocacheCoordinate.STATUS_DISABLED
             points.append(c)
+        print 'end'
+        self.emit('updated-geocaches', points)
+        CacheDownloader.lock.release()
         return points
                 
     def __parse_cache_page(self, cache_page, coordinate):

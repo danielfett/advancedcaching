@@ -819,8 +819,9 @@ class HildonGui(SimpleGui):
 
     def hide_progress(self):
         hildon.hildon_gtk_window_set_progress_indicator(self.window, 0)
-        self.banner.hide()
-        self.banner = None
+        if self.banner != None:
+            self.banner.hide()
+            self.banner = None
 
     def hide_cache_view(self):
         hildon.WindowStack.get_default().pop_1()

@@ -131,6 +131,7 @@ import gpsreader
 import os
 import provider
 import math
+import threading
 
 #import cProfile
 #import pstats
@@ -332,26 +333,41 @@ class Core():
         self.__write_config()
 
     # called by gui
-    def on_download(self, location):
+    def on_download(self, location, sync = False):
         self.gui.set_download_progress(0.5, "Downloading...")
         cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
-        try:
-            caches = cd.get_geocaches(location)
-        except Exception, e:
-            self.gui.show_error(e)
-            print e
-            return []
+        cd.connect("download-error", self.on_download_error)
+        if not sync:
+            def same_thread(arg1, arg2):
+                gobject.idle_add(self.on_download_complete, arg1, arg2)
+                return False
+
+            cd.connect("updated-geocaches", same_thread)
+            t = threading.Thread(target=cd.get_geocaches, args=[location])
+            t.start()
+            t.join()
+            return False
         else:
-            new_caches = []
-            for c in caches:
-                point_new = self.pointprovider.add_point(c)
-                if point_new:
-                    new_caches.append(c)
-            self.pointprovider.save()
-            
+            return self.on_download_complete(None, cd.get_geocaches(location))
+
+    def on_download_complete(self, something, caches, sync = False):
+        self.gui.hide_progress()
+        new_caches = []
+        for c in caches:
+            point_new = self.pointprovider.add_point(c)
+            if point_new:
+                new_caches.append(c)
+        self.pointprovider.save()
+        if sync:
             return (caches, new_caches)
-        finally:
-            self.gui.hide_progress()
+        else:
+            return False
+        
+
+    def on_download_error(self, error):
+        self.gui.hide_progress()
+        self.gui.show_error(e)
+        print e
 
     # called by gui
     def on_download_cache(self, cache):

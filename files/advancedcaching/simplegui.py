@@ -462,7 +462,7 @@ class SimpleGui(object):
         if not self.drawing_area_arrow_configured:
             return
         widget = self.drawing_area_arrow
-        x, z, width, height = widget.get_allocation()
+        x, y, width, height = widget.get_allocation()
                         
         disabled = (not self.gps_has_fix or self.current_target == None or self.gps_data == None or self.gps_data.position == None)
                         
