@@ -63,6 +63,7 @@ class SimpleGui(object):
     MESSAGE_DRAW_COLOR = gtk.gdk.color_parse('black')
 
     MIN_DRAG_REDRAW_DISTANCE = 5
+    DRAG_RECHECK_SPEED = 50
 
 
     REDRAW_DISTANCE_TRACKING = 50 # distance from center of visible map in px
@@ -562,9 +563,10 @@ class SimpleGui(object):
     def _drag_end(self, widget, event):
         if not self.dragging:
             return
+        #print "drag end with: ", self.drag_offset_x, self.drag_offset_y
         self.dragging = False
-        offset_x = (self.drag_start_x - event.x)
-        offset_y = (self.drag_start_y - event.y)
+        offset_x = self.drag_offset_x #(self.drag_start_x - event.x)
+        offset_y = self.drag_offset_y #(self.drag_start_y - event.y)
         self.map_center_x += (offset_x / self.ts.tile_size())
         self.map_center_y += (offset_y / self.ts.tile_size())
         if offset_x ** 2 + offset_y ** 2 < self.CLICK_RADIUS ** 2:
@@ -611,7 +613,7 @@ class SimpleGui(object):
         self.last_drag_offset_x = 0
         self.last_drag_offset_y = 0
         self.dragging = True
-        gobject.timeout_add(50, self._drag_draw)
+        gobject.timeout_add(self.DRAG_RECHECK_SPEED, self._drag_draw)
                 
                 
     def _draw_map(self):
@@ -944,7 +946,7 @@ class SimpleGui(object):
         self._draw_map()
 
 
-    def on_download_details_map_clicked(self, some):
+    def on_download_details_map_clicked(self, some, thing = None):
         self.core.on_download_descriptions(self.get_visible_area(), True)
         self._draw_map()
 

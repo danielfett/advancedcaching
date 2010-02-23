@@ -276,8 +276,11 @@ class CacheDownloader(gobject.GObject):
     __gsignals__ = { 'finished-overview': (gobject.SIGNAL_RUN_FIRST,\
                                  gobject.TYPE_NONE,\
                                  (gobject.TYPE_PYOBJECT,)),
+                    'progress' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (str, int, int, )),
                     'download-error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-                    'finished-single' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+                    'already-downloading-error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+                    'finished-single' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+                    'finished-multiple' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
                     }
 
     lock = threading.Lock()
@@ -483,10 +486,21 @@ class CacheDownloader(gobject.GObject):
 
         entity_re = re.compile(r'&(#?)(x?)(\w+);')
         return entity_re.subn(substitute_entity, string)[0]
+
+    def update_coordinates(self, coordinates):
+        i = 0
+        c = []
+        for cache in coordinates:
+            self.emit("progress", cache.name, i, len(coordinates))
+            u = self.update_coordinate(cache)
+            c.append(u)
+            i += 1
+        self.emit("finished-multiple", c)
+        return c
                 
     def update_coordinate(self, coordinate):
         if not CacheDownloader.lock.acquire(False):
-            self.emit('download-error', Exception("Already downloading."))
+            self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
             return
         self.downloaded_images = {}
         self.current_image = 0
@@ -495,17 +509,14 @@ class CacheDownloader(gobject.GObject):
         self.current_cache = coordinate
         try:
             print "* Downloading %s..." % (coordinate.name)
-            print 'dl now'
             response = self.__get_cache_page(coordinate.name)
             u = self.__parse_cache_page(response, coordinate)
-            print 'fin dl now'
         except Exception, e:
             CacheDownloader.lock.release()
             self.emit('download-error', e)
             return self.current_cache
         CacheDownloader.lock.release()
         self.emit('finished-single', u)
-        print 'fin down'
         return u
         
     def __get_cache_page(self, cacheid):
@@ -513,7 +524,7 @@ class CacheDownloader(gobject.GObject):
                 
     def get_geocaches(self, location, rec_depth = 0):
         if not CacheDownloader.lock.acquire(False):
-            self.emit('download-error', Exception("Already downloading."))
+            self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
             print "downloading"
             return
         # don't recurse indefinitely
@@ -589,7 +600,6 @@ class CacheDownloader(gobject.GObject):
         inhead = True
         shortdesc = desc = hints = waypoints = images = logs = owner = ''
         for line in cache_page:
-            print line
             line = line.strip()
             #line = unicode(line, errors='replace')
         
@@ -646,7 +656,8 @@ class CacheDownloader(gobject.GObject):
     
         if owner == '':
             print "\n\n|||||||||||||||||||||||||||||||||||||||||||||||||||\n\n"
-            print cache_page
+            for line in cache_page:
+                print line
             print "\n\n|||||||||||||||||||||||||||||||||||||||||||||||||||\n\n"
             raise Exception("Could not parse Cache page. Maybe the format changed. Please update to latest version or contact author.")
 

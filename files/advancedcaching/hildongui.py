@@ -41,12 +41,14 @@ import openstreetmap
 import os
 import re
 import hildon
+import pango
 from simplegui import SimpleGui
 class HildonGui(SimpleGui):
 
     USES = ['locationgpsprovider']
 
-    MIN_DRAG_REDRAW_DISTANCE = 0
+    MIN_DRAG_REDRAW_DISTANCE = 2
+    DRAG_RECHECK_SPEED = 40
 
     # arrow colors and sizes
     COLOR_ARROW_DISABLED = gtk.gdk.color_parse("red")
@@ -54,12 +56,23 @@ class HildonGui(SimpleGui):
     COLOR_ARROW_OUTER_LINE = gtk.gdk.color_parse("black")
     NORTH_INDICATOR_SIZE = 30
 
+
+    CLICK_RADIUS = 25
+
+    TOO_MUCH_POINTS = 100
+    CACHES_ZOOM_LOWER_BOUND = 8
+    CACHE_DRAW_FONT = pango.FontDescription("Sans 9")
+    MESSAGE_DRAW_FONT = pango.FontDescription("Sans 10")
+
     def __init__(self, core, pointprovider, userpointprovider, dataroot):
         gtk.gdk.threads_init()
         self.ts = openstreetmap.TileServer()
         openstreetmap.TileLoader.noimage = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage.png'))
                 
         self.core = core
+        self.core.connect('map-changed', self._on_map_changed)
+        self.core.connect('cache-changed', self._on_cache_changed)
+
         self.pointprovider = pointprovider
         self.userpointprovider = userpointprovider
                 
@@ -67,6 +80,7 @@ class HildonGui(SimpleGui):
 
         # @type self.current_cache geocaching.GeocacheCoordinate
         self.current_cache = None
+        self.current_cache_window_open = False
                 
         self.current_target = None
         self.gps_data = None
@@ -91,8 +105,33 @@ class HildonGui(SimpleGui):
         self.window = hildon.StackableWindow()
         program.add_window(self.window)
         self.window.connect("delete_event", self.on_window_destroy, None)
+        self.window.connect("key-press-event", self._on_key_press)
         self.window.add(self._create_main_view())
         self.window.set_app_menu(self._create_main_menu())
+        self.update_fieldnotes_display()
+
+    #emitted by core
+    def _on_cache_changed(self, something, cache):
+        if self.current_cache != None \
+            and cache.name == self.current_cache.name \
+            and self.current_cache_window_open:
+
+            self.hide_cache_view()
+            self.show_cache(cache)
+            return False
+        else:
+            print self.current_cache, cache.name, self.current_cache_window_open
+            return False
+
+    def _on_map_changed(self, something):
+        self.redraw_marks()
+        return False
+
+    def _on_key_press(self, window, event):
+        if event.keyval == gtk.keysyms.F7:
+            self.zoom(+1)
+        elif event.keyval == gtk.keysyms.F8:
+            self.zoom(-1)
 
     def _create_main_view(self):
         root = gtk.VBox()
@@ -150,7 +189,7 @@ class HildonGui(SimpleGui):
 
         button = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         button.set_label("track")
-        button.connect("clicked", self._on_track_toggled, None)
+        button.connect("clicked", self.on_track_toggled, None)
         self.button_track = button
         buttons.pack_start(button, True, True)
 
@@ -202,7 +241,7 @@ class HildonGui(SimpleGui):
     
         button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_title("Go to Target")
-        button.set_value('No target set')
+        button.set_value('')
         button.connect("clicked", self.on_show_target_clicked, None)
         menu.append(button)
         self.button_goto_target = button
@@ -210,30 +249,33 @@ class HildonGui(SimpleGui):
         
         button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_title("Set Center as Target")
-        button.set_value('N49 42.123 E6 21.402')
-        button.connect("clicked", self._on_set_target_center, None)
+        button.set_value('')
+        button.connect("clicked", self.on_set_target_center, None)
         menu.append(button)
         self.button_center_as_target = button
         
         
         button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_title("Show Details for selected")
-        button.set_value('Der Zerstreute Professor...')
+        button.set_value('No Cache selected')
+        button.set_sensitive(False)
         button.connect("clicked", self._on_show_cache_details, None)
         menu.append(button)
         self.button_show_details = button
         
-    
+        '''
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
         button.set_label("Search Geocaches")
         button.connect("clicked", self._on_show_search, None)
         menu.append(button)
-    
+        '''
+
         button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_title("Upload Fieldnote(s)")
-        button.set_value("You have created 2 fielnotes.")
+        button.set_value("You have not created any fieldnotes.")
         button.connect("clicked", self._on_upload_fieldnotes, None)
         menu.append(button)
+        self.button_fieldnotes = button
         
     
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
@@ -266,12 +308,23 @@ class HildonGui(SimpleGui):
         SimpleGui._drag_end(self, widget, event)
         c = self.ts.num2deg(self.map_center_x, self.map_center_y)
         self.button_center_as_target.set_value("%s %s" % (c.get_lat(self.format), c.get_lon(self.format)))
-
+        
 
     def show(self):
         self.window.show_all()
         self._on_set_active_page()
         gtk.main()
+
+    def update_fieldnotes_display(self):
+        count = self.pointprovider.get_new_fieldnotes_count()
+        w = self.button_fieldnotes
+        if count == 0:
+            w.set_value("Nothing to upload.")
+            w.set_sensitive(False)
+        else:
+            w.set_value("You have %d fieldnotes." % count)
+            w.set_sensitive(True)
+
         
         
     def _on_show_search(self, widget, data):
@@ -482,16 +535,8 @@ class HildonGui(SimpleGui):
             self.main_gpspage.hide()
             self.main_mappage.show()
         
-    def _on_tracked_toggled(self, widget, data):
-        pass
-        
-        
-        
-        
-        
     def _on_show_cache_details(self, widget, data, touched=None):
         self.show_cache(self.current_cache)
-        pass
 
     def show_cache(self, cache):
         if cache == None:
@@ -508,7 +553,7 @@ class HildonGui(SimpleGui):
         notebook.set_tab_pos(gtk.POS_BOTTOM)
         
         # info
-        p = gtk.Table(9, 2)
+        p = gtk.Table(10, 2)
         labels = (
                   ('Full Name', 'name', cache.title),
                   ('ID', 'id', cache.name),
@@ -531,8 +576,20 @@ class HildonGui(SimpleGui):
             p.attach(l, 0, 1, i, i + 1)
             p.attach(w, 1, 2, i, i + 1)
             i += 1
+            
+        # links for listing & log
+        l = gtk.Label()
+        l.set_markup("<b>Open Website</b>")
+        l.set_alignment(0, 0.5)
+        p.attach(l, 0, 1, 8, 9)
+        z = gtk.HBox(True)
+        z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/cache_details.aspx?wp=%s" % cache.name, 'Listing'))
+        z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/log.aspx?wp=%s" % cache.name, 'Log'))
+        p.attach(z, 1, 2, 8, 9)
+
+        # cache-was-not-downloaded-yet-warning
         if not cache.was_downloaded():
-            p.attach(gtk.Label("Please download full details to see the description."), 0, 2, 8, 9)
+            p.attach(gtk.Label("Please download full details to see the description."), 0, 2, 9, 10)
         
         notebook.append_page(p, gtk.Label("info"))
 
@@ -663,6 +720,12 @@ class HildonGui(SimpleGui):
         win.set_app_menu(menu)        
         win.show_all()
 
+        def close(window, more):
+            self.current_cache_window_open = False
+
+        win.connect('delete_event', close)
+        self.current_cache_window_open = True
+
     def _get_coord_selector(self, cache, callback, no_empty = False):
         selector = hildon.TouchSelector(text=True)
         selector.get_column(0).get_cells()[0].set_property('xalign', 0)
@@ -753,7 +816,8 @@ class HildonGui(SimpleGui):
         elif cache.logas == geocaching.GeocacheCoordinate.LOG_AS_NOTFOUND:
             self.pointprovider.update_field(self.current_cache, 'found', '0')
             cache.found = 0
-        
+
+        self.update_fieldnotes_display()
 
 
     def _on_marked_label_clicked(self, event=None, widget=None):
@@ -830,8 +894,6 @@ class HildonGui(SimpleGui):
                 
     def _on_download_cache_clicked(self, some, thing):
         self.core.on_download_cache(self.current_cache)
-        self.hide_cache_view()
-        self.show_cache(self.current_cache)
         
 
     def on_no_fix(self, gps_data, status):
@@ -849,14 +911,6 @@ class HildonGui(SimpleGui):
         
         self.set_target(self.current_cache)
         self.hide_cache_view()
-
-    def _on_set_target_center(self, some, thing):
-        self.set_target(self.ts.num2deg(self.map_center_x, self.map_center_y))
-
-                
-    def _on_track_toggled(self, something):
-        if self.button_track.get_active() and self.gps_data != None and self.gps_data.position != None:
-            self.set_center(self.gps_data.position)
 
     def _on_upload_fieldnotes(self, something):
         self.core.on_upload_fieldnotes()
@@ -893,7 +947,6 @@ class HildonGui(SimpleGui):
             self.banner.show_all()
         else:
             self.banner.set_text(text)
-        self.do_events()
                 
     def set_target(self, cache):
         self.current_target = cache
@@ -904,14 +957,12 @@ class HildonGui(SimpleGui):
                 
 
     def show_error(self, errormsg):
-        if isinstance(errormsg, Exception):
-            raise errormsg
-        hildon.hildon_banner_show_information(self.window, None, "%s" % errormsg)
+        #if isinstance(errormsg, Exception):
+        #    raise errormsg
+        hildon.hildon_banner_show_information(self.window, "", "%s" % errormsg)
 
     def show_success(self, message):
-        hildon.hildon_banner_show_information(self.window, None, message)
-        suc_dlg.run()
-        suc_dlg.destroy()
+        hildon.hildon_banner_show_information(self.window, "", message)
                                 
     def update_gps_display(self):
         if self.gps_data == None:

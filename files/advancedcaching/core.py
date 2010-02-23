@@ -138,7 +138,7 @@ import threading
 
 
 if len(sys.argv) == 1:
-    print usage % ({'name' : sys.argv[0]})
+    print usage % ({'name': sys.argv[0]})
     exit()
         
 arg = sys.argv[1].strip()
@@ -190,7 +190,13 @@ class Standbypreventer():
         except Exception, e:
             print "Could not prevent Standby: %s" % e
 
-class Core():
+class Core(gobject.GObject):
+
+    __gsignals__ = {
+        'map-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'cache-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, )),
+        }
+
     SETTINGS_DIR = os.path.expanduser('~/.agtl')
     CACHES_DB = os.path.join(SETTINGS_DIR, "caches.db")
     COOKIE_FILE = os.path.join(SETTINGS_DIR, "cookies.lwp")
@@ -226,6 +232,7 @@ class Core():
     }
             
     def __init__(self, guitype, root):
+        gobject.GObject.__init__(self)
         if not os.path.exists(self.SETTINGS_DIR):
             os.mkdir(self.SETTINGS_DIR)
 
@@ -284,16 +291,16 @@ class Core():
             if len(together) == 0:
                 together = [route[i]] 
             if (i < len(route) - 1):
-                brg = route[i].bearing_to(route[i+1])
+                brg = route[i].bearing_to(route[i + 1])
                 
             if len(together) < MAX_TOGETHER \
                 and (i < len(route) - 1) \
                 and (abs(brg - 90) < TOL
-                or abs(brg + 90) < TOL
-                or abs(brg) < TOL
-                or abs (brg - 180) < TOL) \
-                and route[i].distance_to(route[i+1]) < (r*1000*2):
-                    together.append(route[i+1])
+                     or abs(brg + 90) < TOL
+                     or abs(brg) < TOL
+                     or abs (brg - 180) < TOL) \
+                and route[i].distance_to(route[i + 1]) < (r * 1000 * 2):
+                    together.append(route[i + 1])
             else:
                 min_lat = min([x.lat for x in together])
                 min_lon = min([x.lon for x in together])
@@ -319,10 +326,10 @@ class Core():
         self.__try_show_cache_by_search('%' + text + '%')
                 
     # called by gui
-    def on_start_search_advanced(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location = None, marked = None):
+    def on_start_search_advanced(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location=None, marked=None):
                 
                 
-        self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked = marked)
+        self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked=marked)
         points = self.pointprovider.get_points_filter(location)
         self.gui.display_results_advanced(points)
                                 
@@ -333,10 +340,11 @@ class Core():
         self.__write_config()
 
     # called by gui
-    def on_download(self, location, sync = False):
+    def on_download(self, location, sync=False):
         self.gui.set_download_progress(0.5, "Downloading...")
         cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
+        cd.connect("already-downloading-error", self.on_already_downloading_error)
         if not sync:
             def same_thread(arg1, arg2):
                 gobject.idle_add(self.on_download_complete, arg1, arg2)
@@ -345,12 +353,12 @@ class Core():
             cd.connect("finished-overview", same_thread)
             t = threading.Thread(target=cd.get_geocaches, args=[location])
             t.start()
-            t.join()
             return False
         else:
             return self.on_download_complete(None, cd.get_geocaches(location))
 
-    def on_download_complete(self, something, caches, sync = False):
+    # called on signal by downloading thread
+    def on_download_complete(self, something, caches, sync=False):
         new_caches = []
         for c in caches:
             point_new = self.pointprovider.add_point(c)
@@ -358,24 +366,30 @@ class Core():
                 new_caches.append(c)
         self.pointprovider.save()
         self.gui.hide_progress()
+        self.emit('map-changed')
         if sync:
             return (caches, new_caches)
         else:
             return False
-        
 
+    # called on signal by downloading thread
+    def on_already_downloading_error(self, something, error):
+        self.gui.show_error(error)
+
+    # called on signal by downloading thread
     def on_download_error(self, something, error):
         print error
         self.gui.hide_progress()
         self.gui.show_error(error)
 
     # called by gui
-    def on_download_cache(self, cache, sync = False):
+    def on_download_cache(self, cache, sync=False):
         #
         self.gui.set_download_progress(0.5, "Downloading %s..." % cache.name)
 
         cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
+        cd.connect("already-downloading-error", self.on_already_downloading_error)
         if not sync:
             def same_thread(arg1, arg2):
                 gobject.idle_add(self.on_download_cache_complete, arg1, arg2)
@@ -383,21 +397,21 @@ class Core():
             cd.connect("finished-single", same_thread)
             t = threading.Thread(target=cd.update_coordinate, args=[cache])
             t.start()
-            t.join()
+            #t.join()
             return False
         else:
             full = cd.update_coordinate(cache)
             return full
 
+    # called on signal by downloading thread
     def on_download_cache_complete(self, something, cache):
-        print 'dl comp'
         self.pointprovider.add_point(cache, True)
         self.pointprovider.save()
         self.gui.hide_progress()
-        print 'save comp'
+        self.emit('cache-changed', cache)
         return False
                 
-    def on_export_cache(self, cache, folder = None):
+    def on_export_cache(self, cache, folder=None):
         self.gui.set_download_progress(0.5, "Exporting %s..." % cache.name)
         try:
             exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
@@ -413,6 +427,9 @@ class Core():
     # called by gui
     def on_download_descriptions(self, location, visibleonly=False):
         cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd.connect("download-error", self.on_download_error)
+        cd.connect("already-downloading-error", self.on_already_downloading_error)
+        
         #exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
                 
         self.pointprovider.push_filter()
@@ -436,34 +453,42 @@ class Core():
         else:
             self.pointprovider.set_filter(found=found, has_details=has_details, adapt_filter=False)
             caches = self.pointprovider.get_points_filter()
-                
-        print caches       
-                
-        count = len(caches)
-        i = 0.0
-        try:
-            for cache in caches:
-                self.gui.set_download_progress(i / count, "Downloading %s..." % cache.name)
-                full = cd.update_coordinate(cache)
-                self.pointprovider.add_point(full, True)
-                #exporter.export(full)
-                i += 1.0
-                                
-        except Exception, e:
-            self.gui.show_error(e)
-        finally:
-            self.gui.hide_progress()
-            self.pointprovider.pop_filter()
-            self.pointprovider.save()
-                
-                
-        #if self.settings['download_create_index']:
-        #        all_caches = pointprovider.get_points_filter(None, None, True)
-        #        exporter.write_index(all_caches)
 
-                
+        self.pointprovider.pop_filter()
 
-                        
+        def same_thread(arg1, arg2):
+            gobject.idle_add(self.on_download_descriptions_complete, arg1, arg2)
+            return False
+        
+        def same_thread_progress (arg1, arg2, arg3, arg4):
+            gobject.idle_add(self.on_download_progress, arg1, arg2, arg3, arg4)
+            return False
+
+        cd.connect('progress', self.on_download_progress)
+        cd.connect('finished-multiple', same_thread)
+
+        t = threading.Thread(target=cd.update_coordinates, args=[caches])
+
+        t.start()
+
+
+    # called on signal by downloading thread
+    def on_download_descriptions_complete(self, something, caches):
+        for c in caches:
+            self.pointprovider.add_point(c, True)
+        self.pointprovider.save()
+        self.gui.hide_progress()
+        for c in caches:
+            self.emit('cache-changed', c)
+        self.emit('map-changed')
+        return False
+
+
+    # called on signal by downloading thread
+    def on_download_progress(self, something, cache_name, i, max_i):
+        self.gui.set_download_progress(float(i) / float(max_i), "Downloading %s (%d of %d)..." % (cache_name, i, max_i))
+        return False
+    
     # called by gui
     def on_config_changed(self, new_settings):
         self.settings = new_settings
