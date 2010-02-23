@@ -100,7 +100,7 @@ class GeocacheCoordinate(geo.Coordinate):
 
     def clone(self):
         n = GeocacheCoordinate(self.lat, self.lon)
-        for k in ('title', 'shortdesc', 'desc', 'hints', 'type', \
+        for k in ('title', 'name', 'shortdesc', 'desc', 'hints', 'type', \
             'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
             'images', 'notes', 'fieldnotes', 'log_as', 'log_date', 'marked', 'logs', 'status'):
             setattr(n, k, getattr(self, k))
@@ -589,6 +589,7 @@ class CacheDownloader(gobject.GObject):
         inhead = True
         shortdesc = desc = hints = waypoints = images = logs = owner = ''
         for line in cache_page:
+            print line
             line = line.strip()
             #line = unicode(line, errors='replace')
         
@@ -642,6 +643,12 @@ class CacheDownloader(gobject.GObject):
                 
             if inwaypoints:
                 waypoints += "%s  " % line
+    
+        if owner == '':
+            print "\n\n|||||||||||||||||||||||||||||||||||||||||||||||||||\n\n"
+            print cache_page
+            print "\n\n|||||||||||||||||||||||||||||||||||||||||||||||||||\n\n"
+            raise Exception("Could not parse Cache page. Maybe the format changed. Please update to latest version or contact author.")
 
         coordinate.owner = self.__decode_htmlentities(owner)
         if size == 'micro':
