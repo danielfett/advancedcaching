@@ -97,6 +97,14 @@ class GeocacheCoordinate(geo.Coordinate):
         self.marked = False
         self.logs = ''
         self.status = self.STATUS_NORMAL
+
+    def clone(self):
+        n = GeocacheCoordinate(self.lat, self.lon)
+        for k in ('title', 'shortdesc', 'desc', 'hints', 'type', \
+            'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
+            'images', 'notes', 'fieldnotes', 'log_as', 'log_date', 'marked', 'logs', 'status'):
+            setattr(n, k, getattr(self, k))
+        return n
         
     def get_difficulty(self):
         return "%.1f" % (self.difficulty / 10.0) if self.difficulty != -1 else '?'
@@ -265,10 +273,11 @@ class FieldnotesUploader():
         
 
 class CacheDownloader(gobject.GObject):
-    __gsignals__ = { 'updated-geocaches': (gobject.SIGNAL_RUN_FIRST,\
+    __gsignals__ = { 'finished-overview': (gobject.SIGNAL_RUN_FIRST,\
                                  gobject.TYPE_NONE,\
                                  (gobject.TYPE_PYOBJECT,)),
-                    'download-error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+                    'download-error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+                    'finished-single' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
                     }
 
     lock = threading.Lock()
@@ -476,13 +485,28 @@ class CacheDownloader(gobject.GObject):
         return entity_re.subn(substitute_entity, string)[0]
                 
     def update_coordinate(self, coordinate):
+        if not CacheDownloader.lock.acquire(False):
+            self.emit('download-error', Exception("Already downloading."))
+            return
         self.downloaded_images = {}
         self.current_image = 0
         self.images = {}
+        coordinate = coordinate.clone()
         self.current_cache = coordinate
-        print "* Downloading %s..." % (coordinate.name)
-        response = self.__get_cache_page(coordinate.name)
-        return self.__parse_cache_page(response, coordinate)
+        try:
+            print "* Downloading %s..." % (coordinate.name)
+            print 'dl now'
+            response = self.__get_cache_page(coordinate.name)
+            u = self.__parse_cache_page(response, coordinate)
+            print 'fin dl now'
+        except Exception, e:
+            CacheDownloader.lock.release()
+            self.emit('download-error', e)
+            return self.current_cache
+        CacheDownloader.lock.release()
+        self.emit('finished-single', u)
+        print 'fin down'
+        return u
         
     def __get_cache_page(self, cacheid):
         return self.downloader.get_reader('http://www.geocaching.com/seek/cache_details.aspx?wp=%s' % cacheid)
@@ -513,8 +537,8 @@ class CacheDownloader(gobject.GObject):
             if match == None:
                 raise Exception('Could not load map of geocaches')
         except Exception, e:
-            self.emit('download-error', e)
             CacheDownloader.lock.release()
+            self.emit('download-error', e)
             return []
         text = match.group(1).replace("\\'", "'")
         a = json.loads(text.replace('\t', ' '))
@@ -556,14 +580,14 @@ class CacheDownloader(gobject.GObject):
                 c.status = GeocacheCoordinate.STATUS_DISABLED
             points.append(c)
         print 'end'
-        self.emit('updated-geocaches', points)
+        self.emit('finished-overview', points)
         CacheDownloader.lock.release()
         return points
                 
     def __parse_cache_page(self, cache_page, coordinate):
         indesc = inshortdesc = inwaypoints = False
         inhead = True
-        shortdesc = desc = hints = waypoints = images = logs = ''
+        shortdesc = desc = hints = waypoints = images = logs = owner = ''
         for line in cache_page:
             line = line.strip()
             #line = unicode(line, errors='replace')

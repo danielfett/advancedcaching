@@ -342,7 +342,7 @@ class Core():
                 gobject.idle_add(self.on_download_complete, arg1, arg2)
                 return False
 
-            cd.connect("updated-geocaches", same_thread)
+            cd.connect("finished-overview", same_thread)
             t = threading.Thread(target=cd.get_geocaches, args=[location])
             t.start()
             t.join()
@@ -351,39 +351,51 @@ class Core():
             return self.on_download_complete(None, cd.get_geocaches(location))
 
     def on_download_complete(self, something, caches, sync = False):
-        self.gui.hide_progress()
         new_caches = []
         for c in caches:
             point_new = self.pointprovider.add_point(c)
             if point_new:
                 new_caches.append(c)
         self.pointprovider.save()
+        self.gui.hide_progress()
         if sync:
             return (caches, new_caches)
         else:
             return False
         
 
-    def on_download_error(self, error):
+    def on_download_error(self, something, error):
+        print error
         self.gui.hide_progress()
-        self.gui.show_error(e)
-        print e
+        self.gui.show_error(error)
 
     # called by gui
-    def on_download_cache(self, cache):
+    def on_download_cache(self, cache, sync = False):
+        #
         self.gui.set_download_progress(0.5, "Downloading %s..." % cache.name)
 
-        try:
-            cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd.connect("download-error", self.on_download_error)
+        if not sync:
+            def same_thread(arg1, arg2):
+                gobject.idle_add(self.on_download_cache_complete, arg1, arg2)
+                return False
+            cd.connect("finished-single", same_thread)
+            t = threading.Thread(target=cd.update_coordinate, args=[cache])
+            t.start()
+            t.join()
+            return False
+        else:
             full = cd.update_coordinate(cache)
-            self.pointprovider.add_point(full, True)
-            self.pointprovider.save()
-        except Exception, e:
-            self.gui.show_error(e)
-            return cache
-        finally:
-            self.gui.hide_progress()
-        return full
+            return full
+
+    def on_download_cache_complete(self, something, cache):
+        print 'dl comp'
+        self.pointprovider.add_point(cache, True)
+        self.pointprovider.save()
+        self.gui.hide_progress()
+        print 'save comp'
+        return False
                 
     def on_export_cache(self, cache, folder = None):
         self.gui.set_download_progress(0.5, "Exporting %s..." % cache.name)
