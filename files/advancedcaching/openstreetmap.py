@@ -27,10 +27,10 @@ import gtk
 import os
 import threading
 import urllib
-# import socket
+import socket
 
-# socket.setdefaulttimeout(10)
-# makes problem on slow (gprs) connections
+socket.setdefaulttimeout(30)
+
 
 class TileLoader(threading.Thread):
     downloading = []

@@ -61,8 +61,8 @@ class HildonGui(SimpleGui):
 
     TOO_MUCH_POINTS = 100
     CACHES_ZOOM_LOWER_BOUND = 8
-    CACHE_DRAW_FONT = pango.FontDescription("Sans 9")
-    MESSAGE_DRAW_FONT = pango.FontDescription("Sans 10")
+    CACHE_DRAW_FONT = pango.FontDescription("Sans 10")
+    MESSAGE_DRAW_FONT = pango.FontDescription("Sans 12")
 
     def __init__(self, core, pointprovider, userpointprovider, dataroot):
         gtk.gdk.threads_init()

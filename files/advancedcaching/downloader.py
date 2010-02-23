@@ -17,12 +17,12 @@
 #
 #        Author: Daniel Fett advancedcaching@fragcom.de
 #
-
+import socket
 import os
 import cookielib
 import urllib
 import urllib2
-
+socket.setdefaulttimeout(30)
 class FileDownloader():
     USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; U; Linux i686; de; rv:1.9.0.12) Gecko/2009070811  Windows NT Firefox/3.1'
 
