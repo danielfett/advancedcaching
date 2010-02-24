@@ -20,7 +20,6 @@
 
 
 import math
-import thread
 import geo
 import gobject
 import gtk
@@ -35,7 +34,7 @@ socket.setdefaulttimeout(30)
 class TileLoader(threading.Thread):
     downloading = []
     semaphore = threading.Semaphore(40)
-    lock = thread.allocate_lock() #download-lock
+    lock = threading.Lock() #download-lock
     running_threads = 0
     noimage = None
                 

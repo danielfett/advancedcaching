@@ -494,11 +494,12 @@ class HildonGui(SimpleGui):
         dialog = gtk.Dialog("change target", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
         h_lat = gtk.HBox()        
         l_lat = gtk.Label("Lat/Lon: ")
-        e_lat = gtk.Entry()
+        e_lat = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+        
         e_lat.set_text("%s %s" % (c.get_lat(self.format), c.get_lon(self.format)))
         h_lat.pack_start(l_lat, True)
         h_lat.pack_start(e_lat, True)
-
+        
         #e_lat.set_property("input-mode", gtk.HILDON_INPUT_MODE_HINT_NUMERICSPECIAL)
         
         dialog.vbox.pack_start(h_lat)
@@ -666,16 +667,16 @@ class HildonGui(SimpleGui):
         c['coords'], list = self._get_coord_selector(cache, lambda x, y, z: True)
 
 
-        def set_coord_as_target(widget):
-            c = list[c['coords'].get_selected_rows(0)[0][0]]
+        def set_coord_as_target(widget, selector, list):
+            c = list[selector.get_selected_rows(0)[0][0]]
             if c == None:
                 return
-            self.set_target()
+            self.set_target(c)
             self.hide_cache_view()
 
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
         button.set_label("set as target")
-        button.connect("clicked", set_coord_as_target)
+        button.connect("clicked", set_coord_as_target, c['coords'], list)
         
         p.pack_start(c['coords'], True, True)
         p.pack_start(button, False, True)
