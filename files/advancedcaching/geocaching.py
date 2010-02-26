@@ -228,10 +228,18 @@ class GeocacheCoordinate(geo.Coordinate):
         else:
             return self.SIZES[self.size]
 
-class FieldnotesUploader():
+class FieldnotesUploader(gobject.GObject):
+    __gsignals__ = { 'finished-uploading': (gobject.SIGNAL_RUN_FIRST,\
+                                 gobject.TYPE_NONE,\
+                                 ()),
+                    'upload-error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+                    }
+
+    #lock = threading.Lock()
     URL = 'http://www.geocaching.com/my/uploadfieldnotes.aspx'
     
     def __init__(self, downloader):
+        gobject.GObject.__init__(self)
         self.downloader = downloader
         self.notes = []
 
@@ -253,23 +261,27 @@ class FieldnotesUploader():
         self.notes.append('%s,%sT10:00Z,%s,"%s"' % (geocache.name, geocache.log_date, log, text))
 
     def upload(self):
-        page = self.downloader.get_reader(self.URL).read()
-        m = re.search('<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="([^"]+)" />', page)
-        if m == None:
-            raise Exception("Could not download fieldnotes page.")
-        viewstate = m.group(1)
-        text = "\r\n".join(self.notes).encode("UTF-16")
-        response = self.downloader.get_reader(self.URL,
-                                              data=self.downloader.encode_multipart_formdata(
-                                                [('ctl00$ContentBody$btnUpload', 'Upload Field Note'), ('ctl00$ContentBody$chkSuppressDate', ''), ('__VIEWSTATE', viewstate)],
-                                                [('ctl00$ContentBody$fuFieldNote', 'geocache_visits.txt', text)]
-                                              ))
+        try:
+            print "+ Uploading fieldnotes..."
+            page = self.downloader.get_reader(self.URL).read()
+            m = re.search('<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="([^"]+)" />', page)
+            if m == None:
+                raise Exception("Could not download fieldnotes page.")
+            viewstate = m.group(1)
+            text = "\r\n".join(self.notes).encode("UTF-16")
+            response = self.downloader.get_reader(self.URL,
+                                                  data=self.downloader.encode_multipart_formdata(
+                                                    [('ctl00$ContentBody$btnUpload', 'Upload Field Note'), ('ctl00$ContentBody$chkSuppressDate', ''), ('__VIEWSTATE', viewstate)],
+                                                    [('ctl00$ContentBody$fuFieldNote', 'geocache_visits.txt', text)]
+                                                  ))
 
-        res = response.read()
-        if not "successfully uploaded" in res:
-            raise Exception("Something went wrong while uploading the field notes.")
-        else:
-            return True
+            res = response.read()
+            if not "successfully uploaded" in res:
+                raise Exception("Something went wrong while uploading the field notes.")
+            else:
+                self.emit('finished-uploading')
+        except Exception, e:
+            self.emit('upload-error', e)
         
 
 class CacheDownloader(gobject.GObject):

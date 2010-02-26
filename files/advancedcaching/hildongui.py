@@ -22,12 +22,10 @@
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
 
 # todo:
-# download logs
 # parse attributes
 # add "next waypoint" button
 # add description to displayed images
 # add translation support?
-# download in seperate thread?
 
 
  
@@ -657,8 +655,34 @@ class HildonGui(SimpleGui):
             c['hints'].set_text(text_hints)
 
             # images
-            p = gtk.Label("This is not implemented yet, sorry!")
-            notebook.append_page(p, gtk.Label("images"))      
+            if len(self.images) == 0:
+                p = gtk.Label("")
+                text = "There are no images here to see."
+                p.set_markup(text)
+                notebook.append_page(p, gtk.Label("images"))      
+            else:
+                selector = hildon.TouchSelector(text=True)
+                selector.get_column(0).get_cells()[0].set_property('xalign', 0)
+                selector.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_SINGLE)
+                
+                def on_imagelist_clicked(widget, data, imagelist):
+                    path, caption = imagelist[widget.get_selected_rows(0)[0][0]]
+                    if c == None:
+                        return
+                    self._on_show_image(path, caption)
+                    
+                
+                imagelist = self.current_cache.get_images().items()
+                i = 1
+                for filename, caption in self.images:
+                    if len(caption) == 0:
+                        caption = "(no caption)"
+                    text = "#%d: %s" % (i, caption)
+                    i += 1
+                    selector.append_text(caption)
+                selector.connect("clicked", on_imagelist_clicked, imagelist)
+                
+                notebook.append_page(p, gtk.Label("images"))      
         
         # coords
 
@@ -726,6 +750,14 @@ class HildonGui(SimpleGui):
 
         win.connect('delete_event', close)
         self.current_cache_window_open = True
+        
+    def _on_show_image(path, caption):
+        #fullpath = os.path.join(self.settings['download_output_dir'], path)
+        #win = hildon.StackableWindow()
+        # pannablearea
+        # darein bild.
+        # win anzeigen
+        pass
 
     def _get_coord_selector(self, cache, callback, no_empty = False):
         selector = hildon.TouchSelector(text=True)
@@ -755,14 +787,6 @@ class HildonGui(SimpleGui):
         if self.current_cache == None:
             return
         self._update_mark(self.current_cache, widget.get_active())
-        
-    def _on_download_details(self, widget, data):
-        pass
-        
-    def _on_set_as_target(self, widget, data):
-        pass
-        
-        
         
     def _on_show_log_fieldnote_dialog(self, widget, data):
         if self.current_cache == None:
@@ -880,7 +904,6 @@ class HildonGui(SimpleGui):
     def set_center(self, coord, noupdate = False):
         SimpleGui.set_center(self, coord, noupdate)
         self.button_center_as_target.set_value("%s %s" % (coord.get_lat(self.format), coord.get_lon(self.format)))
-        self.set_active_page(True)
 
     def hide_progress(self):
         hildon.hildon_gtk_window_set_progress_indicator(self.window, 0)
@@ -912,6 +935,7 @@ class HildonGui(SimpleGui):
         
         self.set_target(self.current_cache)
         self.hide_cache_view()
+        self.set_active_page(True)
 
     def _on_upload_fieldnotes(self, something):
         self.core.on_upload_fieldnotes()
@@ -924,11 +948,15 @@ class HildonGui(SimpleGui):
             return
         if element[0] == 0:
             self.set_target(self.current_cache)
+            self.set_active_page(True)
+            self.hide_cache_view()
         else:
             wpt = self.current_cache.get_waypoints()[element[0]-1]
             if wpt['lat'] == -1 or wpt['lon'] == -1:
                 return
             self.set_target(geo.Coordinate(wpt['lat'], wpt['lon'], wpt['id']))
+            self.set_active_page(True)
+            self.hide_cache_view()
                 
     def on_zoom_changed(self, blub):
         if not self.inhibit_zoom:

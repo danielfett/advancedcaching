@@ -508,19 +508,24 @@ class Core(gobject.GObject):
 
         caches = self.pointprovider.get_new_fieldnotes()
         fn = geocaching.FieldnotesUploader(self.downloader)
-        try:
-            for c in caches:
-                fn.add_fieldnote(c)
-            fn.upload()
-                        
-        except Exception, e:
-            self.gui.show_error(e)
-        else:
-            #self.gui.show_success("Field notes uploaded successfully.")
-            for c in caches:
-                self.pointprovider.update_field(c, 'logas', geocaching.GeocacheCoordinate.LOG_NO_LOG)
-        finally:
-            self.gui.hide_progress()
+        fn.connect("upload-error", self.on_download_error)
+        
+        def same_thread(arg1):
+            gobject.idle_add(self.on_upload_fieldnotes_finished, arg1, caches)
+            return False
+            
+        fn.connect('finished-uploading', same_thread)
+        
+        for c in caches:
+            fn.add_fieldnote(c)
+        t = threading.Thread(target=fn.upload)
+        t.start()
+        
+    def on_upload_fieldnotes_finished(self, widget, caches):
+        for c in caches:
+            self.pointprovider.update_field(c, 'logas', geocaching.GeocacheCoordinate.LOG_NO_LOG)
+        self.gui.hide_progress()
+            
                 
     def __read_gps(self):
         fix = self.gps_thread.get_data()

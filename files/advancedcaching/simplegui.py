@@ -403,7 +403,7 @@ class SimpleGui(object):
         entity_re = re.compile(r'&(#?)(x?)(\w+);')
         return entity_re.subn(substitute_entity, string)[0]
         
-    def on_window_destroy(self, target, more, data):
+    def on_window_destroy(self, target, more = None, data = None):
         self.core.on_destroy()
         gtk.main_quit()
 
@@ -940,7 +940,6 @@ class SimpleGui(object):
         self._update_cache_image(reset = True)
 
     def on_download_clicked(self, widget, data = None):
-        self.do_events()
         self.core.on_download(self.get_visible_area())
         
         self._draw_map()
@@ -1023,7 +1022,7 @@ class SimpleGui(object):
             # if we are tracking the user, redraw if far enough from center:
             if self.button_track.get_active():
                 n, o = self.map_width / 2, self.map_height / 2
-                dist_from_center = (x - n) ** 2 + (y - o) ** 2
+                dist_from_cenfter = (x - n) ** 2 + (y - o) ** 2
                 if dist_from_center > self.REDRAW_DISTANCE_TRACKING ** 2:
                     self.set_center(self.gps_data.position)
                     # update last position, as it is now drawed
@@ -1271,10 +1270,10 @@ class SimpleGui(object):
         if not self.inhibit_zoom:
             self.zoom()
                 
-    def on_zoomin_clicked(self, widget, data):
+    def on_zoomin_clicked(self, widget, data = None):
         self.zoom(+ 1)
                 
-    def on_zoomout_clicked(self, widget, data):
+    def on_zoomout_clicked(self, widget, data = None):
         self.zoom(-1)
                 
     def _update_cache_image(self, reset = False):
@@ -1385,7 +1384,7 @@ class SimpleGui(object):
         self.progressbar.show()
         self.progressbar.set_text(text)
         self.progressbar.set_fraction(fraction)
-        self.do_events()
+        #self.do_events()
                 
     def set_target(self, cache):
         self.current_target = cache
