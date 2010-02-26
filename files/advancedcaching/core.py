@@ -228,7 +228,8 @@ class Core(gobject.GObject):
         'last_target_name': 'default',
         'download_noimages': False,
         'download_map_path': DATA_DIR + MAPS_DIR,
-        'options_hide_found': False
+        'options_hide_found': False,
+        'options_show_error' : True
     }
             
     def __init__(self, guitype, root):

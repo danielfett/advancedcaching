@@ -27,6 +27,9 @@ except (ImportError):
     print "If you're on maemo, please install python-location"
 
 class Fix():
+    BEARING_HOLD_EPD = 90 # arbitrary, yet non-random value
+    last_bearing = 0
+    
     def __init__(self,
             position = None,
             altitude = None,
@@ -36,7 +39,8 @@ class Fix():
             sats_known = 0,
             dgps = False,
             quality = 0,
-            error = 0):
+            error = 0,
+            error_bearing = 0):
         self.position = position
         self.altitude = altitude
         self.bearing = bearing
@@ -46,6 +50,7 @@ class Fix():
         self.dgps = dgps
         self.quality = quality
         self.error = error
+        self.error_bearing = error_bearing
 
     @staticmethod
     def from_tuple(f, device):
@@ -54,13 +59,18 @@ class Fix():
             return a
         a.position = geo.Coordinate(f[4], f[5])
         a.altitude = f[7]
-        a.bearing = f[9]
+        if f[10] > Fix.BEARING_HOLD_EPD:
+            a.bearing = Fix.last_bearing
+        else:
+            a.bearing = f[9]
+            Fix.last_bearing = a.bearing
         a.speed = f[11]
         a.sats = device.satellites_in_use
         a.sats_known = device.satellites_in_view
         a.dgps = False
         a.quality = 0
         a.error = f[6]/100.0
+        a.error_bearing = f[10]
         return a
 
 class GpsReader():
@@ -174,9 +184,9 @@ class GpsReader():
             #print "Aktuell %f, max: %f" % (speed, max(self.speeds))
 
             if speed < self.BEARING_HOLD_SPEED:
-                track = self.last_bearing
+                error_bearing = 360
             else:
-                self.last_bearing = track
+                error_bearing = 0
             return Fix(
                 position =geo.Coordinate(float(lat), float(lon)),
                 altitude = alt,
@@ -186,7 +196,8 @@ class GpsReader():
                 sats_known = sats_known,
                 dgps = dgps,
                 quality = quality,
-                error = err_hor
+                error = err_hor,
+                error_bearing = error_bearing
                 )
         except Exception, e:
             print "Fehler beim Auslesen der Daten: %s " % e
@@ -208,7 +219,7 @@ class FakeGpsReader():
     INC = 0.001
     
 
-    def __init__(self):
+    def __init__(self, something):
         self.status = "faking..."
         self.current_lat, self.current_lon = (self.START_LAT, self.START_LON)
 
@@ -217,14 +228,15 @@ class FakeGpsReader():
         self.current_lat += self.INC
         self.current_lon += self.INC
         return Fix(
-            position =geo.Coordinate(self.current_lat, self.current_lon),
+            position = geo.Coordinate(self.current_lat, self.current_lon),
             altitude = 212,
             bearing = 120,
             speed = 2,
             sats = 42,
             sats_known = 42,
             dgps = True,
-            quality = 0
+            quality = 0,
+            error = 50
             )
 
 

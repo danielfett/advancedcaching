@@ -70,7 +70,7 @@ def try_parse_coordinate(text):
 class Coordinate():
     SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT'}
     
-    RADIUS_EARTH = 6371000
+    RADIUS_EARTH = 6371000.0
     
     FORMAT_D = 0
     FORMAT_DM = 1

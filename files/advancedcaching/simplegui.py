@@ -841,8 +841,21 @@ class SimpleGui(object):
                 if self.point_in_screen(p):
                 
                     xgc.line_width = 2
-                    radius_o = 20
-                    radius_i = 7
+
+
+                    radius = self.gps_data.error
+                    
+                    # determine radius in meters
+                    (x, y) = self._coord2point(self.gps_data.position.transform(90.0, radius))
+                    (x2, y2) = self._coord2point(self.gps_data.position)
+                    radius_pixels = (x2 - x)
+                    print radius_pixels
+                    radius_o = (radius_pixels + 8) / math.sqrt(2)
+                    radius_i = (radius_pixels - 8) / math.sqrt(2)
+
+                    
+                    if radius_i < 2:
+                        radius_i = 2
                     xgc.set_function(gtk.gdk.COPY)
                     xgc.set_rgb_fg_color(self.COLOR_CURRENT_POSITION)
                                 
@@ -854,6 +867,14 @@ class SimpleGui(object):
                     self.pixmap_marks.draw_line(xgc, p[0] + radius_o, p[1] - radius_o, p[0] + radius_i, p[1] - radius_i)
                     self.pixmap_marks.draw_line(xgc, p[0] - radius_o, p[1] + radius_o, p[0] - radius_i, p[1] + radius_i)
                     self.pixmap_marks.draw_point(xgc, p[0], p[1])
+
+                    xgc.set_function(gtk.gdk.INVERT)
+                    xgc.line_width = 1
+                    xgc.set_rgb_fg_color(gtk.gdk.color_parse('blue'))
+                    
+                    self.pixmap_marks.draw_arc(xgc, False, p[0] - radius_pixels, p[1] - radius_pixels, radius_pixels*2, radius_pixels*2, 0, 360*64)
+
+                    
                 
                 '''
                                 # if we have a bearing, draw it.
@@ -1022,7 +1043,7 @@ class SimpleGui(object):
             # if we are tracking the user, redraw if far enough from center:
             if self.button_track.get_active():
                 n, o = self.map_width / 2, self.map_height / 2
-                dist_from_cenfter = (x - n) ** 2 + (y - o) ** 2
+                dist_from_center = (x - n) ** 2 + (y - o) ** 2
                 if dist_from_center > self.REDRAW_DISTANCE_TRACKING ** 2:
                     self.set_center(self.gps_data.position)
                     # update last position, as it is now drawed
@@ -1233,7 +1254,7 @@ class SimpleGui(object):
             self.set_target(self.current_cache)
             self.notebook_all.set_current_page(0)
 
-    def on_set_target_center(self, something):
+    def on_set_target_center(self, some, thing = None):
         self.set_target(self.ts.num2deg(self.map_center_x, self.map_center_y))
 
     def on_show_target_clicked(self, some = None, data = None):
@@ -1390,6 +1411,7 @@ class SimpleGui(object):
         self.current_target = cache
         self.label_target.set_text("<span size='large'>%s\n%s</span>" % (cache.get_lat(self.format), cache.get_lon(self.format)))
         self.label_target.set_use_markup(True)
+        
         #self.set_center(cache)
                 
     def show(self):
