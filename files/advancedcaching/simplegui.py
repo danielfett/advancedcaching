@@ -847,6 +847,7 @@ class SimpleGui(object):
                     
                     # determine radius in meters
                     (x, y) = self._coord2point(self.gps_data.position.transform(90.0, radius))
+                    print x, y
                     (x2, y2) = self._coord2point(self.gps_data.position)
                     radius_pixels = (x2 - x)
                     print radius_pixels

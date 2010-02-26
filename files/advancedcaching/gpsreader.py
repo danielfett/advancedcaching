@@ -246,7 +246,7 @@ class LocationGpsReader():
 
         control = location.GPSDControl.get_default()
         device = location.GPSDevice()
-        control.set_properties(preferred_method = location.METHOD_GNSS | location.METHOD_AGNSS, preferred_interval=location.INTERVAL_1S)
+        control.set_properties(preferred_method = location.METHOD_CWP | location.METHOD_ACWP | location.METHOD_GNSS | location.METHOD_AGNSS, preferred_interval=location.INTERVAL_1S)
         control.connect("error-verbose", cb_error)
         device.connect("changed", cb_changed)
         self.control = control
