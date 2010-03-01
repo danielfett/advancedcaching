@@ -252,6 +252,9 @@ class LocationGpsReader():
         self.control = control
         self.device = device
 
+    def get_status(self):
+        return self.device.status
+
     def start(self):
         self.control.start()
         return False

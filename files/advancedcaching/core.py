@@ -547,6 +547,8 @@ class Core(gobject.GObject):
         # @type fix gpsreader.Fix
         if fix.position != None:
             self.gui.on_good_fix(fix)
+        else:
+            self.gui.on_no_fix(fix, device.status if device != None else '')
         return True
                 
     def __read_config(self):
