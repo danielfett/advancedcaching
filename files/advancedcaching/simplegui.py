@@ -861,7 +861,7 @@ class SimpleGui(object):
                     if radius_i < 2:
                         radius_i = 2
                     xgc.set_function(gtk.gdk.COPY)
-                    if gps_has_fix:
+                    if self.gps_has_fix:
                         xgc.set_rgb_fg_color(self.COLOR_CURRENT_POSITION)
                     else:
                         xgc.set_rgb_fg_color(self.COLOR_CURRENT_POSITION_NO_FIX)
@@ -875,7 +875,7 @@ class SimpleGui(object):
                     self.pixmap_marks.draw_line(xgc, p[0] + radius_o, p[1] - radius_o, p[0] + radius_i, p[1] - radius_i)
                     self.pixmap_marks.draw_line(xgc, p[0] - radius_o, p[1] + radius_o, p[0] - radius_i, p[1] + radius_i)
                     self.pixmap_marks.draw_point(xgc, p[0], p[1])
-                    if gps_has_fix:
+                    if self.gps_has_fix:
                         xgc.set_function(gtk.gdk.INVERT)
                         xgc.line_width = 1
                         xgc.set_rgb_fg_color(gtk.gdk.color_parse('blue'))
