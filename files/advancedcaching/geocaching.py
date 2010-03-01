@@ -364,9 +364,9 @@ class CacheDownloader(gobject.GObject):
         return (float(decimal) + (float(minutes) / 60.0)) * sign
 
     def __treat_waypoints(self, data):
-
+        
         waypoints = []
-        finder = re.finditer(r'<tr class="BorderBottom">\s+<td><img [^>]+></td>\s*' +
+        finder = re.finditer(r'<tr class="[^"]+">\s+<td><img [^>]+></td>\s*' +
                              r'<td><img [^>]+></td>\s*' +
                              r'<td>(?P<id_prefix>[^<]+)</td>\s*' +
                              r'<td>(?P<id>[^<]+)</td>\s*' +
@@ -381,8 +381,8 @@ class CacheDownloader(gobject.GObject):
                              'lat': self.__from_dm(m.group('lat_sign'), m.group('lat_d'), m.group('lat_m')),
                              'lon': self.__from_dm(m.group('lon_sign'), m.group('lon_d'), m.group('lon_m')),
                              'id': "%s%s" % m.group('id_prefix', 'id'),
-                             'name': m.group('name'),
-                             'comment': m.group('comment')
+                             'name': self.__decode_htmlentities(m.group('name')),
+                             'comment': self.__decode_htmlentities(self.__strip_html(self.__replace_br(m.group('comment'))))
                              })
 
         return waypoints

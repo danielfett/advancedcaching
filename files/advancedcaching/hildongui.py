@@ -434,8 +434,10 @@ class HildonGui(SimpleGui):
         col1.set_attributes(c3cr, text=2)
         
         def select_cache(widget, data, more):
-            rows = tv.get_selected_rows(0)
-            self._select_cache(ls[rows[0]][3])
+            tm = widget.get_model(0)
+            iter = tm.get_iter(0)
+            widget.get_selected(0, iter)
+            self._select_cache(ls[tm.get_path(iter)[0]][3])
         
         tv.connect("changed", select_cache, None)
         
@@ -504,7 +506,10 @@ class HildonGui(SimpleGui):
         dialog.vbox.pack_start(h_lat)
 
         def sel_coord(widget, data, list):
-            coord = list[widget.get_selected_rows(0)[0][0]]
+            tm = widget.get_model(0)
+            iter = tm.get_iter(0)
+            widget.get_selected(0, iter)
+            coord = list[tm.get_path(iter)[0]]
             e_lat.set_text("%s %s" % (coord.get_lat(self.format), coord.get_lon(self.format)))
 
         if self.current_cache != None:
@@ -543,6 +548,7 @@ class HildonGui(SimpleGui):
             return
         self.current_cache = cache
         self.button_show_details.set_value(cache.title)
+        self.button_show_details.set_sensitive(True)
 
         win = hildon.StackableWindow()
         win.set_title(cache.title)
@@ -667,13 +673,17 @@ class HildonGui(SimpleGui):
                 selector.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_SINGLE)
                 
                 def on_imagelist_clicked(widget, data, imagelist):
-                    path, caption = imagelist[widget.get_selected_rows(0)[0][0]]
+                    tm = widget.get_model(0)
+                    iter = tm.get_iter(0)
+                    widget.get_selected(0, iter)
+                    path, caption = imagelist[tm.get_path(iter)[0]]
                     if c == None:
                         return
                     self._on_show_image(path, caption)
                     
                 
                 imagelist = self.current_cache.get_images().items()
+                imagelist.sort(cmp = lambda x, y: cmp(x[1], y[1]))
                 i = 1
                 for filename, caption in imagelist:
                     if len(caption) == 0:
@@ -693,7 +703,10 @@ class HildonGui(SimpleGui):
 
 
         def set_coord_as_target(widget, selector, list):
-            c = list[selector.get_selected_rows(0)[0][0]]
+            tm = selector.get_model(0)
+            iter = tm.get_iter(0)
+            selector.get_selected(0, iter)
+            c = list[tm.get_path(iter)[0]]
             if c == None:
                 return
             self.set_target(c)

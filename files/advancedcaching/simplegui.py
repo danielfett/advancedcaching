@@ -87,6 +87,7 @@ class SimpleGui(object):
     COLOR_CURRENT_CACHE = gtk.gdk.color_parse('red')
     COLOR_WAYPOINTS = gtk.gdk.color_parse('deeppink')
     COLOR_CURRENT_POSITION = gtk.gdk.color_parse('red')
+    COLOR_CURRENT_POSITION_NO_FIX = gtk.gdk.color_parse('darkgray')
     COLOR_TARGET = gtk.gdk.color_parse('black')
     COLOR_CROSSHAIR = gtk.gdk.color_parse("black")
     COLOR_LINE_INVERT = gtk.gdk.color_parse("blue")
@@ -465,14 +466,16 @@ class SimpleGui(object):
         widget = self.drawing_area_arrow
         x, y, width, height = widget.get_allocation()
                         
-        disabled = (not self.gps_has_fix or self.current_target == None or self.gps_data == None or self.gps_data.position == None)
+        disabled = not (self.gps_has_fix and self.current_target != None and self.gps_data != None and self.gps_data.position != None)
                         
         self.pixmap_arrow.draw_rectangle(widget.get_style().bg_gc[gtk.STATE_NORMAL],
                                          True, 0, 0, width, height)
                                          
         if disabled:
             self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_DISABLED)
-
+            border = 30
+            self.pixmap_arrow.draw_line(self.xgc_arrow, border, border, width - border, height - border)
+            self.pixmap_arrow.draw_line(self.xgc_arrow, border, height - border, width - border, border)
             self.drawing_area_arrow.queue_draw()
                 
             return False
@@ -858,22 +861,27 @@ class SimpleGui(object):
                     if radius_i < 2:
                         radius_i = 2
                     xgc.set_function(gtk.gdk.COPY)
-                    xgc.set_rgb_fg_color(self.COLOR_CURRENT_POSITION)
+                    if gps_has_fix:
+                        xgc.set_rgb_fg_color(self.COLOR_CURRENT_POSITION)
+                    else:
+                        xgc.set_rgb_fg_color(self.COLOR_CURRENT_POSITION_NO_FIX)
                                 
                     # \  /
                     #
                     # /  \
+
                     self.pixmap_marks.draw_line(xgc, p[0] - radius_o, p[1] - radius_o, p[0] - radius_i, p[1] - radius_i)
                     self.pixmap_marks.draw_line(xgc, p[0] + radius_o, p[1] + radius_o, p[0] + radius_i, p[1] + radius_i)
                     self.pixmap_marks.draw_line(xgc, p[0] + radius_o, p[1] - radius_o, p[0] + radius_i, p[1] - radius_i)
                     self.pixmap_marks.draw_line(xgc, p[0] - radius_o, p[1] + radius_o, p[0] - radius_i, p[1] + radius_i)
                     self.pixmap_marks.draw_point(xgc, p[0], p[1])
+                    if gps_has_fix:
+                        xgc.set_function(gtk.gdk.INVERT)
+                        xgc.line_width = 1
+                        xgc.set_rgb_fg_color(gtk.gdk.color_parse('blue'))
 
-                    xgc.set_function(gtk.gdk.INVERT)
-                    xgc.line_width = 1
-                    xgc.set_rgb_fg_color(gtk.gdk.color_parse('blue'))
-                    
-                    self.pixmap_marks.draw_arc(xgc, False, p[0] - radius_pixels, p[1] - radius_pixels, radius_pixels*2, radius_pixels*2, 0, 360*64)
+                        self.pixmap_marks.draw_arc(xgc, False, p[0] - radius_pixels, p[1] - radius_pixels, radius_pixels*2, radius_pixels*2, 0, 360*64)
+                        
 
                     
                 
