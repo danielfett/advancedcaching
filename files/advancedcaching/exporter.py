@@ -42,7 +42,7 @@ class GpxExporter(Exporter):
     EXTENSION = 'gpx'
     
     def get_text(self, c):
-        result = pyfo(self.__build_gpx(c), pretty=True, prolog=True, encoding='utf8')
+        result = pyfo(self.__build_gpx(c), pretty=True, prolog=True, encoding='utf-8')
         return result.encode('utf8', 'xmlcharrefreplace')
 
     def __build_gpx(self, c):
@@ -50,6 +50,7 @@ class GpxExporter(Exporter):
             self.__build_intro(c) + self.__build_main_wp(c) + self.__build_wps(c.get_waypoints()),
             {
                 'xmlns:xsi' : "http://www.w3.org/2001/XMLSchema-instance",
+                'xmlns:xsd' : 'http://www.w3.org/2001/XMLSchema',
                 'version' : '1.0',
                 'creator' : 'AGTL Geocaching Tool',
                 'xsi:schemaLocation' : "http://www.topografix.com/GPX/1/0 http://www.topografix.com/GPX/1/0/gpx.xsd http://www.groundspeak.com/cache/1/0 http://www.groundspeak.com/cache/1/0/cache.xsd",
@@ -60,8 +61,14 @@ class GpxExporter(Exporter):
         return [
             ('name', 'AGTL Geocache Listing'),
             ('desc', ' '),
+            ('email', 'nothing@example.com'),
+            ('url', 'http://www.geocaching.com'),
+            ('urlname', 'Geocaching - High Tech Treasure Hunting'),
+            ('time', '2010-02-27T18:31:24.4812526Z'),
+            ('keywords', 'cache, geocache'),
             ('author', c.owner),
-            ('bounds', None, c.get_bounds())
+            ('bounds', None, c.get_bounds()),
+            
         ]
 
     def __build_main_wp(self, c):
@@ -74,8 +81,11 @@ class GpxExporter(Exporter):
 
         return [('wpt',
             [
+                ('time', '2010-02-27T18:31:24.4812526Z'),
                 ('name', c.name),
                 ('desc', "%s D%s T%s: %s" % (c.type, c.get_difficulty(), c.get_terrain(), c.title)),
+                ('url', 'http://coord.info/%s' % c.name),
+                ('urlname', c.name),
                 ('sym', 'Geocache'),
                 ('type', 'Geocache|%s' % c.get_gs_type()),
                 ('groundspeak:cache', self.__build_cache_info(c), {
