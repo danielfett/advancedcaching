@@ -394,7 +394,7 @@ class CacheDownloader(gobject.GObject):
                 continue
             id = self.__download_image(url = m.group(1))
             if id != None:
-                self.__add_image(id, self.__strip_html(m.group(2)))
+                self.__add_image(id, self.__decode_htmlentities(self.__strip_html(m.group(2))))
 
     def __replace_images(self, data):
         return re.sub(r'''(?is)(<img[^>]+src=\n?["']?)([^ >"']+)([^>]+?/?>)''', self.__replace_image_callback, data)

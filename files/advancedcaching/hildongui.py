@@ -85,6 +85,7 @@ class HildonGui(SimpleGui):
         self.gps_has_fix = False
         self.gps_last_position = None
         self.banner = None
+        self.fieldnotes_changed = False
                 
         self.dragging = False
         self.block_changes = False
@@ -655,7 +656,7 @@ class HildonGui(SimpleGui):
             c['hints'].set_text(text_hints)
 
             # images
-            if len(self.images) == 0:
+            if len(cache.images) == 0:
                 p = gtk.Label("")
                 text = "There are no images here to see."
                 p.set_markup(text)
@@ -674,15 +675,15 @@ class HildonGui(SimpleGui):
                 
                 imagelist = self.current_cache.get_images().items()
                 i = 1
-                for filename, caption in self.images:
+                for filename, caption in imagelist:
                     if len(caption) == 0:
                         caption = "(no caption)"
                     text = "#%d: %s" % (i, caption)
                     i += 1
                     selector.append_text(caption)
-                selector.connect("clicked", on_imagelist_clicked, imagelist)
+                selector.connect("changed", on_imagelist_clicked, imagelist)
                 
-                notebook.append_page(p, gtk.Label("images"))      
+                notebook.append_page(selector, gtk.Label("images"))
         
         # coords
 
@@ -751,13 +752,22 @@ class HildonGui(SimpleGui):
         win.connect('delete_event', close)
         self.current_cache_window_open = True
         
-    def _on_show_image(path, caption):
-        #fullpath = os.path.join(self.settings['download_output_dir'], path)
-        #win = hildon.StackableWindow()
-        # pannablearea
-        # darein bild.
-        # win anzeigen
-        pass
+    def _on_show_image(self, path, caption):
+        fullpath = os.path.join(self.settings['download_output_dir'], path)
+        if not os.path.exists(fullpath):
+            print "ex nicht: " + fullpath
+            return
+        win = hildon.StackableWindow()
+        win.set_title(caption)
+        p = hildon.PannableArea()
+        vp = gtk.Viewport()
+        p.add(vp)
+        i = gtk.Image()
+        i.set_from_file(fullpath)
+        i.set_pixel_size(3)
+        win.add(p)
+        vp.add(i)
+        win.show_all()
 
     def _get_coord_selector(self, cache, callback, no_empty = False):
         selector = hildon.TouchSelector(text=True)
@@ -943,7 +953,6 @@ class HildonGui(SimpleGui):
     def on_waypoint_clicked(self, listview, event, element):
         if event.type != gtk.gdk._2BUTTON_PRESS or element == None:
             return
-        print element[0]
         if self.current_cache == None:
             return
         if element[0] == 0:
@@ -1054,8 +1063,7 @@ class HildonGui(SimpleGui):
         size = self.ts.tile_size()
         center = self.ts.num2deg(self.map_center_x - float(self.draw_at_x) / size, self.map_center_y - float(self.draw_at_y) / size)
         if direction == None:
-            #newzoom = self.zoom_adjustment.get_value()
-            print "not"
+            return
         else:
             newzoom = self.ts.get_zoom() + direction
         self.ts.set_zoom(newzoom)

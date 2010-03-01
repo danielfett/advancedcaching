@@ -42,7 +42,7 @@ try:
     import gtk.glade
     import extListview
 except (ImportError):
-    print "Please install glade and pango."
+    print "Please install glade if you're NOT on the maemo platform."
 import pango
 import openstreetmap
 import os
