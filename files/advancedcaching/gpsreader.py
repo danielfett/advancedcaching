@@ -252,7 +252,6 @@ class FakeGpsReader():
         self.index = -1
         self.data = [x.split('\t') for x in self.TESTDATA.split("\n")]
         self.lastpos = None
-        print self.data
 
     @staticmethod
     def get_target():

@@ -872,6 +872,7 @@ class SimpleGui(object):
                     self.pixmap_marks.draw_line(xgc, p[0] + radius_o, p[1] + radius_o, p[0] + radius_i, p[1] + radius_i)
                     self.pixmap_marks.draw_line(xgc, p[0] + radius_o, p[1] - radius_o, p[0] + radius_i, p[1] - radius_i)
                     self.pixmap_marks.draw_line(xgc, p[0] - radius_o, p[1] + radius_o, p[0] - radius_i, p[1] + radius_i)
+                    
                     self.pixmap_marks.draw_point(xgc, p[0], p[1])
                     if self.gps_has_fix:
                         xgc.set_function(gtk.gdk.INVERT)
@@ -918,7 +919,7 @@ class SimpleGui(object):
 
         # draw cross across the screen
         xgc.line_width = 1
-        xgc.set_function(gtk.gdk.INVERT)
+        xgc.set_function(gtk.gdk.XOR)
         xgc.set_rgb_fg_color(self.COLOR_CROSSHAIR)
 
         radius_inner = 30

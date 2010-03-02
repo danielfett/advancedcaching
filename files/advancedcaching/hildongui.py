@@ -52,7 +52,7 @@ class HildonGui(SimpleGui):
     COLOR_ARROW_DISABLED = gtk.gdk.color_parse("red")
     COLOR_ARROW_CIRCLE = gtk.gdk.color_parse("darkgray")
     COLOR_ARROW_OUTER_LINE = gtk.gdk.color_parse("black")
-    COLOR_CROSSHAIR = gtk.gdk.color_parse("green")
+    COLOR_CROSSHAIR = gtk.gdk.color_parse("deeppink")
     NORTH_INDICATOR_SIZE = 30
 
 
