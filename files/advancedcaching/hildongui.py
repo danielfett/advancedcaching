@@ -43,7 +43,7 @@ import pango
 from simplegui import SimpleGui
 class HildonGui(SimpleGui):
 
-    USES = ['locationgpsprovider']
+    USES = ['testgpsprovider']
 
     MIN_DRAG_REDRAW_DISTANCE = 2
     DRAG_RECHECK_SPEED = 40
@@ -52,6 +52,7 @@ class HildonGui(SimpleGui):
     COLOR_ARROW_DISABLED = gtk.gdk.color_parse("red")
     COLOR_ARROW_CIRCLE = gtk.gdk.color_parse("darkgray")
     COLOR_ARROW_OUTER_LINE = gtk.gdk.color_parse("black")
+    COLOR_CROSSHAIR = gtk.gdk.color_parse("green")
     NORTH_INDICATOR_SIZE = 30
 
 
@@ -1020,14 +1021,14 @@ class HildonGui(SimpleGui):
             return
 
         if self.gps_data.sats == 0:
-            text = "No sats available"
+            text = "No sats, error: ±%3.1fm" % self.gps_data.error
         else:
             text = "%d/%d sats, error: ±%3.1fm" % (self.gps_data.sats, self.gps_data.sats_known, self.gps_data.error)
         self.label_quality.set_markup("Accurancy\n<small>%s</small>" % text)
         if self.gps_data.altitude == None or self.gps_data.bearing == None:
             return
 
-        self.label_altitude.set_markup("Altitude\n<small>%3d m</small>" % self.gps_data.altitude)
+        self.label_altitude.set_markup("Altitude\n<small>%d m</small>" % self.gps_data.altitude)
         self.label_bearing.set_markup("Bearing\n<small>%d°</small>" % self.gps_data.bearing)
         self.label_latlon.set_markup("Current Position\n<small>%s %s</small>" % (self.gps_data.position.get_lat(self.format), self.gps_data.position.get_lon(self.format)))
                 

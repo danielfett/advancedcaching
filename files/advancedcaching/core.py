@@ -201,7 +201,7 @@ class Core(gobject.GObject):
     CACHES_DB = os.path.join(SETTINGS_DIR, "caches.db")
     COOKIE_FILE = os.path.join(SETTINGS_DIR, "cookies.lwp")
 
-    MAEMO_HOME = os.path.expanduser("~/MyDocs/")
+    MAEMO_HOME = os.path.expanduser("~/MyDocs/.")
     MAPS_DIR = 'Maps/OSM/'
 
     DATA_DIR = os.path.expanduser('~/') if not os.path.exists(MAEMO_HOME) else MAEMO_HOME
@@ -211,18 +211,18 @@ class Core(gobject.GObject):
         'download_notfound': True,
         'download_new': True,
         'download_nothing': False,
-        'download_create_index': True,
+        'download_create_index': False,
         'download_run_after': False,
         'download_run_after_string': '',
-        'download_output_dir': os.path.expanduser(DATA_DIR + 'caches/'),
+        'download_output_dir': os.path.expanduser(DATA_DIR + 'geocaches/'),
         'map_position_lat': 49.7540,
         'map_position_lon': 6.66135,
         'map_zoom': 7,
         'download_resize': True,
         'download_resize_pixel': 400,
         'options_show_name': True,
-        'options_username': "Username",
-        'options_password': "Pass",
+        'options_username': "",
+        'options_password': "",
         'last_target_lat': 50,
         'last_target_lon': 10,
         'last_target_name': 'default',
@@ -264,8 +264,10 @@ class Core(gobject.GObject):
         elif 'locationgpsprovider' in self.gui.USES:
             self.gps_thread = gpsreader.LocationGpsReader(self.__read_gps_cb_error, self.__read_gps_cb_changed)
             gobject.idle_add(self.gps_thread.start)
-
-
+        elif 'testgpsprovider' in self.gui.USES:
+            self.gps_thread = gpsreader.FakeGpsReader(self)
+            gobject.timeout_add(1000, self.__read_gps)
+            self.gui.set_target(gpsreader.FakeGpsReader.get_target())
         if 'geonames' in self.gui.USES:
             import geonames
             self.geonames = geonames.Geonames(self.downloader)
