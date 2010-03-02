@@ -128,6 +128,8 @@ class HildonGui(SimpleGui):
         return False
 
     def _on_key_press(self, window, event):
+        print "event: " + event.keyval
+
         if event.keyval == gtk.keysyms.F7:
             self.zoom(+1)
         elif event.keyval == gtk.keysyms.F8:
@@ -727,6 +729,7 @@ class HildonGui(SimpleGui):
         #c['notes'].set_editable(True)
         c['notes'].get_buffer().set_text(cache.notes)
         p.add(c['notes'])
+        
         notebook.append_page(p, gtk.Label("notes"))
         
         self.cache_elements = c
@@ -762,6 +765,9 @@ class HildonGui(SimpleGui):
 
         def close(window, more):
             self.current_cache_window_open = False
+            b = c['notes'].get_buffer()
+            self.core.on_notes_changed(self.current_cache, b.get_text(b.get_start_iter(), b.get_end_iter()))
+
 
         win.connect('delete_event', close)
         self.current_cache_window_open = True
@@ -867,25 +873,6 @@ class HildonGui(SimpleGui):
             cache.found = 0
 
         self.update_fieldnotes_display()
-
-
-    def _on_marked_label_clicked(self, event=None, widget=None):
-        w = xml.get_widget('check_cache_marked')
-        w.set_active(not w.get_active())
-        print w
-    '''
-    def _check_notes_save(self):
-        if self.current_cache != None and self.notes_changed:
-            self.core.on_notes_changed(self.current_cache, self.cache_elements['notes'].get_text(self.cache_elements['notes'].get_start_iter(), self.cache_elements['notes'].get_end_iter()))
-            self.notes_changed = False
-
-        if self.current_cache != None and self.fieldnotes_changed:
-            self.core.on_fieldnotes_changed(self.current_cache, self.cache_elements['fieldnotes'].get_text(self.cache_elements['fieldnotes'].get_start_iter(), self.cache_elements['fieldnotes'].get_end_iter()))
-            self.fieldnotes_changed = False
-   '''             
-                
-                
-                
                 
                 
     # called by core

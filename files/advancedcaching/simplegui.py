@@ -310,7 +310,6 @@ class SimpleGui(object):
     def on_marked_label_clicked(self, event=None, widget=None):
         w = xml.get_widget('check_cache_marked')
         w.set_active(not w.get_active())
-        print w
 
     def dmap(self, widget):
         pass
@@ -345,7 +344,6 @@ class SimpleGui(object):
                 
                 
     def _configure_event_arrow(self, widget, event):
-        print "configuring arrow"
         x, y, width, height = widget.get_allocation()
         self.pixmap_arrow = gtk.gdk.Pixmap(widget.window, width, height)
         self.xgc_arrow = widget.window.new_gc()
@@ -850,10 +848,10 @@ class SimpleGui(object):
                     
                     # determine radius in meters
                     (x, y) = self._coord2point(self.gps_data.position.transform(90.0, radius))
-                    print x, y
+
                     (x2, y2) = self._coord2point(self.gps_data.position)
                     radius_pixels = (x2 - x)
-                    print radius_pixels
+
                     radius_o = (radius_pixels + 8) / math.sqrt(2)
                     radius_i = (radius_pixels - 8) / math.sqrt(2)
 
@@ -1283,7 +1281,7 @@ class SimpleGui(object):
     def on_waypoint_clicked(self, listview, event, element):
         if event.type != gtk.gdk._2BUTTON_PRESS or element == None:
             return
-        print element[0]
+
         if self.current_cache == None:
             return
         if element[0] == 0:
