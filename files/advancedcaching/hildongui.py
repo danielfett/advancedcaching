@@ -43,7 +43,7 @@ import pango
 from simplegui import SimpleGui
 class HildonGui(SimpleGui):
 
-    USES = ['testgpsprovider']
+    USES = ['locationgpsprovider']
 
     MIN_DRAG_REDRAW_DISTANCE = 2
     DRAG_RECHECK_SPEED = 40

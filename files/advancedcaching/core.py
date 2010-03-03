@@ -154,6 +154,8 @@ elif arg == '--hildon':
 else:
     import cli
     gui = cli.Cli
+    
+
 
         
 class Standbypreventer():
@@ -257,17 +259,18 @@ class Core(gobject.GObject):
         #reader.read_file('../../file.loc')
         self.gui = guitype(self, self.pointprovider, self.userpointprovider, dataroot)
         self.gui.write_settings(self.settings)
-        if 'gpsprovider' in self.gui.USES:
+
+        if '--sim' in sys.argv:
+            self.gps_thread = gpsreader.FakeGpsReader(self)
+            gobject.timeout_add(1000, self.__read_gps)
+            self.gui.set_target(gpsreader.FakeGpsReader.get_target())
+        elif 'gpsprovider' in self.gui.USES:
             self.gps_thread = gpsreader.GpsReader()
             #self.gps_thread = gpsreader.FakeGpsReader(self)
             gobject.timeout_add(1000, self.__read_gps)
         elif 'locationgpsprovider' in self.gui.USES:
             self.gps_thread = gpsreader.LocationGpsReader(self.__read_gps_cb_error, self.__read_gps_cb_changed)
-            gobject.idle_add(self.gps_thread.start)
-        elif 'testgpsprovider' in self.gui.USES:
-            self.gps_thread = gpsreader.FakeGpsReader(self)
-            gobject.timeout_add(1000, self.__read_gps)
-            self.gui.set_target(gpsreader.FakeGpsReader.get_target())
+            gobject.idle_add(self.gps_thread.start)  
         if 'geonames' in self.gui.USES:
             import geonames
             self.geonames = geonames.Geonames(self.downloader)
