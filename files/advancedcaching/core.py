@@ -1,3 +1,4 @@
+import os.path
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
@@ -236,8 +237,7 @@ class Core(gobject.GObject):
             
     def __init__(self, guitype, root):
         gobject.GObject.__init__(self)
-        if not os.path.exists(self.SETTINGS_DIR):
-            os.mkdir(self.SETTINGS_DIR)
+        self.__create_recursive(self.SETTINGS_DIR)
 
         dataroot = os.path.join(root, 'data')
         
@@ -245,6 +245,8 @@ class Core(gobject.GObject):
         # seems to crash dbus/fso/whatever
                         
         self.__read_config()
+        self.__create_recursive(self.settings['download_output_dir'])
+        self.__create_recursive(self.settings['download_map_path'])
                 
         #self.standbypreventer.set_status(Standbypreventer.STATUS_SCREEN_ON)
                 
@@ -276,7 +278,13 @@ class Core(gobject.GObject):
             self.geonames = geonames.Geonames(self.downloader)
         self.gui.show()
                 
-                
+    def __create_recursive(self, path):
+        if path != '/':
+            if not os.path.exists(path):
+                head, tail = os.path.split(path)
+                self.__create_recursive(head)
+                os.mkdir(path)
+
                 
     def __del__(self):
         self.settings = self.gui.read_settings()
@@ -358,6 +366,7 @@ class Core(gobject.GObject):
 
             cd.connect("finished-overview", same_thread)
             t = threading.Thread(target=cd.get_geocaches, args=[location])
+            t.daemon = False
             t.start()
             return False
         else:
@@ -402,6 +411,7 @@ class Core(gobject.GObject):
                 return False
             cd.connect("finished-single", same_thread)
             t = threading.Thread(target=cd.update_coordinate, args=[cache])
+            t.daemon = False
             t.start()
             #t.join()
             return False
@@ -474,7 +484,7 @@ class Core(gobject.GObject):
         cd.connect('finished-multiple', same_thread)
 
         t = threading.Thread(target=cd.update_coordinates, args=[caches])
-
+        t.daemon = False
         t.start()
 
 
@@ -525,6 +535,7 @@ class Core(gobject.GObject):
         for c in caches:
             fn.add_fieldnote(c)
         t = threading.Thread(target=fn.upload)
+        t.daemon = False
         t.start()
         
     def on_upload_fieldnotes_finished(self, widget, caches):

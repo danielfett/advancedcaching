@@ -46,7 +46,7 @@ class FileDownloader():
 
     def login(self):
         if self.username == '' or self.password == '':
-            raise Exception("Please configure your username and password.")
+            raise Exception("Please configure your username/password and restart the application")
         print "+ Checking Login status"
         cj = cookielib.LWPCookieJar(self.cookiefile)
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))

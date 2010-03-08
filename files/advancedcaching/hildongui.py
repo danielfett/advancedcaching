@@ -265,12 +265,12 @@ class HildonGui(SimpleGui):
         menu.append(button)
         self.button_show_details = button
         
-        '''
+        
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
         button.set_label("Search Geocaches")
         button.connect("clicked", self._on_show_search, None)
         menu.append(button)
-        '''
+        
 
         button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_title("Upload Fieldnote(s)")
@@ -414,7 +414,7 @@ class HildonGui(SimpleGui):
         dialog.run()
         dialog.hide()
         
-           
+        print self._get_selected(sel_diff)[0]
         
         win = hildon.StackableWindow()
         win.set_title("Search results")
@@ -435,19 +435,23 @@ class HildonGui(SimpleGui):
         col1.set_attributes(c1cr, text=0)
         col1.set_attributes(c2cr, text=1)
         col1.set_attributes(c3cr, text=2)
-        
+
         def select_cache(widget, data, more):
-            tm = widget.get_model(0)
-            iter = tm.get_iter(0)
-            widget.get_selected(0, iter)
-            self._select_cache(ls[tm.get_path(iter)[0]][3])
+            print widget.get_selected_rows(0)
+            #c = self._get_selected(widget)[3]
+            self._select_cache(c)
         
         tv.connect("changed", select_cache, None)
         
         win.add(tv)
         win.show_all()
-        
-        
+
+    @staticmethod
+    def _get_selected(widget):
+        tm = widget.get_model(0)
+        iter = tm.get_iter(0)
+        widget.get_selected(0, iter)
+        return tm[tm.get_path(iter)[0]]
         
     def _on_show_options(self, widget, data):
         dialog = gtk.Dialog("options", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
@@ -455,12 +459,14 @@ class HildonGui(SimpleGui):
         opts = gtk.Table(5, 2)
         opts.attach(gtk.Label("Username"), 0, 1, 0, 1)
         username = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+        username.set_property("autocap", False)
         opts.attach(username, 1, 2, 0, 1)
         username.set_text(self.settings['options_username'])
         
         opts.attach(gtk.Label("Password"), 0, 1, 1, 2)
         password = hildon.Entry(gtk.HILDON_SIZE_AUTO)
         password.set_visibility(False)
+        password.set_property("autocap", False)
         opts.attach(password, 1, 2, 1, 2)
         password.set_text(self.settings['options_password'])
         
@@ -545,13 +551,14 @@ class HildonGui(SimpleGui):
         
     def _on_show_cache_details(self, widget, data, touched=None):
         self.show_cache(self.current_cache)
-
-    def show_cache(self, cache):
+        
+    def show_cache(self, cache, select = True):
         if cache == None:
             return
-        self.current_cache = cache
-        self.button_show_details.set_value(cache.title)
-        self.button_show_details.set_sensitive(True)
+        if select:
+            self.current_cache = cache
+            self.button_show_details.set_value(cache.title)
+            self.button_show_details.set_sensitive(True)
 
         win = hildon.StackableWindow()
         win.set_title(cache.title)
@@ -705,19 +712,22 @@ class HildonGui(SimpleGui):
         c['coords'], list = self._get_coord_selector(cache, lambda x, y, z: True)
 
 
-        def set_coord_as_target(widget, selector, list):
+        def set_coord_as_target(widget, selector, list, cache):
             tm = selector.get_model(0)
             iter = tm.get_iter(0)
             selector.get_selected(0, iter)
             c = list[tm.get_path(iter)[0]]
             if c == None:
                 return
+            self.current_cache = cache
+            self.button_show_details.set_value(cache.title)
+            self.button_show_details.set_sensitive(True)
             self.set_target(c)
             self.hide_cache_view()
 
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
         button.set_label("set as target")
-        button.connect("clicked", set_coord_as_target, c['coords'], list)
+        button.connect("clicked", set_coord_as_target, c['coords'], list, cache)
         
         p.pack_start(c['coords'], True, True)
         p.pack_start(button, False, True)
@@ -943,7 +953,9 @@ class HildonGui(SimpleGui):
     def _on_set_target_clicked(self, some, thing):
         if self.current_cache == None:
             return
-        
+        self.current_cache = cache
+        self.button_show_details.set_value(cache.title)
+        self.button_show_details.set_sensitive(True)
         self.set_target(self.current_cache)
         self.hide_cache_view()
         self.set_active_page(True)

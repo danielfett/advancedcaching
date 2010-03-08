@@ -297,7 +297,7 @@ class CacheDownloader(gobject.GObject):
 
     lock = threading.Lock()
                                  
-    MAX_REC_DEPTH = 4
+    MAX_REC_DEPTH = 2
     
     def __init__(self, downloader, path, download_images, resize = None):
         gobject.GObject.__init__(self)
@@ -541,6 +541,7 @@ class CacheDownloader(gobject.GObject):
             return
         # don't recurse indefinitely
         if rec_depth > self.MAX_REC_DEPTH:
+            self.emit('download-error', Exception("Please select a smaller part of the map."))
             CacheDownloader.lock.release()
             return []
 
