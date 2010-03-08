@@ -87,6 +87,7 @@ class HildonGui(SimpleGui):
         self.gps_last_position = None
         self.banner = None
         self.fieldnotes_changed = False
+        self.old_cache_window = None
                 
         self.dragging = False
         self.block_changes = False
@@ -177,9 +178,21 @@ class HildonGui(SimpleGui):
         button.set_size_request(270, -1)
         self.label_target = button
 
+        buttons = gtk.HBox()
+
+        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_title("Details")
+        button.set_sensitive(False)
+        button.connect("clicked", self._on_show_cache_details, None)
+        buttons.pack_start(button, True, True)
+        
+        self.button_show_details_small = button
+        
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_label("Map")
         button.connect("clicked", self._on_set_active_page, False)
+        buttons.pack_start(button, True, True)
+
 
         self.main_gpspage.attach(self.label_dist, 1, 2,  0, 1, gtk.FILL, gtk.FILL | gtk.EXPAND)
         self.main_gpspage.attach(self.label_bearing, 1, 2,  1, 2, gtk.FILL, gtk.FILL | gtk.EXPAND)
@@ -187,7 +200,7 @@ class HildonGui(SimpleGui):
         self.main_gpspage.attach(self.label_latlon, 1, 2,  3, 4, gtk.FILL, gtk.FILL | gtk.EXPAND)
         self.main_gpspage.attach(self.label_quality, 1, 2, 4, 5, gtk.FILL, gtk.FILL | gtk.EXPAND)
         self.main_gpspage.attach(self.label_target, 1, 2, 5, 6, gtk.FILL, gtk.FILL | gtk.EXPAND)
-        self.main_gpspage.attach(button, 1, 2, 6, 7, gtk.FILL, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage.attach(buttons, 1, 2, 6, 7, gtk.FILL, gtk.FILL | gtk.EXPAND)
         self.main_gpspage.attach(self.drawing_area_arrow, 0, 1, 0, 7, gtk.EXPAND | gtk.FILL, gtk.EXPAND | gtk.FILL)
 
         self.main_mappage = gtk.VBox()
@@ -558,10 +571,15 @@ class HildonGui(SimpleGui):
     def show_cache(self, cache, select = True):
         if cache == None:
             return
+        if self.current_cache != None and self.current_cache.name == cache.name and self.old_cache_window != None:
+            
+            hildon.WindowStack.get_default().push_1(self.old_cache_window)
+
+            self.current_cache_window_open = True
+            return
+        
         if select:
-            self.current_cache = cache
-            self.button_show_details.set_value(cache.title)
-            self.button_show_details.set_sensitive(True)
+            self.set_current_cache(cache)
 
         win = hildon.StackableWindow()
         win.set_title(cache.title)
@@ -722,9 +740,7 @@ class HildonGui(SimpleGui):
             c = list[tm.get_path(iter)[0]]
             if c == None:
                 return
-            self.current_cache = cache
-            self.button_show_details.set_value(cache.title)
-            self.button_show_details.set_sensitive(True)
+            self.set_current_cache(cache)
             self.set_target(c)
             self.hide_cache_view()
 
@@ -776,13 +792,9 @@ class HildonGui(SimpleGui):
         win.set_app_menu(menu)        
         win.show_all()
 
-        def close(window, more):
-            self.current_cache_window_open = False
-            b = c['notes'].get_buffer()
-            self.core.on_notes_changed(self.current_cache, b.get_text(b.get_start_iter(), b.get_end_iter()))
 
 
-        win.connect('delete_event', close)
+        win.connect('delete_event', self.hide_cache_view)
         self.current_cache_window_open = True
         
     def _on_show_image(self, path, caption):
@@ -935,9 +947,12 @@ class HildonGui(SimpleGui):
             self.banner.hide()
             self.banner = None
 
-    def hide_cache_view(self):
-        hildon.WindowStack.get_default().pop_1()
-        
+    def hide_cache_view(self, widget = None, data = None):
+        self.current_cache_window_open = False
+        b = self.cache_elements['notes'].get_buffer()
+        self.core.on_notes_changed(self.current_cache, b.get_text(b.get_start_iter(), b.get_end_iter()))
+        self.old_cache_window = hildon.WindowStack.get_default().pop_1()
+        return True
                 
                 
     def _on_download_cache_clicked(self, some, thing):
@@ -952,11 +967,14 @@ class HildonGui(SimpleGui):
         self.update_gps_display()
         self._draw_arrow()
 
-                
-    def _on_set_target_clicked(self, some, cache):
+    def set_current_cache(self, cache):
         self.current_cache = cache
         self.button_show_details.set_value(cache.title)
         self.button_show_details.set_sensitive(True)
+        self.button_show_details_small.set_sensitive(True)
+        print 'sensitive'
+                
+    def _on_set_target_clicked(self, some, cache):
         self.set_target(self.current_cache)
         self.hide_cache_view()
         self.set_active_page(True)
