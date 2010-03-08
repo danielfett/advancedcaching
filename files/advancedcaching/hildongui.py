@@ -118,6 +118,7 @@ class HildonGui(SimpleGui):
             and self.current_cache_window_open:
 
             self.hide_cache_view()
+            self.old_cache_window = None
             self.show_cache(cache)
             return False
         else:
@@ -690,6 +691,7 @@ class HildonGui(SimpleGui):
                 text_hints += '\n----------------\n'
             else:
                 text_hints = 'No Logs.\n\n'
+            text_hints += "Hints:\n%s" % cache.hints
             c['hints'].set_text(text_hints)
 
             # images
