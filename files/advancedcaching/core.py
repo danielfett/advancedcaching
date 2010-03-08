@@ -542,7 +542,10 @@ class Core(gobject.GObject):
         for c in caches:
             self.pointprovider.update_field(c, 'logas', geocaching.GeocacheCoordinate.LOG_NO_LOG)
         self.gui.hide_progress()
-            
+
+    #called by gui
+    def on_userdata_changed(self, username, password):
+        self.downloader.update_userdata(username, password)
                 
     def __read_gps(self):
         fix = self.gps_thread.get_data()

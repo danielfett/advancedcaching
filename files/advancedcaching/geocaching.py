@@ -681,7 +681,7 @@ class CacheDownloader(gobject.GObject):
             coordinate.size = 2
         elif size == 'regular':
             coordinate.size = 3
-        elif size == 'big':
+        elif size == 'large' or size == 'big':
             coordinate.size = 4
         elif size == 'not_chosen':
             coordinate.size = 5

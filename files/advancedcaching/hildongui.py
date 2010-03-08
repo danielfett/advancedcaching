@@ -138,7 +138,7 @@ class HildonGui(SimpleGui):
     def _create_main_view(self):
         root = gtk.VBox()
 
-        self.main_gpspage = gtk.Table(6, 2)
+        self.main_gpspage = gtk.Table(7, 2)
         self.drawing_area_arrow = gtk.DrawingArea()
 
         '''
@@ -170,19 +170,25 @@ class HildonGui(SimpleGui):
         self.label_quality.set_markup("")
         self.label_quality.set_alignment(0, 0)
 
-        button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_title("Target")
         button.set_value('none set')
         button.connect('clicked', self._on_show_dialog_change_target, None)
+        button.set_size_request(270, -1)
         self.label_target = button
 
-        self.main_gpspage.attach(self.label_dist, 1, 2,  0, 1, gtk.FILL, gtk.EXPAND)
-        self.main_gpspage.attach(self.label_bearing, 1, 2,  1, 2, gtk.FILL, gtk.EXPAND)
-        self.main_gpspage.attach(self.label_altitude, 1, 2,  2, 3, gtk.FILL, gtk.EXPAND)
-        self.main_gpspage.attach(self.label_latlon, 1, 2,  3, 4, gtk.FILL, gtk.EXPAND)
-        self.main_gpspage.attach(self.label_quality, 1, 2, 4, 5, gtk.FILL, gtk.EXPAND)
-        self.main_gpspage.attach(self.label_target, 1, 2, 5, 6, gtk.FILL, gtk.EXPAND)
-        self.main_gpspage.attach(self.drawing_area_arrow, 0, 1, 0, 6, gtk.EXPAND | gtk.FILL, gtk.EXPAND | gtk.FILL)
+        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_label("Map")
+        button.connect("clicked", self._on_set_active_page, False)
+
+        self.main_gpspage.attach(self.label_dist, 1, 2,  0, 1, gtk.FILL, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage.attach(self.label_bearing, 1, 2,  1, 2, gtk.FILL, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage.attach(self.label_altitude, 1, 2,  2, 3, gtk.FILL, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage.attach(self.label_latlon, 1, 2,  3, 4, gtk.FILL, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage.attach(self.label_quality, 1, 2, 4, 5, gtk.FILL, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage.attach(self.label_target, 1, 2, 5, 6, gtk.FILL, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage.attach(button, 1, 2, 6, 7, gtk.FILL, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage.attach(self.drawing_area_arrow, 0, 1, 0, 7, gtk.EXPAND | gtk.FILL, gtk.EXPAND | gtk.FILL)
 
         self.main_mappage = gtk.VBox()
         self.drawing_area = gtk.DrawingArea()
@@ -195,22 +201,34 @@ class HildonGui(SimpleGui):
         self.button_track = button
         buttons.pack_start(button, True, True)
 
-        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
-        button.set_label("Update Geocaches")
-        button.connect("clicked", self.on_download_clicked, None)
-        buttons.pack_start(button, True, True)
 
-        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
+        button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         button.set_label("+")
         button.connect("clicked", self.on_zoomin_clicked, None)
         buttons.pack_start(button, True, True)
 
 
 
-        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
+        button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         button.set_label("-")
         button.connect("clicked", self.on_zoomout_clicked, None)
         buttons.pack_start(button, True, True)
+
+
+        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_title("Show Details")
+        button.set_value('No Cache selected')
+        button.set_sensitive(False)
+        button.connect("clicked", self._on_show_cache_details, None)
+        buttons.pack_start(button, True, True)
+        self.button_show_details = button
+
+
+        button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
+        button.set_label("GPS")
+        button.connect("clicked", self._on_set_active_page, True)
+        buttons.pack_start(button, True, True)
+        
         #self.main_mappage.pack_start(self.drawing_area, True)
         pan = hildon.PannableArea()
         pan.add(self.drawing_area)
@@ -242,7 +260,7 @@ class HildonGui(SimpleGui):
         menu = hildon.AppMenu()
     
         button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        button.set_title("Go to Target")
+        button.set_title("Show current Target")
         button.set_value('')
         button.connect("clicked", self.on_show_target_clicked, None)
         menu.append(button)
@@ -250,20 +268,13 @@ class HildonGui(SimpleGui):
         
         
         button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        button.set_title("Set Center as Target")
+        button.set_title("Use Center as Target")
         button.set_value('')
         button.connect("clicked", self.on_set_target_center, None)
         menu.append(button)
         self.button_center_as_target = button
         
         
-        button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        button.set_title("Show Details for selected")
-        button.set_value('No Cache selected')
-        button.set_sensitive(False)
-        button.connect("clicked", self._on_show_cache_details, None)
-        menu.append(button)
-        self.button_show_details = button
         
         
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
@@ -278,10 +289,16 @@ class HildonGui(SimpleGui):
         button.connect("clicked", self._on_upload_fieldnotes, None)
         menu.append(button)
         self.button_fieldnotes = button
-        
+
+        button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_title("Download Overview")
+        button.set_value("for the visible area")
+        button.connect("clicked", self.on_download_clicked, None)
+        menu.append(button)
     
-        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
-        button.set_label("Download Details")
+        button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_title("Download Details")
+        button.set_value("for all visible caches")
         button.connect("clicked", self.on_download_details_map_clicked, None)
         menu.append(button)
     
@@ -291,18 +308,6 @@ class HildonGui(SimpleGui):
         button.connect("clicked", self._on_show_options, None)
         menu.append(button)
     
-        button1 = hildon.GtkRadioButton(gtk.HILDON_SIZE_AUTO, None)
-        button1.set_label("GPS")
-        button1.set_mode(False)
-        button1.connect("toggled", self._on_set_active_page, None)
-        button2 = hildon.GtkRadioButton(gtk.HILDON_SIZE_AUTO, button1)
-        button2.set_label("Map")
-        button2.set_mode(False)
-        self.button_toggle_view_gps = button1
-        self.button_toggle_view_map = button2
-        self.button_toggle_view_map.set_active(True)
-        menu.add_filter(button1)
-        menu.add_filter(button2)
         menu.show_all()
         return menu
 
@@ -314,7 +319,7 @@ class HildonGui(SimpleGui):
 
     def show(self):
         self.window.show_all()
-        self._on_set_active_page()
+        self.set_active_page(False)
         gtk.main()
 
     def update_fieldnotes_display(self):
@@ -394,7 +399,8 @@ class HildonGui(SimpleGui):
         for i in range(3):
             sel_terr.select_iter(0, sel_terr.get_model(0).get_iter(i), False)
         
-        check_visible = gtk.CheckButton("in current map view")
+        check_visible = hildon.CheckButton(gtk.HILDON_SIZE_AUTO)
+        check_visible.set_label("in current map view")
         
         name = hildon.Entry(gtk.HILDON_SIZE_AUTO)
         name.set_placeholder("search for name...")
@@ -414,7 +420,7 @@ class HildonGui(SimpleGui):
         dialog.run()
         dialog.hide()
         
-        print self._get_selected(sel_diff)[0]
+        print sel_diff.get_selected_rows(0)
         
         win = hildon.StackableWindow()
         win.set_title("Search results")
@@ -459,14 +465,14 @@ class HildonGui(SimpleGui):
         opts = gtk.Table(5, 2)
         opts.attach(gtk.Label("Username"), 0, 1, 0, 1)
         username = hildon.Entry(gtk.HILDON_SIZE_AUTO)
-        username.set_property("autocap", False)
+        #username.set_property(hildon.HILDON_AUTOCAP, False)
         opts.attach(username, 1, 2, 0, 1)
         username.set_text(self.settings['options_username'])
         
         opts.attach(gtk.Label("Password"), 0, 1, 1, 2)
         password = hildon.Entry(gtk.HILDON_SIZE_AUTO)
         password.set_visibility(False)
-        password.set_property("autocap", False)
+        #password.set_property("autocap", False)
         opts.attach(password, 1, 2, 1, 2)
         password.set_text(self.settings['options_password'])
         
@@ -493,6 +499,7 @@ class HildonGui(SimpleGui):
             self.settings['download_noimages'] = check_dl_images.get_active()
             self.settings['options_show_name'] = check_show_cache_id.get_active()
             self.settings['options_hide_found'] = check_hide_found.get_active()
+            self.core.on_userdata_changed(self.settings['options_username'], self.settings['options_password'])
 
     def _on_show_dialog_change_target(self, widget, data):
         if self.current_target != None:
@@ -533,16 +540,12 @@ class HildonGui(SimpleGui):
         if result == gtk.RESPONSE_ACCEPT:
             self.set_target(geo.try_parse_coordinate(e_lat.get_text()))
 
-    def set_active_page(self, map):
-        self.button_toggle_view_gps.set_active(not map)
-        self.button_toggle_view_map.set_active(map)
-        self._on_set_active_page()
+    def set_active_page(self, show_gps):
+        self._on_set_active_page(None, show_gps)
         
-    def _on_set_active_page(self, widget = None, data = None):
+    def _on_set_active_page(self, widget, show_gps):
 
-        widget = self.button_toggle_view_gps
-        a = widget.get_active()
-        if a:
+        if show_gps:
             self.main_gpspage.show()
             self.main_mappage.hide()
         else:
@@ -761,7 +764,7 @@ class HildonGui(SimpleGui):
     
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
         button.set_label("set as target")
-        button.connect("clicked", self._on_set_target_clicked, None)
+        button.connect("clicked", self._on_set_target_clicked, cache)
         menu.append(button)
     
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
@@ -950,9 +953,7 @@ class HildonGui(SimpleGui):
         self._draw_arrow()
 
                 
-    def _on_set_target_clicked(self, some, thing):
-        if self.current_cache == None:
-            return
+    def _on_set_target_clicked(self, some, cache):
         self.current_cache = cache
         self.button_show_details.set_value(cache.title)
         self.button_show_details.set_sensitive(True)
