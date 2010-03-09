@@ -44,8 +44,9 @@ class CalcCoordinate():
     WARNING_NEGATIVE = "Negative intermediate result (%d)."
     WARNING_VERY_HIGH = "Very high intermediate result (%d)."
     WARNING_FLOAT = "Intermediate result with decimal point ('%s')."
-    WARNING_WRONG_LENGTH = "%d digits where %s digits were expected."
+    WARNING_WRONG_LENGTH = "%d digits where %s digits were expected (%s)."
     WARNING_CANNOT_PARSE = "Cannot parse result: %s."
+    WARNING_SYNTAX = "Could not parse formula."
 
     HIGH_RESULT_THRESHOLD = 1000
 
@@ -60,6 +61,7 @@ class CalcCoordinate():
         self.lon_deg   = self.prepare(lon_deg)
         self.lon_min   = self.prepare(lon_min)
         self.lon_min_2 = self.prepare(lon_min_2)
+        self.orig = "%s%s %s.%s %s%s %s.%s" % (self.ns, self.lat_deg, self.lat_min, self.lat_min_2, self.ew, self.lon_deg, self.lon_min, self.lon_min_2)
         self.requires = set([x for i in [self.lat_deg, self.lat_min, self.lat_min_2, self.lon_deg, self.lon_min, self.lon_min_2] for x in re.sub('[^A-Z]', '', i)])
         self.warnings = []
 
@@ -67,6 +69,7 @@ class CalcCoordinate():
         return re.sub('[^A-Z()+*/0-9-]', '', text)
 
     def set_vars(self, var):
+        self.warnings = []
         self.vars = var
 
     def has_requires(self):
@@ -83,10 +86,10 @@ class CalcCoordinate():
         
         for i in range(len(results)):
             if len(results[i]) not in self.EXPECTED_LENGTHS[i]:
-                self.warnings.append(self.WARNING_WRONG_LENGTH % (len(results[i]), " or ".join([str(x) for x in self.EXPECTED_LENGTHS[i]])))
+                self.warnings.append(self.WARNING_WRONG_LENGTH % (len(results[i]), " or ".join([str(x) for x in self.EXPECTED_LENGTHS[i]]), results[i]))
         
         result = ("%%s%s %s.%s %%s%s %s.%s" % tuple(results)) % (self.ns, self.ew)
-        print self.replaced_result
+        #print self.replaced_result
         try:
             return geo.try_parse_coordinate(result)
         except (Exception):
@@ -108,7 +111,11 @@ class CalcCoordinate():
         return text
 
     def safe_eval(self, text):
-        tmp = eval(text,{"__builtins__":None},{})
+        try:
+            tmp = eval(text,{"__builtins__":None},{})
+        except (SyntaxError, Exception):
+            self.warnings.append(self.WARNING_SYNTAX)
+            return 'X'
         if round(tmp) != round(tmp, 1):
             self.warnings.append(self.WARNING_FLOAT % text)
         tmp = int(tmp)
@@ -118,22 +125,24 @@ class CalcCoordinate():
             self.warnings.append(self.WARNING_VERY_HIGH % tmp)
         return str(tmp)
 
-
-def try_find_calc(text, res):
-    text = text.replace('°', '|')
-    matches = re.findall(ur'''([NS])\s?([A-Z() -+*/0-9]+?)[ |]{1,2}([A-Z ()+*/0-9-]+)[., ]([A-Z ()+*/0-9-]+)['\s,]+([EOW])\s?([A-Z() +*/0-9-]+?)[ |]{1,2}([A-Z ()+*/0-9-]+)[., ]([A-Z ()+*/0-9-]+)[\s']*''', text)
-    for match in matches:
-        print "\t".join(match)
-        c = CalcCoordinate(*match)
-        c.set_vars(res)
-        print c.requires
-        r = c.has_requires()
-        if r:
-            print c.try_get_solution()
-
-
+    @staticmethod
+    def find(text):
+        text = text.replace('°', '|')
+        matches = re.findall(ur'''([NS])\s?([A-Z() -+*/0-9]+?)[ |]{1,2}([A-Z ()+*/0-9-]+)[., ]([A-Z ()+*/0-9-]+)['\s,]+([EOW])\s?([A-Z() +*/0-9-]+?)[ |]{1,2}([A-Z ()+*/0-9-]+)[., ]([A-Z ()+*/0-9-]+)[\s']*''', text)
+        print matches
+        found = []
+        requires = set()
+        for match in matches:
+            c = CalcCoordinate(*match)
+            if len(c.requires) == 0:
+                continue
+            found.append(c)
+            requires |= c.requires
+        return (found, requires)
+'''
 if __name__ == "__main__":
     print '\n\n========================================================='
     print TEST[0]
     print '---------------------------------------------------------'
-    try_find_calc(*TEST)
+    try_find_calc(*TEST)'''
+

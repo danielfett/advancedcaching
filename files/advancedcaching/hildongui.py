@@ -37,7 +37,7 @@
 # cachenamen abkürzen
 # fieldnotes checken, richtig anzeigen
 # 
-
+import math
 import geo
 import geocaching
 import gtk
@@ -46,6 +46,7 @@ import os
 import re
 import hildon
 import pango
+import coordfinder
 from simplegui import SimpleGui
 class HildonGui(SimpleGui):
 
@@ -740,7 +741,48 @@ class HildonGui(SimpleGui):
                 selector.connect("changed", on_imagelist_clicked, imagelist)
                 
                 notebook.append_page(selector, gtk.Label("images"))
-        
+
+        # calculated coords
+        self.cache_calc = coordfinder.CalcCoordinate.find(self._strip_html(cache.desc))
+
+        def input_changed(widget, char):
+            self.cache_calc_vars[char] = widget.get_text()
+            self.show_cache_calc_results()
+
+        if len(self.cache_calc[0]) > 0:
+            coords, requires = self.cache_calc
+            self.cache_calc_vars = {}
+            print requires
+            p = gtk.VBox()
+            count = len(requires)
+            # create table with n columns.
+            cols = 7
+            rows = int(math.ceil(float(count)/float(cols)))
+            table = gtk.Table(rows, cols)
+            i = 0
+            for char in requires:
+                print char
+                row = i / cols
+                col = i % cols
+                m = gtk.HBox()
+                m.pack_start(gtk.Label(str(char)))
+                e = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+                #e.set_property("input-mode", hildon.INPUT_MODE_HINT_NUMERIC)
+                e.connect('changed', input_changed, str(char))
+                e.set_size_request(50, -1)
+                m.pack_start(e)
+                table.attach(m, col, col + 1, row, row + 1)
+                i += 1
+            p.pack_start(table, False)
+            p.pack_start(gtk.HSeparator(), False)
+            a = hildon.PannableArea()
+            vp = gtk.Viewport()
+            a.add(vp)
+            p.pack_start(a, True)
+            self.cache_calc_viewport = vp
+            self.show_cache_calc_results()
+            notebook.append_page(p, gtk.Label("calc"))
+
         # coords
 
 
@@ -818,6 +860,50 @@ class HildonGui(SimpleGui):
 
         win.connect('delete_event', self.hide_cache_view)
         self.current_cache_window_open = True
+
+    def show_cache_calc_results(self):
+        p = gtk.VBox()
+        
+        for c in self.cache_calc[0]:
+            c.set_vars(self.cache_calc_vars)
+            label_text = '<b>%s</b>\n' % c.orig
+            button = None
+            if c.has_requires():
+                result = c.try_get_solution()
+                label_text += '= %s\n' % c.replaced_result
+                if result != False:
+                    label_text += '= %s\n' % result
+                for warning in c.warnings:
+                    label_text += "<b>!</b> <span color='gold'>%s</span>\n" % warning
+                if result != False:
+                    button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
+                    button.set_label("use")
+                    button.connect('clicked', self._on_set_target_clicked, result)
+            else:
+                label_text += "<i>Needs "
+                for r in c.requires:
+                    if r in self.cache_calc_vars.keys():
+                        label_text += "<s>%s </s>" % r
+                    else:
+                        label_text += "<b>%s </b>" % r
+                label_text += "</i>\n"
+
+            b = gtk.Table(2, 1)
+            l = gtk.Label()
+            l.set_alignment(0, 0.5)
+            l.set_markup(label_text)
+            b.attach(l, 0, 1, 0, 2, gtk.EXPAND|gtk.FILL, gtk.EXPAND|gtk.FILL)
+            if button != None:
+                b.attach(button, 1, 2, 1, 2, 0, 0)
+            p.pack_start(b, False)
+            p.pack_start(gtk.HSeparator(), False)
+        #self.cache_calc_viewport = gtk.Viewport()
+        for x in self.cache_calc_viewport.get_children():
+            self.cache_calc_viewport.remove(x)
+        self.cache_calc_viewport.add(p)
+        self.cache_calc_viewport.show_all()
+        print 'yay'
+
         
     def _on_show_image(self, path, caption):
         fullpath = os.path.join(self.settings['download_output_dir'], path)
@@ -997,7 +1083,7 @@ class HildonGui(SimpleGui):
         print 'sensitive'
                 
     def _on_set_target_clicked(self, some, cache):
-        self.set_target(self.current_cache)
+        self.set_target(cache)
         self.hide_cache_view()
         self.set_active_page(True)
 
