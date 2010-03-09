@@ -32,6 +32,12 @@
 ### For the gui :-)
 
 
+# todo
+# suche
+# cachenamen abkürzen
+# fieldnotes checken, richtig anzeigen
+# 
+
 import geo
 import geocaching
 import gtk
@@ -50,10 +56,13 @@ class HildonGui(SimpleGui):
 
     # arrow colors and sizes
     COLOR_ARROW_DISABLED = gtk.gdk.color_parse("red")
-    COLOR_ARROW_CIRCLE = gtk.gdk.color_parse("darkgray")
-    COLOR_ARROW_OUTER_LINE = gtk.gdk.color_parse("black")
+    COLOR_ARROW_CIRCLE = gtk.gdk.color_parse("lightslategrey")
     COLOR_CROSSHAIR = gtk.gdk.color_parse("deeppink")
+    COLOR_ARROW_OUTER_LINE = gtk.gdk.color_parse("white")
+    COLOR_QUALITY_OUTER = None
+    ARROW_LINE_WIDTH = 2
     NORTH_INDICATOR_SIZE = 30
+    FONT_NORTH_INDICATOR = pango.FontDescription("Sans 19")
 
 
     CLICK_RADIUS = 25
@@ -92,7 +101,7 @@ class HildonGui(SimpleGui):
         self.dragging = False
         self.block_changes = False
                 
-        self.pixmap_north_indicator = None
+        self.north_indicator_layout = None
         self.drawing_area_configured = self.drawing_area_arrow_configured = False
         self.drag_offset_x = 0
         self.drag_offset_y = 0
@@ -472,6 +481,10 @@ class HildonGui(SimpleGui):
         iter = tm.get_iter(0)
         widget.get_selected(0, iter)
         return tm[tm.get_path(iter)[0]]
+
+    def _on_show_on_map(self, widget, data):
+        self.set_center(data)
+        self.hide_cache_view(None, None)
         
     def _on_show_options(self, widget, data):
         dialog = gtk.Dialog("options", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
@@ -774,19 +787,26 @@ class HildonGui(SimpleGui):
         c['marked'].connect("clicked", self._on_cache_marked_toggle, None)
         menu.append(c['marked'])
         
+        ### großschreibung
+
         
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
-        button.set_label("download full details")
+        button.set_label("Download all Details")
         button.connect("clicked", self._on_download_cache_clicked, None)
         menu.append(button)
     
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
-        button.set_label("set as target")
+        button.set_label("Set as Target")
         button.connect("clicked", self._on_set_target_clicked, cache)
+        menu.append(button)
+
+        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
+        button.set_label("Show on Map")
+        button.connect("clicked", self._on_show_on_map, cache)
         menu.append(button)
     
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
-        button.set_label("log fieldnote")
+        button.set_label("Write Fieldnote")
         button.connect("clicked", self._on_show_log_fieldnote_dialog, None)
         menu.append(button)
         menu.show_all()

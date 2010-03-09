@@ -1,4 +1,3 @@
-import os.path
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
@@ -130,6 +129,7 @@ import geocaching
 import gobject
 import gpsreader
 import os
+import os.path
 import provider
 import math
 import threading

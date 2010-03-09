@@ -99,7 +99,11 @@ class SimpleGui(object):
     COLOR_ARROW_DISABLED = gtk.gdk.color_parse("red")
     COLOR_ARROW_CIRCLE = gtk.gdk.color_parse("darkgray")
     COLOR_ARROW_OUTER_LINE = gtk.gdk.color_parse("black")
+    COLOR_ARROW_CROSS = gtk.gdk.color_parse('darkslategray')
+    COLOR_NORTH_INDICATOR = gtk.gdk.color_parse("gold")
+    ARROW_LINE_WIDTH = 3
     NORTH_INDICATOR_SIZE = 30
+    FONT_NORTH_INDICATOR = pango.FontDescription("Sans 9")
 
     # quality indicator
     COLOR_QUALITY_OUTER = gtk.gdk.color_parse("black")
@@ -151,7 +155,7 @@ class SimpleGui(object):
         self.images = []
 
         
-        self.pixmap_north_indicator = None
+        self.north_indicator_layout = None
         self.drawing_area_configured = self.drawing_area_arrow_configured = False
         self.drag_offset_x = 0
         self.drag_offset_y = 0
@@ -267,38 +271,38 @@ class SimpleGui(object):
         # Create the renderer used in the listview
         txtRdr        = gtk.CellRendererText()
         (
-            ROW_TITLE,
-            ROW_TYPE,
-            ROW_SIZE,
-            ROW_TERRAIN,
-            ROW_DIFF,
-            ROW_ID,
-        ) = range(6)
+         ROW_TITLE,
+         ROW_TYPE,
+         ROW_SIZE,
+         ROW_TERRAIN,
+         ROW_DIFF,
+         ROW_ID,
+         ) = range(6)
         columns = (
-            ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
-            ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
-            ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
-            ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
-            ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
-            ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
-        )
+                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE, ), False, True),
+                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE, ), False, True),
+                   ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
+                   ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
+                   ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
+                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID, ), False, True),
+                   )
         self.cachelist = listview = extListview.ExtListView(columns, sortable=True, useMarkup=True, canShowHideColumns=False)
         self.cachelist_contents = []
         listview.connect('extlistview-button-pressed', self.on_search_cache_clicked)
         xml.get_widget('scrolledwindow_search').add(listview)
                 
         (
-            COL_COORD_NAME,
-            COL_COORD_LATLON,
-            COL_COORD_ID,
-            COL_COORD_COMMENT,
-        ) = range(4)
+         COL_COORD_NAME,
+         COL_COORD_LATLON,
+         COL_COORD_ID,
+         COL_COORD_COMMENT,
+         ) = range(4)
         columns = (
-            ('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
-            ('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
-            ('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
-            ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT,), False, True),
-        )
+                   ('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
+                   ('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
+                   ('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
+                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT, ), False, True),
+                   )
         self.coordlist = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
         self.coordlist.connect('extlistview-button-pressed', self.on_waypoint_clicked)
         xml.get_widget('scrolledwindow_coordlist').add(self.coordlist)
@@ -348,23 +352,20 @@ class SimpleGui(object):
         self.pixmap_arrow = gtk.gdk.Pixmap(widget.window, width, height)
         self.xgc_arrow = widget.window.new_gc()
 
-        if self.pixmap_north_indicator == None:
+        if self.north_indicator_layout == None:
             # prepare font
-            font = pango.FontDescription("Sans 9")
-            north_indicator_layout = widget.create_pango_layout("N")
-            north_indicator_layout.set_alignment(pango.ALIGN_CENTER)
-            north_indicator_layout.set_font_description(font)
+            self.north_indicator_layout = widget.create_pango_layout("N")
+            self.north_indicator_layout.set_alignment(pango.ALIGN_CENTER)
+            self.north_indicator_layout.set_font_description(self.FONT_NORTH_INDICATOR)
 
+            '''
             self.pixmap_north_indicator = gtk.gdk.Pixmap(widget.window, self.NORTH_INDICATOR_SIZE, self.NORTH_INDICATOR_SIZE)
             self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("white"))
             self.pixmap_north_indicator.draw_rectangle(self.xgc_arrow, True, 0, 0, self.NORTH_INDICATOR_SIZE, self.NORTH_INDICATOR_SIZE)
-            #self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
-            #self.pixmap_north_indicator.draw_arc(self.xgc_arrow, True, 0, 0, self.NORTH_INDICATOR_SIZE, self.NORTH_INDICATOR_SIZE, 0, 64 * 360)
             x, y = north_indicator_layout.get_size()
             self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
             self.pixmap_north_indicator.draw_layout(self.xgc_arrow, (self.NORTH_INDICATOR_SIZE - x / pango.SCALE) / 2, (self.NORTH_INDICATOR_SIZE - y / pango.SCALE) / 2, north_indicator_layout)
-            # print "%d %d" %((self.NORTH_INDICATOR_SIZE - x / pango.SCALE) / 2, (self.NORTH_INDICATOR_SIZE - y / pango.SCALE) / 2)
-
+            '''
 
         self.drawing_area_arrow_configured = True
         gobject.idle_add(self._draw_arrow)
@@ -402,7 +403,7 @@ class SimpleGui(object):
         entity_re = re.compile(r'&(#?)(x?)(\w+);')
         return entity_re.subn(substitute_entity, string)[0]
         
-    def on_window_destroy(self, target, more = None, data = None):
+    def on_window_destroy(self, target, more=None, data=None):
         self.core.on_destroy()
         gtk.main_quit()
 
@@ -439,8 +440,8 @@ class SimpleGui(object):
                 t = "?"
             else:
                 t = "%.1f" % (r.terrain / 10)
-            title =  self._format_cache_title(r)
-            rows.append((title, r.type, s, t, d, r.name, ))
+            title = self._format_cache_title(r)
+            rows.append((title, r.type, s, t, d, r.name,))
         self.cachelist.replaceContent(rows)
         self.notebook_search.set_current_page(1)
         self.redraw_marks()
@@ -459,6 +460,15 @@ class SimpleGui(object):
             return m
 
     def _draw_arrow(self):
+
+        outer_circle_size = 3
+        circle_border = 10
+        indicator_border = 40
+        distance_attarget = 50
+        distance_near = 150
+        disabled_border_size = 30
+        signal_width = 15
+        
         if not self.drawing_area_arrow_configured:
             return
         widget = self.drawing_area_arrow
@@ -471,7 +481,7 @@ class SimpleGui(object):
                                          
         if disabled:
             self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_DISABLED)
-            border = 30
+            border = disabled_border_size
             self.pixmap_arrow.draw_line(self.xgc_arrow, border, border, width - border, height - border)
             self.pixmap_arrow.draw_line(self.xgc_arrow, border, height - border, width - border, border)
             self.drawing_area_arrow.queue_draw()
@@ -479,42 +489,50 @@ class SimpleGui(object):
             return False
         
         # draw signal indicator
-        self.xgc_arrow.line_width = 1
-        signal_width = 15
-        self.xgc_arrow.set_rgb_fg_color(self.COLOR_QUALITY_OUTER)
-        self.pixmap_arrow.draw_rectangle(self.xgc_arrow, True, width - signal_width - 2, 0, signal_width + 2, height)
-        self.xgc_arrow.set_rgb_fg_color(self.COLOR_QUALITY_INNER)
-        usable_height = height - 1
-        target_height = int(round(usable_height*self.gps_data.quality))
-        self.pixmap_arrow.draw_rectangle(self.xgc_arrow, True, width - signal_width - 1, usable_height - target_height, signal_width, target_height)
+        if self.COLOR_QUALITY_OUTER != None:
+            self.xgc_arrow.line_width = 1
+            self.xgc_arrow.set_rgb_fg_color(self.COLOR_QUALITY_OUTER)
+            self.pixmap_arrow.draw_rectangle(self.xgc_arrow, True, width - signal_width - 2, 0, signal_width + 2, height)
+            self.xgc_arrow.set_rgb_fg_color(self.COLOR_QUALITY_INNER)
+            usable_height = height - 1
+            target_height = int(round(usable_height * self.gps_data.quality))
+            self.pixmap_arrow.draw_rectangle(self.xgc_arrow, True, width - signal_width - 1, usable_height - target_height, signal_width, target_height)
 
         display_bearing = self.gps_data.position.bearing_to(self.current_target) - self.gps_data.bearing
         display_distance = self.gps_data.position.distance_to(self.current_target)
         display_north = math.radians(self.gps_data.bearing)
 
+        # draw moving direction
+        if self.COLOR_ARROW_CROSS != None:
+            self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_CROSS)
+            self.pixmap_arrow.draw_line(self.xgc_arrow, width / 2, height, width / 2, 0)
+            self.pixmap_arrow.draw_line(self.xgc_arrow, 0, height / 2, width, height / 2)
+
         # draw north indicator
         self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_CIRCLE)
-        self.xgc_arrow.line_width = 3
-        indicator_radius = 30
-        indicator_dist = height / 2 - indicator_radius / 2
+
+        self.xgc_arrow.line_width = outer_circle_size
+
+        circle_size = min(height, width)/2 - circle_border
+        indicator_dist = min(height, width)/ 2 - indicator_border
         center_x, center_y = width / 2, height / 2
 
-        #  outer circle
-                
-
-        self.pixmap_arrow.draw_arc(self.xgc_arrow, False, center_x - indicator_dist, center_y - indicator_dist, indicator_dist * 2, indicator_dist * 2, 0, 64 * 360)
+        # outer circle
+        self.pixmap_arrow.draw_arc(self.xgc_arrow, False, center_x - circle_size, center_y - circle_size, circle_size * 2, circle_size * 2, 0, 64 * 360)
         #position_x - indicator_radius / 2, position_y - indicator_radius / 2,
-                
-        position_x = width / 2 - math.sin(display_north) * indicator_dist
-        position_y = height / 2 - math.cos(display_north) * indicator_dist
-        self.xgc_arrow.set_function(gtk.gdk.AND)
-        self.pixmap_arrow.draw_drawable(self.xgc_arrow, self.pixmap_north_indicator, 0, 0, int(position_x - self.NORTH_INDICATOR_SIZE / 2), int(position_y - self.NORTH_INDICATOR_SIZE / 2), -1, -1)
+
+        # north indicator
+        ni_w, ni_h = self.north_indicator_layout.get_size()
+        position_x = width / 2 - math.sin(display_north) * indicator_dist - (ni_w / pango.SCALE)/2
+        position_y = height / 2 - math.cos(display_north) * indicator_dist - (ni_h / pango.SCALE)/2
         self.xgc_arrow.set_function(gtk.gdk.COPY)
+        self.xgc_arrow.set_rgb_fg_color(self.COLOR_NORTH_INDICATOR)
+        self.pixmap_arrow.draw_layout(self.xgc_arrow, position_x, position_y, self.north_indicator_layout)
+        
 
-
-        if (display_distance < 50):
+        if (display_distance < distance_attarget):
             color = self.COLOR_ARROW_ATTARGET
-        elif (display_distance < 150):
+        elif (display_distance < distance_near):
             color = self.COLOR_ARROW_NEAR
         else:
             color = self.COLOR_ARROW_DEFAULT
@@ -525,9 +543,9 @@ class SimpleGui(object):
         if display_distance > self.DISTANCE_DISABLE_ARROW:
             arrow_transformed = self._get_arrow_transformed(x, y, width, height, display_bearing)
             #self.xgc_arrow.line_style = gtk.gdk.LINE_SOLID
-            self.xgc_arrow.line_width = 5
             self.pixmap_arrow.draw_polygon(self.xgc_arrow, True, arrow_transformed)
             self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_OUTER_LINE)
+            self.xgc_arrow.line_width = self.ARROW_LINE_WIDTH
             self.pixmap_arrow.draw_polygon(self.xgc_arrow, False, arrow_transformed)
         else:
             # if we are closer than a few meters, the arrow will almost certainly
@@ -535,6 +553,7 @@ class SimpleGui(object):
             circle_size = max(height / 2.5, width / 2.5)
             self.pixmap_arrow.draw_arc(self.xgc_arrow, True, width / 2 - circle_size / 2, height / 2 - circle_size / 2, circle_size, circle_size, 0, 64 * 360)
             self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_OUTER_LINE)
+            self.xgc_arrow.line_width = self.ARROW_LINE_WIDTH
             self.pixmap_arrow.draw_arc(self.xgc_arrow, False, width / 2 - circle_size / 2, height / 2 - circle_size / 2, circle_size, circle_size, 0, 64 * 360)
 
                 
@@ -722,7 +741,7 @@ class SimpleGui(object):
                 xgc.line_width = 3
                 xgc.set_rgb_fg_color(self.COLOR_CURRENT_CACHE)
                 radius = 7
-                self.pixmap_marks.draw_line(xgc, p[0]-radius, p[1]-radius, p[0]+radius, p[1]+radius)
+                self.pixmap_marks.draw_line(xgc, p[0]-radius, p[1]-radius, p[0] + radius, p[1] + radius)
 
             xgc.set_rgb_fg_color(self.COLOR_CACHE_CENTER)
             xgc.line_width = 1
@@ -879,7 +898,7 @@ class SimpleGui(object):
                         xgc.line_width = 1
                         xgc.set_rgb_fg_color(gtk.gdk.color_parse('blue'))
 
-                        self.pixmap_marks.draw_arc(xgc, False, p[0] - radius_pixels, p[1] - radius_pixels, radius_pixels*2, radius_pixels*2, 0, 360*64)
+                        self.pixmap_marks.draw_arc(xgc, False, p[0] - radius_pixels, p[1] - radius_pixels, radius_pixels * 2, radius_pixels * 2, 0, 360 * 64)
                         
 
                     
@@ -960,21 +979,21 @@ class SimpleGui(object):
                 
     def _load_images(self):
         if self.current_cache == None:
-            self._update_cache_image(reset = True)
+            self._update_cache_image(reset=True)
             return
         if len(self.current_cache.get_images()) > 0:
             self.images = self.current_cache.get_images().items()
         else:
             self.images = {}
-        self._update_cache_image(reset = True)
+        self._update_cache_image(reset=True)
 
-    def on_download_clicked(self, widget, data = None):
+    def on_download_clicked(self, widget, data=None):
         self.core.on_download(self.get_visible_area())
         
         self._draw_map()
 
 
-    def on_download_details_map_clicked(self, some, thing = None):
+    def on_download_details_map_clicked(self, some, thing=None):
         self.core.on_download_descriptions(self.get_visible_area(), True)
         self._draw_map()
 
@@ -1084,7 +1103,7 @@ class SimpleGui(object):
         
     def on_image_next_clicked(self, something):
         if len(self.images) == 0:
-            self._update_cache_image(reset = True)
+            self._update_cache_image(reset=True)
             return
         self.image_no += 1
         self.image_no %= len(self.images)
@@ -1106,7 +1125,7 @@ class SimpleGui(object):
             widget.set_text("you have not created any new fieldnotes")
                 
     def on_list_marked_clicked(self, widget):
-        self.core.on_start_search_advanced(marked = True)
+        self.core.on_start_search_advanced(marked=True)
 
 
     def on_no_fix(self, gps_data, status):
@@ -1234,7 +1253,7 @@ class SimpleGui(object):
             self.filtermsg.hide()
         else:
             self.filtermsg.show()
-        self.core.on_start_search_advanced(found = found, name_search = name_search, size = sizes, terrain = search['terr'], diff = search['diff'], ctype = types, location = location, marked = marked)
+        self.core.on_start_search_advanced(found=found, name_search=name_search, size=sizes, terrain=search['terr'], diff=search['diff'], ctype=types, location=location, marked=marked)
 
     def on_search_cache_clicked(self, listview, event, element):
         if element == None:
@@ -1262,16 +1281,16 @@ class SimpleGui(object):
             self.set_target(self.current_cache)
             self.notebook_all.set_current_page(0)
 
-    def on_set_target_center(self, some, thing = None):
+    def on_set_target_center(self, some, thing=None):
         self.set_target(self.ts.num2deg(self.map_center_x, self.map_center_y))
 
-    def on_show_target_clicked(self, some = None, data = None):
+    def on_show_target_clicked(self, some=None, data=None):
         if self.current_target == None:
             return
         else:
             self.set_center(self.current_target)
                 
-    def on_track_toggled(self, something, data = None):
+    def on_track_toggled(self, something, data=None):
         if self.button_track.get_active() and self.gps_data != None and self.gps_data.position != None:
             self.set_center(self.gps_data.position)
 
@@ -1299,18 +1318,18 @@ class SimpleGui(object):
         if not self.inhibit_zoom:
             self.zoom()
                 
-    def on_zoomin_clicked(self, widget, data = None):
-        self.zoom(+ 1)
+    def on_zoomin_clicked(self, widget, data=None):
+        self.zoom( + 1)
                 
-    def on_zoomout_clicked(self, widget, data = None):
+    def on_zoomout_clicked(self, widget, data=None):
         self.zoom(-1)
                 
-    def _update_cache_image(self, reset = False):
+    def _update_cache_image(self, reset=False):
         if reset:
             self.image_zoomed = False
             self.image_no = 0
             if len(self.images) == 0:
-                self.image_cache.set_from_stock(gtk.STOCK_CANCEL   , -1)
+                self.image_cache.set_from_stock(gtk.STOCK_CANCEL, -1)
                 self.image_cache_caption.set_text("There's nothing to see here.")
                 return
         try:
@@ -1341,9 +1360,9 @@ class SimpleGui(object):
     def pixmappoint2coord(self, point):
         size = self.ts.tile_size()
         coord = self.ts.num2deg(\
-            (point[0] + self.map_center_x * size - self.map_width / 2) / size, \
-            (point[1] + self.map_center_y * size - self.map_height / 2) / size \
-            )
+                                (point[0] + self.map_center_x * size - self.map_width / 2) / size, \
+                                (point[1] + self.map_center_y * size - self.map_height / 2) / size \
+                                )
         return coord
                 
     def point_in_screen(self, point):
@@ -1351,9 +1370,9 @@ class SimpleGui(object):
 
     def read_settings(self):
         c = self.ts.num2deg(self.map_center_x, self.map_center_y)
-        settings = { \
-            'map_position_lat': c.lat,\
-            'map_position_lon': c.lon,\
+        settings = {\
+            'map_position_lat': c.lat, \
+            'map_position_lon': c.lon, \
             'map_zoom': self.ts.get_zoom() \
         }
         if self.current_target != None:
@@ -1387,20 +1406,20 @@ class SimpleGui(object):
                         
     def screenpoint2coord(self, point):
         size = self.ts.tile_size()
-        coord = self.ts.num2deg( \
-            ((point[0] - self.draw_root_x - self.draw_at_x) + self.map_center_x * size - self.map_width / 2) / size,  \
-            ((point[1] - self.draw_root_y - self.draw_at_y) + self.map_center_y * size - self.map_height / 2) / size \
-            )
+        coord = self.ts.num2deg(\
+                                ((point[0] - self.draw_root_x - self.draw_at_x) + self.map_center_x * size - self.map_width / 2) / size, \
+                                ((point[1] - self.draw_root_y - self.draw_at_y) + self.map_center_y * size - self.map_height / 2) / size \
+                                )
         return coord
         
     def _scroll(self, widget, event):
         if event.direction == gtk.gdk.SCROLL_DOWN:
             self.zoom(-1)
         else:
-            self.zoom(+ 1)
+            self.zoom( + 1)
         
                 
-    def set_center(self, coord, noupdate = False):
+    def set_center(self, coord, noupdate=False):
         #xml.get_widget("notebook_all").set_current_page(0)
         self.map_center_x, self.map_center_y = self.ts.deg2num(coord)
         self.draw_at_x = 0
@@ -1509,7 +1528,7 @@ class SimpleGui(object):
             showdesc += "\n[no hints]"
         else:
             showdesc += "\n[hints available]"
-        text_hints += 'HINTS:\n'+hints
+        text_hints += 'HINTS:\n' + hints
 
         self.cache_elements['hints'].set_text(text_hints)
 
@@ -1574,16 +1593,16 @@ class SimpleGui(object):
     def show_error(self, errormsg):
         if isinstance(errormsg, Exception):
             raise errormsg
-        error_dlg = gtk.MessageDialog(type = gtk.MESSAGE_ERROR, \
-            message_format = "%s" % errormsg, \
-            buttons = gtk.BUTTONS_OK)
+        error_dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, \
+                                      message_format="%s" % errormsg, \
+                                      buttons=gtk.BUTTONS_OK)
         error_dlg.run()
         error_dlg.destroy()
 
     def show_success(self, message):
-        suc_dlg = gtk.MessageDialog(type = gtk.MESSAGE_INFO \
-            , message_format = message \
-            , buttons = gtk.BUTTONS_OK)
+        suc_dlg = gtk.MessageDialog(type=gtk.MESSAGE_INFO \
+                                    , message_format=message \
+                                    , buttons=gtk.BUTTONS_OK)
         suc_dlg.run()
         suc_dlg.destroy()
 
@@ -1689,7 +1708,7 @@ class SimpleGui(object):
                                         
         self.block_changes = False
                 
-    def zoom(self, direction = None):
+    def zoom(self, direction=None):
         size = self.ts.tile_size()
         center = self.ts.num2deg(self.map_center_x - float(self.draw_at_x) / size, self.map_center_y - float(self.draw_at_y) / size)
         if direction == None:
