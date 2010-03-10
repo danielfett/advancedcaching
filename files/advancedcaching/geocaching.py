@@ -74,7 +74,7 @@ class GeocacheCoordinate(geo.Coordinate):
     SIZES = ['other', 'small', 'micro', 'regular', 'big', 'other']
 
 
-    SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT PRIMARY KEY', 'title': 'TEXT', 'shortdesc': 'TEXT', 'desc': 'TEXT', 'hints': 'TEXT', 'type': 'TEXT', 'size': 'INTEGER', 'difficulty': 'INTEGER', 'terrain': 'INTEGER', 'owner': 'TEXT', 'found': 'INTEGER', 'waypoints': 'text', 'images': 'text', 'notes': 'TEXT', 'fieldnotes': 'TEXT', 'logas': 'INTEGER', 'logdate': 'TEXT', 'marked' : 'INTEGER', 'logs' : 'TEXT', 'status' : 'INTEGER'}
+    SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT PRIMARY KEY', 'title': 'TEXT', 'shortdesc': 'TEXT', 'desc': 'TEXT', 'hints': 'TEXT', 'type': 'TEXT', 'size': 'INTEGER', 'difficulty': 'INTEGER', 'terrain': 'INTEGER', 'owner': 'TEXT', 'found': 'INTEGER', 'waypoints': 'text', 'images': 'text', 'notes': 'TEXT', 'fieldnotes': 'TEXT', 'logas': 'INTEGER', 'logdate': 'TEXT', 'marked' : 'INTEGER', 'logs' : 'TEXT', 'status' : 'INTEGER', 'vars' : 'TEXT'}
     def __init__(self, lat, lon, name=''):
         geo.Coordinate.__init__(self, lat, lon, name)
         # NAME = GC-ID
@@ -97,6 +97,7 @@ class GeocacheCoordinate(geo.Coordinate):
         self.marked = False
         self.logs = ''
         self.status = self.STATUS_NORMAL
+        self.vars = ''
 
     def clone(self):
         n = GeocacheCoordinate(self.lat, self.lon)
@@ -147,7 +148,8 @@ class GeocacheCoordinate(geo.Coordinate):
             'logdate': self.log_date,
             'marked' : marked,
             'logs' : self.logs,
-            'status' : self.status
+            'status' : self.status,
+            'vars' : self.vars
         }
                 
     def unserialize(self, data):
@@ -181,12 +183,24 @@ class GeocacheCoordinate(geo.Coordinate):
             self.logs = ''
         else:
             self.logs = data['logs']
+        if data['vars'] == None:
+            self.vars = ''
+        else:
+            self.vars = data['vars']
         self.status = data['status']
 
     def get_waypoints(self):
         if self.waypoints == None or self.waypoints == '':
             return []
         return json.loads(self.waypoints)
+
+    def get_vars(self):
+        if self.vars == None or self.vars == '':
+            return {}
+        return json.loads(self.vars)
+
+    def set_vars(self, vars):
+        self.vars = json.dumps(vars)
 
     def get_logs(self):
         if self.logs == None or self.logs == '':

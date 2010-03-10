@@ -107,7 +107,11 @@ class CalcCoordinate():
         c = 1
         while c > 0:
             text, c = re.subn('\([^()]+\)', lambda match: self.safe_eval(match.group(0)), text)
-        text = self.safe_eval(text)
+        if re.match('[0-9]+', text) == False:
+            # determine number of leading zeros
+            lz = len(text) - len(str(int(text)))
+            text = self.safe_eval(text)
+            text = ("%0" + lz + "d") % lz
         return text
 
     def safe_eval(self, text):
@@ -127,12 +131,16 @@ class CalcCoordinate():
 
     @staticmethod
     def find(text):
+        foundsigs = []
         text = text.replace('°', '|')
         matches = re.findall(ur'''([NS])\s?([A-Z() -+*/0-9]+?)[ |]{1,2}([A-Z ()+*/0-9-]+)[., ]([A-Z ()+*/0-9-]+)['\s,]+([EOW])\s?([A-Z() +*/0-9-]+?)[ |]{1,2}([A-Z ()+*/0-9-]+)[., ]([A-Z ()+*/0-9-]+)[\s']*''', text)
-        print matches
         found = []
         requires = set()
         for match in matches:
+            sig = "|".join(re.sub('[^A-Za-z()+*/0-9-]+', '', x) for x in match)
+            if sig in foundsigs:
+                continue
+            foundsigs.append(sig)
             c = CalcCoordinate(*match)
             if len(c.requires) == 0:
                 continue
