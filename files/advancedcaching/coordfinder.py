@@ -133,7 +133,7 @@ class CalcCoordinate():
     def find(text):
         foundsigs = []
         text = text.replace('°', '|')
-        matches = re.findall(ur'''([NS])\s?([A-Z() -+*/0-9]+?)[ |]{1,2}([A-Z ()+*/0-9-]+)[., ]([A-Z ()+*/0-9-]+)['\s,]+([EOW])\s?([A-Z() +*/0-9-]+?)[ |]{1,2}([A-Z ()+*/0-9-]+)[., ]([A-Z ()+*/0-9-]+)[\s']*''', text)
+        matches = re.findall(ur'''(?<![a-zA-Z])([NS])\s?([A-Z() -+*/0-9]+?)[ |]{1,2}([A-Z ()+*/0-9-]+)[., ]([A-Z ()+*/0-9-]+)['\s,]+([EOW])\s?([A-Z() +*/0-9-]+?)[ |]{1,2}([A-Z ()+*/0-9-]+)[., ]([A-Z ()+*/0-9-]+)[\s']*(?![a-zA-Z])''', text)
         found = []
         requires = set()
         for match in matches:

@@ -138,7 +138,7 @@ class HildonGui(SimpleGui):
         return False
 
     def _on_key_press(self, window, event):
-        print "event: " + event.keyval
+        print "event: ", event.keyval
 
         if event.keyval == gtk.keysyms.F7:
             self.zoom( + 1)
