@@ -552,15 +552,15 @@ class HildonGui(SimpleGui):
         #dialog.vbox.pack_start(l, False)
         dialog.vbox.pack_start(h_lat, False)
 
-        def sel_coord(widget, data, list):
+        def sel_coord(widget, data, clist):
             tm = widget.get_model(0)
             iter = tm.get_iter(0)
             widget.get_selected(0, iter)
-            coord = list[tm.get_path(iter)[0]]
+            coord = clist[tm.get_path(iter)[0]]
             e_lat.set_text("%s %s" % (coord.get_lat(self.format), coord.get_lon(self.format)))
 
         if self.current_cache != None:
-            sel, list = self._get_coord_selector(self.current_cache, sel_coord, True)
+            sel, clist = self._get_coord_selector(self.current_cache, sel_coord, True)
             sel.set_size_request(-1, 200)
             dialog.vbox.pack_start(sel)
         
@@ -688,7 +688,7 @@ class HildonGui(SimpleGui):
             c['hints'].set_alignment(0, 0)
             c['hints'].set_size_request(self.window.size_request()[0] - 10, -1)
             vp.add(c['hints'])
-            notebook.append_page(p, gtk.Label("hints & logs"))
+            notebook.append_page(p, gtk.Label("logs & hints"))
 
             logs = cache.get_logs()
             if len(logs) > 0:
@@ -712,12 +712,8 @@ class HildonGui(SimpleGui):
             c['hints'].set_text(text_hints)
 
             # images
-            if len(cache.images) == 0:
-                p = gtk.Label("")
-                text = "There are no images here to see."
-                p.set_markup(text)
-                notebook.append_page(p, gtk.Label("images"))      
-            else:
+            
+            if len(cache.get_images()) > 0:
                 selector = hildon.TouchSelector(text=True)
                 selector.get_column(0).get_cells()[0].set_property('xalign', 0)
                 selector.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_SINGLE)
@@ -766,7 +762,9 @@ class HildonGui(SimpleGui):
             rows = int(math.ceil(float(count) / float(cols)))
             table = gtk.Table(rows, cols)
             i = 0
-            for char in requires:
+            requires_sort = list(requires)
+            requires_sort.sort()
+            for char in requires_sort:
                 row = i / cols
                 col = i % cols
                 m = gtk.HBox()
@@ -794,14 +792,14 @@ class HildonGui(SimpleGui):
 
 
         p = gtk.VBox()
-        c['coords'], list = self._get_coord_selector(cache, lambda x, y, z: True)
+        c['coords'], clist = self._get_coord_selector(cache, lambda x, y, z: True)
 
 
-        def set_coord_as_target(widget, selector, list, cache):
+        def set_coord_as_target(widget, selector, clist, cache):
             tm = selector.get_model(0)
             iter = tm.get_iter(0)
             selector.get_selected(0, iter)
-            c = list[tm.get_path(iter)[0]]
+            c = clist[tm.get_path(iter)[0]]
             if c == None:
                 return
             self.set_current_cache(cache)
@@ -810,7 +808,7 @@ class HildonGui(SimpleGui):
 
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
         button.set_label("set as target")
-        button.connect("clicked", set_coord_as_target, c['coords'], list, cache)
+        button.connect("clicked", set_coord_as_target, c['coords'], clist, cache)
         
         p.pack_start(c['coords'], True, True)
         p.pack_start(button, False, True)
@@ -935,7 +933,7 @@ class HildonGui(SimpleGui):
 
         format = lambda n: "%s %s" % (re.sub(r' ', '', n.get_lat(self.format)), re.sub(r' ', '', n.get_lon(self.format)))
         selector.append_text("First Waypoint: %s" % format(cache))
-        list = {0: cache}
+        clist = {0: cache}
         i = 1
         for w in cache.get_waypoints():
             if not (w['lat'] == -1 and w['lon'] == -1):
@@ -947,10 +945,10 @@ class HildonGui(SimpleGui):
                 coord = None
                 latlon = '???'
             selector.append_text("%s - %s - %s\n%s" % (w['name'], latlon, w['id'], self._strip_html(w['comment'])))
-            list[i] = coord
+            clist[i] = coord
             i += 1
-        selector.connect('changed', callback, list)
-        return selector, list
+        selector.connect('changed', callback, clist)
+        return selector, clist
         
     def _on_cache_marked_toggle(self, widget, data):
         if self.current_cache == None:
