@@ -79,6 +79,7 @@ class HildonGui(SimpleGui):
         self.core = core
         self.core.connect('map-changed', self._on_map_changed)
         self.core.connect('cache-changed', self._on_cache_changed)
+        self.core.connect('fieldnotes-changed', self._on_fieldnotes_changed)
 
         self.pointprovider = pointprovider
         self.userpointprovider = userpointprovider
@@ -96,6 +97,7 @@ class HildonGui(SimpleGui):
         self.banner = None
         self.fieldnotes_changed = False
         self.old_cache_window = None
+        self.cache_calc_vars = {}
                 
         self.dragging = False
         self.block_changes = False
@@ -118,6 +120,12 @@ class HildonGui(SimpleGui):
         self.window.add(self._create_main_view())
         self.window.set_app_menu(self._create_main_menu())
         self.update_fieldnotes_display()
+
+
+    #emitted by core
+    def _on_fieldnotes_changed(self, core, new_count):
+        self.update_fieldnotes_display()
+
 
     #emitted by core
     def _on_cache_changed(self, something, cache):
@@ -360,9 +368,11 @@ class HildonGui(SimpleGui):
         
         
     def _on_show_search(self, widget, data):
-        
-        dialog = gtk.Dialog("search for...", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-        
+        RESPONSE_SHOW_LIST = 0
+        RESPONSE_RESET = 1
+        dialog = gtk.Dialog("set filter", None, gtk.DIALOG_DESTROY_WITH_PARENT, ("show on map", gtk.RESPONSE_ACCEPT))
+        dialog.add_button("show list", RESPONSE_SHOW_LIST)
+        dialog.add_button("reset", RESPONSE_RESET)
         sel_size = hildon.TouchSelector(text=True)
         sel_size.append_text('micro')
         sel_size.append_text('small')
@@ -377,18 +387,20 @@ class HildonGui(SimpleGui):
             sel_size.select_iter(0, sel_size.get_model(0).get_iter(i), False)
         
         sel_type = hildon.TouchSelector(text=True)
-        sel_type.append_text('traditional')
+        sel_type.append_text('tradit.')
         sel_type.append_text('multi')
-        sel_type.append_text('virtual')
-        sel_type.append_text('earth')
-        sel_type.append_text('all types')
+        sel_type.append_text('virt.')
+        #sel_type.append_text('earth')
+        sel_type.append_text('event')
+        sel_type.append_text('mystery')
+        sel_type.append_text('all')
         sel_type.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_MULTIPLE)
         pick_type = hildon.PickerButton(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         pick_type.set_selector(sel_type)
         pick_type.set_title("Select Type(s)")
         sel_type.unselect_all(0)
-        sel_type.select_iter(0, sel_type.get_model(0).get_iter(4), False)
-        
+        sel_type.select_iter(0, sel_type.get_model(0).get_iter(5), False)
+
         sel_status = hildon.TouchSelector(text=True)
         sel_status.append_text('all')
         sel_status.append_text('not found')
@@ -424,34 +436,107 @@ class HildonGui(SimpleGui):
         for i in range(3):
             sel_terr.select_iter(0, sel_terr.get_model(0).get_iter(i), False)
         
-        check_visible = hildon.CheckButton(gtk.HILDON_SIZE_AUTO)
-        check_visible.set_label("in current map view")
-        
         name = hildon.Entry(gtk.HILDON_SIZE_AUTO)
         name.set_placeholder("search for name...")
         
-        t = gtk.Table(4, 2)
-        t.attach(name, 0, 2, 0, 1)
-        t.attach(pick_size, 0, 1, 1, 2)
-        t.attach(pick_diff, 1, 2, 1, 2)
+        t = gtk.Table(4, 3, False)
+        t.attach(name, 0, 1, 1, 2)
+        t.attach(gtk.Label("All Geocaches:"), 0, 1, 0, 1)
         t.attach(pick_type, 0, 1, 2, 3)
-        t.attach(pick_terr, 1, 2, 2, 3)
-        t.attach(check_visible, 0, 1, 3, 4)
-        t.attach(pick_status, 1, 2, 3, 4)
+        t.attach(pick_status, 0, 1, 3, 4)
+        t.attach(gtk.VSeparator(), 1, 2, 0, 4)
+        t.attach(gtk.Label("If Details available:"), 2, 3, 0, 1)
+        t.attach(pick_size, 2, 3, 1, 2)
+        t.attach(pick_diff, 2, 3, 2, 3)
+        t.attach(pick_terr, 2, 3, 3, 4)
+        #t.attach(check_visible, 0, 1, 3, 4)
         
         dialog.vbox.pack_start(t)
         
         dialog.show_all()
-        dialog.run()
+        response = dialog.run()
         dialog.hide()
-        
-        print sel_diff.get_selected_rows(0)
-        
+
+        if response == RESPONSE_RESET:
+            self.core.reset_filter()
+
+        name_search = name.get_text()
+
+        sizes = [x + 1 for x, in sel_size.get_selected_rows(0)]
+        if sizes == [1,2,3,4,5]:
+            sizes = None
+
+        typelist = [
+            geocaching.GeocacheCoordinate.TYPE_REGULAR,
+            geocaching.GeocacheCoordinate.TYPE_MULTI,
+            geocaching.GeocacheCoordinate.TYPE_VIRTUAL,
+            #geocaching.GeocacheCoordinate.TYPE_EARTH,
+            geocaching.GeocacheCoordinate.TYPE_EVENT,
+            geocaching.GeocacheCoordinate.TYPE_MYSTERY,
+            geocaching.GeocacheCoordinate.TYPE_UNKNOWN
+        ]
+
+        types = [typelist[x] for x, in sel_type.get_selected_rows(0)]
+        if geocaching.GeocacheCoordinate.TYPE_UNKNOWN in types:
+            types = None
+
+        # found, marked
+        statuslist = [
+            (None, None),
+            (False, None),
+            (True, None),
+            (None, True),
+            (False, True),
+        ]
+        found, marked = statuslist[sel_status.get_selected_rows(0)[0][0]]
+
+        numberlist = [
+            [1, 1.5, 2, 2.5],
+            [3, 3.5, 4],
+            [4.5, 5]
+        ]
+
+        difficulties = []
+        count = 0
+        for x, in sel_diff.get_selected_rows(0):
+            difficulties += numberlist[x]
+            count += 1
+        if count == len(numberlist):
+            difficulties = None
+
+
+        terrains = []
+        count = 0
+        for x, in sel_terr.get_selected_rows(0):
+            terrains += numberlist[x]
+            count += 1
+        if count == len(numberlist):
+            terrains = None
+
+        if response == RESPONSE_SHOW_LIST:
+            points = self.core.get_points_filter(found = found, name_search = name_search, size = sizes, terrain = terrains, diff = difficulties, ctype = types, marked = marked)
+            self._display_results(points)
+        elif response == gtk.RESPONSE_ACCEPT:
+            self.core.set_filter(found = found, name_search = name_search, size = sizes, terrain = terrains, diff = difficulties, ctype = types, marked = marked)
+
+
+    def _display_results(self, caches):
+
+        sortfuncs = [
+            ('Name', lambda x, y: cmp(x.title, y.title)),
+            ('Diff.', lambda x, y: cmp(x.difficulty, y.difficulty)),
+            ('Terr.', lambda x, y: cmp(x.terrain, y.terrain)),
+            ('Size', lambda x, y: cmp(x.size, y.size)),
+            ('Type', lambda x, y: cmp(x.type, y.type)),
+        ]
+
+
+
         win = hildon.StackableWindow()
         win.set_title("Search results")
-        
+
         ls = gtk.ListStore(str, str, str, object)
-        ls.append(['Der zerstreute Professor vom Trimmelter Hof', 'micro', 'D2.5 T3', hildon.StackableWindow()])             
+        
         tv = hildon.TouchSelector()
         col1 = tv.append_column(ls, gtk.CellRendererText())
         
@@ -468,15 +553,36 @@ class HildonGui(SimpleGui):
         col1.set_attributes(c3cr, text=2)
 
         def select_cache(widget, data, more):
-            print widget.get_selected_rows(0)
-            #c = self._get_selected(widget)[3]
-            self._select_cache(c)
+            self.show_cache(self._get_selected(widget)[3])
         
         tv.connect("changed", select_cache, None)
-        
-        win.add(tv)
-        win.show_all()
 
+
+        def on_change_sort(widget, sortfunc, ls, caches):
+            tv.handler_block_by_func(select_cache)
+            ls.clear()
+            caches.sort(cmp=sortfunc)
+            for c in caches:
+                ls.append([c.title, c.get_size_string(), 'D%s T%s' % (c.get_difficulty(), c.get_terrain()), c])
+            tv.handler_unblock_by_func(select_cache)
+
+
+        menu = hildon.AppMenu()
+        button = None
+        for name, function in sortfuncs:
+            button = hildon.GtkRadioButton(gtk.HILDON_SIZE_AUTO, button)
+            button.set_label(name)
+            button.connect("clicked", on_change_sort, function, ls, caches)
+            menu.add_filter(button)
+            button.set_mode(False)
+        menu.show_all()
+        win.set_app_menu(menu)
+        win.add(tv)
+
+        on_change_sort(None, sortfuncs[0][1], ls, caches)
+
+        win.show_all()
+        
     @staticmethod
     def _get_selected(widget):
         tm = widget.get_model(0)
@@ -1092,7 +1198,7 @@ class HildonGui(SimpleGui):
         self.hide_cache_view()
         self.set_active_page(True)
 
-    def _on_upload_fieldnotes(self, something):
+    def _on_upload_fieldnotes(self, some, thing):
         self.core.on_upload_fieldnotes()
         
     def on_waypoint_clicked(self, listview, event, element):

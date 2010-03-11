@@ -52,6 +52,7 @@ class GeocacheCoordinate(geo.Coordinate):
     TYPE_MYSTERY = 'mystery'
     TYPE_WEBCAM = 'webcam'
     TYPE_UNKNOWN = 'unknown'
+    TYPE_EARTH = 'earth'
     TYPES = [
         TYPE_REGULAR,
         TYPE_MULTI,
@@ -59,7 +60,8 @@ class GeocacheCoordinate(geo.Coordinate):
         TYPE_EVENT,
         TYPE_MYSTERY,
         TYPE_WEBCAM,
-        TYPE_UNKNOWN
+        TYPE_UNKNOWN,
+        TYPE_EARTH
     ]
 
     STATUS_NORMAL = 0
@@ -581,7 +583,7 @@ class CacheDownloader(gobject.GObject):
         text = match.group(1).replace("\\'", "'")
         a = json.loads(text.replace('\t', ' '))
         points = []
-
+        print a
         if not 'cc' in a['cs'].keys():
             if 'count' in a['cs'].keys() and 'count' != 0:
                 # let's try to download one half of the geocaches first
@@ -611,6 +613,8 @@ class CacheDownloader(gobject.GObject):
                 c.type = GeocacheCoordinate.TYPE_MYSTERY
             elif b['ctid'] == 11:
                 c.type = GeocacheCoordinate.TYPE_WEBCAM
+            elif b['ctid'] == 137:
+                c.type = GeocacheCoordinate.TYPE_EARTH
             else:
                 c.type = GeocacheCoordinate.TYPE_UNKNOWN
             c.found = b['f']

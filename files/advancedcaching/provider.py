@@ -60,7 +60,7 @@ class PointProvider():
             return None
         else:
             c = self.conn.cursor()
-            c.execute("SELECT found FROM %s WHERE name = ?" % self.cache_table, (p.name, ))
+            c.execute("SELECT found FROM %s WHERE name = ?" % self.cache_table, (p.name,))
             num = len(c.fetchall())
             existing = (num == 1)
             c.close()
@@ -160,7 +160,11 @@ class PointProvider():
                 
     def set_filter(self, found=None, has_details=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, adapt_filter=False, marked=None):
         # a value "None" means: apply no filtering on this value
-                
+
+        filter = copy.copy(locals())
+        del filter['self']
+        self.filter = filter
+
         if adapt_filter:
             filterstring = copy.copy(self.filterstring)
             filterargs = copy.copy(self.filterargs)
@@ -193,14 +197,25 @@ class PointProvider():
             filterstring.append('(size IN (%s))' % (", ".join([str(b) for b in size])))
 
         if terrain != None:
-            filterstring.append('(terrain >= ?) AND (terrain <= ?)')
-            filterargs.append(terrain[0] * 10)
-            filterargs.append(terrain[1] * 10)
+            if type(terrain) == tuple:
+                filterstring.append('(terrain >= ?) AND (terrain <= ?)')
+                filterargs.append(terrain[0] * 10)
+                filterargs.append(terrain[1] * 10)
+            elif type(terrain) == list:
+                filterstring.append('(terrain IN (%s))' % (", ".join(['?' for b in terrain])))
+                for b in terrain:
+                    filterargs.append(b * 10)
+
                         
         if diff != None:
-            filterstring.append('(difficulty >= ?) AND (difficulty <= ?)')
-            filterargs.append(diff[0] * 10)
-            filterargs.append(diff[1] * 10)
+            if type(diff) == tuple:
+                filterstring.append('(difficulty >= ?) AND (difficulty <= ?)')
+                filterargs.append(diff[0] * 10)
+                filterargs.append(diff[1] * 10)
+            elif type(diff) == list:
+                filterstring.append('(difficulty IN (%s))' % (", ".join(['?' for b in diff])))
+                for b in diff:
+                    filterargs.append(b * 10)
                         
         if ctype != None:
             if len(ctype) > 0:
@@ -220,7 +235,7 @@ class PointProvider():
     def pop_filter(self):
         self.filterstring, self.filterargs = self.filterstack.pop()
                 
-    def get_points_filter(self, location=None, found=None, max_results = None):
+    def get_points_filter(self, location=None, found=None, max_results=None):
         filterstring = copy.copy(self.filterstring)
         filterargs = copy.copy(self.filterargs)
 

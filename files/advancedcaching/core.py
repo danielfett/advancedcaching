@@ -198,6 +198,7 @@ class Core(gobject.GObject):
     __gsignals__ = {
         'map-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
         'cache-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, )),
+        'fieldnotes-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (int, )),
         }
 
     SETTINGS_DIR = os.path.expanduser('~/.agtl')
@@ -338,15 +339,28 @@ class Core(gobject.GObject):
         #m = re.search(r'/([NS]?)\s*(\d{1,2})\.(\d{1,2})\D+(\d+)\s*([WE]?)\s*(\d{1,3})\.(\d{1,2})\D+(\d+)', text, re.I)
         #if m != None:
         self.__try_show_cache_by_search('%' + text + '%')
+
+    # called by gui
+    def set_filter(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location=None, marked=None):
+        self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked=marked)
+        self.emit('map-changed')
                 
     # called by gui
+    def reset_filter(self):
+        self.pointprovider.set_filter()
+        self.emit('map-changed')
+
+    # called by gui
     def on_start_search_advanced(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location=None, marked=None):
-                
-                
         self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked=marked)
         points = self.pointprovider.get_points_filter(location)
         self.gui.display_results_advanced(points)
-                                
+
+    def get_points_filter(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location=None, marked=None):
+        self.pointprovider.push_filter()
+        self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked=marked)
+        return self.pointprovider.get_points_filter(location)
+
 
     # called by gui
     def on_destroy(self):
@@ -542,6 +556,7 @@ class Core(gobject.GObject):
         for c in caches:
             self.pointprovider.update_field(c, 'logas', geocaching.GeocacheCoordinate.LOG_NO_LOG)
         self.gui.hide_progress()
+        self.emit('fieldnotes-changed', 0)
 
     #called by gui
     def on_userdata_changed(self, username, password):
