@@ -583,7 +583,6 @@ class CacheDownloader(gobject.GObject):
         text = match.group(1).replace("\\'", "'")
         a = json.loads(text.replace('\t', ' '))
         points = []
-        print a
         if not 'cc' in a['cs'].keys():
             if 'count' in a['cs'].keys() and 'count' != 0:
                 # let's try to download one half of the geocaches first

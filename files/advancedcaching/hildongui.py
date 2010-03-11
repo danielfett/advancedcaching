@@ -46,6 +46,7 @@ import os
 import pango
 import re
 from simplegui import SimpleGui
+
 class HildonGui(SimpleGui):
 
     USES = ['locationgpsprovider']
@@ -75,7 +76,7 @@ class HildonGui(SimpleGui):
         gtk.gdk.threads_init()
         self.ts = openstreetmap.TileServer()
         openstreetmap.TileLoader.noimage = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage.png'))
-                
+        
         self.core = core
         self.core.connect('map-changed', self._on_map_changed)
         self.core.connect('cache-changed', self._on_cache_changed)
@@ -95,8 +96,8 @@ class HildonGui(SimpleGui):
         self.gps_has_fix = False
         self.gps_last_position = None
         self.banner = None
-        self.fieldnotes_changed = False
         self.old_cache_window = None
+        self.old_search_window = None
         self.cache_calc_vars = {}
                 
         self.dragging = False
@@ -108,8 +109,6 @@ class HildonGui(SimpleGui):
         self.drag_offset_y = 0
         self.notes_changed = False
         self.map_center_x, self.map_center_y = 100, 100
-        self.inhibit_zoom = False
-        self.inhibit_expose = False
         
         gtk.set_application_name("Geocaching Tool")
         program = hildon.Program.get_instance()
@@ -149,7 +148,7 @@ class HildonGui(SimpleGui):
         print "event: ", event.keyval
 
         if event.keyval == gtk.keysyms.F7:
-            self.zoom( + 1)
+            self.zoom(+ 1)
             return False
         elif event.keyval == gtk.keysyms.F8:
             self.zoom(-1)
@@ -314,14 +313,13 @@ class HildonGui(SimpleGui):
         button.set_label("Search Geocaches")
         button.connect("clicked", self._on_show_search, None)
         menu.append(button)
-        
 
-        button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        button.set_title("Upload Fieldnote(s)")
-        button.set_value("You have not created any fieldnotes.")
-        button.connect("clicked", self._on_upload_fieldnotes, None)
+        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
+        button.set_label("Last Search Results")
+        button.connect("clicked", self._on_reopen_search_clicked, None)
+        button.set_sensitive(False)
+        self.reopen_last_search_button = button
         menu.append(button)
-        self.button_fieldnotes = button
 
         button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_title("Download Overview")
@@ -334,6 +332,13 @@ class HildonGui(SimpleGui):
         button.set_value("for all visible caches")
         button.connect("clicked", self.on_download_details_map_clicked, None)
         menu.append(button)
+
+        button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_title("Upload Fieldnote(s)")
+        button.set_value("You have not created any fieldnotes.")
+        button.connect("clicked", self._on_upload_fieldnotes, None)
+        menu.append(button)
+        self.button_fieldnotes = button
     
     
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
@@ -463,7 +468,7 @@ class HildonGui(SimpleGui):
         name_search = name.get_text()
 
         sizes = [x + 1 for x, in sel_size.get_selected_rows(0)]
-        if sizes == [1,2,3,4,5]:
+        if sizes == [1, 2, 3, 4, 5]:
             sizes = None
 
         typelist = [
@@ -514,10 +519,10 @@ class HildonGui(SimpleGui):
             terrains = None
 
         if response == RESPONSE_SHOW_LIST:
-            points = self.core.get_points_filter(found = found, name_search = name_search, size = sizes, terrain = terrains, diff = difficulties, ctype = types, marked = marked)
+            points = self.core.get_points_filter(found=found, name_search=name_search, size=sizes, terrain=terrains, diff=difficulties, ctype=types, marked=marked)
             self._display_results(points)
         elif response == gtk.RESPONSE_ACCEPT:
-            self.core.set_filter(found = found, name_search = name_search, size = sizes, terrain = terrains, diff = difficulties, ctype = types, marked = marked)
+            self.core.set_filter(found=found, name_search=name_search, size=sizes, terrain=terrains, diff=difficulties, ctype=types, marked=marked)
 
 
     def _display_results(self, caches):
@@ -582,6 +587,14 @@ class HildonGui(SimpleGui):
         on_change_sort(None, sortfuncs[0][1], ls, caches)
 
         win.show_all()
+        self.old_search_window = win
+        self.reopen_last_search_button.set_sensitive(True)
+
+    def _on_reopen_search_clicked(self, widget, data):
+        if self.old_search_window == None:
+            return
+        hildon.WindowStack.get_default().push_1(self.old_search_window)
+        print vars(self)
         
     @staticmethod
     def _get_selected(widget):
@@ -1117,44 +1130,6 @@ class HildonGui(SimpleGui):
 
         self.update_fieldnotes_display()
                 
-                
-    # called by core
-    '''
-    def display_results_advanced(self, caches):
-        label = xml.get_widget('label_too_much_results')
-        too_much = len(caches) > self.MAX_NUM_RESULTS
-        if too_much:
-            text = 'Too much results. Only showing first %d.' % self.MAX_NUM_RESULTS
-            label.set_text(text)
-            label.show()
-            caches = caches[:self.MAX_NUM_RESULTS]
-        else:
-            label.hide()
-        self.cachelist_contents = caches
-        rows = []
-        for r in caches:
-            if r.size == -1:
-                s = "?"
-            else:
-                s = "%d" % r.size
-                                
-            if r.difficulty == -1:
-                d = "?"
-            else:
-                d = "%.1f" % (r.difficulty / 10)
-                                
-            if r.terrain == -1:
-                t = "?"
-            else:
-                t = "%.1f" % (r.terrain / 10)
-            title =  self._format_cache_title(r)
-            rows.append((title, r.type, s, t, d, r.name, ))
-        self.cachelist.replaceContent(rows)
-        self.notebook_search.set_current_page(1)
-        self.redraw_marks()
-
-'''
-
     def set_center(self, coord, noupdate=False):
         SimpleGui.set_center(self, coord, noupdate)
         self.button_center_as_target.set_value("%s %s" % (coord.get_lat(self.format), coord.get_lon(self.format)))
@@ -1171,7 +1146,8 @@ class HildonGui(SimpleGui):
         self.current_cache_window_open = False
         b = self.cache_elements['notes'].get_buffer()
         self.core.on_notes_changed(self.current_cache, b.get_text(b.get_start_iter(), b.get_end_iter()))
-        self.old_cache_window = hildon.WindowStack.get_default().pop_1()
+        self.old_cache_window = hildon.WindowStack.get_default().peek()
+        hildon.WindowStack.get_default().pop(hildon.WindowStack.get_default().size()-1)
         return True
                 
                 
@@ -1219,8 +1195,7 @@ class HildonGui(SimpleGui):
             self.hide_cache_view()
                 
     def on_zoom_changed(self, blub):
-        if not self.inhibit_zoom:
-            self.zoom()
+        self.zoom()
 
     @staticmethod
     def shorten_name(s, chars):
@@ -1238,10 +1213,10 @@ class HildonGui(SimpleGui):
         else:
             # Case 2: Return it to nearest period if possible
             try:
-                end = s.rindex('.',min_pos,max_pos)
+                end = s.rindex('.', min_pos, max_pos)
             except ValueError:
                 # Case 3: Return string to nearest space
-                end = s.rfind(' ',min_pos,max_pos)
+                end = s.rfind(' ', min_pos, max_pos)
                 if end == NOT_FOUND:
                     end = max_pos
             return s[0:end] + suffix

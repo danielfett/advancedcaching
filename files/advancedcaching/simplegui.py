@@ -162,8 +162,6 @@ class SimpleGui(object):
         self.notes_changed = False
         self.fieldnotes_changed = False
         self.map_center_x, self.map_center_y = 100, 100
-        self.inhibit_zoom = False
-        self.inhibit_expose = False
         
         
         global xml
@@ -951,7 +949,7 @@ class SimpleGui(object):
         return False
         
     def _expose_event(self, widget, event):
-        if self.inhibit_expose or self.dragging:
+        if self.dragging:
             return
         x, y, width, height = event.area
 
@@ -1315,8 +1313,7 @@ class SimpleGui(object):
             self.notebook_all.set_current_page(0)
                 
     def on_zoom_changed(self, blub):
-        if not self.inhibit_zoom:
-            self.zoom()
+        self.zoom()
                 
     def on_zoomin_clicked(self, widget, data=None):
         self.zoom( + 1)
