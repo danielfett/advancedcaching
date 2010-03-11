@@ -198,7 +198,7 @@ class Core(gobject.GObject):
     __gsignals__ = {
         'map-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
         'cache-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, )),
-        'fieldnotes-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (int, )),
+        'fieldnotes-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
         }
 
     SETTINGS_DIR = os.path.expanduser('~/.agtl')
@@ -532,7 +532,21 @@ class Core(gobject.GObject):
     def on_fieldnotes_changed(self, cache, new_notes):
         self.pointprovider.update_field(cache, 'fieldnotes', new_notes)
 
-                
+    def write_fieldnote(self, cache, logas, logdate, fieldnotes):
+        self.pointprovider.update_field(cache, 'logas', logas)
+        self.pointprovider.update_field(cache, 'logdate', logdate)
+        self.pointprovider.update_field(cache, 'fieldnotes', fieldnotes)
+        self.emit('fieldnotes-changed')
+        
+        if logas == geocaching.GeocacheCoordinate.LOG_AS_FOUND:
+            self.pointprovider.update_field(cache, 'found', '1')
+            cache.found = 1
+
+        elif logas == geocaching.GeocacheCoordinate.LOG_AS_NOTFOUND:
+            self.pointprovider.update_field(cache, 'found', '0')
+            cache.found = 0
+        
+
     def on_upload_fieldnotes(self):
         self.gui.set_download_progress(0.5, "Uploading Fieldnotes...")
 
@@ -556,7 +570,13 @@ class Core(gobject.GObject):
         for c in caches:
             self.pointprovider.update_field(c, 'logas', geocaching.GeocacheCoordinate.LOG_NO_LOG)
         self.gui.hide_progress()
-        self.emit('fieldnotes-changed', 0)
+        self.emit('fieldnotes-changed')
+
+    def get_new_fieldnotes_count(self):
+        return self.pointprovider.get_new_fieldnotes_count()
+
+    def set_cache_calc_vars(self, cache, vars):
+        self.pointprovider.update_field(cache, 'vars', vars)
 
     #called by gui
     def on_userdata_changed(self, username, password):

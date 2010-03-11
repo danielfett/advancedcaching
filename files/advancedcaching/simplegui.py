@@ -1397,9 +1397,9 @@ class SimpleGui(object):
                         
     def replace_image_tag(self, m):
         if m.group(1) != None and m.group(1).strip() != '':
-            return ' [Bild: %s] ' % m.group(1).strip()
+            return ' [Image: %s] ' % m.group(1).strip()
         else:
-            return ' [Bild] '
+            return ' [Image] '
                         
     def screenpoint2coord(self, point):
         size = self.ts.tile_size()

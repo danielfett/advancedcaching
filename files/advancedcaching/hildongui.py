@@ -121,34 +121,12 @@ class HildonGui(SimpleGui):
         self.update_fieldnotes_display()
 
 
-    #emitted by core
-    def _on_fieldnotes_changed(self, core, new_count):
-        self.update_fieldnotes_display()
 
-
-    #emitted by core
-    def _on_cache_changed(self, something, cache):
-        if self.current_cache != None \
-            and cache.name == self.current_cache.name \
-            and self.current_cache_window_open:
-
-            self.hide_cache_view()
-            self.old_cache_window = None
-            self.show_cache(cache)
-            return False
-        else:
-            print self.current_cache, cache.name, self.current_cache_window_open
-            return False
-
-    def _on_map_changed(self, something):
-        self.redraw_marks()
-        return False
 
     def _on_key_press(self, window, event):
-        print "event: ", event.keyval
-
+        return
         if event.keyval == gtk.keysyms.F7:
-            self.zoom(+ 1)
+            self.zoom( + 1)
             return False
         elif event.keyval == gtk.keysyms.F8:
             self.zoom(-1)
@@ -160,15 +138,6 @@ class HildonGui(SimpleGui):
 
         self.main_gpspage = gtk.Table(7, 2)
         self.drawing_area_arrow = gtk.DrawingArea()
-
-        '''
-        self.label_dist = gtk.Label("Distance")
-        self.label_bearing = gtk.Label("Bearing")
-        self.label_altitude = gtk.Label("Altitude")
-        self.label_latlon = gtk.Label("LatLon")
-        self.label_target = gtk.Label("Target")
-        self.label_quality = gtk.Label("Quality")
-        '''
 
         self.label_dist = gtk.Label()
         self.label_dist.set_markup("")
@@ -349,28 +318,19 @@ class HildonGui(SimpleGui):
         menu.show_all()
         return menu
 
-    def _drag_end(self, widget, event):
-        SimpleGui._drag_end(self, widget, event)
-        c = self.ts.num2deg(self.map_center_x, self.map_center_y)
-        self.button_center_as_target.set_value("%s %s" % (c.get_lat(self.format), c.get_lon(self.format)))
-        
 
     def show(self):
         self.window.show_all()
         self.set_active_page(False)
         gtk.main()
 
-    def update_fieldnotes_display(self):
-        count = self.pointprovider.get_new_fieldnotes_count()
-        w = self.button_fieldnotes
-        if count == 0:
-            w.set_value("Nothing to upload.")
-            w.set_sensitive(False)
-        else:
-            w.set_value("You have %d fieldnotes." % count)
-            w.set_sensitive(True)
 
-        
+
+        ##############################################
+        #
+        # Search
+        #
+        ##############################################
         
     def _on_show_search(self, widget, data):
         RESPONSE_SHOW_LIST = 0
@@ -563,7 +523,7 @@ class HildonGui(SimpleGui):
         tv.connect("changed", select_cache, None)
 
 
-        def on_change_sort(widget, sortfunc, ls, caches):
+        def on_change_sort(widget, sortfunc):
             tv.handler_block_by_func(select_cache)
             ls.clear()
             caches.sort(cmp=sortfunc)
@@ -577,14 +537,14 @@ class HildonGui(SimpleGui):
         for name, function in sortfuncs:
             button = hildon.GtkRadioButton(gtk.HILDON_SIZE_AUTO, button)
             button.set_label(name)
-            button.connect("clicked", on_change_sort, function, ls, caches)
+            button.connect("clicked", on_change_sort, function)
             menu.add_filter(button)
             button.set_mode(False)
         menu.show_all()
         win.set_app_menu(menu)
         win.add(tv)
 
-        on_change_sort(None, sortfuncs[0][1], ls, caches)
+        on_change_sort(None, sortfuncs[0][1])
 
         win.show_all()
         self.old_search_window = win
@@ -594,18 +554,14 @@ class HildonGui(SimpleGui):
         if self.old_search_window == None:
             return
         hildon.WindowStack.get_default().push_1(self.old_search_window)
-        print vars(self)
-        
-    @staticmethod
-    def _get_selected(widget):
-        tm = widget.get_model(0)
-        iter = tm.get_iter(0)
-        widget.get_selected(0, iter)
-        return tm[tm.get_path(iter)[0]]
 
-    def _on_show_on_map(self, widget, data):
-        self.set_center(data)
-        self.hide_cache_view(None, None)
+
+        ##############################################
+        #
+        # /Search
+        #
+        ##############################################
+        
         
     def _on_show_options(self, widget, data):
         dialog = gtk.Dialog("options", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
@@ -690,21 +646,6 @@ class HildonGui(SimpleGui):
         if result == gtk.RESPONSE_ACCEPT:
             self.set_target(geo.try_parse_coordinate(e_lat.get_text()))
 
-    def set_active_page(self, show_gps):
-        self._on_set_active_page(None, show_gps)
-        
-    def _on_set_active_page(self, widget, show_gps):
-
-        if show_gps:
-            self.main_gpspage.show()
-            self.main_mappage.hide()
-        else:
-            self.main_gpspage.hide()
-            self.main_mappage.show()
-        
-    def _on_show_cache_details(self, widget, data, touched=None):
-        self.show_cache(self.current_cache)
-        
     def show_cache(self, cache, select=True):
         if cache == None:
             return
@@ -721,32 +662,29 @@ class HildonGui(SimpleGui):
         win = hildon.StackableWindow()
         win.set_title(cache.title)
         
-        c = {}
-    
         notebook = gtk.Notebook()
         notebook.set_tab_pos(gtk.POS_BOTTOM)
         
         # info
         p = gtk.Table(10, 2)
         labels = (
-                  ('Full Name', 'name', cache.title),
-                  ('ID', 'id', cache.name),
-                  ('Type', 'type', cache.type),
-                  ('Size', 'size', cache.get_size_string()),
-                  ('Terrain', 'terrain', cache.get_terrain()),
-                  ('Difficulty', 'difficulty', cache.get_difficulty()),
-                  ('Owner', 'owner', cache.owner),
-                  ('Status', 'status', cache.get_status())
+                  ('Full Name', cache.title),
+                  ('ID', cache.name),
+                  ('Type', cache.type),
+                  ('Size', cache.get_size_string()),
+                  ('Terrain', cache.get_terrain()),
+                  ('Difficulty', cache.get_difficulty()),
+                  ('Owner', cache.owner),
+                  ('Status', cache.get_status())
                   )
         i = 0
-        for label, name, text in labels:
+        for label, text in labels:
             l = gtk.Label()
             l.set_alignment(0, 0.5)
             l.set_markup("<b>%s</b>" % label)
             w = gtk.Label(text)
             w.set_line_wrap(True)
             w.set_alignment(0, 0.5)
-            c[name] = w
             p.attach(l, 0, 1, i, i + 1)
             p.attach(w, 1, 2, i, i + 1)
             i += 1
@@ -756,10 +694,10 @@ class HildonGui(SimpleGui):
         l.set_markup("<b>Open Website</b>")
         l.set_alignment(0, 0.5)
         p.attach(l, 0, 1, 8, 9)
-        z = gtk.HBox(True)
-        z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/cache_details.aspx?wp=%s" % cache.name, 'Listing'))
-        z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/log.aspx?wp=%s" % cache.name, 'Log'))
-        p.attach(z, 1, 2, 8, 9)
+        #z = gtk.HBox(True)
+        #z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/cache_details.aspx?wp=%s" % cache.name, 'Listing'))
+        #z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/log.aspx?wp=%s" % cache.name, 'Log'))
+        #p.attach(z, 1, 2, 8, 9)
 
         # cache-was-not-downloaded-yet-warning
         if not cache.was_downloaded():
@@ -773,40 +711,35 @@ class HildonGui(SimpleGui):
             p = hildon.PannableArea()
             vp = gtk.Viewport()
             p.add(vp)
-            c['desc'] = gtk.Label()
-            c['desc'].set_line_wrap(True)
-            c['desc'].set_alignment(0, 0)
-            c['desc'].set_size_request(self.window.size_request()[0] - 10, -1)
-            vp.add(c['desc'])
+            widget_description = gtk.Label()
+            widget_description.set_line_wrap(True)
+            widget_description.set_alignment(0, 0)
+            widget_description.set_size_request(self.window.size_request()[0] - 10, -1)
+            vp.add(widget_description)
 
             notebook.append_page(p, gtk.Label("description"))
-            if cache.was_downloaded():
-                text_shortdesc = self._strip_html(cache.shortdesc)
-                if cache.status == geocaching.GeocacheCoordinate.STATUS_DISABLED:
-                    text_shortdesc = 'This Cache is not available!\n' + text_shortdesc
-                text_longdesc = self._strip_html(re.sub(r'(?i)<img[^>]+?>', ' [to get all images, re-download description] ', re.sub(r'\[\[img:([^\]]+)\]\]', lambda a: self._replace_image_callback(a, cache), cache.desc)))
+            text_shortdesc = self._strip_html(cache.shortdesc)
+            if cache.status == geocaching.GeocacheCoordinate.STATUS_DISABLED:
+                text_shortdesc = 'This Cache is not available!\n' + text_shortdesc
+            text_longdesc = self._strip_html(re.sub(r'(?i)<img[^>]+?>', ' [to get all images, re-download description] ', re.sub(r'\[\[img:([^\]]+)\]\]', lambda a: self._replace_image_callback(a, cache), cache.desc)))
 
-                if text_longdesc == '':
-                    text_longdesc = '(no Description available)'
-                if not text_shortdesc == '':
-                    showdesc = text_shortdesc + "\n\n" + text_longdesc
-                else:
-                    showdesc = text_longdesc
-                c['desc'].set_text(showdesc)
+            if text_longdesc == '':
+                text_longdesc = '(no Description available)'
+            if not text_shortdesc == '':
+                showdesc = text_shortdesc + "\n\n" + text_longdesc
             else:
-                c['desc'].set_text("Please download full details to see the description.")
-
-
+                showdesc = text_longdesc
+            widget_description.set_text(showdesc)
 
             # logs&hints
             p = hildon.PannableArea()
             vp = gtk.Viewport()
             p.add(vp)
-            c['hints'] = gtk.Label()
-            c['hints'].set_line_wrap(True)
-            c['hints'].set_alignment(0, 0)
-            c['hints'].set_size_request(self.window.size_request()[0] - 10, -1)
-            vp.add(c['hints'])
+            widget_hints = gtk.Label()
+            widget_hints.set_line_wrap(True)
+            widget_hints.set_alignment(0, 0)
+            widget_hints.set_size_request(self.window.size_request()[0] - 10, -1)
+            vp.add(widget_hints)
             notebook.append_page(p, gtk.Label("logs & hints"))
 
             logs = cache.get_logs()
@@ -828,96 +761,30 @@ class HildonGui(SimpleGui):
             else:
                 text_hints = 'No Logs.\n\n'
             text_hints += "Hints:\n%s" % cache.hints
-            c['hints'].set_text(text_hints)
+            widget_hints.set_text(text_hints)
 
             # images
             
             if len(cache.get_images()) > 0:
-                selector = hildon.TouchSelector(text=True)
-                selector.get_column(0).get_cells()[0].set_property('xalign', 0)
-                selector.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_SINGLE)
-                
-                def on_imagelist_clicked(widget, data, imagelist):
-                    tm = widget.get_model(0)
-                    iter = tm.get_iter(0)
-                    widget.get_selected(0, iter)
-                    path, caption = imagelist[tm.get_path(iter)[0]]
-                    if c == None:
-                        return
-                    self._on_show_image(path, caption)
-                    
-                
-                imagelist = self.current_cache.get_images().items()
-                imagelist.sort(cmp=lambda x, y: cmp(x[1], y[1]))
-                i = 1
-                for filename, caption in imagelist:
-                    if len(caption) == 0:
-                        caption = "(no caption)"
-                    text = "#%d: %s" % (i, caption)
-                    i += 1
-                    selector.append_text(caption)
-                selector.connect("changed", on_imagelist_clicked, imagelist)
-                
-                notebook.append_page(selector, gtk.Label("images"))
+                self.build_cache_images(cache, notebook)
 
-        # calculated coords
-        self.cache_calc = coordfinder.CalcCoordinate.find(self._strip_html(cache.desc))
-
-        def input_changed(widget, char):
-            value = widget.get_text()
-            if value != '':
-                self.cache_calc_vars[char] = widget.get_text()
-            else:
-                del self.cache_calc_vars[char]
-            self.show_cache_calc_results()
-
-        if len(self.cache_calc[0]) > 0:
-            coords, requires = self.cache_calc
-            self.cache_calc_vars = cache.get_vars()
-            p = gtk.VBox()
-            count = len(requires)
-            # create table with n columns.
-            cols = 7
-            rows = int(math.ceil(float(count) / float(cols)))
-            table = gtk.Table(rows, cols)
-            i = 0
-            requires_sort = list(requires)
-            requires_sort.sort()
-            for char in requires_sort:
-                row = i / cols
-                col = i % cols
-                m = gtk.HBox()
-                m.pack_start(gtk.Label(str(char)))
-                e = hildon.Entry(gtk.HILDON_SIZE_AUTO)
-                e.set_property("hildon-input-mode", gtk.HILDON_GTK_INPUT_MODE_NUMERIC)
-                if char in self.cache_calc_vars.keys():
-                    e.set_text(self.cache_calc_vars[char])
-                e.connect('changed', input_changed, str(char))
-                e.set_size_request(50, -1)
-                m.pack_start(e)
-                table.attach(m, col, col + 1, row, row + 1)
-                i += 1
-            p.pack_start(table, False)
-            p.pack_start(gtk.HSeparator(), False)
-            a = hildon.PannableArea()
-            vp = gtk.Viewport()
-            a.add(vp)
-            p.pack_start(a, True)
-            self.cache_calc_viewport = vp
-            self.show_cache_calc_results()
-            notebook.append_page(p, gtk.Label("calc"))
+            # calculated coords
+            self.cache_calc_vars = {}
+            self.cache_calc = coordfinder.CalcCoordinate.find(text_longdesc)
+            if len(self.cache_calc[0]) > 0:
+                self.build_cache_calc(cache, notebook)
 
         # coords
 
 
         p = gtk.VBox()
-        c['coords'], clist = self._get_coord_selector(cache, lambda x, y, z: True)
+        widget_coords, clist = self._get_coord_selector(cache, lambda x, y, z: True)
 
 
-        def set_coord_as_target(widget, selector, clist, cache):
-            tm = selector.get_model(0)
+        def set_coord_as_target(widget):
+            tm = widget_coords.get_model(0)
             iter = tm.get_iter(0)
-            selector.get_selected(0, iter)
+            widget_coords.get_selected(0, iter)
             c = clist[tm.get_path(iter)[0]]
             if c == None:
                 return
@@ -927,31 +794,30 @@ class HildonGui(SimpleGui):
 
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
         button.set_label("set as target")
-        button.connect("clicked", set_coord_as_target, c['coords'], clist, cache)
+        button.connect("clicked", set_coord_as_target)
         
-        p.pack_start(c['coords'], True, True)
+        p.pack_start(widget_coords, True, True)
         p.pack_start(button, False, True)
         notebook.append_page(p, gtk.Label("coords"))      
         
         # notes
         p = hildon.PannableArea()
-        c['notes'] = gtk.TextView()
-        #c['notes'].set_editable(True)
-        c['notes'].get_buffer().set_text(cache.notes)
-        p.add(c['notes'])
+        self.cache_notes = gtk.TextView()
+        #cache_notes.set_editable(True)
+        self.cache_notes.get_buffer().set_text(cache.notes)
+        p.add(self.cache_notes)
         
         notebook.append_page(p, gtk.Label("notes"))
         
-        self.cache_elements = c
         win.add(notebook)
         
         # menu
         menu = hildon.AppMenu()
-        c['marked'] = hildon.CheckButton(gtk.HILDON_SIZE_AUTO)
-        c['marked'].set_label("marked")
-        c['marked'].set_active(cache.marked)
-        c['marked'].connect("clicked", self._on_cache_marked_toggle, None)
-        menu.append(c['marked'])
+        widget_marked = hildon.CheckButton(gtk.HILDON_SIZE_AUTO)
+        widget_marked.set_label("marked")
+        widget_marked.set_active(cache.marked)
+        widget_marked.connect("clicked", self._on_cache_marked_toggle, None)
+        menu.append(widget_marked)
         
         ### großschreibung
 
@@ -984,6 +850,80 @@ class HildonGui(SimpleGui):
 
         win.connect('delete_event', self.hide_cache_view)
         self.current_cache_window_open = True
+
+    def build_cache_images(self, cache, notebook):
+        selector = hildon.TouchSelector(text=True)
+        selector.get_column(0).get_cells()[0].set_property('xalign', 0)
+        selector.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_SINGLE)
+
+
+        imagelist = self.current_cache.get_images().items()
+        imagelist.sort(cmp=lambda x, y: cmp(x[1], y[1]))
+        i = 1
+        for filename, caption in imagelist:
+            if len(caption) == 0:
+                caption = "(no caption)"
+            text = "#%d: %s" % (i, caption)
+            i += 1
+            selector.append_text(text)
+
+
+        def on_imagelist_clicked(widget, data):
+            tm = widget.get_model(0)
+            iter = tm.get_iter(0)
+            widget.get_selected(0, iter)
+            path, caption = imagelist[tm.get_path(iter)[0]]
+            self._on_show_image(path, caption)
+
+        selector.connect("changed", on_imagelist_clicked)
+
+        notebook.append_page(selector, gtk.Label("images"))
+
+    def build_cache_calc(self, cache, notebook):
+
+        def input_changed(widget, char):
+            value = widget.get_text()
+            if value != '':
+                self.cache_calc_vars[char] = widget.get_text()
+            else:
+                del self.cache_calc_vars[char]
+            self.show_cache_calc_results()
+
+        
+        coords, requires = self.cache_calc
+        self.cache_calc_vars = cache.get_vars()
+        p = gtk.VBox()
+        count = len(requires)
+        # create table with n columns.
+        cols = 7
+        rows = int(math.ceil(float(count) / float(cols)))
+        table = gtk.Table(rows, cols)
+        i = 0
+        requires_sort = list(requires)
+        requires_sort.sort()
+        for char in requires_sort:
+            row = i / cols
+            col = i % cols
+            m = gtk.HBox()
+            m.pack_start(gtk.Label(str(char)))
+            e = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+            e.set_property("hildon-input-mode", gtk.HILDON_GTK_INPUT_MODE_NUMERIC)
+            if char in self.cache_calc_vars.keys():
+                e.set_text(self.cache_calc_vars[char])
+            e.connect('changed', input_changed, str(char))
+            e.set_size_request(50, -1)
+            m.pack_start(e)
+            table.attach(m, col, col + 1, row, row + 1)
+            i += 1
+        p.pack_start(table, False)
+        p.pack_start(gtk.HSeparator(), False)
+        a = hildon.PannableArea()
+        vp = gtk.Viewport()
+        a.add(vp)
+        p.pack_start(a, True)
+        self.cache_calc_viewport = vp
+        self.show_cache_calc_results()
+        notebook.append_page(p, gtk.Label("calc"))
 
     def show_cache_calc_results(self):
         p = gtk.VBox()
@@ -1068,12 +1008,110 @@ class HildonGui(SimpleGui):
             i += 1
         selector.connect('changed', callback, clist)
         return selector, clist
-        
+
+
+    def _on_download_cache_clicked(self, some, thing):
+        self.core.on_download_cache(self.current_cache)
+
     def _on_cache_marked_toggle(self, widget, data):
         if self.current_cache == None:
             return
         self._update_mark(self.current_cache, widget.get_active())
-        
+
+    def _on_show_cache_details(self, widget, data, touched=None):
+        self.show_cache(self.current_cache)
+
+    def set_active_page(self, show_gps):
+        self._on_set_active_page(None, show_gps)
+
+    def _on_set_active_page(self, widget, show_gps):
+
+        if show_gps:
+            self.main_gpspage.show()
+            self.main_mappage.hide()
+        else:
+            self.main_gpspage.hide()
+            self.main_mappage.show()
+
+
+    def _on_show_on_map(self, widget, data):
+        self.set_center(data)
+        self.hide_cache_view(None, None)
+
+
+    @staticmethod
+    def shorten_name(s, chars):
+        max_pos = chars
+        min_pos = chars - 10
+
+        NOT_FOUND = -1
+
+        suffix = '…'
+
+        # Case 1: Return string if it is shorter (or equal to) than the limit
+        length = len(s)
+        if length <= max_pos:
+            return s
+        else:
+            # Case 2: Return it to nearest period if possible
+            try:
+                end = s.rindex('.', min_pos, max_pos)
+            except ValueError:
+                # Case 3: Return string to nearest space
+                end = s.rfind(' ', min_pos, max_pos)
+                if end == NOT_FOUND:
+                    end = max_pos
+            return s[0:end] + suffix
+
+
+    @staticmethod
+    def _get_selected(widget):
+        tm = widget.get_model(0)
+        iter = tm.get_iter(0)
+        widget.get_selected(0, iter)
+        return tm[tm.get_path(iter)[0]]
+
+
+
+        ##############################################
+        #
+        # Signal Handling from Core
+        #
+        ##############################################
+
+
+    def _on_cache_changed(self, something, cache):
+        if self.current_cache != None \
+            and cache.name == self.current_cache.name \
+            and self.current_cache_window_open:
+
+            self.hide_cache_view()
+            self.old_cache_window = None
+            self.show_cache(cache)
+            return False
+        else:
+            print self.current_cache, cache.name, self.current_cache_window_open
+            return False
+
+    def _on_map_changed(self, something):
+        self.redraw_marks()
+        return False
+
+
+
+        ##############################################
+        #
+        # /Signal Handling from Core
+        #
+        ##############################################
+
+        ##############################################
+        #
+        # Fieldnotes
+        #
+        ##############################################
+
+
     def _on_show_log_fieldnote_dialog(self, widget, data):
         if self.current_cache == None:
             return
@@ -1115,67 +1153,66 @@ class HildonGui(SimpleGui):
         cache.logas = statuses[fieldnotes_log_as.get_active()][1]
         cache.logdate = strftime('%Y-%m-%d', gmtime())
         cache.fieldnotes = fieldnotes.get_buffer().get_text(fieldnotes.get_buffer().get_start_iter(), fieldnotes.get_buffer().get_end_iter())
+        self.core.write_fieldnote(self.current_cache, cache.logas, cache.logdate, cache.fieldnotes)
 
-        self.pointprovider.update_field(self.current_cache, 'logas', cache.logas)
-        self.pointprovider.update_field(self.current_cache, 'logdate', cache.logdate)
-        self.pointprovider.update_field(self.current_cache, 'fieldnotes', cache.fieldnotes)
-        
-        if cache.logas == geocaching.GeocacheCoordinate.LOG_AS_FOUND:
-            self.pointprovider.update_field(self.current_cache, 'found', '1')
-            cache.found = 1
-            
-        elif cache.logas == geocaching.GeocacheCoordinate.LOG_AS_NOTFOUND:
-            self.pointprovider.update_field(self.current_cache, 'found', '0')
-            cache.found = 0
 
+    def _on_upload_fieldnotes(self, some, thing):
+        self.core.on_upload_fieldnotes()
+
+    #emitted by core
+    def _on_fieldnotes_changed(self, core):
         self.update_fieldnotes_display()
-                
+        
+    def update_fieldnotes_display(self):
+        count = self.core.get_new_fieldnotes_count()
+        w = self.button_fieldnotes
+        if count == 0:
+            w.set_value("Nothing to upload.")
+            w.set_sensitive(False)
+        else:
+            w.set_value("You have %d fieldnotes." % count)
+            w.set_sensitive(True)
+
+        ##############################################
+        #   
+        # /Fieldnotes
+        # 
+        ##############################################
+
+
+        ##############################################
+        #
+        # Current Cache / Current Target / Setting Center
+        #
+        ##############################################
+
     def set_center(self, coord, noupdate=False):
         SimpleGui.set_center(self, coord, noupdate)
         self.button_center_as_target.set_value("%s %s" % (coord.get_lat(self.format), coord.get_lon(self.format)))
-
-    def hide_progress(self):
-        hildon.hildon_gtk_window_set_progress_indicator(self.window, 0)
-        if self.banner != None:
-            self.banner.hide()
-            self.banner = None
-
-    def hide_cache_view(self, widget=None, data=None):
-        self.current_cache.set_vars(self.cache_calc_vars)
-        self.pointprovider.update_field(self.current_cache, 'vars', self.current_cache.vars)
-        self.current_cache_window_open = False
-        b = self.cache_elements['notes'].get_buffer()
-        self.core.on_notes_changed(self.current_cache, b.get_text(b.get_start_iter(), b.get_end_iter()))
-        self.old_cache_window = hildon.WindowStack.get_default().peek()
-        hildon.WindowStack.get_default().pop(hildon.WindowStack.get_default().size()-1)
-        return True
-                
-                
-    def _on_download_cache_clicked(self, some, thing):
-        self.core.on_download_cache(self.current_cache)
-        
-
-    def on_no_fix(self, gps_data, status):
-        self.gps_data = gps_data
-        self.label_bearing.set_text("No Fix")
-        self.label_latlon.set_text(status)
-        self.gps_has_fix = False
-        self.update_gps_display()
-        self._draw_arrow()
 
     def set_current_cache(self, cache):
         self.current_cache = cache
         self.button_show_details.set_value(self.shorten_name(cache.title, 25))
         self.button_show_details.set_sensitive(True)
         self.button_show_details_small.set_sensitive(True)
-                
+
     def _on_set_target_clicked(self, some, cache):
         self.set_target(cache)
         self.hide_cache_view()
         self.set_active_page(True)
 
-    def _on_upload_fieldnotes(self, some, thing):
-        self.core.on_upload_fieldnotes()
+    def set_target(self, cache):
+        self.current_target = cache
+        coord = "%s %s" % (cache.get_lat(self.format), cache.get_lon(self.format))
+        self.label_target.set_value(coord)
+        self.button_goto_target.set_value(coord)
+        
+        ##############################################
+        #
+        # Map
+        #
+        ##############################################
+
         
     def on_waypoint_clicked(self, listview, event, element):
         if event.type != gtk.gdk._2BUTTON_PRESS or element == None:
@@ -1193,35 +1230,56 @@ class HildonGui(SimpleGui):
             self.set_target(geo.Coordinate(wpt['lat'], wpt['lon'], wpt['id']))
             self.set_active_page(True)
             self.hide_cache_view()
-                
+
+    def _drag_end(self, widget, event):
+        SimpleGui._drag_end(self, widget, event)
+        c = self.ts.num2deg(self.map_center_x, self.map_center_y)
+        self.button_center_as_target.set_value("%s %s" % (c.get_lat(self.format), c.get_lon(self.format)))
+
+
     def on_zoom_changed(self, blub):
         self.zoom()
 
-    @staticmethod
-    def shorten_name(s, chars):
-        max_pos = chars
-        min_pos = chars - 10
-
-        NOT_FOUND = -1
-
-        suffix = '…'
-
-        # Case 1: Return string if it is shorter (or equal to) than the limit
-        length = len(s)
-        if length <= max_pos:
-            return s 
+    def zoom(self, direction=None):
+        size = self.ts.tile_size()
+        center = self.ts.num2deg(self.map_center_x - float(self.draw_at_x) / size, self.map_center_y - float(self.draw_at_y) / size)
+        if direction == None:
+            return
         else:
-            # Case 2: Return it to nearest period if possible
-            try:
-                end = s.rindex('.', min_pos, max_pos)
-            except ValueError:
-                # Case 3: Return string to nearest space
-                end = s.rfind(' ', min_pos, max_pos)
-                if end == NOT_FOUND:
-                    end = max_pos
-            return s[0:end] + suffix
+            newzoom = self.ts.get_zoom() + direction
+        self.ts.set_zoom(newzoom)
+        self.set_center(center)
+
+        ##############################################
+        #
+        # /Map
+        #
+        ##############################################
+
+        ##############################################
+        #
+        # Displaying Messages and Window Handling
+        #
+        ##############################################
+
+    def hide_progress(self):
+        hildon.hildon_gtk_window_set_progress_indicator(self.window, 0)
+        if self.banner != None:
+            self.banner.hide()
+            self.banner = None
+
+
+    def hide_cache_view(self, widget=None, data=None):
+        self.current_cache.set_vars(self.cache_calc_vars)
+        self.core.set_cache_calc_vars(self.current_cache, self.current_cache.vars)
+        self.current_cache_window_open = False
+        b = self.cache_notes.get_buffer()
+        self.core.on_notes_changed(self.current_cache, b.get_text(b.get_start_iter(), b.get_end_iter()))
+        self.old_cache_window = hildon.WindowStack.get_default().peek()
+        hildon.WindowStack.get_default().pop(hildon.WindowStack.get_default().size()-1)
+        return True
                 
-                
+
     #called by core
     def set_download_progress(self, fraction, text):
         hildon.hildon_gtk_window_set_progress_indicator(self.window, 1)
@@ -1233,14 +1291,8 @@ class HildonGui(SimpleGui):
             self.banner.show_all()
         else:
             self.banner.set_text(text)
-                
-    def set_target(self, cache):
-        self.current_target = cache
-        coord = "%s %s" % (cache.get_lat(self.format), cache.get_lon(self.format))
-        self.label_target.set_value(coord)
-        self.button_goto_target.set_value(coord)
-        
-                
+
+
 
     def show_error(self, errormsg):
         #if isinstance(errormsg, Exception):
@@ -1249,7 +1301,21 @@ class HildonGui(SimpleGui):
 
     def show_success(self, message):
         hildon.hildon_banner_show_information(self.window, "", message)
-                                
+
+        ##############################################
+        #
+        # /Displaying Messages and Window Handling
+        #
+        ##############################################
+
+
+
+        ##############################################
+        #
+        # GPS Display
+        #
+        ##############################################
+
     def update_gps_display(self):
         if self.gps_data == None:
             return
@@ -1265,12 +1331,12 @@ class HildonGui(SimpleGui):
         self.label_altitude.set_markup("Altitude\n<small>%d m</small>" % self.gps_data.altitude)
         self.label_bearing.set_markup("Bearing\n<small>%d°</small>" % self.gps_data.bearing)
         self.label_latlon.set_markup("Current Position\n<small>%s %s</small>" % (self.gps_data.position.get_lat(self.format), self.gps_data.position.get_lon(self.format)))
-                
+
         if self.current_target == None:
             return
-                        
+
         display_dist = self.gps_data.position.distance_to(self.current_target)
-                
+
         target_distance = self.gps_data.position.distance_to(self.current_target)
         if target_distance >= 1000:
             label = "%d km" % round(target_distance / 1000)
@@ -1279,6 +1345,28 @@ class HildonGui(SimpleGui):
         else:
             label = "%.1f m" % round(target_distance, 1)
         self.label_dist.set_markup("Distance\n<small>%s</small>" % label)
+
+
+    def on_no_fix(self, gps_data, status):
+        self.gps_data = gps_data
+        self.label_bearing.set_text("No Fix")
+        self.label_latlon.set_text(status)
+        self.gps_has_fix = False
+        self.update_gps_display()
+        self._draw_arrow()
+
+               
+        ##############################################
+        #
+        # /GPS Display
+        #
+        ##############################################
+
+        ##############################################
+        #
+        # Reading & Writing Settings
+        #
+        ##############################################
 
     def read_settings(self):
         c = self.ts.num2deg(self.map_center_x, self.map_center_y)
@@ -1306,14 +1394,10 @@ class HildonGui(SimpleGui):
         if 'last_target_lat' in self.settings.keys():
             self.set_target(geo.Coordinate(self.settings['last_target_lat'], self.settings['last_target_lon'], self.settings['last_target_name']))
         self.block_changes = False
-                
-    def zoom(self, direction=None):
-        size = self.ts.tile_size()
-        center = self.ts.num2deg(self.map_center_x - float(self.draw_at_x) / size, self.map_center_y - float(self.draw_at_y) / size)
-        if direction == None:
-            return
-        else:
-            newzoom = self.ts.get_zoom() + direction
-        self.ts.set_zoom(newzoom)
-        self.set_center(center)
-             
+
+        ##############################################
+        #
+        # /Reading & Writing Settings
+        #
+        ##############################################
+        
