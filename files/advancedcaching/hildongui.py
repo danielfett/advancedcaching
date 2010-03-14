@@ -1350,7 +1350,6 @@ class HildonGui(SimpleGui):
     def on_no_fix(self, gps_data, status):
         self.gps_data = gps_data
         self.label_bearing.set_text("No Fix")
-        self.label_latlon.set_text(status)
         self.gps_has_fix = False
         self.update_gps_display()
         self._draw_arrow()

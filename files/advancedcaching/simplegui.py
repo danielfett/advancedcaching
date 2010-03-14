@@ -890,7 +890,7 @@ class SimpleGui(object):
                     self.pixmap_marks.draw_line(xgc, p[0] + radius_o, p[1] + radius_o, p[0] + radius_i, p[1] + radius_i)
                     self.pixmap_marks.draw_line(xgc, p[0] + radius_o, p[1] - radius_o, p[0] + radius_i, p[1] - radius_i)
                     self.pixmap_marks.draw_line(xgc, p[0] - radius_o, p[1] + radius_o, p[0] - radius_i, p[1] + radius_i)
-                    self.pixmap_marks.draw_arc(xgc, p[0] - self.CENTER_POINT_RADIUS, p[1] - self.CENTER_POINT_RADIUS, self.CENTER_POINT_RADIUS * 2, self.CENTER_POINT_RADIUS * 2, 0, 360 * 64)
+                    self.pixmap_marks.draw_arc(xgc, True, p[0] - self.CENTER_POINT_RADIUS, p[1] - self.CENTER_POINT_RADIUS, self.CENTER_POINT_RADIUS * 2, self.CENTER_POINT_RADIUS * 2, 0, 360 * 64)
                     #self.pixmap_marks.draw_point(xgc, p[0], p[1])
                     if self.gps_has_fix:
                         xgc.set_function(gtk.gdk.INVERT)
