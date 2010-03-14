@@ -57,7 +57,7 @@ class Fix():
         a = Fix()
         if (not f[1] & (location.GPS_DEVICE_LATLONG_SET | location.GPS_DEVICE_ALTITUDE_SET | location.GPS_DEVICE_TRACK_SET)):
             return a
-        if f.mode in (location.GPS_DEVICE_MODE_NOT_SEEN, location.GPS_DEVICE_MODE_NO_FIX):
+        if f[0] in (location.GPS_DEVICE_MODE_NOT_SEEN, location.GPS_DEVICE_MODE_NO_FIX):
             return a
         a.position = geo.Coordinate(f[4], f[5])
         a.altitude = f[7]

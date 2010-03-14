@@ -1354,6 +1354,7 @@ class HildonGui(SimpleGui):
         self.gps_has_fix = False
         self.update_gps_display()
         self._draw_arrow()
+        self.redraw_marks()
 
                
         ##############################################

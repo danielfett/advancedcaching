@@ -61,6 +61,7 @@ class SimpleGui(object):
     CACHE_DRAW_FONT = pango.FontDescription("Sans 4")
     MESSAGE_DRAW_FONT = pango.FontDescription("Sans 5")
     MESSAGE_DRAW_COLOR = gtk.gdk.color_parse('black')
+    CENTER_POINT_RADIUS = 3
 
     MIN_DRAG_REDRAW_DISTANCE = 5
     DRAG_RECHECK_SPEED = 50
@@ -889,8 +890,8 @@ class SimpleGui(object):
                     self.pixmap_marks.draw_line(xgc, p[0] + radius_o, p[1] + radius_o, p[0] + radius_i, p[1] + radius_i)
                     self.pixmap_marks.draw_line(xgc, p[0] + radius_o, p[1] - radius_o, p[0] + radius_i, p[1] - radius_i)
                     self.pixmap_marks.draw_line(xgc, p[0] - radius_o, p[1] + radius_o, p[0] - radius_i, p[1] + radius_i)
-                    
-                    self.pixmap_marks.draw_point(xgc, p[0], p[1])
+                    self.pixmap_marks.draw_arc(xgc, p[0] - self.CENTER_POINT_RADIUS, p[1] - self.CENTER_POINT_RADIUS, self.CENTER_POINT_RADIUS * 2, self.CENTER_POINT_RADIUS * 2, 0, 360 * 64)
+                    #self.pixmap_marks.draw_point(xgc, p[0], p[1])
                     if self.gps_has_fix:
                         xgc.set_function(gtk.gdk.INVERT)
                         xgc.line_width = 1
