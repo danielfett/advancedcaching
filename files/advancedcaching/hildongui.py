@@ -26,6 +26,8 @@
 # notizspeichern prüfen
 # suche
 # fieldnotes checken, richtig anzeigen
+# bei no-fix auch letzte position zeichnen
+# liblocation-entfernung benutzen, wenn verfügbar
 
 
  
