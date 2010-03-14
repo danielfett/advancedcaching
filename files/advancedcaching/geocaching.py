@@ -73,7 +73,7 @@ class GeocacheCoordinate(geo.Coordinate):
     LOG_TYPE_NOTE = 'note'
     LOG_TYPE_MAINTENANCE = 'maint'
 
-    SIZES = ['other', 'small', 'micro', 'regular', 'big', 'other']
+    SIZES = ['other', 'micro', 'small', 'regular', 'big', 'other']
 
 
     SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT PRIMARY KEY', 'title': 'TEXT', 'shortdesc': 'TEXT', 'desc': 'TEXT', 'hints': 'TEXT', 'type': 'TEXT', 'size': 'INTEGER', 'difficulty': 'INTEGER', 'terrain': 'INTEGER', 'owner': 'TEXT', 'found': 'INTEGER', 'waypoints': 'text', 'images': 'text', 'notes': 'TEXT', 'fieldnotes': 'TEXT', 'logas': 'INTEGER', 'logdate': 'TEXT', 'marked' : 'INTEGER', 'logs' : 'TEXT', 'status' : 'INTEGER', 'vars' : 'TEXT'}

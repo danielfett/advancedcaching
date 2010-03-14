@@ -57,6 +57,8 @@ class Fix():
         a = Fix()
         if (not f[1] & (location.GPS_DEVICE_LATLONG_SET | location.GPS_DEVICE_ALTITUDE_SET | location.GPS_DEVICE_TRACK_SET)):
             return a
+        if f.mode in (location.GPS_DEVICE_MODE_NOT_SEEN, location.GPS_DEVICE_MODE_NO_FIX):
+            return a
         a.position = geo.Coordinate(f[4], f[5])
         a.altitude = f[7]
         if f[10] > Fix.BEARING_HOLD_EPD:
@@ -67,7 +69,7 @@ class Fix():
         a.speed = f[11]
         a.sats = device.satellites_in_use
         a.sats_known = device.satellites_in_view
-        a.dgps = False
+        a.dgps = (device.status == location.GPS_DEVICE_STATUS_DGPS_FIX)
         a.quality = 0
         a.error = f[6]/100.0
         a.error_bearing = f[10]
