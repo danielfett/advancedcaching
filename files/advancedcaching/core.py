@@ -133,7 +133,6 @@ import os.path
 import provider
 import math
 import threading
-from exporter import GpxExporter
 
 #import cProfile
 #import pstats
@@ -443,6 +442,7 @@ class Core(gobject.GObject):
         return False
                 
     def on_export_cache(self, cache, format, folder):
+        from exporter import GpxExporter
         if (format == 'gpx'):
             exporter = GpxExporter()
         else:
