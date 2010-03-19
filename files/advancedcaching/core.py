@@ -132,11 +132,8 @@ import os
 import os.path
 import provider
 import math
-<<<<<<< HEAD:files/advancedcaching/core.py
 import threading
-=======
 from exporter import GpxExporter
->>>>>>> exporter:files/advancedcaching/core.py
 
 #import cProfile
 #import pstats
