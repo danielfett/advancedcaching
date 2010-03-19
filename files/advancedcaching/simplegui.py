@@ -145,7 +145,7 @@ class SimpleGui(object):
         self.current_target = None
         self.gps_data = None
         self.gps_has_fix = False
-        self.gps_last_position = None
+        self.gps_last_position = (0, 0)
                 
         self.dragging = False
         self.block_changes = False
@@ -521,8 +521,8 @@ class SimpleGui(object):
 
         # north indicator
         ni_w, ni_h = self.north_indicator_layout.get_size()
-        position_x = width / 2 - math.sin(display_north) * indicator_dist - (ni_w / pango.SCALE)/2
-        position_y = height / 2 - math.cos(display_north) * indicator_dist - (ni_h / pango.SCALE)/2
+        position_x = int(width / 2 - math.sin(display_north) * indicator_dist - (ni_w / pango.SCALE)/2)
+        position_y = int(height / 2 - math.cos(display_north) * indicator_dist - (ni_h / pango.SCALE)/2)
         self.xgc_arrow.set_function(gtk.gdk.COPY)
         self.xgc_arrow.set_rgb_fg_color(self.COLOR_NORTH_INDICATOR)
         self.pixmap_arrow.draw_layout(self.xgc_arrow, position_x, position_y, self.north_indicator_layout)
@@ -548,7 +548,7 @@ class SimpleGui(object):
         else:
             # if we are closer than a few meters, the arrow will almost certainly
             # point in the wrong direction. therefore, we don't draw the arrow.
-            circle_size = max(height / 2.5, width / 2.5)
+            circle_size = int(max(height / 2.5, width / 2.5))
             self.pixmap_arrow.draw_arc(self.xgc_arrow, True, width / 2 - circle_size / 2, height / 2 - circle_size / 2, circle_size, circle_size, 0, 64 * 360)
             self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_OUTER_LINE)
             self.xgc_arrow.line_width = self.ARROW_LINE_WIDTH
@@ -851,88 +851,78 @@ class SimpleGui(object):
                 
                 
                 
-        if self.gps_data != None and self.gps_data.position != None:
-            # if we have a position, draw a black cross
+        if self.gps_has_fix and self.gps_data != None and self.gps_data.position != None :
             p = self._coord2point(self.gps_data.position)
             if p != False:
                 self.gps_last_position = p
-                if self.point_in_screen(p):
-                
-                    xgc.line_width = 2
+
+        p = self.gps_last_position
+        if self.point_in_screen(p):
+
+            xgc.line_width = 2
+
+            if self.gps_has_fix:
+                radius = self.gps_data.error
+
+                # determine radius in meters
+                (x, y) = self._coord2point(self.gps_data.position.transform(90.0, radius))
+
+                (x2, y2) = self._coord2point(self.gps_data.position)
+                radius_pixels = (x2 - x)
+            else:
+                radius_pixels = 10
+
+            radius_o = int((radius_pixels + 8) / math.sqrt(2))
+            radius_i = int((radius_pixels - 8) / math.sqrt(2))
 
 
-                    radius = self.gps_data.error
-                    
-                    # determine radius in meters
-                    (x, y) = self._coord2point(self.gps_data.position.transform(90.0, radius))
 
-                    (x2, y2) = self._coord2point(self.gps_data.position)
-                    radius_pixels = (x2 - x)
+            if radius_i < 2:
+                radius_i = 2
+            xgc.set_function(gtk.gdk.COPY)
+            if self.gps_has_fix:
+                xgc.set_rgb_fg_color(self.COLOR_CURRENT_POSITION)
+            else:
+                xgc.set_rgb_fg_color(self.COLOR_CURRENT_POSITION_NO_FIX)
 
-                    radius_o = (radius_pixels + 8) / math.sqrt(2)
-                    radius_i = (radius_pixels - 8) / math.sqrt(2)
+            # \  /
+            #
+            # /  \
 
-                    
-                    if radius_i < 2:
-                        radius_i = 2
-                    xgc.set_function(gtk.gdk.COPY)
-                    if self.gps_has_fix:
-                        xgc.set_rgb_fg_color(self.COLOR_CURRENT_POSITION)
-                    else:
-                        xgc.set_rgb_fg_color(self.COLOR_CURRENT_POSITION_NO_FIX)
-                                
-                    # \  /
-                    #
-                    # /  \
+            self.pixmap_marks.draw_line(xgc, p[0] - radius_o, p[1] - radius_o, p[0] - radius_i, p[1] - radius_i)
+            self.pixmap_marks.draw_line(xgc, p[0] + radius_o, p[1] + radius_o, p[0] + radius_i, p[1] + radius_i)
+            self.pixmap_marks.draw_line(xgc, p[0] + radius_o, p[1] - radius_o, p[0] + radius_i, p[1] - radius_i)
+            self.pixmap_marks.draw_line(xgc, p[0] - radius_o, p[1] + radius_o, p[0] - radius_i, p[1] + radius_i)
 
-                    self.pixmap_marks.draw_line(xgc, p[0] - radius_o, p[1] - radius_o, p[0] - radius_i, p[1] - radius_i)
-                    self.pixmap_marks.draw_line(xgc, p[0] + radius_o, p[1] + radius_o, p[0] + radius_i, p[1] + radius_i)
-                    self.pixmap_marks.draw_line(xgc, p[0] + radius_o, p[1] - radius_o, p[0] + radius_i, p[1] - radius_i)
-                    self.pixmap_marks.draw_line(xgc, p[0] - radius_o, p[1] + radius_o, p[0] - radius_i, p[1] + radius_i)
-                    
-                    self.pixmap_marks.draw_point(xgc, p[0], p[1])
-                    if self.gps_has_fix:
-                        xgc.set_function(gtk.gdk.INVERT)
-                        xgc.line_width = 1
-                        xgc.set_rgb_fg_color(gtk.gdk.color_parse('blue'))
+            self.pixmap_marks.draw_point(xgc, p[0], p[1])
+            if self.gps_has_fix:
+                xgc.set_function(gtk.gdk.INVERT)
+                xgc.line_width = 1
+                xgc.set_rgb_fg_color(gtk.gdk.color_parse('blue'))
 
-                        self.pixmap_marks.draw_arc(xgc, False, p[0] - radius_pixels, p[1] - radius_pixels, radius_pixels * 2, radius_pixels * 2, 0, 360 * 64)
-                        
+                self.pixmap_marks.draw_arc(xgc, False, p[0] - radius_pixels, p[1] - radius_pixels, radius_pixels * 2, radius_pixels * 2, 0, 360 * 64)
 
-                    
-                
-                '''
-                                # if we have a bearing, draw it.
-                                if self.gps_data.bearing. != None:
-                                        bearing = self.gps_data.bearing
-                        
-                                        xgc.line_width = 1
-                                        length = 10
-                                        xgc.set_function(gtk.gdk.COPY)
-                                        xgc.set_rgb_fg_color(gtk.gdk.color_parse("blue"))
-                                        self.pixmap_marks.draw_line(xgc, p[0], p[1], int(p[0] + math.cos(bearing) * length), int(p[1] + math.sin(bearing) * length))
-                                '''
-                                
-                                
-                # and a line between target and position if we have both
-                if t != False:
-                    xgc.line_width = 5
-                    xgc.set_function(gtk.gdk.AND_INVERT)
-                    xgc.set_rgb_fg_color(self.COLOR_LINE_INVERT)
-                    if self.point_in_screen(t) and self.point_in_screen(p):
-                        self.pixmap_marks.draw_line(xgc, p[0], p[1], t[0], t[1])
-                    elif self.point_in_screen(p):
-                        direction = math.radians(self.current_target.bearing_to(self.gps_data.position))
-                        # correct max length: sqrt(width**2 + height**2)
-                        length = self.map_width
-                        self.pixmap_marks.draw_line(xgc, p[0], p[1], int(p[0] - math.sin(direction) * length), int(p[1] + math.cos(direction) * length))
-                                        
-                    elif self.point_in_screen(t):
-                        direction = math.radians(self.gps_data.position.bearing_to(self.current_target))
-                        length = self.map_width + self.map_height
-                        self.pixmap_marks.draw_line(xgc, t[0], t[1], int(t[0] - math.sin(direction) * length), int(t[1] + math.cos(direction) * length))
-                                        
-                                
+
+
+        # and a line between target and position if we have both
+        if self.gps_has_fix and t != False:
+            xgc.line_width = 5
+            xgc.set_function(gtk.gdk.AND_INVERT)
+            xgc.set_rgb_fg_color(self.COLOR_LINE_INVERT)
+            if self.point_in_screen(t) and self.point_in_screen(p):
+                self.pixmap_marks.draw_line(xgc, p[0], p[1], t[0], t[1])
+            elif self.point_in_screen(p):
+                direction = math.radians(self.current_target.bearing_to(self.gps_data.position))
+                # correct max length: sqrt(width**2 + height**2)
+                length = self.map_width
+                self.pixmap_marks.draw_line(xgc, p[0], p[1], int(p[0] - math.sin(direction) * length), int(p[1] + math.cos(direction) * length))
+
+            elif self.point_in_screen(t):
+                direction = math.radians(self.gps_data.position.bearing_to(self.current_target))
+                length = self.map_width + self.map_height
+                self.pixmap_marks.draw_line(xgc, t[0], t[1], int(t[0] - math.sin(direction) * length), int(t[1] + math.cos(direction) * length))
+
+
 
         # draw cross across the screen
         xgc.line_width = 1
@@ -1655,7 +1645,6 @@ class SimpleGui(object):
         if self.current_target == None:
             return
                         
-        display_dist = self.gps_data.position.distance_to(self.current_target)
                 
         target_distance = self.gps_data.position.distance_to(self.current_target)
         if target_distance >= 1000:

@@ -21,6 +21,12 @@
 import math
 import re
 
+try:
+    import location
+except (ImportError):
+    pass
+
+
 def try_parse_coordinate(text):
     
     text = text.strip()
@@ -81,6 +87,10 @@ class Coordinate():
         self.lat = lat
         self.lon = lon
         self.name = name
+        try:
+            self.distance_to = self.distance_to_liblocation
+        except (Exception, e):
+            self.distance_to = self.distance_to_manual
             
     def from_d(self, lat, lon):
         self.lat = lat
@@ -178,12 +188,16 @@ class Coordinate():
         elif format == self.FORMAT_DM:
             return "%s %d° %06.3f'" % (c, math.floor(l), (l - math.floor(l)) * 60)
 
-    def distance_to (self, target):
+    def distance_to_manual (self, target):
         dlat = math.pow(math.sin(math.radians(target.lat-self.lat) / 2), 2)
         dlon = math.pow(math.sin(math.radians(target.lon-self.lon) / 2), 2)
         a = dlat + math.cos(math.radians(self.lat)) * math.cos(math.radians(target.lat)) * dlon;
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a));
         return self.RADIUS_EARTH * c;
+
+    def distance_to_liblocation(self, target):
+        return location.distance_between(self.lat, self.lon, target.lat, target.lon) * 1000
+
 
     def __str__(self):
         return "%s %s" % (self.get_lat(Coordinate.FORMAT_DM), self.get_lon(Coordinate.FORMAT_DM))

@@ -24,8 +24,6 @@
 # todo:
 # save last viewed cache
 # notizspeichern prüfen
-# suche
-# fieldnotes checken, richtig anzeigen
 
 
  
@@ -94,7 +92,7 @@ class HildonGui(SimpleGui):
         self.current_target = None
         self.gps_data = None
         self.gps_has_fix = False
-        self.gps_last_position = None
+        self.gps_last_position = (0, 0)
         self.banner = None
         self.old_cache_window = None
         self.old_search_window = None
@@ -1335,12 +1333,10 @@ class HildonGui(SimpleGui):
         if self.current_target == None:
             return
 
-        display_dist = self.gps_data.position.distance_to(self.current_target)
-
         target_distance = self.gps_data.position.distance_to(self.current_target)
         if target_distance >= 1000:
             label = "%d km" % round(target_distance / 1000)
-        elif display_dist >= 100:
+        elif target_distance >= 100:
             label = "%d m" % round(target_distance)
         else:
             label = "%.1f m" % round(target_distance, 1)
@@ -1354,6 +1350,7 @@ class HildonGui(SimpleGui):
         self.gps_has_fix = False
         self.update_gps_display()
         self._draw_arrow()
+        self.redraw_marks()
 
                
         ##############################################
