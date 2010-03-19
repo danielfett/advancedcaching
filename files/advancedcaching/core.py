@@ -132,7 +132,11 @@ import os
 import os.path
 import provider
 import math
+<<<<<<< HEAD:files/advancedcaching/core.py
 import threading
+=======
+from exporter import GpxExporter
+>>>>>>> exporter:files/advancedcaching/core.py
 
 #import cProfile
 #import pstats
@@ -441,10 +445,14 @@ class Core(gobject.GObject):
         self.emit('cache-changed', cache)
         return False
                 
-    def on_export_cache(self, cache, folder=None):
+    def on_export_cache(self, cache, format, folder):
+        if (format == 'gpx'):
+            exporter = GpxExporter()
+        else:
+            raise Exception("Format currently not supported: %s" % format)
+
         self.gui.set_download_progress(0.5, "Exporting %s..." % cache.name)
         try:
-            exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
             exporter.export(cache, folder)
         except Exception, e:
             self.gui.show_error(e)

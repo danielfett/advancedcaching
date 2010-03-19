@@ -66,6 +66,7 @@ class GeocacheCoordinate(geo.Coordinate):
 
     STATUS_NORMAL = 0
     STATUS_DISABLED = 1
+    STATUS_ARCHIVED = 2
     STATUS_TEXT = ['normal', 'not available!']
 
     LOG_TYPE_FOUND = 'smile'
@@ -73,7 +74,17 @@ class GeocacheCoordinate(geo.Coordinate):
     LOG_TYPE_NOTE = 'note'
     LOG_TYPE_MAINTENANCE = 'maint'
 
-    SIZES = ['other', 'small', 'micro', 'regular', 'big', 'other']
+    SIZES = ['other', 'micro', 'small', 'regular', 'big', 'other']
+
+    TYPE_MAPPING = {
+        TYPE_MULTI: 'Multi-cache',
+        TYPE_REGULAR: 'Traditional Cache',
+        TYPE_EARTH: 'Earthcache',
+        TYPE_UNKNOWN: 'Unknown Cache',
+        TYPE_EVENT: 'Event Cache',
+        TYPE_WEBCAM: 'Webcam Cache',
+        TYPE_VIRTUAL: 'Virtual Cache'
+    }
 
 
     SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT PRIMARY KEY', 'title': 'TEXT', 'shortdesc': 'TEXT', 'desc': 'TEXT', 'hints': 'TEXT', 'type': 'TEXT', 'size': 'INTEGER', 'difficulty': 'INTEGER', 'terrain': 'INTEGER', 'owner': 'TEXT', 'found': 'INTEGER', 'waypoints': 'text', 'images': 'text', 'notes': 'TEXT', 'fieldnotes': 'TEXT', 'logas': 'INTEGER', 'logdate': 'TEXT', 'marked' : 'INTEGER', 'logs' : 'TEXT', 'status' : 'INTEGER', 'vars' : 'TEXT'}
@@ -231,11 +242,13 @@ class GeocacheCoordinate(geo.Coordinate):
         minlat = maxlat = self.lat
         minlon = maxlon = self.lon
         for wpt in self.get_waypoints():
-            minlat = math.min(minlat, wpt['lat'])
-            maxlat = math.max(maxlat, wpt['lat'])
-            minlon = math.min(minlon, wpt['lon'])
-            maxlon = math.max(maxlon, wpt['lon'])
+            if wpt['lat'] != -1 and wpt['lon'] != -1:
+                minlat = min(minlat, wpt['lat'])
+                maxlat = max(maxlat, wpt['lat'])
+                minlon = min(minlon, wpt['lon'])
+                maxlon = max(maxlon, wpt['lon'])
             
+<<<<<<< HEAD:files/advancedcaching/geocaching.py
         return (minlat, maxlat, minlon, maxlon)
     
     def get_size_string(self):
@@ -250,6 +263,15 @@ class FieldnotesUploader(gobject.GObject):
                                  ()),
                     'upload-error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
                     }
+=======
+        return {'minlat' : "%.5f" % minlat, 'maxlat' : "%.5f" % maxlat, 'minlon' : "%.5f" % minlon, 'maxlon' : "%.5f" % maxlon}
+
+    def get_gs_type(self):
+        if self.TYPE_MAPPING.has_key(self.type):
+            return self.TYPE_MAPPING[self.type]
+        else:
+            return self.TYPE_MAPPING[self.TYPE_UNKNOWN]
+>>>>>>> exporter:files/advancedcaching/geocaching.py
 
     #lock = threading.Lock()
     URL = 'http://www.geocaching.com/my/uploadfieldnotes.aspx'
@@ -698,7 +720,11 @@ class CacheDownloader(gobject.GObject):
             coordinate.size = 2
         elif size == 'regular':
             coordinate.size = 3
+<<<<<<< HEAD:files/advancedcaching/geocaching.py
         elif size == 'large' or size == 'big':
+=======
+        elif size == 'large':
+>>>>>>> exporter:files/advancedcaching/geocaching.py
             coordinate.size = 4
         elif size == 'not_chosen':
             coordinate.size = 5

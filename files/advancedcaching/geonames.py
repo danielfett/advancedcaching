@@ -40,17 +40,17 @@ class Geonames():
     def __init__(self, downloader):
         self.downloader = downloader
 
-    def search(self, string, nearest_street = False):
-        print "* Trying to search geonames for %s" % string
-        page = self.downloader.get_reader(url = self.URL % urllib.quote(string)).read()
+    def search(self, search, nearest_street = False):
+        print "* Trying to search geonames for %s" % search
+        page = self.downloader.get_reader(url = self.URL % urllib.quote(search)).read()
         values = json.loads(page)
         if int(values['totalResultsCount']) == 0:
-            raise Exception('No Record found for query "%s"' % string)
+            raise Exception('No Record found for query "%s"' % search)
         res = values['geonames'][0]
-        c = geo.Coordinate(float(res['lat']), float(res['lng']), string)
+        c = geo.Coordinate(float(res['lat']), float(res['lng']), search)
 
 
-        print "* Using %s for query '%s'" % (c, string)
+        print "* Using %s for query '%s'" % (c, search)
         return c
 
     def find_nearest_intersection(self, c):
