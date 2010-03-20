@@ -91,6 +91,7 @@ class SimpleGui(object):
     COLOR_TARGET = gtk.gdk.color_parse('black')
     COLOR_CROSSHAIR = gtk.gdk.color_parse("black")
     COLOR_LINE_INVERT = gtk.gdk.color_parse("blue")
+    SIZE_CURRENT_POSITION = 3
 
     # arrow colors and sizes
     COLOR_ARROW_DEFAULT = gtk.gdk.color_parse("green")
@@ -104,6 +105,7 @@ class SimpleGui(object):
     ARROW_LINE_WIDTH = 3
     NORTH_INDICATOR_SIZE = 30
     FONT_NORTH_INDICATOR = pango.FontDescription("Sans 9")
+
 
     # quality indicator
     COLOR_QUALITY_OUTER = gtk.gdk.color_parse("black")
@@ -285,12 +287,12 @@ class SimpleGui(object):
          ROW_ID,
          ) = range(6)
         columns = (
-                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE, ), False, True),
-                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE, ), False, True),
+                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
+                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
                    ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
                    ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
                    ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
-                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID, ), False, True),
+                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
                    )
         self.cachelist = listview = extListview.ExtListView(columns, sortable=True, useMarkup=True, canShowHideColumns=False)
         self.cachelist_contents = []
@@ -307,7 +309,7 @@ class SimpleGui(object):
                    ('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
                    ('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
                    ('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
-                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT, ), False, True),
+                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT,), False, True),
                    )
         self.coordlist = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
         self.coordlist.connect('extlistview-button-pressed', self.on_waypoint_clicked)
@@ -447,7 +449,7 @@ class SimpleGui(object):
             else:
                 t = "%.1f" % (r.terrain / 10)
             title = self._format_cache_title(r)
-            rows.append((title, r.type, s, t, d, r.name,))
+            rows.append((title, r.type, s, t, d, r.name, ))
         self.cachelist.replaceContent(rows)
         self.notebook_search.set_current_page(1)
         self.redraw_marks()
@@ -519,8 +521,8 @@ class SimpleGui(object):
 
         self.xgc_arrow.line_width = outer_circle_size
 
-        circle_size = min(height, width)/2 - circle_border
-        indicator_dist = min(height, width)/ 2 - indicator_border
+        circle_size = min(height, width) / 2 - circle_border
+        indicator_dist = min(height, width) / 2 - indicator_border
         center_x, center_y = width / 2, height / 2
 
         # outer circle
@@ -529,8 +531,8 @@ class SimpleGui(object):
 
         # north indicator
         ni_w, ni_h = self.north_indicator_layout.get_size()
-        position_x = int(width / 2 - math.sin(display_north) * indicator_dist - (ni_w / pango.SCALE)/2)
-        position_y = int(height / 2 - math.cos(display_north) * indicator_dist - (ni_h / pango.SCALE)/2)
+        position_x = int(width / 2 - math.sin(display_north) * indicator_dist - (ni_w / pango.SCALE) / 2)
+        position_y = int(height / 2 - math.cos(display_north) * indicator_dist - (ni_h / pango.SCALE) / 2)
         self.xgc_arrow.set_function(gtk.gdk.COPY)
         self.xgc_arrow.set_rgb_fg_color(self.COLOR_NORTH_INDICATOR)
         self.pixmap_arrow.draw_layout(self.xgc_arrow, position_x, position_y, self.north_indicator_layout)
@@ -859,7 +861,7 @@ class SimpleGui(object):
                 
                 
                 
-        if self.gps_has_fix and self.gps_data != None and self.gps_data.position != None :
+        if self.gps_has_fix and self.gps_data != None and self.gps_data.position != None:
             p = self._coord2point(self.gps_data.position)
             if p != False:
                 self.gps_last_position = p
@@ -902,7 +904,7 @@ class SimpleGui(object):
             self.pixmap_marks.draw_line(xgc, p[0] + radius_o, p[1] - radius_o, p[0] + radius_i, p[1] - radius_i)
             self.pixmap_marks.draw_line(xgc, p[0] - radius_o, p[1] + radius_o, p[0] - radius_i, p[1] + radius_i)
 
-            self.pixmap_marks.draw_point(xgc, p[0], p[1])
+            self.pixmap_marks.draw_arc(xgc, True, p[0] - self.SIZE_CURRENT_POSITION, p[1] - self.SIZE_CURRENT_POSITION, 2 * self.SIZE_CURRENT_POSITION, 2 * self.SIZE_CURRENT_POSITION, 0, 360 * 64)
             if self.gps_has_fix:
                 xgc.set_function(gtk.gdk.INVERT)
                 xgc.line_width = 1
@@ -1314,7 +1316,7 @@ class SimpleGui(object):
         self.zoom()
                 
     def on_zoomin_clicked(self, widget, data=None):
-        self.zoom( + 1)
+        self.zoom(+ 1)
                 
     def on_zoomout_clicked(self, widget, data=None):
         self.zoom(-1)
@@ -1411,7 +1413,7 @@ class SimpleGui(object):
         if event.direction == gtk.gdk.SCROLL_DOWN:
             self.zoom(-1)
         else:
-            self.zoom( + 1)
+            self.zoom(+ 1)
         
                 
     def set_center(self, coord, noupdate=False):

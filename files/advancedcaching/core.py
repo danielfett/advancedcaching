@@ -612,7 +612,7 @@ class Core(gobject.GObject):
         if fix.position != None:
             self.gui.on_good_fix(fix)
         else:
-            self.gui.on_no_fix(fix, device.status if device != None else '')
+            self.gui.on_no_fix(fix, 'No fix')
         return True
                 
     def __read_config(self):
