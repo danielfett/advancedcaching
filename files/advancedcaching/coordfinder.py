@@ -107,11 +107,12 @@ class CalcCoordinate():
         c = 1
         while c > 0:
             text, c = re.subn('\([^()]+\)', lambda match: self.safe_eval(match.group(0)), text)
-        if re.match('[0-9]+', text) == False:
+        print text
+        if re.match('^[0-9]+$', text) == None:
             # determine number of leading zeros
-            lz = len(text) - len(str(int(text)))
+            #lz = len(text) - len(str(int(text)))
             text = self.safe_eval(text)
-            text = ("%0" + lz + "d") % lz
+            text = "%03d" % int(text)
         return text
 
     def safe_eval(self, text):
