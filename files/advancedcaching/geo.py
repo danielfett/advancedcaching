@@ -89,7 +89,7 @@ class Coordinate():
         self.name = name
         try:
             self.distance_to = self.distance_to_liblocation
-        except (Exception, e):
+        except Exception:
             self.distance_to = self.distance_to_manual
             
     def from_d(self, lat, lon):

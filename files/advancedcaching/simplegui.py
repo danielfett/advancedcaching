@@ -126,16 +126,24 @@ class SimpleGui(object):
         'options_password',
         'download_map_path'
     ]
+
+    TILE_LOADERS = [
+        ('OpenStreetMaps', openstreetmap.TileLoader),
+        ('OpenCycleMaps', openstreetmap.OCMTileLoader)
+    ]
                 
     def __init__(self, core, pointprovider, userpointprovider, dataroot):
     
         gtk.gdk.threads_init()
         self.ts = openstreetmap.TileServer()
-        openstreetmap.TileLoader.noimage = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage.png'))
+        openstreetmap.TileLoader.noimage_cantload = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-cantload.png'))
+        openstreetmap.TileLoader.noimage_loading = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-loading.png'))
                 
         self.core = core
         self.pointprovider = pointprovider
         self.userpointprovider = userpointprovider
+        self.tile_loader = self.TILE_LOADERS[0][1]
+        
                 
         self.format = geo.Coordinate.FORMAT_DM
 
@@ -668,7 +676,7 @@ class SimpleGui(object):
                     if not tile in tiles:
                         tiles.append(tile)
                         #print "Requesting ", tile, " zoom ", ts.zoom
-                        d = openstreetmap.TileLoader(tile, self.ts.zoom, self, self.settings['download_map_path'], (i * dir_ew) * span_x + (j * dir_ns))
+                        d = self.tile_loader(tile, self.ts.zoom, self, self.settings['download_map_path'], (i * dir_ew) * span_x + (j * dir_ns))
                         d.start()
         #print 'end draw map'
 

@@ -206,7 +206,7 @@ class Core(gobject.GObject):
     COOKIE_FILE = os.path.join(SETTINGS_DIR, "cookies.lwp")
 
     MAEMO_HOME = os.path.expanduser("~/MyDocs/.")
-    MAPS_DIR = 'Maps/OSM/'
+    MAPS_DIR = 'Maps/'
 
     DATA_DIR = os.path.expanduser('~/') if not os.path.exists(MAEMO_HOME) else MAEMO_HOME
     
@@ -238,7 +238,7 @@ class Core(gobject.GObject):
             
     def __init__(self, guitype, root):
         gobject.GObject.__init__(self)
-        self.__create_recursive(self.SETTINGS_DIR)
+        self.create_recursive(self.SETTINGS_DIR)
 
         dataroot = os.path.join(root, 'data')
         
@@ -246,8 +246,8 @@ class Core(gobject.GObject):
         # seems to crash dbus/fso/whatever
                         
         self.__read_config()
-        self.__create_recursive(self.settings['download_output_dir'])
-        self.__create_recursive(self.settings['download_map_path'])
+        self.create_recursive(self.settings['download_output_dir'])
+        self.create_recursive(self.settings['download_map_path'])
                 
         #self.standbypreventer.set_status(Standbypreventer.STATUS_SCREEN_ON)
                 
@@ -278,13 +278,18 @@ class Core(gobject.GObject):
             import geonames
             self.geonames = geonames.Geonames(self.downloader)
         self.gui.show()
-                
-    def __create_recursive(self, path):
+
+    @staticmethod
+    def create_recursive(path):
         if path != '/':
             if not os.path.exists(path):
                 head, tail = os.path.split(path)
-                self.__create_recursive(head)
-                os.mkdir(path)
+                Core.create_recursive(head)
+                try:
+                    os.mkdir(path)
+                except Exception:
+                    # let others fail here.
+                    pass
 
                 
     def __del__(self):

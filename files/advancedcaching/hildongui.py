@@ -73,7 +73,8 @@ class HildonGui(SimpleGui):
     def __init__(self, core, pointprovider, userpointprovider, dataroot):
         gtk.gdk.threads_init()
         self.ts = openstreetmap.TileServer()
-        openstreetmap.TileLoader.noimage = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage.png'))
+        openstreetmap.TileLoader.noimage_cantload = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-cantload.png'))
+        openstreetmap.TileLoader.noimage_loading = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-loading.png'))
         
         self.core = core
         self.core.connect('map-changed', self._on_map_changed)
@@ -82,6 +83,7 @@ class HildonGui(SimpleGui):
 
         self.pointprovider = pointprovider
         self.userpointprovider = userpointprovider
+        self.tile_loader = self.TILE_LOADERS[0][1]
                 
         self.format = geo.Coordinate.FORMAT_DM
 
@@ -118,7 +120,10 @@ class HildonGui(SimpleGui):
         self.window.set_app_menu(self._create_main_menu())
         self.update_fieldnotes_display()
 
-
+    def set_tile_loader(self, widget, loader):
+        if widget.get_active():
+            self.tile_loader = loader
+            self._draw_map()
 
 
     def _on_key_press(self, window, event):
@@ -312,6 +317,14 @@ class HildonGui(SimpleGui):
         button.set_label("Options")
         button.connect("clicked", self._on_show_options, None)
         menu.append(button)
+
+        button = None
+        for name, loader in self.TILE_LOADERS:
+            button = hildon.GtkRadioButton(gtk.HILDON_SIZE_AUTO, button)
+            button.set_label(name)
+            button.connect("clicked", self.set_tile_loader, loader)
+            menu.add_filter(button)
+            button.set_mode(False)
     
         menu.show_all()
         return menu

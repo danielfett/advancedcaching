@@ -18,6 +18,7 @@
 #        Author: Daniel Fett advancedcaching@fragcom.de
 #
 
+from __future__ import with_statement
 
 import math
 import geo
@@ -27,7 +28,6 @@ import os
 import threading
 import urllib
 import socket
-
 socket.setdefaulttimeout(30)
 
 
@@ -35,8 +35,13 @@ class TileLoader(threading.Thread):
     downloading = []
     semaphore = threading.Semaphore(40)
     lock = threading.Lock() #download-lock
-    running_threads = 0
-    noimage = None
+    noimage_cantload = None
+    noimage_loading = None
+
+    PREFIX = 'OSM'
+    MAX_ZOOM = 18
+    FILE_TYPE = 'png'
+    REMOTE_URL = "http://128.40.168.104/mapnik/%(zoom)d/%(x)d/%(y)d.png"
                 
     def __init__(self, tile, zoom, gui, base_dir, num=0):
         threading.Thread.__init__(self)
@@ -47,31 +52,32 @@ class TileLoader(threading.Thread):
         self.base_dir = base_dir
         self.pbuf = None
         self.num = num
-        self.local_filename = os.path.join(self.base_dir, str(self.zoom), str(self.tile[0]), "%d.png" % self.tile[1])
-        self.remote_filename = "http://128.40.168.104/mapnik/%d/%d/%d.png" % (self.zoom, self.tile[0], self.tile[1])
+        self.set_paths()
         self.my_noimage = None
-        #self.remote_filename = "http://andy.sandbox.cloudmade.com/tiles/cycle/%d/%d/%d.png" % (self.zoom, self.tile[0], self.tile[1])
+
+    def set_paths(self):
+        self.local_path = os.path.join(self.base_dir, self.PREFIX, str(self.zoom), str(self.tile[0]))
+        self.local_filename =  os.path.join(self.local_path, "%d%s%s" % (self.tile[1], os.extsep, self.FILE_TYPE))
+        self.remote_filename = self.REMOTE_URL % {'zoom': self.zoom, 'x' : self.tile[0], 'y' : self.tile[1]}
+
+    @staticmethod
+    def create_recursive(path):
+        if path != '/':
+            if not os.path.exists(path):
+                head, tail = os.path.split(path)
+                TileLoader.create_recursive(head)
+                try:
+                    os.mkdir(path)
+                except Exception, e:
+                    # let others fail here.
+                    pass
+
                
     def run(self):
-        self.__log("start")
         answer = True
         if not os.path.isfile(self.local_filename):
-            #print "Datei existiert nicht: '%s' " % self.local_filename
-            path_1 = "%s%d" % (self.base_dir, self.zoom)
-            path_2 = "%s/%d" % (path_1, self.tile[0])
-            try:
-                if not os.path.exists(path_1):
-                    os.mkdir(path_1)
-                if not os.path.exists(path_2):
-                    os.mkdir(path_2)
-            except:
-                pass
-                # this may fail due to threading issues.
-                # too lazy to do proper locking here
-                # so just forget about the error
-                                                        
-
-            gobject.idle_add(lambda: self.draw(self.get_no_image()))
+            self.create_recursive(self.local_path)
+            gobject.idle_add(lambda: self.draw(self.get_no_image(TileLoader.noimage_loading)))
             answer = self.download(self.remote_filename, self.local_filename)
         # now the file hopefully exists
         if answer == True:
@@ -79,15 +85,13 @@ class TileLoader(threading.Thread):
             gobject.idle_add(lambda: self.draw(self.pbuf))
         elif answer == False:
             #print "loading default"
-            gobject.idle_add(lambda: self.draw(self.get_no_image()))
+            gobject.idle_add(lambda: self.draw(self.get_no_image(TileLoader.noimage_cantload)))
         else:
             #print "nothing"
             pass
             
 
-        self.__log("prep draw")
-
-    def get_no_image(self):
+    def get_no_image(self, default):
         if self.my_noimage != None:
             return self.my_noimage
         size = self.gui.ts.tile_size()
@@ -96,22 +100,18 @@ class TileLoader(threading.Thread):
         supertile_zoom = self.zoom - 1
         supertile_x = int(self.tile[0]/2)
         supertile_y = int(self.tile[1]/2)
-        supertile_name = os.path.join(self.base_dir, str(supertile_zoom), str(supertile_x), "%d.png" % supertile_y)
+        supertile_name = os.path.join(self.base_dir, str(supertile_zoom), str(supertile_x), "%d%s%s" % (supertile_y, os.extsep, self.FILE_TYPE))
         if os.path.exists(supertile_name):
-            #print "Loading supertile for %d %d, which is %d %d" % (self.tile[0], self.tile[1], supertile_x, supertile_y)
-            # great! now find the right spot.
-            # the supertile is 'size' px wide and high.
             off_x = (self.tile[0]/2.0 - supertile_x) * size
             off_y = (self.tile[1]/2.0 - supertile_y) * size
             pbuf = gtk.gdk.pixbuf_new_from_file(supertile_name)
-            #pbuf.scale(pbuf, 0, 0, size/2, size/2, off_x, off_y, 2, 2, gtk.gdk.INTERP_BILINEAR)
             dest = gtk.gdk.Pixbuf(pbuf.get_colorspace(), pbuf.get_has_alpha(), pbuf.get_bits_per_sample(), size, size)
             pbuf.scale(dest, 0, 0, 256, 256, -off_x*2, -off_y*2, 2, 2, gtk.gdk.INTERP_BILINEAR)
             self.my_noimage = dest
             return dest
         else:
-            self.my_noimage = TileLoader.noimage
-            return TileLoader.noimage
+            self.my_noimage = default
+            return default
                 
     def load(self, tryno=0):
         # load the pixbuf to memory
@@ -125,7 +125,7 @@ class TileLoader(threading.Thread):
                 return self.recover()
             else:
                 print e
-                self.pbuf = TileLoader.noimage
+                self.pbuf = TileLoader.noimage_cantload
                 return True
                                 
     def recover(self):
@@ -137,82 +137,65 @@ class TileLoader(threading.Thread):
         return self.load(1)
                 
     def draw(self, pbuf):
-        try:
-            #gc.set_function(gtk.gdk.COPY)
-            #gc.set_rgb_fg_color(self.COLOR_BG)
-            # to draw "night mode": INVERT
-                        
-            size = self.gui.ts.tile_size()
-            x = self.gui.map_center_x
-            y = self.gui.map_center_y
-            xi = int(self.gui.map_center_x)
-            yi = int(self.gui.map_center_y)
-            span_x = int(math.ceil(float(self.gui.map_width) / (size * 2.0)))
-            span_y = int(math.ceil(float(self.gui.map_height) / (size * 2.0)))
-            if self.tile[0] in xrange(xi - span_x, xi + span_x + 1, 1) and self.tile[1] in xrange(yi - span_y, yi + span_y + 1, 1) and self.zoom == self.gui.ts.zoom:
+        #gc.set_function(gtk.gdk.COPY)
+        #gc.set_rgb_fg_color(self.COLOR_BG)
+        # to draw "night mode": INVERT
 
-                offset_x = int(self.gui.map_width / 2 - (x - int(x)) * size)
-                offset_y = int(self.gui.map_height / 2 -(y - int(y)) * size)
-                dx = (self.tile[0] - xi) * size + offset_x
-                dy = (self.tile[1] - yi) * size + offset_y
+        size = self.gui.ts.tile_size()
+        x = self.gui.map_center_x
+        y = self.gui.map_center_y
+        xi = int(self.gui.map_center_x)
+        yi = int(self.gui.map_center_y)
+        span_x = int(math.ceil(float(self.gui.map_width) / (size * 2.0)))
+        span_y = int(math.ceil(float(self.gui.map_height) / (size * 2.0)))
+        if self.tile[0] in xrange(xi - span_x, xi + span_x + 1, 1) and self.tile[1] in xrange(yi - span_y, yi + span_y + 1, 1) and self.zoom == self.gui.ts.zoom:
 
-                gc = self.gui.xgc
+            offset_x = int(self.gui.map_width / 2 - (x - int(x)) * size)
+            offset_y = int(self.gui.map_height / 2 -(y - int(y)) * size)
+            dx = (self.tile[0] - xi) * size + offset_x
+            dy = (self.tile[1] - yi) * size + offset_y
 
-                if pbuf != None:
-                    self.gui.pixmap.draw_pixbuf(gc, pbuf, 0, 0, dx, dy, size, size)
-                else:
-                    self.gui.pixmap.draw_pixbuf(gc, TileLoader.noimage, 0, 0, dx, dy, size, size)
+            gc = self.gui.xgc
 
-                self.gui.drawing_area.queue_draw_area(max(self.gui.draw_root_x + self.gui.draw_at_x  + dx, 0), max(self.gui.draw_root_y + self.gui.draw_at_y  + dy, 0), size, size)
+            if pbuf != None:
+                self.gui.pixmap.draw_pixbuf(gc, pbuf, 0, 0, dx, dy, size, size)
+            else:
+                self.gui.pixmap.draw_pixbuf(gc, TileLoader.cantload, 0, 0, dx, dy, size, size)
 
-                                
-        finally:
-            pass
+            self.gui.drawing_area.queue_draw_area(max(self.gui.draw_root_x + self.gui.draw_at_x  + dx, 0), max(self.gui.draw_root_y + self.gui.draw_at_y  + dy, 0), size, size)
+
                 
     def download(self, remote, local):
         #print "downloading", remote
-        acquired = False
-        self.__log("dl-start")
-        
-        TileLoader.lock.acquire()
-        try:
-            if remote in TileLoader.downloading:
-                #print 'lädt schon: %s' % remote
-                return None
-            if os.path.exists(local):
-                #print 'ex schon: %s' % remote
-                return None
-            TileLoader.downloading.append(remote)
-        finally:
-            TileLoader.lock.release()
+        with TileLoader.lock:
+            try:
+                if remote in TileLoader.downloading:
+                    return None
+                if os.path.exists(local):
+                    return None
+                TileLoader.downloading.append(remote)
+            except Exception:
+                pass
             
-        TileLoader.semaphore.acquire()
-        acquired = True
-        try:
-            if not self.zoom == self.gui.ts.zoom:
-                return None
-            info = urllib.urlretrieve(remote, local)    
-            #print "feddisch!"
-            if "text/html" in info[1]['Content-Type']:
-                print "File not found: %s" % remote
+        with TileLoader.semaphore:
+            try:
+                if not self.zoom == self.gui.ts.zoom:
+                    return None
+                info = urllib.urlretrieve(remote, local)
+                
+                if "text/html" in info[1]['Content-Type']:
+                    return False
+                return True
+            except Exception, e:
+                print "Download Error", e
                 return False
-            return True
-        except Exception, e:
-            print "Download Error", e
-            return False
-        finally:
-            if acquired:
-                TileLoader.semaphore.release()
-            TileLoader.downloading.remove(remote)
-            self.__log("dl-end")
+            finally:
+                TileLoader.downloading.remove(remote)
             
-            
-    def __log(self, string):
-        pass
-#        a = "%d  " % self.num
-#        for i in xrange(self.num):
-#            a += "   "
-        #print a, string
+class OCMTileLoader(TileLoader):
+    REMOTE_URL = "http://andy.sandbox.cloudmade.com/tiles/cycle/%(zoom)d/%(x)d/%(y)d.png"
+    PREFIX = "OCM"
+
                 
 class TileServer():
 
