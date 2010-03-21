@@ -199,6 +199,8 @@ class Core(gobject.GObject):
         'map-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
         'cache-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, )),
         'fieldnotes-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'good-fix': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, )),
+        'no-fix': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, )),
         }
 
     SETTINGS_DIR = os.path.expanduser('~/.agtl')
@@ -233,7 +235,12 @@ class Core(gobject.GObject):
         'download_noimages': False,
         'download_map_path': DATA_DIR + MAPS_DIR,
         'options_hide_found': False,
-        'options_show_error' : True
+        'options_show_error' : True,
+        'map_providers': [
+            ('OpenStreetMaps', {'remote_url' : "http://128.40.168.104/mapnik/%(zoom)d/%(x)d/%(y)d.png", 'prefix' : 'OpenStreetMap I'}),
+            ('OpenCycleMaps', {'remote_url' : 'http://andy.sandbox.cloudmade.com/tiles/cycle/%(zoom)d/%(x)d/%(y)d.png', 'prefix' : 'OpenCycleMap'})
+
+        ]
     }
             
     def __init__(self, guitype, root):
@@ -596,14 +603,17 @@ class Core(gobject.GObject):
         fix = self.gps_thread.get_data()
         if fix.position != None:
             self.gui.on_good_fix(fix)
+            self.emit('good-fix', fix)
         else:
             self.gui.on_no_fix(fix, self.gps_thread.status)
+            self.emit('no-fix', fix)
         return True
 
     def __read_gps_cb_error(self, control, error):
         fix = gpsreader.Fix()
         msg = gpsreader.LocationGpsReader.get_error_from_code(error)
         self.gui.on_no_fix(fix, msg)
+        self.emit('no-fix', fix)
         return True
 
     def __read_gps_cb_changed(self, device):
@@ -611,8 +621,10 @@ class Core(gobject.GObject):
         # @type fix gpsreader.Fix
         if fix.position != None:
             self.gui.on_good_fix(fix)
+            self.emit('good-fix', fix)
         else:
             self.gui.on_no_fix(fix, 'No fix')
+            self.emit('no-fix', fix)
         return True
                 
     def __read_config(self):

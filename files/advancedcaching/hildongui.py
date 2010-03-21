@@ -73,8 +73,8 @@ class HildonGui(SimpleGui):
     def __init__(self, core, pointprovider, userpointprovider, dataroot):
         gtk.gdk.threads_init()
         self.ts = openstreetmap.TileServer()
-        openstreetmap.TileLoader.noimage_cantload = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-cantload.png'))
-        openstreetmap.TileLoader.noimage_loading = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-loading.png'))
+        self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-cantload.png'))
+        self.noimage_loading = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-loading.png'))
         
         self.core = core
         self.core.connect('map-changed', self._on_map_changed)
@@ -83,7 +83,8 @@ class HildonGui(SimpleGui):
 
         self.pointprovider = pointprovider
         self.userpointprovider = userpointprovider
-        self.tile_loader = self.TILE_LOADERS[0][1]
+
+        self.build_tile_loaders()
                 
         self.format = geo.Coordinate.FORMAT_DM
 
@@ -319,7 +320,7 @@ class HildonGui(SimpleGui):
         menu.append(button)
 
         button = None
-        for name, loader in self.TILE_LOADERS:
+        for name, loader in self.tile_loaders:
             button = hildon.GtkRadioButton(gtk.HILDON_SIZE_AUTO, button)
             button.set_label(name)
             button.connect("clicked", self.set_tile_loader, loader)
@@ -1379,12 +1380,12 @@ class HildonGui(SimpleGui):
         ##############################################
 
     def read_settings(self):
+        settings = self.settings
         c = self.ts.num2deg(self.map_center_x, self.map_center_y)
-        settings = {
-            'map_position_lat': c.lat,
-            'map_position_lon': c.lon,
-            'map_zoom': self.ts.get_zoom(),
-        }
+        settings['map_position_lat'] = c.lat
+        settings['map_position_lon'] = c.lon
+        settings['map_zoom'] = self.ts.get_zoom()
+        
         if self.current_target != None:
             settings['last_target_lat'] = self.current_target.lat
             settings['last_target_lon'] = self.current_target.lon
@@ -1403,6 +1404,7 @@ class HildonGui(SimpleGui):
 
         if 'last_target_lat' in self.settings.keys():
             self.set_target(geo.Coordinate(self.settings['last_target_lat'], self.settings['last_target_lon'], self.settings['last_target_name']))
+
         self.block_changes = False
 
         ##############################################

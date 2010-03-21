@@ -101,6 +101,7 @@ class SimpleGui(object):
     COLOR_ARROW_CIRCLE = gtk.gdk.color_parse("darkgray")
     COLOR_ARROW_OUTER_LINE = gtk.gdk.color_parse("black")
     COLOR_ARROW_CROSS = gtk.gdk.color_parse('darkslategray')
+    COLOR_ARROW_ERROR = gtk.gdk.color_parse('gold')
     COLOR_NORTH_INDICATOR = gtk.gdk.color_parse("gold")
     ARROW_LINE_WIDTH = 3
     NORTH_INDICATOR_SIZE = 30
@@ -129,22 +130,17 @@ class SimpleGui(object):
         'download_map_path'
     ]
 
-    TILE_LOADERS = [
-        ('OpenStreetMaps', openstreetmap.TileLoader),
-        ('OpenCycleMaps', openstreetmap.OCMTileLoader)
-    ]
                 
     def __init__(self, core, pointprovider, userpointprovider, dataroot):
     
         gtk.gdk.threads_init()
         self.ts = openstreetmap.TileServer()
-        openstreetmap.TileLoader.noimage_cantload = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-cantload.png'))
-        openstreetmap.TileLoader.noimage_loading = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-loading.png'))
-                
+        self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-cantload.png'))
+        self.noimage_loading = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-loading.png'))
+        
         self.core = core
         self.pointprovider = pointprovider
         self.userpointprovider = userpointprovider
-        self.tile_loader = self.TILE_LOADERS[0][1]
         
                 
         self.format = geo.Coordinate.FORMAT_DM
@@ -177,6 +173,13 @@ class SimpleGui(object):
         global xml
         xml = gtk.glade.XML(os.path.join(dataroot, self.XMLFILE))
         self.load_ui()
+        # self.build_tile_loaders()
+
+    def build_tile_loaders(self):
+        self.tile_loaders = []
+        for name, params in self.core.settings['map_providers']:
+            self.tile_loaders.append((name, openstreetmap.get_tile_loader(**params)))
+        self.tile_loader = self.tile_loaders[0][1]
         
     def load_ui(self):
         self.window = xml.get_widget("window1")
@@ -476,6 +479,8 @@ class SimpleGui(object):
         distance_near = 150
         disabled_border_size = 30
         signal_width = 15
+        error_circle_size = 0.95
+        error_circle_width = 7
         
         if not self.drawing_area_arrow_configured:
             return
@@ -516,11 +521,9 @@ class SimpleGui(object):
             self.pixmap_arrow.draw_line(self.xgc_arrow, width / 2, height, width / 2, 0)
             self.pixmap_arrow.draw_line(self.xgc_arrow, 0, height / 2, width, height / 2)
 
-        # draw north indicator
+
         self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_CIRCLE)
-
         self.xgc_arrow.line_width = outer_circle_size
-
         circle_size = min(height, width) / 2 - circle_border
         indicator_dist = min(height, width) / 2 - indicator_border
         center_x, center_y = width / 2, height / 2
@@ -529,14 +532,21 @@ class SimpleGui(object):
         self.pixmap_arrow.draw_arc(self.xgc_arrow, False, center_x - circle_size, center_y - circle_size, circle_size * 2, circle_size * 2, 0, 64 * 360)
         #position_x - indicator_radius / 2, position_y - indicator_radius / 2,
 
-        # north indicator
-        ni_w, ni_h = self.north_indicator_layout.get_size()
-        position_x = int(width / 2 - math.sin(display_north) * indicator_dist - (ni_w / pango.SCALE) / 2)
-        position_y = int(height / 2 - math.cos(display_north) * indicator_dist - (ni_h / pango.SCALE) / 2)
-        self.xgc_arrow.set_function(gtk.gdk.COPY)
-        self.xgc_arrow.set_rgb_fg_color(self.COLOR_NORTH_INDICATOR)
-        self.pixmap_arrow.draw_layout(self.xgc_arrow, position_x, position_y, self.north_indicator_layout)
-        
+        if display_distance > self.DISTANCE_DISABLE_ARROW:
+            self.xgc_arrow.line_width = error_circle_width
+            self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_ERROR)
+            self.xgc_arrow.set_dashes(1, (5, 5))
+
+            self.xgc_arrow.line_style = gtk.gdk.LINE_ON_OFF_DASH 
+            ecc = int(error_circle_size * circle_size)
+            err = max(self.gps_data.error_bearing, 181) # don't draw multiple circles :-)
+            err_start = (90-(display_bearing + err))*64
+            err_delta = err * 2 * 64
+            self.pixmap_arrow.draw_arc(self.xgc_arrow, False, center_x - ecc, center_y - ecc, ecc * 2, ecc * 2, err_start, err_delta)
+            self.xgc_arrow.line_style = gtk.gdk.LINE_SOLID
+
+
+
 
         if (display_distance < distance_attarget):
             color = self.COLOR_ARROW_ATTARGET
@@ -555,6 +565,15 @@ class SimpleGui(object):
             self.xgc_arrow.set_rgb_fg_color(self.COLOR_ARROW_OUTER_LINE)
             self.xgc_arrow.line_width = self.ARROW_LINE_WIDTH
             self.pixmap_arrow.draw_polygon(self.xgc_arrow, False, arrow_transformed)
+
+            # north indicator
+            ni_w, ni_h = self.north_indicator_layout.get_size()
+            position_x = int(width / 2 - math.sin(display_north) * indicator_dist - (ni_w / pango.SCALE) / 2)
+            position_y = int(height / 2 - math.cos(display_north) * indicator_dist - (ni_h / pango.SCALE) / 2)
+            self.xgc_arrow.set_function(gtk.gdk.COPY)
+            self.xgc_arrow.set_rgb_fg_color(self.COLOR_NORTH_INDICATOR)
+            self.pixmap_arrow.draw_layout(self.xgc_arrow, position_x, position_y, self.north_indicator_layout)
+
         else:
             # if we are closer than a few meters, the arrow will almost certainly
             # point in the wrong direction. therefore, we don't draw the arrow.
@@ -564,7 +583,7 @@ class SimpleGui(object):
             self.xgc_arrow.line_width = self.ARROW_LINE_WIDTH
             self.pixmap_arrow.draw_arc(self.xgc_arrow, False, width / 2 - circle_size / 2, height / 2 - circle_size / 2, circle_size, circle_size, 0, 64 * 360)
 
-                
+        
         self.drawing_area_arrow.queue_draw()
         return False
 
@@ -678,7 +697,7 @@ class SimpleGui(object):
                     if not tile in tiles:
                         tiles.append(tile)
                         #print "Requesting ", tile, " zoom ", ts.zoom
-                        d = self.tile_loader(tile, self.ts.zoom, self, self.settings['download_map_path'], (i * dir_ew) * span_x + (j * dir_ns))
+                        d = self.tile_loader(tile, self.ts.zoom, self, self.settings['download_map_path'], noimage_cantload = self.noimage_cantload, noimage_loading = self.noimage_loading, num = (i * dir_ew) * span_x + (j * dir_ns))
                         d.start()
         #print 'end draw map'
 
@@ -1703,6 +1722,7 @@ class SimpleGui(object):
                 w.set_text(self.DEFAULT_SETTINGS[x])
                                         
         self.block_changes = False
+        self.build_tile_loaders()
                 
     def zoom(self, direction=None):
         size = self.ts.tile_size()

@@ -155,6 +155,7 @@ class GpsReader():
                 splitted = data.split(' ')
                 lat, lon, alt, err_hor = splitted[3:7]
                 track, speed = splitted[8:10]
+                err_track = splitted[11]
             except:
                 print "GPSD Output: \n%s\n  -- cannot be parsed." % data
                 self.status = "Could not read GPSD output."
@@ -162,6 +163,7 @@ class GpsReader():
             track = self.to_float(track)
             speed = self.to_float(speed)
             err_hor = self.to_float(err_hor)
+            err_track = self.to_float(err_track)
 
             # the following is probably wrong:
             #
@@ -184,10 +186,6 @@ class GpsReader():
             #self.speeds.append(speed)
             #print "Aktuell %f, max: %f" % (speed, max(self.speeds))
 
-            if speed < self.BEARING_HOLD_SPEED:
-                error_bearing = 360
-            else:
-                error_bearing = 0
             return Fix(
                 position =geo.Coordinate(float(lat), float(lon)),
                 altitude = alt,
@@ -198,7 +196,7 @@ class GpsReader():
                 dgps = dgps,
                 quality = quality,
                 error = err_hor,
-                error_bearing = error_bearing
+                error_bearing = err_track
                 )
         except Exception, e:
             print "Fehler beim Auslesen der Daten: %s " % e
