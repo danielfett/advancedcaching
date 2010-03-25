@@ -18,7 +18,7 @@ if __name__ == "__main__":
      pass
  print
  p=py2deb.Py2deb("advancedcaching")   #This is the package name and MUST be in lowercase! (using e.g. "advancedcaching" fails miserably...)
- p.description="Tool for paperless geocaching.\n AGTL downloads cache locations in the area visible on the map including their description, hints, difficulty levels and images. Searching for caches in your local db is a matter of seconds. The currently selected cache is shown on the map (and also all the others if you want) and there's a traditional compass-like view that show the direction to the cache."
+ p.description="Paperless (offline) geocaching.\n AGTL downloads cache locations in the area visible on the map including their description, hints, difficulty levels and images. Searching for caches in your local db is a matter of seconds. The currently selected cache is shown on the map (and also all the others if you want) and there's a traditional compass-like view that show the direction to the cache."
  p.author="Daniel Fett"
  p.mail="advancedcaching@fragcom.de"
  p.depends = "python2.5, python-gtk2, python-simplejson, python-location, python-hildon (>= 0.9.0-1maemo15)"
@@ -38,7 +38,7 @@ if __name__ == "__main__":
  #  p.preremove="""#!/bin/sh
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your pre remove script
  version = "0.5.0"
- build = "1"                 #Build number, e.g. "1" for the first build of this version of your software. Increment for later re-builds of the same version of your software.
+ build = "3"####### for the first build of this version of your software. Increment for later re-builds of the same version of your software.
                              #Text with changelog information to be displayed in the package "Details" tab of the Maemo Application Manager
  changeloginformation = "" 
  dir_name = "src"            #Name of the subfolder containing your package source files (e.g. usr\share\icons\hicolor\scalable\myappicon.svg, usr\lib\myapp\somelib.py). We suggest to leave it named src in all projects and will refer to that in the wiki article on maemo.org

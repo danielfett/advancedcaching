@@ -539,7 +539,7 @@ class SimpleGui(object):
 
             self.xgc_arrow.line_style = gtk.gdk.LINE_ON_OFF_DASH 
             ecc = int(error_circle_size * circle_size)
-            err = max(self.gps_data.error_bearing, 181) # don't draw multiple circles :-)
+            err = min(self.gps_data.error_bearing, 181) # don't draw multiple circles :-)
             err_start = (90-(display_bearing + err))*64
             err_delta = err * 2 * 64
             self.pixmap_arrow.draw_arc(self.xgc_arrow, False, center_x - ecc, center_y - ecc, ecc * 2, ecc * 2, err_start, err_delta)

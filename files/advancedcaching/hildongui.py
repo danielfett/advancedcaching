@@ -491,46 +491,55 @@ class HildonGui(SimpleGui):
             terrains = None
 
         if response == RESPONSE_SHOW_LIST:
-            points = self.core.get_points_filter(found=found, name_search=name_search, size=sizes, terrain=terrains, diff=difficulties, ctype=types, marked=marked)
-            self._display_results(points)
+            points, truncated = self.core.get_points_filter(found=found, name_search=name_search, size=sizes, terrain=terrains, diff=difficulties, ctype=types, marked=marked)
+            self._display_results(points, truncated)
         elif response == gtk.RESPONSE_ACCEPT:
             self.core.set_filter(found=found, name_search=name_search, size=sizes, terrain=terrains, diff=difficulties, ctype=types, marked=marked)
 
 
-    def _display_results(self, caches):
-
+    def _display_results(self, caches, truncated):
         sortfuncs = [
+            ('Dist', lambda x, y: cmp(x.prox, y.prox)),
             ('Name', lambda x, y: cmp(x.title, y.title)),
-            ('Diff.', lambda x, y: cmp(x.difficulty, y.difficulty)),
-            ('Terr.', lambda x, y: cmp(x.terrain, y.terrain)),
-            ('Size', lambda x, y: cmp(x.size, y.size)),
+            ('Diff', lambda x, y: cmp(x.difficulty if x.difficulty > 0 else 100, y.difficulty if y.difficulty > 0 else 100)),
+            ('Terr', lambda x, y: cmp(x.terrain if x.terrain > 0 else 100, y.terrain if y.terrain > 0 else 100)),
+            ('Size', lambda x, y: cmp(x.size if x.size > 0 else 100, y.size if y.size > 0 else 100)),
             ('Type', lambda x, y: cmp(x.type, y.type)),
         ]
 
-
+        if self.gps_data != None and self.gps_data.position != None:
+            for c in caches:
+                c.prox = c.distance_to(self.gps_data.position)
+                print c.difficulty
+        else:
+            for c in caches:
+                c.prox = None
 
         win = hildon.StackableWindow()
         win.set_title("Search results")
-
-        ls = gtk.ListStore(str, str, str, object)
+        ls = gtk.ListStore(str, str, str, str, object)
         
         tv = hildon.TouchSelector()
         col1 = tv.append_column(ls, gtk.CellRendererText())
         
         c1cr = gtk.CellRendererText()
+        c1cr.ellipsize=pango.ELLIPSIZE_MIDDLE
         c2cr = gtk.CellRendererText()
         c3cr = gtk.CellRendererText()
+        c4cr = gtk.CellRendererText()
         
         col1.pack_start(c1cr, True)
-        col1.pack_end(c2cr, True)
-        col1.pack_start(c3cr, True)
+        col1.pack_end(c2cr, False)
+        col1.pack_start(c3cr, False)
+        col1.pack_end(c4cr, False)
 
         col1.set_attributes(c1cr, text=0)
         col1.set_attributes(c2cr, text=1)
         col1.set_attributes(c3cr, text=2)
+        col1.set_attributes(c4cr, text=3)
 
         def select_cache(widget, data, more):
-            self.show_cache(self._get_selected(widget)[3])
+            self.show_cache(self._get_selected(widget)[4])
         
         tv.connect("changed", select_cache, None)
 
@@ -540,7 +549,7 @@ class HildonGui(SimpleGui):
             ls.clear()
             caches.sort(cmp=sortfunc)
             for c in caches:
-                ls.append([c.title, c.get_size_string(), 'D%s T%s' % (c.get_difficulty(), c.get_terrain()), c])
+                ls.append([self.shorten_name(c.title, 40), " " + c.get_size_string(), ' D%s T%s' % (c.get_difficulty(), c.get_terrain()), " " + self.__format_distance(c.prox),c])
             tv.handler_unblock_by_func(select_cache)
 
 
@@ -559,6 +568,8 @@ class HildonGui(SimpleGui):
         on_change_sort(None, sortfuncs[0][1])
 
         win.show_all()
+        if truncated:
+            hildon.hildon_banner_show_information_with_markup(win, "hu", "Showing only the first %d results." % len(caches))
         self.old_search_window = win
         self.reopen_last_search_button.set_sensitive(True)
 
@@ -1336,7 +1347,7 @@ class HildonGui(SimpleGui):
             text = "No sats, error: ±%3.1fm" % self.gps_data.error
         else:
             text = "%d/%d sats, error: ±%3.1fm" % (self.gps_data.sats, self.gps_data.sats_known, self.gps_data.error)
-        self.label_quality.set_markup("Accurancy\n<small>%s</small>" % text)
+        self.label_quality.set_markup("Accuracy\n<small>%s</small>" % text)
         if self.gps_data.altitude == None or self.gps_data.bearing == None:
             return
 
@@ -1348,13 +1359,19 @@ class HildonGui(SimpleGui):
             return
 
         target_distance = self.gps_data.position.distance_to(self.current_target)
-        if target_distance >= 1000:
-            label = "%d km" % round(target_distance / 1000)
-        elif target_distance >= 100:
-            label = "%d m" % round(target_distance)
+        
+        self.label_dist.set_markup("Distance\n<small>%s</small>" % self.__format_distance(target_distance))
+
+    def __format_distance(self, distance):
+        if distance == None:
+            return '?'
+        if distance >= 1000:
+            return "%d km" % round(distance / 1000)
+        elif distance >= 100:
+            return "%d m" % round(distance)
         else:
-            label = "%.1f m" % round(target_distance, 1)
-        self.label_dist.set_markup("Distance\n<small>%s</small>" % label)
+            return "%.1f m" % round(distance, 1)
+
 
 
     def on_no_fix(self, gps_data, status):

@@ -197,10 +197,10 @@ class Core(gobject.GObject):
 
     __gsignals__ = {
         'map-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'cache-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, )),
+        'cache-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'fieldnotes-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'good-fix': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, )),
-        'no-fix': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, )),
+        'good-fix': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'no-fix': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         }
 
     SETTINGS_DIR = os.path.expanduser('~/.agtl')
@@ -235,10 +235,10 @@ class Core(gobject.GObject):
         'download_noimages': False,
         'download_map_path': DATA_DIR + MAPS_DIR,
         'options_hide_found': False,
-        'options_show_error' : True,
+        'options_show_error': True,
         'map_providers': [
-            ('OpenStreetMaps', {'remote_url' : "http://128.40.168.104/mapnik/%(zoom)d/%(x)d/%(y)d.png", 'prefix' : 'OpenStreetMap I'}),
-            ('OpenCycleMaps', {'remote_url' : 'http://andy.sandbox.cloudmade.com/tiles/cycle/%(zoom)d/%(x)d/%(y)d.png', 'prefix' : 'OpenCycleMap'})
+            ('OpenStreetMaps', {'remote_url': "http://128.40.168.104/mapnik/%(zoom)d/%(x)d/%(y)d.png", 'prefix': 'OpenStreetMap I'}),
+            ('OpenCycleMaps', {'remote_url': 'http://andy.sandbox.cloudmade.com/tiles/cycle/%(zoom)d/%(x)d/%(y)d.png', 'prefix': 'OpenCycleMap'})
 
         ]
     }
@@ -371,7 +371,10 @@ class Core(gobject.GObject):
     def get_points_filter(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location=None, marked=None):
         self.pointprovider.push_filter()
         self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked=marked)
-        return self.pointprovider.get_points_filter(location)
+        points = self.pointprovider.get_points_filter(location)
+        truncated = (len(points) >= self.pointprovider.MAX_RESULTS)
+        self.pointprovider.pop_filter()
+        return (points, truncated)
 
 
     # called by gui
