@@ -552,6 +552,12 @@ class Core(gobject.GObject):
     def on_fieldnotes_changed(self, cache, new_notes):
         self.pointprovider.update_field(cache, 'fieldnotes', new_notes)
 
+    def set_alternative_position(self, cache, ap):
+        cache.set_alternative_position(ap)
+        self.pointprovider.update_field(cache, 'alter_lat', cache.alter_lat)
+        self.pointprovider.update_field(cache, 'alter_lon', cache.alter_lon)
+        self.emit('map-changed')
+
     def write_fieldnote(self, cache, logas, logdate, fieldnotes):
         self.pointprovider.update_field(cache, 'logas', logas)
         self.pointprovider.update_field(cache, 'logdate', logdate)

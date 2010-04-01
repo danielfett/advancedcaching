@@ -675,13 +675,13 @@ class HildonGui(SimpleGui):
         if self.current_cache != None and self.current_cache.name == cache.name and self.old_cache_window != None:
             
             hildon.WindowStack.get_default().push_1(self.old_cache_window)
-
             self.current_cache_window_open = True
             return
         
         if select:
             self.set_current_cache(cache)
 
+        
         win = hildon.StackableWindow()
         win.set_title(cache.title)
         
@@ -801,37 +801,32 @@ class HildonGui(SimpleGui):
 
 
         p = gtk.VBox()
-        widget_coords, clist = self._get_coord_selector(cache, lambda x, y, z: True)
-
-
-        def set_coord_as_target(widget):
-            tm = widget_coords.get_model(0)
-            iter = tm.get_iter(0)
-            widget_coords.get_selected(0, iter)
-            c = clist[tm.get_path(iter)[0]]
-            if c == None:
+        #self.build_coordinates(cache, p)
+        self.cache_coord_page = p
+        x = notebook.get_n_pages()
+        notebook.append_page(p, gtk.Label("coords"))
+        def switchpage(caller, page, pageno):
+            if pageno != x:
                 return
-            self.set_current_cache(cache)
-            self.set_target(c)
-            self.hide_cache_view()
+            cache.notes = self.get_cache_notes()
+            self.update_coords()
+        notebook.connect("switch-page", switchpage)
 
-        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
-        button.set_label("set as target")
-        button.connect("clicked", set_coord_as_target)
-        
-        p.pack_start(widget_coords, True, True)
-        p.pack_start(button, False, True)
-        notebook.append_page(p, gtk.Label("coords"))      
-        
         # notes
         p = hildon.PannableArea()
         self.cache_notes = gtk.TextView()
         #cache_notes.set_editable(True)
         self.cache_notes.get_buffer().set_text(cache.notes)
         p.add(self.cache_notes)
-        
+
         notebook.append_page(p, gtk.Label("notes"))
-        
+        self.notes_changed = False
+        def notes_changed(caller):
+            self.notes_changed = True
+
+        self.cache_notes.get_buffer().connect('changed', notes_changed)
+
+
         win.add(notebook)
         
         # menu
@@ -873,6 +868,53 @@ class HildonGui(SimpleGui):
 
         win.connect('delete_event', self.hide_cache_view)
         self.current_cache_window_open = True
+
+    def build_coordinates(self, cache, p):
+        print 'updating'
+        widget_coords, clist = self._get_coord_selector(cache, lambda x, y, z: True)
+
+
+        def set_coord_as_target(widget):
+            tm = widget_coords.get_model(0)
+            iter = tm.get_iter(0)
+            widget_coords.get_selected(0, iter)
+            c = clist[tm.get_path(iter)[0]]
+            if c == None:
+                return
+            self.set_current_cache(cache)
+            self.set_target(c)
+            self.hide_cache_view()
+
+        def set_alternative_position(widget):
+            tm = widget_coords.get_model(0)
+            iter = tm.get_iter(0)
+            widget_coords.get_selected(0, iter)
+            c = clist[tm.get_path(iter)[0]]
+            if c == None:
+                return
+            self.core.set_alternative_position(cache, c)
+            
+        h = gtk.HBox()
+        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
+        button.set_label("set as target")
+        button.connect("clicked", set_coord_as_target)
+        h.pack_start(button)
+
+        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
+        button.set_label("set as main coordinate")
+        button.connect("clicked", set_alternative_position)
+        h.pack_start(button)
+
+        p.pack_start(widget_coords, True, True)
+        p.pack_start(h, False, True)
+        widget_coords.show_all()
+        h.show_all()
+
+    def update_coords(self):
+        for x in self.cache_coord_page.get_children():
+            self.cache_coord_page.remove(x)
+        self.build_coordinates(self.current_cache, self.cache_coord_page)
+        self.cache_coord_page.show()
 
     def build_cache_images(self, cache, notebook):
         selector = hildon.TouchSelector(text=True)
@@ -1027,6 +1069,10 @@ class HildonGui(SimpleGui):
                 coord = None
                 latlon = '???'
             selector.append_text("%s - %s - %s\n%s" % (w['name'], latlon, w['id'], self._strip_html(w['comment'])))
+            clist[i] = coord
+            i += 1
+        for coord in geo.search_coordinates(cache.notes):
+            selector.append_text(format(coord))
             clist[i] = coord
             i += 1
         selector.connect('changed', callback, clist)
@@ -1296,11 +1342,16 @@ class HildonGui(SimpleGui):
         self.current_cache.set_vars(self.cache_calc_vars)
         self.core.set_cache_calc_vars(self.current_cache, self.current_cache.vars)
         self.current_cache_window_open = False
-        b = self.cache_notes.get_buffer()
-        self.core.on_notes_changed(self.current_cache, b.get_text(b.get_start_iter(), b.get_end_iter()))
+        if self.notes_changed:
+            self.core.on_notes_changed(self.current_cache, self.get_cache_notes())
+            self.notes_changed = False
         self.old_cache_window = hildon.WindowStack.get_default().peek()
         hildon.WindowStack.get_default().pop(hildon.WindowStack.get_default().size()-1)
         return True
+
+    def get_cache_notes(self):
+        b = self.cache_notes.get_buffer()
+        return b.get_text(b.get_start_iter(), b.get_end_iter())
                 
 
     #called by core

@@ -87,7 +87,33 @@ class GeocacheCoordinate(geo.Coordinate):
     }
 
 
-    SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT PRIMARY KEY', 'title': 'TEXT', 'shortdesc': 'TEXT', 'desc': 'TEXT', 'hints': 'TEXT', 'type': 'TEXT', 'size': 'INTEGER', 'difficulty': 'INTEGER', 'terrain': 'INTEGER', 'owner': 'TEXT', 'found': 'INTEGER', 'waypoints': 'text', 'images': 'text', 'notes': 'TEXT', 'fieldnotes': 'TEXT', 'logas': 'INTEGER', 'logdate': 'TEXT', 'marked' : 'INTEGER', 'logs' : 'TEXT', 'status' : 'INTEGER', 'vars' : 'TEXT'}
+    SQLROW = {
+        'lat': 'REAL',
+        'lon': 'REAL',
+        'name': 'TEXT PRIMARY KEY',
+        'title': 'TEXT',
+        'shortdesc': 'TEXT',
+        'desc': 'TEXT',
+        'hints': 'TEXT',
+        'type': 'TEXT',
+        'size': 'INTEGER',
+        'difficulty': 'INTEGER',
+        'terrain': 'INTEGER',
+        'owner': 'TEXT',
+        'found': 'INTEGER',
+        'waypoints': 'text',
+        'images': 'text',
+        'notes': 'TEXT',
+        'fieldnotes': 'TEXT',
+        'logas': 'INTEGER',
+        'logdate': 'TEXT',
+        'marked' : 'INTEGER',
+        'logs' : 'TEXT',
+        'status' : 'INTEGER',
+        'vars' : 'TEXT',
+        'alter_lat' : 'REAL',
+        'alter_lon' : 'REAL'
+        }
     def __init__(self, lat, lon, name=''):
         geo.Coordinate.__init__(self, lat, lon, name)
         # NAME = GC-ID
@@ -111,12 +137,15 @@ class GeocacheCoordinate(geo.Coordinate):
         self.logs = ''
         self.status = self.STATUS_NORMAL
         self.vars = ''
+        self.alter_lat = 0
+        self.alter_lon = 0
 
     def clone(self):
         n = GeocacheCoordinate(self.lat, self.lon)
         for k in ('title', 'name', 'shortdesc', 'desc', 'hints', 'type', \
             'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
-            'images', 'notes', 'fieldnotes', 'log_as', 'log_date', 'marked', 'logs', 'status'):
+            'images', 'notes', 'fieldnotes', 'log_as', 'log_date', 'marked', \
+            'logs', 'status', 'vars', 'alter_lat', 'alter_lon'):
             setattr(n, k, getattr(self, k))
         return n
         
@@ -162,7 +191,9 @@ class GeocacheCoordinate(geo.Coordinate):
             'marked' : marked,
             'logs' : self.logs,
             'status' : self.status,
-            'vars' : self.vars
+            'vars' : self.vars,
+            'alter_lat' : self.alter_lat,
+            'alter_lon' : self.alter_lon,
         }
                 
     def unserialize(self, data):
@@ -201,6 +232,8 @@ class GeocacheCoordinate(geo.Coordinate):
         else:
             self.vars = data['vars']
         self.status = data['status']
+        self.alter_lat = data['alter_lat']
+        self.alter_lon = data['alter_lon']
 
     def get_waypoints(self):
         if self.waypoints == None or self.waypoints == '':
@@ -262,6 +295,10 @@ class GeocacheCoordinate(geo.Coordinate):
             return self.TYPE_MAPPING[self.type]
         else:
             return self.TYPE_MAPPING[self.TYPE_UNKNOWN]
+
+    def set_alternative_position(self, coord):
+        self.alter_lat = coord.lat
+        self.alter_lon = coord.lon
 
 class FieldnotesUploader(gobject.GObject):
     __gsignals__ = { 'finished-uploading': (gobject.SIGNAL_RUN_FIRST,\

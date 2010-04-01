@@ -716,8 +716,16 @@ class SimpleGui(object):
             else:
                 color = self.COLOR_DEFAULT
 
-            p = self._coord2point(c)
             xgc.set_rgb_fg_color(color)
+
+            p = self._coord2point(c)
+
+            if c.alter_lat != None and (c.alter_lat != 0 and c.alter_lon != 0):
+                print c.alter_lat
+                x = self._coord2point(geo.Coordinate(c.alter_lat, c.alter_lon))
+                if x != p:
+                    self.pixmap_marks.draw_line(xgc, p[0], p[1], x[0], x[1])
+
 
             if draw_short:
                 radius = radius / 2.0
