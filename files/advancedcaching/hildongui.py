@@ -990,7 +990,7 @@ class HildonGui(SimpleGui):
             button = None
             if c.has_requires():
                 label_text += '= %s\n' % c.replaced_result
-                if result != False:
+                if c.result != False:
                     label_text += '= %s\n' % c.result
                 for warning in c.warnings:
                     label_text += "<b>!</b> <span color='gold'>%s</span>\n" % warning
