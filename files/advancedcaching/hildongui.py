@@ -955,7 +955,7 @@ class HildonGui(SimpleGui):
         rows = int(math.ceil(float(count) / float(cols)))
         table = gtk.Table(rows, cols)
         i = 0
-        requires_sort = list(requires)
+        requires_sort = list(self.cache_calc.requires)
         requires_sort.sort()
         for char in requires_sort:
             row = i / cols
