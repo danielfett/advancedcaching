@@ -947,6 +947,7 @@ class HildonGui(SimpleGui):
 
         def input_changed(widget, char):
             self.cache_calc.set_var(char, widget.get_text())
+            self.show_cache_calc_results()
 
         p = gtk.VBox()
         count = len(self.cache_calc.requires)
