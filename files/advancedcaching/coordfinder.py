@@ -40,6 +40,28 @@ HTML = '''
 import geo
 import re
 
+class CalcCoordinateManager():
+    def __init__(self, cache, text):
+        self.vars = cache.get_vars()
+        self.coords, self.requires = coordfinder.CalcCoordinate.find(text)
+        
+    def set_var(self, char, value):
+        if value != '':
+            self.vars[char] = value
+        else:
+            del self.vars[char]
+        self.update()
+
+    def update(self):
+        for c in self.coords:
+            c.set_vars(self.vars)
+            if c.has_requires():
+                result = c.try_get_solution()
+
+    def get_solutions(self):
+        return [c.result for c in self.coords if c.has_requires()]
+    
+        
 
 class CalcCoordinate():
 
@@ -93,10 +115,11 @@ class CalcCoordinate():
         result = ("%%s%s %s.%s %%s%s %s.%s" % tuple(results)) % (self.ns, self.ew)
         #print self.replaced_result
         try:
-            return geo.try_parse_coordinate(result)
+            self.result = geo.try_parse_coordinate(result)
+            self.result.name = self.orig                
         except (Exception):
             self.warnings.append(self.WARNING_CANNOT_PARSE % result)
-            return False
+            self.result = False
         
 
 

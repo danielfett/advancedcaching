@@ -792,9 +792,8 @@ class HildonGui(SimpleGui):
                 self.build_cache_images(cache, notebook)
 
             # calculated coords
-            self.cache_calc_vars = {}
-            self.cache_calc = coordfinder.CalcCoordinate.find(text_longdesc)
-            if len(self.cache_calc[0]) > 0:
+            self.cache_calc = coordfinder.CalcCoordinateManager(cache, text_longdesc)
+            if len(self.cache_calc.vars) > 0:
                 self.build_cache_calc(cache, notebook)
 
         # coords
@@ -947,18 +946,10 @@ class HildonGui(SimpleGui):
     def build_cache_calc(self, cache, notebook):
 
         def input_changed(widget, char):
-            value = widget.get_text()
-            if value != '':
-                self.cache_calc_vars[char] = widget.get_text()
-            else:
-                del self.cache_calc_vars[char]
-            self.show_cache_calc_results()
+            self.cache_calc.set_var(char, widget.get_text())
 
-        
-        coords, requires = self.cache_calc
-        self.cache_calc_vars = cache.get_vars()
         p = gtk.VBox()
-        count = len(requires)
+        count = len(self.cache_calc.requires)
         # create table with n columns.
         cols = 7
         rows = int(math.ceil(float(count) / float(cols)))
@@ -973,8 +964,8 @@ class HildonGui(SimpleGui):
             m.pack_start(gtk.Label(str(char)))
             e = hildon.Entry(gtk.HILDON_SIZE_AUTO)
             e.set_property("hildon-input-mode", gtk.HILDON_GTK_INPUT_MODE_NUMERIC)
-            if char in self.cache_calc_vars.keys():
-                e.set_text(self.cache_calc_vars[char])
+            if char in self.cache_calc.vars.keys():
+                e.set_text(self.cache_calc.vars[char])
             e.connect('changed', input_changed, str(char))
             e.set_size_request(50, -1)
             m.pack_start(e)
@@ -993,25 +984,19 @@ class HildonGui(SimpleGui):
     def show_cache_calc_results(self):
         p = gtk.VBox()
         
-        for c in self.cache_calc[0]:
-            c.set_vars(self.cache_calc_vars)
+        for c in self.cache_calc.coords:
             label_text = '<b>%s</b>\n' % c.orig
             button = None
             if c.has_requires():
-                result = c.try_get_solution()
                 label_text += '= %s\n' % c.replaced_result
                 if result != False:
-                    label_text += '= %s\n' % result
+                    label_text += '= %s\n' % c.result
                 for warning in c.warnings:
                     label_text += "<b>!</b> <span color='gold'>%s</span>\n" % warning
-                if result != False:
-                    button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
-                    button.set_label("use")
-                    button.connect('clicked', self._on_set_target_clicked, result)
             else:
                 label_text += "<i>Needs "
                 for r in c.requires:
-                    if r in self.cache_calc_vars.keys():
+                    if r in self.cache_calc.vars.keys():
                         label_text += "<s>%s </s>" % r
                     else:
                         label_text += "<b>%s </b>" % r
@@ -1071,10 +1056,16 @@ class HildonGui(SimpleGui):
             selector.append_text("%s - %s - %s\n%s" % (w['name'], latlon, w['id'], self._strip_html(w['comment'])))
             clist[i] = coord
             i += 1
+        
         for coord in geo.search_coordinates(cache.notes):
-            selector.append_text(format(coord))
+            selector.append_text("manually entered: " + format(coord))
             clist[i] = coord
             i += 1
+        for coord in self.cache_calc.get_solutions():
+            selector.append_text("calculated: %s = %s" % (coord.name, format(coord)))
+            clist[i] = coord
+            i += 1
+
         selector.connect('changed', callback, clist)
         return selector, clist
 
