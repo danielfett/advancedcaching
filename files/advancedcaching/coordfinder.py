@@ -34,7 +34,9 @@ bei N 49° 45.EBA E 006° 37.DFC und', {}),
 bei
 ei N 49° 45.(A-1)(C-1)(B*E+5) E 006° 37.(B+1)(A)(E+1). ... bei N 49° 45.(G/3)(H)(H-D) E 006° 36. (H-2)(A-D-F)(G/3). Am Referenzpunkt N 49° 45.((G+1)/(A*2))(A)((R-S+1)*D) E 006° 36. (D+1)(H)(1)
 ''', {'A': 2, 'D': 4, 'G': 3,'T': 1, 'R': 2, 'S': 1, 'H': 4, 'B': 2, 'C': 9, 'E': 0, 'F': 1})
+HTML = '''
 
+'''
 import geo
 import re
 
@@ -134,12 +136,16 @@ class CalcCoordinate():
     def find(text):
         foundsigs = []
         text = text.replace('°', '|')
+        text = text.replace(unichr(160), ' ')
+        text = re.sub(ur'''\s+''', ' ', text)
         text = re.sub('''[a-zA-Z]{4,}''', ' | ', text)
-        matches = re.findall(ur'''(?<![a-zA-Z])([NS])\s?([A-Z() -+*/0-9]+?)[ |]{1,2}([A-Z ()+*/0-9-]+)[., ]([A-Z ()+*/0-9-]+)['`\s,]+([EOW])\s?([A-Z() +*/0-9-]+?)[ |]{1,2}([A-Z ()+*/0-9-]+)[., ]([A-Z ()+*/0-9-]+)[\s'`]*(?![a-zA-Z])''', text)
+        print text
+        matches = re.findall(ur'''(?<![a-zA-Z])([NS])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}([A-Za-z ()+*/0-9-]+)[.,\s]([A-Za-z ()+*/0-9-]+)['`\s,/]+([EOW])\s?([A-Za-z() +*/0-9-]+?)[\s|]{1,2}([A-Za-z ()+*/0-9-]+)[.,\s]([A-Za-z ()+*/0-9-]+)[\s'`]*(?![a-zA-Z])''', text)
         found = []
         requires = set()
         for match in matches:
             sig = "|".join(re.sub('[^A-Za-z()+*/0-9-]+', '', x) for x in match)
+            print sig
             if sig in foundsigs:
                 continue
             foundsigs.append(sig)
@@ -151,8 +157,12 @@ class CalcCoordinate():
         return (found, requires)
 '''
 if __name__ == "__main__":
+    from simplegui import SimpleGui
     print '\n\n========================================================='
-    print TEST[0]
+    h = SimpleGui._strip_html(HTML) 
+    print h
+    for x in h:
+        print "%d -> %s" % (ord(x), x)
     print '---------------------------------------------------------'
-    try_find_calc(*TEST)'''
-
+    CalcCoordinate.find(h)
+'''

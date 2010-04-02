@@ -390,8 +390,8 @@ class SimpleGui(object):
         return [p_x, p_y]
                 
         
-                
-    def _decode_htmlentities(self, string):
+    @staticmethod            
+    def _decode_htmlentities(string):
         def substitute_entity(match):
             from htmlentitydefs import name2codepoint as n2cp
             ent = match.group(3)
@@ -1421,8 +1421,9 @@ class SimpleGui(object):
                 
     def refresh(self):
         self.drawing_area.queue_draw()
-                        
-    def replace_image_tag(self, m):
+                       
+    @staticmethod 
+    def replace_image_tag(m):
         if m.group(1) != None and m.group(1).strip() != '':
             return ' [Image: %s] ' % m.group(1).strip()
         else:
@@ -1649,13 +1650,13 @@ class SimpleGui(object):
         c.name = 'manual'
         return c
 
-        
-    def _strip_html(self, text):
+    @staticmethod 
+    def _strip_html(text):
         text = text.replace("\n", " ")
-        text = re.sub(r"""(?i)<img[^>]+alt=["']?([^'"> ]+)[^>]+>""", self.replace_image_tag, text)
+        text = re.sub(r"""(?i)<img[^>]+alt=["']?([^'"> ]+)[^>]+>""", SimpleGui.replace_image_tag, text)
         text = re.sub(r'(?i)<(br|p)[^>]*?>', "\n", text)
         text = re.sub(r'<[^>]*?>', '', text)
-        text = self._decode_htmlentities(text)
+        text = SimpleGui._decode_htmlentities(text)
         text = re.sub(r'[\n\r]+\s*[\n\r]+', '\n', text)
         return text.strip()
                 
