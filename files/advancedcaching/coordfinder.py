@@ -43,7 +43,7 @@ import re
 class CalcCoordinateManager():
     def __init__(self, cache, text):
         self.vars = cache.get_vars()
-        self.coords, self.requires = coordfinder.CalcCoordinate.find(text)
+        self.coords, self.requires = CalcCoordinate.find(text)
         
     def set_var(self, char, value):
         if value != '':
