@@ -793,7 +793,7 @@ class HildonGui(SimpleGui):
 
             # calculated coords
             self.cache_calc = coordfinder.CalcCoordinateManager(cache, text_longdesc)
-            if len(self.cache_calc.vars) > 0:
+            if len(self.cache_calc.coords) > 0:
                 self.build_cache_calc(cache, notebook)
 
         # coords
