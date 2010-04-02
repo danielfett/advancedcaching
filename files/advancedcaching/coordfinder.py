@@ -161,7 +161,7 @@ class CalcCoordinate():
         foundsigs = []
         text = text.replace('°', '|')
         text = text.replace(unichr(160), ' ')
-        text = re.sub(ur'''\s+''', ' ', text)
+        text = re.sub(ur''' +''', ' ', text)
         text = re.sub('''[a-zA-Z]{4,}''', ' | ', text)
         print text
         matches = re.findall(ur'''(?<![a-zA-Z])([NS])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}([A-Za-z ()+*/0-9-]+)[.,\s]([A-Za-z ()+*/0-9-]+)['`\s,/]+([EOW])\s?([A-Za-z() +*/0-9-]+?)[\s|]{1,2}([A-Za-z ()+*/0-9-]+)[.,\s]([A-Za-z ()+*/0-9-]+)[\s'`]*(?![a-zA-Z])''', text)
