@@ -64,11 +64,11 @@ class CalcCoordinate():
         self.lon_min   = self.prepare(lon_min)
         self.lon_min_2 = self.prepare(lon_min_2)
         self.orig = "%s%s %s.%s %s%s %s.%s" % (self.ns, self.lat_deg, self.lat_min, self.lat_min_2, self.ew, self.lon_deg, self.lon_min, self.lon_min_2)
-        self.requires = set([x for i in [self.lat_deg, self.lat_min, self.lat_min_2, self.lon_deg, self.lon_min, self.lon_min_2] for x in re.sub('[^A-Z]', '', i)])
+        self.requires = set([x for i in [self.lat_deg, self.lat_min, self.lat_min_2, self.lon_deg, self.lon_min, self.lon_min_2] for x in re.sub('[^A-Za-z]', '', i)])
         self.warnings = []
 
     def prepare(self, text):
-        return re.sub('[^A-Z()+*/0-9-]', '', text)
+        return re.sub('[^A-Za-z()+*/0-9-]', '', text)
 
     def set_vars(self, var):
         self.warnings = []
