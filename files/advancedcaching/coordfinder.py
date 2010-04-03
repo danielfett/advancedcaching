@@ -44,6 +44,7 @@ class CalcCoordinateManager():
     def __init__(self, cache, text):
         self.vars = cache.get_vars()
         self.coords, self.requires = CalcCoordinate.find(text)
+        self.update()
         
     def set_var(self, char, value):
         if value != '':
