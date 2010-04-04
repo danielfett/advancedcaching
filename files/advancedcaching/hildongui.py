@@ -907,10 +907,9 @@ class HildonGui(SimpleGui):
         button.connect("clicked", set_alternative_position)
         h.pack_start(button)
         
-        a = gtk.Viewport()
-        b = gtk.VBox()
-        a.add(b)
-        b.pack_start(widget_coords)
+        
+        a = hildon.PannableArea.add_with_viewport(widget_coords)
+        #b.pack_start(widget_coords, True, True)
 
         p.pack_start(a, True, True)
         p.pack_start(h, False, True)
