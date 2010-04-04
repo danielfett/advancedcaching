@@ -1073,7 +1073,7 @@ class HildonGui(SimpleGui):
             else:
                 coord = None
                 latlon = '???'
-            selector.append_text(self.wrap("%s - %s - %s\n%s" % (w['name'], latlon, w['id'], self._strip_html(w['comment'])), 100))
+            selector.append_text(self.wrap("%s - %s - %s\n%s" % (w['name'], latlon, w['id'], self._strip_html(w['comment'])), 58))
             clist[i] = coord
             i += 1
         
