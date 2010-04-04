@@ -912,7 +912,7 @@ class HildonGui(SimpleGui):
         a.add(b)
         b.pack_start(widget_coords)
 
-        p.pack_start(b, True, True)
+        p.pack_start(a, True, True)
         p.pack_start(h, False, True)
         widget_coords.show_all()
         h.show_all()
