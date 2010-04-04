@@ -1039,12 +1039,25 @@ class HildonGui(SimpleGui):
         vp.add(i)
         win.show_all()
 
+    @staticmethod
+    def wrap(text, width):
+        """
+        A word-wrap function that preserves existing line breaks
+        and most spaces in the text. Expects that existing line
+        breaks are posix newlines (\n).
+        """
+        return reduce(lambda line, word, width=width: '%s%s%s' %
+                  (line,
+                   ' \n'[(len(line)-line.rfind('\n')-1
+                         + len(word.split('\n',1)[0]
+                              ) >= width)],
+                   word),
+                  text.split(' ')
+                 )
+
     def _get_coord_selector(self, cache, callback, no_empty=False):
         selector = hildon.TouchSelector(text=True)
         selector.get_column(0).get_cells()[0].set_property('xalign', 0)
-        selector.get_column(0).get_cells()[0].set_property('ellipsize', pango.ELLIPSIZE_MIDDLE)
-        selector.get_column(0).get_cells()[0].set_property('wrap-width', 300)
-        selector.get_column(0).get_cells()[0].set_property('wrap-mode', pango.WRAP_WORD_CHAR)
         selector.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_SINGLE)
 
         format = lambda n: "%s %s" % (re.sub(r' ', '', n.get_lat(self.format)), re.sub(r' ', '', n.get_lon(self.format)))
@@ -1060,7 +1073,7 @@ class HildonGui(SimpleGui):
             else:
                 coord = None
                 latlon = '???'
-            selector.append_text("%s - %s - %s\n%s" % (w['name'], latlon, w['id'], self._strip_html(w['comment'])))
+            selector.append_text(self.wrap("%s - %s - %s\n%s" % (w['name'], latlon, w['id'], self._strip_html(w['comment'])), 100)
             clist[i] = coord
             i += 1
         
