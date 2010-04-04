@@ -163,11 +163,12 @@ class CalcCoordinate():
 
     @staticmethod
     def find(text):
+        print text
         foundsigs = []
+        text = re.sub(ur'''\b[a-zA-Z]{2,}\b''', ' | ', text)
         text = text.replace('°', '|')
         text = text.replace(unichr(160), ' ')
         text = re.sub(ur''' +''', ' ', text)
-        text = re.sub(ur'''\b[a-zA-Z]{2,}\b''', ' | ', text)
         print text
         matches = re.findall(ur'''(?<![a-zA-Z])([NS+-ns])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}([A-Za-z ()+*/0-9-]+)[.,\s]([A-Za-z ()+*/0-9-]+)['`\s,/]+([EOW+-eow])\s?([A-Za-z() +*/0-9-]+?)[\s|]{1,2}([A-Za-z ()+*/0-9-]+)[.,\s]([A-Za-z ()+*/0-9-]+)[\s'`]*(?![a-zA-Z])''', text)
         found = []
