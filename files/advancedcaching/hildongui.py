@@ -909,7 +909,7 @@ class HildonGui(SimpleGui):
         
         a = gtk.Viewport()
         b = gtk.VBox()
-        a.add_child(b)
+        a.add(b)
         b.pack_start(widget_coords)
 
         p.pack_start(b, True, True)
