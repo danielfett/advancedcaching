@@ -1058,7 +1058,6 @@ class HildonGui(SimpleGui):
     def _get_coord_selector(self, cache, callback, no_empty=False):
         selector = hildon.TouchSelector(text=True)
         selector.get_column(0).get_cells()[0].set_property('xalign', 0)
-        selector.get_column(0).get_cells()[0].set_property('height', 100)
         selector.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_SINGLE)
         number_of_rows = 0
         format = lambda n: "%s %s" % (re.sub(r' ', '', n.get_lat(self.format)), re.sub(r' ', '', n.get_lon(self.format)))
@@ -1074,8 +1073,7 @@ class HildonGui(SimpleGui):
             else:
                 coord = None
                 latlon = '???'
-            text = self.wrap("%s - %s - %s\n%s" % (w['name'], latlon, w['id'], self._strip_html(w['comment'])), 58)
-            number_of_rows = max(text.count("\n"), number_of_rows)
+            text = self.wrap("%s - %s - %s\n%s" % (w['name'], latlon, w['id'], self._strip_html(w['comment'])), 80)
             selector.append_text(text)
             clist[i] = coord
             i += 1

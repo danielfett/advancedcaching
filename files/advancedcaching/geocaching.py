@@ -681,7 +681,7 @@ class CacheDownloader(gobject.GObject):
         return points
                 
     def __parse_cache_page(self, cache_page, coordinate):
-        indesc = inshortdesc = inwaypoints = False
+        indesc = inshortdesc = inwaypoints = inhints = False
         inhead = True
         shortdesc = desc = hints = waypoints = images = logs = owner = ''
         for line in cache_page:
@@ -699,8 +699,13 @@ class CacheDownloader(gobject.GObject):
                 inhead = False
                 inshortdesc = False
                 indesc = False
-            elif line.startswith('<p><span id="ctl00_ContentBody_Hints" class="displayMe">'):
-                hints = re.compile('<span id="ctl00_ContentBody_Hints"[^>]+>(.*?)</span>').search(line).group(1)
+            elif line.startswith('<div id="div_hint" class="HalfLeft">'):
+                inhead = False
+                inshortdesc = False
+                indesc = False
+                inhints = True
+            elif inhints and line.startswith('</div>'):
+                inhints = False
             elif line.startswith('<div id="ctl00_ContentBody_uxlrgMap" class="fr"> '):
                 inhead = False
                 inshortdesc = False
@@ -733,8 +738,8 @@ class CacheDownloader(gobject.GObject):
             if indesc:
                 desc += "%s\n" % line
                 
-            #if inhints:
-            #    hints += "%s\n" % line
+            if inhints:
+                hints += line + " "
                 
             if inwaypoints:
                 waypoints += "%s  " % line
