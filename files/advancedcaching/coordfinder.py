@@ -165,7 +165,7 @@ class CalcCoordinate():
         text = re.sub(ur''' +''', ' ', text)
         text = re.sub('''[a-zA-Z]{4,}''', ' | ', text)
         print text
-        matches = re.findall(ur'''(?<![a-zA-Z])([NS+-ns]?)\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}([A-Za-z ()+*/0-9-]+)[.,\s]([A-Za-z ()+*/0-9-]+)['`\s,/]+([EOW+-eow]?)\s?([A-Za-z() +*/0-9-]+?)[\s|]{1,2}([A-Za-z ()+*/0-9-]+)[.,\s]([A-Za-z ()+*/0-9-]+)[\s'`]*(?![a-zA-Z])''', text)
+        matches = re.findall(ur'''(?<![a-zA-Z])([NS+-ns])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}([A-Za-z ()+*/0-9-]+)[.,\s]([A-Za-z ()+*/0-9-]+)['`\s,/]+([EOW+-eow])\s?([A-Za-z() +*/0-9-]+?)[\s|]{1,2}([A-Za-z ()+*/0-9-]+)[.,\s]([A-Za-z ()+*/0-9-]+)[\s'`]*(?![a-zA-Z])''', text)
         found = []
         requires = set()
         for match in matches:
