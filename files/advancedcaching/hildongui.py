@@ -792,7 +792,10 @@ class HildonGui(SimpleGui):
                 self.build_cache_images(cache, notebook)
 
             # calculated coords
-            self.cache_calc = coordfinder.CalcCoordinateManager(cache, text_longdesc)
+            text = text_longdesc
+            for w in cache.get_waypoints():
+                text += " | " + w['comment']
+            self.cache_calc = coordfinder.CalcCoordinateManager(cache, text)
             if len(self.cache_calc.coords) > 0:
                 self.build_cache_calc(cache, notebook)
 
@@ -1039,6 +1042,8 @@ class HildonGui(SimpleGui):
     def _get_coord_selector(self, cache, callback, no_empty=False):
         selector = hildon.TouchSelector(text=True)
         selector.get_column(0).get_cells()[0].set_property('xalign', 0)
+        selector.get_column(0).get_cells()[0].set_property('wrap-mode', gtk.WRAP_WORD_CHAR)
+        selector.get_column(0).get_cells()[0].set_property('wrap-width', 300)
         selector.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_SINGLE)
 
         format = lambda n: "%s %s" % (re.sub(r' ', '', n.get_lat(self.format)), re.sub(r' ', '', n.get_lon(self.format)))
