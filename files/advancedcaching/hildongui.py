@@ -794,7 +794,7 @@ class HildonGui(SimpleGui):
             # calculated coords
             text = text_longdesc
             for w in cache.get_waypoints():
-                text += " | " + self._strip_html(w['comment'])
+                text += " | " + w['comment']
             self.cache_calc = coordfinder.CalcCoordinateManager(cache, text)
             if len(self.cache_calc.coords) > 0:
                 self.build_cache_calc(cache, notebook)

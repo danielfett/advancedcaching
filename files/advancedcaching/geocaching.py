@@ -399,7 +399,7 @@ class CacheDownloader(gobject.GObject):
 
     @staticmethod
     def __replace_br(text):
-        return re.sub('<[bB][rR]\s*/?>|</[pP]>', '\n', text)
+        return re.sub('<[bB][rR]\s*/?>|</?[pP]>', '\n', text)
 
     def __treat_hints(self, hints):
         hints = self.__strip_html(self.__replace_br(hints)).strip()
@@ -453,7 +453,7 @@ class CacheDownloader(gobject.GObject):
                              'lon': self.__from_dm(m.group('lon_sign'), m.group('lon_d'), m.group('lon_m')),
                              'id': "%s%s" % m.group('id_prefix', 'id'),
                              'name': self.__decode_htmlentities(m.group('name')),
-                             'comment': self.__decode_htmlentities(self.__strip_html(self.__replace_br(m.group('comment'))))
+                             'comment': self.__decode_htmlentities(self.__strip_html(self.__replace_br(m.group('comment')), True))
                              })
 
         return waypoints
