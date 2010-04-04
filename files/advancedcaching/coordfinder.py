@@ -36,6 +36,10 @@ ei N 49° 45.(A-1)(C-1)(B*E+5) E 006° 37.(B+1)(A)(E+1). ... bei N 49° 45.(G/3)
 ''', {'A': 2, 'D': 4, 'G': 3,'T': 1, 'R': 2, 'S': 1, 'H': 4, 'B': 2, 'C': 9, 'E': 0, 'F': 1})
 HTML = '''
 
+			        <td>Note:</td> 
+			        <td colspan="4">Hier findest du die erste Dose mit weiteren Informationen. S3 findest du bei<p>N49° 21.10(A-1)' E6° 40.(A-1)04'</td> 
+			        <td>&nbsp;</td> 
+		        </tr>  
 '''
 import geo
 import re
@@ -163,7 +167,7 @@ class CalcCoordinate():
         text = text.replace('°', '|')
         text = text.replace(unichr(160), ' ')
         text = re.sub(ur''' +''', ' ', text)
-        text = re.sub('''[a-zA-Z]{4,}''', ' | ', text)
+        text = re.sub(ur'''\b[a-zA-Z]{2,}\b''', ' | ', text)
         print text
         matches = re.findall(ur'''(?<![a-zA-Z])([NS+-ns])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}([A-Za-z ()+*/0-9-]+)[.,\s]([A-Za-z ()+*/0-9-]+)['`\s,/]+([EOW+-eow])\s?([A-Za-z() +*/0-9-]+?)[\s|]{1,2}([A-Za-z ()+*/0-9-]+)[.,\s]([A-Za-z ()+*/0-9-]+)[\s'`]*(?![a-zA-Z])''', text)
         found = []
