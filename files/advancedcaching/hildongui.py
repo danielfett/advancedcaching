@@ -906,8 +906,13 @@ class HildonGui(SimpleGui):
         button.set_label("set as main coordinate")
         button.connect("clicked", set_alternative_position)
         h.pack_start(button)
+        
+        a = gtk.Viewport()
+        b = gtk.VBox()
+        a.add_child(b)
+        b.pack_start(widget_coords)
 
-        p.pack_start(widget_coords, True, True)
+        p.pack_start(b, True, True)
         p.pack_start(h, False, True)
         widget_coords.show_all()
         h.show_all()
@@ -1058,7 +1063,6 @@ class HildonGui(SimpleGui):
     def _get_coord_selector(self, cache, callback, no_empty=False):
         selector = hildon.TouchSelector(text=True)
         selector.get_column(0).get_cells()[0].set_property('xalign', 0)
-        selector.get_column(0).get_cells()[0].set_fixed_height_from_font(4)
         selector.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_SINGLE)
         number_of_rows = 0
         format = lambda n: "%s %s" % (re.sub(r' ', '', n.get_lat(self.format)), re.sub(r' ', '', n.get_lon(self.format)))
