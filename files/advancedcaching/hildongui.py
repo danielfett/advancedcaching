@@ -727,7 +727,7 @@ class HildonGui(SimpleGui):
             p.attach(gtk.Label("Please download full details to see the description."), 0, 2, 9, 10)
         
         notebook.append_page(p, gtk.Label("info"))
-
+        self.cache_calc = None
         if cache.was_downloaded():
         
             # desc
@@ -1353,8 +1353,9 @@ class HildonGui(SimpleGui):
 
 
     def hide_cache_view(self, widget=None, data=None):
-        self.current_cache.set_vars(self.cache_calc.vars)
-        self.core.set_cache_calc_vars(self.current_cache, self.current_cache.vars)
+        if self.cache_calc != None;
+            self.current_cache.set_vars(self.cache_calc.vars)
+            self.core.set_cache_calc_vars(self.current_cache, self.current_cache.vars)
         self.current_cache_window_open = False
         if self.notes_changed:
             self.core.on_notes_changed(self.current_cache, self.get_cache_notes())
