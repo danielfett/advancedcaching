@@ -1083,6 +1083,8 @@ class HildonGui(SimpleGui):
             i += 1
         if self.cache_calc != None:
             for coord in self.cache_calc.get_solutions():
+                if coord == False:
+                    continue
                 selector.append_text("calculated: %s = %s" % (coord.name, format(coord)))
                 clist[i] = coord
                 i += 1

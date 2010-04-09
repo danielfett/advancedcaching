@@ -143,7 +143,10 @@ class CalcCoordinate():
             # determine number of leading zeros
             #lz = len(text) - len(str(int(text)))
             text = self.safe_eval(text)
-            text = "%03d" % int(text)
+            try:
+                text = "%03d" % int(text)
+            except Exception, e:
+                text = '?'
         return text
 
     def safe_eval(self, text):
@@ -151,7 +154,7 @@ class CalcCoordinate():
             tmp = eval(text,{"__builtins__":None},{})
         except (SyntaxError, Exception):
             self.warnings.append(self.WARNING_SYNTAX)
-            return 'X'
+            return '?'
         if round(tmp) != round(tmp, 1):
             self.warnings.append(self.WARNING_FLOAT % text)
         tmp = int(tmp)
