@@ -82,7 +82,7 @@ def search_coordinates(text):
 
     output = []
 
-    matches = re.finditer(ur'''(?i)([NS+-]?)\s?(\d\d?\d?)[ °]{0,2}(\d\d?\d?)[., ](\d+)['\s,]+([EOW+-]?)\s?(\d{1,3})[ °]{0,2}(\d\d?\d?)[., ](\d+)?[\s']*''', text)
+    matches = re.finditer(ur'''(?i)([NS+-]?)\s?(\d\d?\d?)[ °]{1,2}(\d\d?\d?)[., ](\d+)['\s,]+([EOW+-]?)\s?(\d{1,3})[ °]{1,2}(\d\d?\d?)[., ](\d+)?[\s']*''', text)
     for match in matches:
         c = Coordinate(0, 0)
         if match.group(1) in ['sS-']:
