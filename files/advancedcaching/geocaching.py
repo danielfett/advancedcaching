@@ -720,7 +720,7 @@ class CacheDownloader(gobject.GObject):
             elif line.startswith('<p><span id="ctl00_ContentBody_Images">'):
                 images = line
             elif line.startswith('<span id="ctl00_ContentBody_LatLon" style="font-weight:bold;">'):
-                coords = re.compile('lat=([0-9.]+)&amp;lon=([0-9.]+)&amp;').search(line)
+                coords = re.compile('lat=([0-9.-]+)&amp;lon=([0-9.-]+)&amp;').search(line)
             elif line.startswith('<p><span id="ctl00_ContentBody_CacheLogs">'):
                 logs = line
             if inhead:

@@ -423,8 +423,11 @@ class Core(gobject.GObject):
     # called on signal by downloading thread
     def on_download_error(self, something, error):
         print error
-        self.gui.hide_progress()
-        self.gui.show_error(error)
+        def same_thread(error):
+            self.gui.hide_progress()
+            self.gui.show_error(error)
+            return False
+        gobject.idle_add(same_thread, error)
 
     # called by gui
     def on_download_cache(self, cache, sync=False):
