@@ -21,11 +21,19 @@
 import math
 import re
 
+try:
+    import location
+except (ImportError):
+    pass
+
+
 def try_parse_coordinate(text):
     
     text = text.strip()
+    # got some problems with the degree symbol in regexes.
+    text = text.replace('°', ' ')
     #                         1        2          3           4            5         6            7           8
-    match = re.match(ur'''(?i)^([NS+-]?)(\d\d?)[ °](\d\d?)[., ](\d+)['\s,]+([EOW+-]?)(\d{1,3})[ °](\d\d?)[., ](\d+)?[\s']*$''', text)
+    match = re.match(ur'''(?i)^([NS+-]?)\s?(\d\d?\d?)[ °]{0,2}(\d\d?\d?)[., ](\d+)['\s,]+([EOW+-]?)\s?(\d{1,3})[ °]{0,2}(\d\d?\d?)[., ](\d+)?[\s']*$''', text)
     if match != None:
         c = Coordinate(0, 0)
         if match.group(1) in ['sS-']:
@@ -45,7 +53,7 @@ def try_parse_coordinate(text):
         return c
     
     #                         1        2           3         4         5             6
-    match = re.match(ur'''(?i)^([NS+-]?)\s?(\d\d?)[., ](\d+)°?[\s,]+([EOW+-]?)\s?(\d{1,3})[., ](\d+)°?\s*$''', text)
+    match = re.match(ur'''(?i)^([NS+-]?)\s?(\d\d?)[., ](\d+)[°']?[\s,]+([EOW+-]?)\s?(\d{1,3})[., ](\d+)['°]?\s*$''', text)
     
     if match != None:
         c = Coordinate(0, 0)
@@ -63,12 +71,60 @@ def try_parse_coordinate(text):
         c.lon = sign_lon * float("%s.%s" % (match.group(5), match.group(6)))
         return c
     
-    raise Exception("Could not parse this input as a coordinate: %s\nExample Input: N49 44.111 E6 12.123" % text)
+    raise Exception("Could not parse this input as a coordinate: '%s'\nExample Input: N49 44.111 E6 12.123" % text)
+
+def search_coordinates(text):
+
+    text = text.strip()
+    # got some problems with the degree symbol in regexes.
+    text = text.replace('°', ' ')
+    #
+
+    output = []
+
+    matches = re.finditer(ur'''(?i)([NS+-]?)\s?(\d\d?\d?)[ °]{1,2}(\d\d?\d?)[., ](\d+)['\s,]+([EOW+-]?)\s?(\d{1,3})[ °]{1,2}(\d\d?\d?)[., ](\d+)?[\s']*''', text)
+    for match in matches:
+        c = Coordinate(0, 0)
+        if match.group(1) in ['sS-']:
+            sign_lat = -1
+        else:
+            sign_lat = 1
+        if match.group(5) in ['wW-']:
+            sign_lon = -1
+        else:
+            sign_lon = 1
+
+        c.from_dm(sign_lat * int(match.group(2)),
+            sign_lat * float("%s.%s" % (match.group(3), match.group(4))),
+            sign_lon * int(match.group(6)),
+            sign_lon * float("%s.%s" % (match.group(7), match.group(8)))
+            )
+        output.append(c)
+
+    #                         1        2           3         4         5             6
+    matches = re.finditer(ur'''(?i)([NS+-]?)\s?(\d\d?)[.,](\d+)[°']?[\s,]+([EOW+-]?)\s?(\d{1,3})[.,](\d+)['°]?\s*''', text)
+    for match in matches:
+        c = Coordinate(0, 0)
+        if match.group(1) in ['sS-']:
+            sign_lat = -1
+        else:
+            sign_lat = 1
+        if match.group(4) in ['wW-']:
+            sign_lon = -1
+        else:
+            sign_lon = 1
+
+        # not using math magic here: this is more error-free :-)
+        c.lat = sign_lat * float("%s.%s" % (match.group(2), match.group(3)))
+        c.lon = sign_lon * float("%s.%s" % (match.group(5), match.group(6)))
+
+        output.append(c)
+    return output
 
 class Coordinate():
     SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT'}
     
-    RADIUS_EARTH = 6371000
+    RADIUS_EARTH = 6371000.0
     
     FORMAT_D = 0
     FORMAT_DM = 1
@@ -79,6 +135,10 @@ class Coordinate():
         self.lat = lat
         self.lon = lon
         self.name = name
+        try:
+            self.distance_to = self.distance_to_liblocation
+        except Exception:
+            self.distance_to = self.distance_to_manual
             
     def from_d(self, lat, lon):
         self.lat = lat
@@ -176,12 +236,16 @@ class Coordinate():
         elif format == self.FORMAT_DM:
             return "%s %d° %06.3f'" % (c, math.floor(l), (l - math.floor(l)) * 60)
 
-    def distance_to (self, target):
+    def distance_to_manual (self, target):
         dlat = math.pow(math.sin(math.radians(target.lat-self.lat) / 2), 2)
         dlon = math.pow(math.sin(math.radians(target.lon-self.lon) / 2), 2)
         a = dlat + math.cos(math.radians(self.lat)) * math.cos(math.radians(target.lat)) * dlon;
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a));
         return self.RADIUS_EARTH * c;
+
+    def distance_to_liblocation(self, target):
+        return location.distance_between(self.lat, self.lon, target.lat, target.lon) * 1000
+
 
     def __str__(self):
         return "%s %s" % (self.get_lat(Coordinate.FORMAT_DM), self.get_lon(Coordinate.FORMAT_DM))

@@ -1,3 +1,4 @@
+
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
@@ -21,7 +22,15 @@
 import geo
 import socket
 
+try:
+    import location
+except (ImportError):
+    print "If you're on maemo, please install python-location"
+
 class Fix():
+    BEARING_HOLD_EPD = 90 # arbitrary, yet non-random value
+    last_bearing = 0
+    
     def __init__(self,
             position = None,
             altitude = None,
@@ -31,7 +40,8 @@ class Fix():
             sats_known = 0,
             dgps = False,
             quality = 0,
-            error = 0):
+            error = 0,
+            error_bearing = 0):
         self.position = position
         self.altitude = altitude
         self.bearing = bearing
@@ -41,6 +51,28 @@ class Fix():
         self.dgps = dgps
         self.quality = quality
         self.error = error
+        self.error_bearing = error_bearing
+
+    @staticmethod
+    def from_tuple(f, device):
+        a = Fix()
+        if (not f[1] & (location.GPS_DEVICE_LATLONG_SET | location.GPS_DEVICE_ALTITUDE_SET | location.GPS_DEVICE_TRACK_SET)):
+            return a
+        a.position = geo.Coordinate(f[4], f[5])
+        a.altitude = f[7]
+        if f[10] > Fix.BEARING_HOLD_EPD:
+            a.bearing = Fix.last_bearing
+        else:
+            a.bearing = f[9]
+            Fix.last_bearing = a.bearing
+        a.speed = f[11]
+        a.sats = device.satellites_in_use
+        a.sats_known = device.satellites_in_view
+        a.dgps = False
+        a.quality = 0
+        a.error = f[6]/100.0
+        a.error_bearing = f[10]
+        return a
 
 class GpsReader():
 
@@ -51,8 +83,7 @@ class GpsReader():
 
     EMPTY = Fix()
 
-    def __init__(self, gui):
-        self.gui = gui
+    def __init__(self):
         self.status = "connecting..."
         self.connected = False
         self.last_bearing = 0
@@ -124,6 +155,7 @@ class GpsReader():
                 splitted = data.split(' ')
                 lat, lon, alt, err_hor = splitted[3:7]
                 track, speed = splitted[8:10]
+                err_track = splitted[11]
             except:
                 print "GPSD Output: \n%s\n  -- cannot be parsed." % data
                 self.status = "Could not read GPSD output."
@@ -131,6 +163,7 @@ class GpsReader():
             track = self.to_float(track)
             speed = self.to_float(speed)
             err_hor = self.to_float(err_hor)
+            err_track = self.to_float(err_track)
 
             # the following is probably wrong:
             #
@@ -153,10 +186,6 @@ class GpsReader():
             #self.speeds.append(speed)
             #print "Aktuell %f, max: %f" % (speed, max(self.speeds))
 
-            if speed < self.BEARING_HOLD_SPEED:
-                track = self.last_bearing
-            else:
-                self.last_bearing = track
             return Fix(
                 position =geo.Coordinate(float(lat), float(lon)),
                 altitude = alt,
@@ -166,9 +195,10 @@ class GpsReader():
                 sats_known = sats_known,
                 dgps = dgps,
                 quality = quality,
-                error = err_hor
+                error = err_hor,
+                error_bearing = err_track
                 )
-        except Exception as e:
+        except Exception, e:
             print "Fehler beim Auslesen der Daten: %s " % e
             return self.EMPTY
 
@@ -179,31 +209,155 @@ class GpsReader():
         except:
             return 0.0
 
+class LocationGpsReader():
+    def __init__(self, cb_error, cb_changed):
+        print "+ Using liblocation GPS device"
+
+        control = location.GPSDControl.get_default()
+        device = location.GPSDevice()
+        control.set_properties(preferred_method = location.METHOD_CWP | location.METHOD_ACWP | location.METHOD_GNSS | location.METHOD_AGNSS, preferred_interval=location.INTERVAL_1S)
+        control.connect("error-verbose", cb_error)
+        device.connect("changed", cb_changed)
+        self.control = control
+        self.device = device
+
+
+    def start(self):
+        self.control.start()
+        return False
+
+    @staticmethod
+    def get_error_from_code(error):
+        if error == location.ERROR_USER_REJECTED_DIALOG:
+            return "Requested GPS method not enabled"
+        elif error == location.ERROR_USER_REJECTED_SETTINGS:
+            return "Location disabled due to change in settings"
+        elif error == location.ERROR_BT_GPS_NOT_AVAILABLE:
+            return "Problems with BT GPS"
+        elif error == location.ERROR_METHOD_NOT_ALLOWED_IN_OFFLINE_MODE:
+            return "Requested method is not allowed in offline mode"
+        elif error == location.ERROR_SYSTEM:
+            return "System error"
+
 
 class FakeGpsReader():
 
 
-    START_LAT = 49.6
-    START_LON = 6.6
-    INC = 0.001
+    INC = 0.0001
     
 
-    def __init__(self, gui):
-        self.gui = gui
-        self.status = "faking..."
-        self.current_lat, self.current_lon = (self.START_LAT, self.START_LON)
+    def __init__(self, something):
+        self.status = "Fake GPS reader."
+        self.index = -1
+        self.data = [x.split('\t') for x in self.TESTDATA.split("\n")]
+        self.lastpos = None
+
+    @staticmethod
+    def get_target():
+        return geo.Coordinate(50.0000798795372000, 6.9949468020349700)
 
     def get_data(self):
-        print "faking"
-        self.current_lat += self.INC
-        self.current_lon += self.INC
+        if self.index < len(self.data) - 1:
+            self.index += 1
+        if self.data[self.index][0] == '0':
+            return Fix()
+        pos = geo.Coordinate(float(self.data[self.index][0]), float(self.data[self.index][1]))
+
+        if self.lastpos != None:
+            bearing = self.lastpos.bearing_to(pos)
+        else:
+            bearing = 0
+        self.lastpos = pos
         return Fix(
-            position =geo.Coordinate(self.current_lat, self.current_lon),
-            altitude = 212,
-            bearing = 120,
+            position = pos,
+            altitude = 5,
+            bearing = bearing,
             speed = 2,
-            sats = 42,
-            sats_known = 42,
+            sats = 12,
+            sats_known = 6,
             dgps = True,
-            quality = 0
+            quality = 0,
+            error = 50,
+            error_bearing = 10
             )
+
+    TESTDATA = '''0	0
+0	0
+0	0
+50.0000000000000000	7.0000000000000000
+49.9999706633389000	7.0001229625195300
+49.9997950624675000	7.0003442447632600
+49.9997997563332000	7.0004659499973100
+49.9997218046337000	7.0005903374403700
+49.9995578546077000	7.0006271339952900
+49.9994435254484000	7.0008635874837600
+49.9993037991226000	7.0009828619659000
+49.9992146994919000	7.0010608136653900
+49.9991217441857000	7.0012173876166300
+49.9990843608975000	7.0012444611638800
+49.9990095943213000	7.0015110895037700
+49.9988885596395000	7.0016821641475000
+0	0
+0	0
+0	0
+49.9987537786365000	7.0018086470663600
+49.9985118769109000	7.0020990800112500
+49.9983842205256000	7.0021572504192600
+49.9982605036348000	7.0022816378623300
+49.9980872496963000	7.0023336894810200
+49.9979986529797000	7.0024224538356100
+49.9979185219854000	7.0025429017841800
+49.9978181067854000	7.0025481823831800
+49.9976762011647000	7.0025224499404400
+49.9975882750005000	7.0024726614356000
+49.9974449444562000	7.0023075379431300
+49.9973412603140000	7.0022041890770200
+49.9972049705684000	7.0021101441234400
+0	0
+0	0
+0	0
+49.9970952514559000	7.0020336173474800
+49.9969987757504000	7.0019501335918900
+49.9968421179801000	7.0017190445214500
+49.9967520125210000	7.0016104150563500
+49.9966504238546000	7.0015143584460000
+49.9965638387948000	7.0014302041381600
+49.9964761640877000	7.0013357400894200
+49.9963049218059000	7.0011528469622100
+49.9962143134326000	7.0009845383465300
+49.9961593281478000	7.0008703768253300
+49.9960857350379000	7.0007528625428700
+49.9960248824209000	7.0006081908941300
+49.9959259759635000	7.0004951190203400
+49.9958231300116000	7.0003485195338700
+49.9957155063748000	7.0002043507993200
+49.9956013448536000	7.0000658817589300
+49.9954995047301000	6.9999083019793000
+49.9954301863909000	6.9997342936694600
+49.9954084772617000	6.9995050486177200
+49.9953969940543000	6.9992866162210700
+49.9965626653284000	6.9970068223774400
+49.9966021440923000	6.9968105182051700
+49.9968151282519000	6.9966180697083500
+49.9971344787627000	6.9964923411607700
+49.9972403421998000	6.9964339192956700
+49.9973804876208000	6.9963862262666200
+49.9979287479073000	6.9956857506185800
+49.9980570748448000	6.9955223873257600
+49.9982320051640000	6.9954270012676700
+49.9984868150204000	6.9951742030680200
+49.9985938519239000	6.9949829280376400
+49.9986792635173000	6.9948330596089400
+49.9987863004208000	6.9947258550673700
+49.9990340694785000	6.9947269447147800
+49.9992224946618000	6.9946833588182900
+49.9994972534478000	6.9947828520089400
+49.9996298551559000	6.9948167987167800
+49.9997046217322000	6.9948615580797200
+49.9997673183680000	6.9949107598513400
+49.9999811407179000	6.9948655813932400
+50.0000479444861000	6.9948898889124400
+50.0000799633563000	6.9948716163635300
+50.0000798795372000	6.9949468020349700'''
+    pass
+

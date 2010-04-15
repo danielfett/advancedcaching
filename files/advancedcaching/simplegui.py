@@ -139,6 +139,8 @@ class SimpleGui(object):
         self.noimage_loading = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-loading.png'))
         
         self.core = core
+        self.core.connect('map-changed', self._on_map_changed)
+        self.core.connect('cache-changed', self._on_cache_changed)
         self.pointprovider = pointprovider
         self.userpointprovider = userpointprovider
         
@@ -174,6 +176,18 @@ class SimpleGui(object):
         xml = gtk.glade.XML(os.path.join(dataroot, self.XMLFILE))
         self.load_ui()
         # self.build_tile_loaders()
+
+    def _on_cache_changed(self, something, cache):
+        
+        if self.current_cache != None \
+            and cache.name == self.current_cache.name:
+            self.show_cache(cache)
+        return False
+
+
+    def _on_map_changed(self, something):
+        self.redraw_marks()
+        return False
 
     def build_tile_loaders(self):
         self.tile_loaders = []
@@ -1014,8 +1028,6 @@ class SimpleGui(object):
 
     def on_download_clicked(self, widget, data=None):
         self.core.on_download(self.get_visible_area())
-        
-        self._draw_map()
 
 
     def on_download_details_map_clicked(self, some, thing=None):
@@ -1064,7 +1076,6 @@ class SimpleGui(object):
                 
     def on_download_cache_clicked(self, something):
         self.core.on_download_cache(self.current_cache)
-        self.show_cache(self.current_cache)
         
     def on_export_cache_clicked(self, something):
         if self.input_export_path.get_value().strip() == '':
@@ -1523,7 +1534,7 @@ class SimpleGui(object):
         self.notebook_all.set_current_page(2)
 
         # Update view here for fast user feedback
-        self.do_events()
+        #self.do_events()
 
         # logs
         logs = cache.get_logs()
@@ -1544,7 +1555,7 @@ class SimpleGui(object):
             text_hints += '\n----------------\n'
         else:
             text_hints = 'NO LOGS.\n\n'
-        
+
 
         # hints
         hints = cache.hints.strip()
@@ -1570,7 +1581,7 @@ class SimpleGui(object):
                         
         # Set button for downloading to correct state
         self.button_download_details.set_sensitive(True)
-                
+
         # Load notes
         self.cache_elements['notes'].set_text(cache.notes)
         self.cache_elements['fieldnotes'].set_text(cache.fieldnotes)
@@ -1600,7 +1611,7 @@ class SimpleGui(object):
         # now, update the main text field a second time
         self.cache_elements['desc'].set_text(showdesc)
 
-        gobject.idle_add(self._draw_marks)
+        #gobject.idle_add(self._draw_marks)
         #self.refresh()
 
 

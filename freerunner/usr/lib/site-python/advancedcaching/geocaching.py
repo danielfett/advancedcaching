@@ -18,11 +18,16 @@
 #        Author: Daniel Fett advancedcaching@fragcom.de
 #
 
-import json
+try:
+    import json
+    json.dumps
+except (ImportError, AttributeError):
+    import simplejson as json	 
 import math
 import geo
 import os
 import datetime
+import threading
 global Image
 try:
     import Image
@@ -30,6 +35,7 @@ except:
     Image = None
     print "Not using image resize feature"
 import re
+import gobject
 
 
 
@@ -46,6 +52,7 @@ class GeocacheCoordinate(geo.Coordinate):
     TYPE_MYSTERY = 'mystery'
     TYPE_WEBCAM = 'webcam'
     TYPE_UNKNOWN = 'unknown'
+    TYPE_EARTH = 'earth'
     TYPES = [
         TYPE_REGULAR,
         TYPE_MULTI,
@@ -53,19 +60,60 @@ class GeocacheCoordinate(geo.Coordinate):
         TYPE_EVENT,
         TYPE_MYSTERY,
         TYPE_WEBCAM,
-        TYPE_UNKNOWN
+        TYPE_UNKNOWN,
+        TYPE_EARTH
     ]
 
     STATUS_NORMAL = 0
     STATUS_DISABLED = 1
+    STATUS_ARCHIVED = 2
+    STATUS_TEXT = ['normal', 'not available!']
 
     LOG_TYPE_FOUND = 'smile'
     LOG_TYPE_NOTFOUND = 'sad'
     LOG_TYPE_NOTE = 'note'
     LOG_TYPE_MAINTENANCE = 'maint'
 
+    SIZES = ['other', 'micro', 'small', 'regular', 'big', 'other']
 
-    SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT PRIMARY KEY', 'title': 'TEXT', 'shortdesc': 'TEXT', 'desc': 'TEXT', 'hints': 'TEXT', 'type': 'TEXT', 'size': 'INTEGER', 'difficulty': 'INTEGER', 'terrain': 'INTEGER', 'owner': 'TEXT', 'found': 'INTEGER', 'waypoints': 'text', 'images': 'text', 'notes': 'TEXT', 'fieldnotes': 'TEXT', 'logas': 'INTEGER', 'logdate': 'TEXT', 'marked' : 'INTEGER', 'logs' : 'TEXT', 'status' : 'INTEGER'}
+    TYPE_MAPPING = {
+        TYPE_MULTI: 'Multi-cache',
+        TYPE_REGULAR: 'Traditional Cache',
+        TYPE_EARTH: 'Earthcache',
+        TYPE_UNKNOWN: 'Unknown Cache',
+        TYPE_EVENT: 'Event Cache',
+        TYPE_WEBCAM: 'Webcam Cache',
+        TYPE_VIRTUAL: 'Virtual Cache'
+    }
+
+
+    SQLROW = {
+        'lat': 'REAL',
+        'lon': 'REAL',
+        'name': 'TEXT PRIMARY KEY',
+        'title': 'TEXT',
+        'shortdesc': 'TEXT',
+        'desc': 'TEXT',
+        'hints': 'TEXT',
+        'type': 'TEXT',
+        'size': 'INTEGER',
+        'difficulty': 'INTEGER',
+        'terrain': 'INTEGER',
+        'owner': 'TEXT',
+        'found': 'INTEGER',
+        'waypoints': 'text',
+        'images': 'text',
+        'notes': 'TEXT',
+        'fieldnotes': 'TEXT',
+        'logas': 'INTEGER',
+        'logdate': 'TEXT',
+        'marked' : 'INTEGER',
+        'logs' : 'TEXT',
+        'status' : 'INTEGER',
+        'vars' : 'TEXT',
+        'alter_lat' : 'REAL',
+        'alter_lon' : 'REAL'
+        }
     def __init__(self, lat, lon, name=''):
         geo.Coordinate.__init__(self, lat, lon, name)
         # NAME = GC-ID
@@ -88,12 +136,27 @@ class GeocacheCoordinate(geo.Coordinate):
         self.marked = False
         self.logs = ''
         self.status = self.STATUS_NORMAL
+        self.vars = ''
+        self.alter_lat = 0
+        self.alter_lon = 0
+
+    def clone(self):
+        n = GeocacheCoordinate(self.lat, self.lon)
+        for k in ('title', 'name', 'shortdesc', 'desc', 'hints', 'type', \
+            'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
+            'images', 'notes', 'fieldnotes', 'log_as', 'log_date', 'marked', \
+            'logs', 'status', 'vars', 'alter_lat', 'alter_lon'):
+            setattr(n, k, getattr(self, k))
+        return n
         
     def get_difficulty(self):
-        return "%.1f" % (self.difficulty / 10.0)
+        return "%.1f" % (self.difficulty / 10.0) if self.difficulty != -1 else '?'
         
     def get_terrain(self):
-        return "%.1f" % (self.terrain / 10.0)
+        return "%.1f" % (self.terrain / 10.0) if self.difficulty != -1 else '?'
+
+    def get_status(self):
+        return self.STATUS_TEXT[self.status]
 
     def serialize(self):
 
@@ -127,7 +190,10 @@ class GeocacheCoordinate(geo.Coordinate):
             'logdate': self.log_date,
             'marked' : marked,
             'logs' : self.logs,
-            'status' : self.status
+            'status' : self.status,
+            'vars' : self.vars,
+            'alter_lat' : self.alter_lat,
+            'alter_lon' : self.alter_lon,
         }
                 
     def unserialize(self, data):
@@ -161,12 +227,26 @@ class GeocacheCoordinate(geo.Coordinate):
             self.logs = ''
         else:
             self.logs = data['logs']
+        if data['vars'] == None:
+            self.vars = ''
+        else:
+            self.vars = data['vars']
         self.status = data['status']
+        self.alter_lat = data['alter_lat']
+        self.alter_lon = data['alter_lon']
 
     def get_waypoints(self):
         if self.waypoints == None or self.waypoints == '':
             return []
         return json.loads(self.waypoints)
+
+    def get_vars(self):
+        if self.vars == None or self.vars == '':
+            return {}
+        return json.loads(self.vars)
+
+    def set_vars(self, vars):
+        self.vars = json.dumps(vars)
 
     def get_logs(self):
         if self.logs == None or self.logs == '':
@@ -195,15 +275,42 @@ class GeocacheCoordinate(geo.Coordinate):
         minlat = maxlat = self.lat
         minlon = maxlon = self.lon
         for wpt in self.get_waypoints():
-            minlat = math.min(minlat, wpt['lat'])
-            maxlat = math.max(maxlat, wpt['lat'])
-            minlon = math.min(minlon, wpt['lon'])
-            maxlon = math.max(maxlon, wpt['lon'])
-            
-        return (minlat, maxlat, minlon, maxlon)
+            if wpt['lat'] != -1 and wpt['lon'] != -1:
+                minlat = min(minlat, wpt['lat'])
+                maxlat = max(maxlat, wpt['lat'])
+                minlon = min(minlon, wpt['lon'])
+                maxlon = max(maxlon, wpt['lon'])
 
-class FieldnotesUploader():
+        return {'minlat' : "%.5f" % minlat, 'maxlat' : "%.5f" % maxlat, 'minlon' : "%.5f" % minlon, 'maxlon' : "%.5f" % maxlon}
+    
+    def get_size_string(self):
+        if self.size == -1:
+            return '?'
+        else:
+            return self.SIZES[self.size]
+
+
+    def get_gs_type(self):
+        if self.TYPE_MAPPING.has_key(self.type):
+            return self.TYPE_MAPPING[self.type]
+        else:
+            return self.TYPE_MAPPING[self.TYPE_UNKNOWN]
+
+    def set_alternative_position(self, coord):
+        self.alter_lat = coord.lat
+        self.alter_lon = coord.lon
+
+class FieldnotesUploader(gobject.GObject):
+    __gsignals__ = { 'finished-uploading': (gobject.SIGNAL_RUN_FIRST,\
+                                 gobject.TYPE_NONE,\
+                                 ()),
+                    'upload-error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+                    }
+    #lock = threading.Lock()
+    URL = 'http://www.geocaching.com/my/uploadfieldnotes.aspx'
+    
     def __init__(self, downloader):
+        gobject.GObject.__init__(self)
         self.downloader = downloader
         self.notes = []
 
@@ -225,30 +332,55 @@ class FieldnotesUploader():
         self.notes.append('%s,%sT10:00Z,%s,"%s"' % (geocache.name, geocache.log_date, log, text))
 
     def upload(self):
-        text = "\r\n".join(self.notes).encode("UTF-16")
-        response = self.downloader.get_reader('http://www.geocaching.com/my/uploadfieldnotes.aspx',
-                                              data=self.downloader.encode_multipart_formdata(
-                                              [('btnUpload', 'Upload Field Note'), ('__VIEWSTATE', '/wEPDwUJMTAzMzMxMDA0ZBgBBR5fX0NvbnRyb2xzUmVxdWlyZVBvc3RCYWNrS2V5X18WAQUPY2hrU3VwcHJlc3NEYXRl81S0OxJD683dU+w4wK4MfecRC8k=')],
-                                              [('fileUpload', 'geocache_visits.txt', text)]
-                                              ))
-        res = response.read()
-        if not "successfully uploaded" in res:
-            raise Exception("Something went wrong while uploading the field notes.")
-        else:
-            return True
+        try:
+            print "+ Uploading fieldnotes..."
+            page = self.downloader.get_reader(self.URL).read()
+            m = re.search('<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="([^"]+)" />', page)
+            if m == None:
+                raise Exception("Could not download fieldnotes page.")
+            viewstate = m.group(1)
+            text = "\r\n".join(self.notes).encode("UTF-16")
+            response = self.downloader.get_reader(self.URL,
+                                                  data=self.downloader.encode_multipart_formdata(
+                                                    [('ctl00$ContentBody$btnUpload', 'Upload Field Note'), ('ctl00$ContentBody$chkSuppressDate', ''), ('__VIEWSTATE', viewstate)],
+                                                    [('ctl00$ContentBody$fuFieldNote', 'geocache_visits.txt', text)]
+                                                  ))
+
+            res = response.read()
+            if not "successfully uploaded" in res:
+                raise Exception("Something went wrong while uploading the field notes.")
+            else:
+                self.emit('finished-uploading')
+        except Exception, e:
+            self.emit('upload-error', e)
         
 
-class CacheDownloader():
+class CacheDownloader(gobject.GObject):
+    __gsignals__ = { 'finished-overview': (gobject.SIGNAL_RUN_FIRST,\
+                                 gobject.TYPE_NONE,\
+                                 (gobject.TYPE_PYOBJECT,)),
+                    'progress' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (str, int, int, )),
+                    'download-error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+                    'already-downloading-error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+                    'finished-single' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+                    'finished-multiple' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+                    }
 
-    MAX_REC_DEPTH = 4
+    lock = threading.Lock()
+                                 
+    MAX_REC_DEPTH = 2
     
     def __init__(self, downloader, path, download_images, resize = None):
+        gobject.GObject.__init__(self)
         self.downloader = downloader
         self.path = path
         self.download_images = download_images
         self.resize = resize
         if not os.path.exists(path):
-            raise Exception("Path does not exist: %s" % path)
+            try:
+                os.mkdir(path)
+            except:
+                raise Exception("Path does not exist: %s" % path)
         
     @staticmethod
     def __rot13(text):
@@ -267,7 +399,7 @@ class CacheDownloader():
 
     @staticmethod
     def __replace_br(text):
-        return re.sub('<[bB][rR]\s*/?>|</[pP]>', '\n', text)
+        return re.sub('<[bB][rR]\s*/?>|</?[pP]>', '\n', text)
 
     def __treat_hints(self, hints):
         hints = self.__strip_html(self.__replace_br(hints)).strip()
@@ -303,9 +435,9 @@ class CacheDownloader():
         return (float(decimal) + (float(minutes) / 60.0)) * sign
 
     def __treat_waypoints(self, data):
-
+        
         waypoints = []
-        finder = re.finditer(r'<tr class="BorderBottom">\s+<td><img [^>]+></td>\s*' +
+        finder = re.finditer(r'<tr class="[^"]+">\s+<td><img [^>]+></td>\s*' +
                              r'<td><img [^>]+></td>\s*' +
                              r'<td>(?P<id_prefix>[^<]+)</td>\s*' +
                              r'<td>(?P<id>[^<]+)</td>\s*' +
@@ -320,26 +452,25 @@ class CacheDownloader():
                              'lat': self.__from_dm(m.group('lat_sign'), m.group('lat_d'), m.group('lat_m')),
                              'lon': self.__from_dm(m.group('lon_sign'), m.group('lon_d'), m.group('lon_m')),
                              'id': "%s%s" % m.group('id_prefix', 'id'),
-                             'name': m.group('name'),
-                             'comment': m.group('comment')
+                             'name': self.__decode_htmlentities(m.group('name')),
+                             'comment': self.__decode_htmlentities(self.__strip_html(self.__replace_br(m.group('comment')), True))
                              })
 
         return waypoints
 
     def __treat_images(self, data):
-        finder = re.finditer('<a href="([^"]+)" rel="lightbox" class="lnk"><img src="/images/stockholm/16x16/images.gif" />(.+?</a>.+?)<br />(?=<a)', data)
+        finder = re.finditer('<a href="([^"]+)" rel="lightbox" class="lnk"><img src="/images/stockholm/16x16/images.gif" />(.+?)</a><br /><br />', data)
         for m in finder:
             if m.group(1) == None:
                 continue
             id = self.__download_image(url = m.group(1))
             if id != None:
-                self.__add_image(id, self.__strip_html(m.group(2)))
+                self.__add_image(id, self.__decode_htmlentities(self.__strip_html(m.group(2))))
 
     def __replace_images(self, data):
         return re.sub(r'''(?is)(<img[^>]+src=\n?["']?)([^ >"']+)([^>]+?/?>)''', self.__replace_image_callback, data)
 
     def __replace_image_callback(self, m):
-        print "cb %s" % m.group(2)
         url = m.group(2)
         if not url.startswith('http://'):
             return m.group(0)
@@ -359,7 +490,8 @@ class CacheDownloader():
                 r"""&nbsp;([^ ]+) (\d+)(, (\d+))? by <a href[^>]+>([^<]+)</a></strong> \(\d+ found\)<br />(.+)""" +
                 r"""<br /><br /><small>""", l, re.DOTALL)
             if m == None:
-                print "Could not parse Log-Line:\nBEGIN\n%s\nEND\n\n This can be normal." % l
+                #print "Could not parse Log-Line:\nBEGIN\n%s\nEND\n\n This can be normal." % l
+                pass
             else:
                 type = m.group(1)
                 month = self.__month_to_number(m.group(2))
@@ -401,7 +533,7 @@ class CacheDownloader():
                     im = Image.open(filename)
                     im.thumbnail((self.resize, self.resize), Image.ANTIALIAS)
                     im.save(filename)
-            except Exception as e:
+            except Exception, e:
                 print "could not download %s: %s" % (url, e)
                 return None
 
@@ -437,21 +569,51 @@ class CacheDownloader():
 
         entity_re = re.compile(r'&(#?)(x?)(\w+);')
         return entity_re.subn(substitute_entity, string)[0]
+
+    def update_coordinates(self, coordinates):
+        i = 0
+        c = []
+        for cache in coordinates:
+            self.emit("progress", cache.name, i, len(coordinates))
+            u = self.update_coordinate(cache)
+            c.append(u)
+            i += 1
+        self.emit("finished-multiple", c)
+        return c
                 
     def update_coordinate(self, coordinate):
+        if not CacheDownloader.lock.acquire(False):
+            self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
+            return
         self.downloaded_images = {}
         self.current_image = 0
         self.images = {}
+        coordinate = coordinate.clone()
         self.current_cache = coordinate
-        response = self.__get_cache_page(coordinate.name)
-        return self.__parse_cache_page(response, coordinate)
+        try:
+            print "* Downloading %s..." % (coordinate.name)
+            response = self.__get_cache_page(coordinate.name)
+            u = self.__parse_cache_page(response, coordinate)
+        except Exception, e:
+            CacheDownloader.lock.release()
+            self.emit('download-error', e)
+            return self.current_cache
+        CacheDownloader.lock.release()
+        self.emit('finished-single', u)
+        return u
         
     def __get_cache_page(self, cacheid):
         return self.downloader.get_reader('http://www.geocaching.com/seek/cache_details.aspx?wp=%s' % cacheid)
                 
     def get_geocaches(self, location, rec_depth = 0):
+        if not CacheDownloader.lock.acquire(False):
+            self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
+            print "downloading"
+            return
         # don't recurse indefinitely
         if rec_depth > self.MAX_REC_DEPTH:
+            self.emit('download-error', Exception("Please select a smaller part of the map."))
+            CacheDownloader.lock.release()
             return []
 
         c1, c2 = location
@@ -460,17 +622,22 @@ class CacheDownloader():
             'eo_cb_param':'{"c": 1, "m": "", "d": "%f|%f|%f|%f"}' % (max(c1.lat, c2.lat), min(c1.lat, c2.lat), max(c1.lon, c2.lon), min(c1.lon, c2.lon)),
             'eo_version':'5.0.51.2'
         }
-        response = self.downloader.get_reader(url, values)
 
-        the_page = response.read()
-        extractor = re.compile('.*<ExtraData><!\[CDATA\[(.*)\]\]>', re.DOTALL)
-        match = extractor.match(the_page)
-        if match == None:
-            raise Exception('Could not load map of geocaches')
+        try:
+            response = self.downloader.get_reader(url, values)
+            the_page = response.read()
+
+            extractor = re.compile('<ExtraData><!\[CDATA\[(.*)\]\]>', re.DOTALL)
+            match = extractor.search(the_page)
+            if match == None:
+                raise Exception('Could not load map of geocaches')
+        except Exception, e:
+            CacheDownloader.lock.release()
+            self.emit('download-error', e)
+            return []
         text = match.group(1).replace("\\'", "'")
         a = json.loads(text.replace('\t', ' '))
         points = []
-
         if not 'cc' in a['cs'].keys():
             if 'count' in a['cs'].keys() and 'count' != 0:
                 # let's try to download one half of the geocaches first
@@ -479,12 +646,13 @@ class CacheDownloader():
                 mc1 = geo.Coordinate(mlat, max(c1.lon, c2.lon))
                 mc2 = geo.Coordinate(mlat, min(c1.lon, c2.lon))
                 nc2 = geo.Coordinate(max(c1.lat, c2.lat), max(c1.lon, c2.lon))
-                print "recursing..."
+                #print "recursing..."
+
+                CacheDownloader.lock.release()
                 points += self.get_geocaches((nc1, mc1), rec_depth + 1)
                 points += self.get_geocaches((mc2, nc2), rec_depth + 1)
             return points
         for b in a['cs']['cc']:
-            print b
             c = GeocacheCoordinate(b['lat'], b['lon'], b['gc'])
             c.title = b['nn']
             if b['ctid'] == 2:
@@ -499,18 +667,23 @@ class CacheDownloader():
                 c.type = GeocacheCoordinate.TYPE_MYSTERY
             elif b['ctid'] == 11:
                 c.type = GeocacheCoordinate.TYPE_WEBCAM
+            elif b['ctid'] == 137:
+                c.type = GeocacheCoordinate.TYPE_EARTH
             else:
                 c.type = GeocacheCoordinate.TYPE_UNKNOWN
             c.found = b['f']
             if not b['ia']:
                 c.status = GeocacheCoordinate.STATUS_DISABLED
             points.append(c)
+        print 'end'
+        self.emit('finished-overview', points)
+        CacheDownloader.lock.release()
         return points
                 
     def __parse_cache_page(self, cache_page, coordinate):
-        indesc = inshortdesc = inwaypoints = False
+        indesc = inshortdesc = inwaypoints = inhints = False
         inhead = True
-        shortdesc = desc = hints = waypoints = images = logs = ''
+        shortdesc = desc = hints = waypoints = images = logs = owner = ''
         for line in cache_page:
             line = line.strip()
             #line = unicode(line, errors='replace')
@@ -526,8 +699,13 @@ class CacheDownloader():
                 inhead = False
                 inshortdesc = False
                 indesc = False
-            elif line.startswith('<p><span id="ctl00_ContentBody_Hints" class="displayMe">'):
-                hints = re.compile('<span id="ctl00_ContentBody_Hints"[^>]+>(.*?)</span>').search(line).group(1)
+            elif line.startswith('<div id="div_hint" class="HalfLeft">'):
+                inhead = False
+                inshortdesc = False
+                indesc = False
+                inhints = True
+            elif inhints and line.startswith('</div>'):
+                inhints = False
             elif line.startswith('<div id="ctl00_ContentBody_uxlrgMap" class="fr"> '):
                 inhead = False
                 inshortdesc = False
@@ -542,14 +720,14 @@ class CacheDownloader():
             elif line.startswith('<p><span id="ctl00_ContentBody_Images">'):
                 images = line
             elif line.startswith('<span id="ctl00_ContentBody_LatLon" style="font-weight:bold;">'):
-                coords = re.compile('lat=([0-9.]+)&amp;lon=([0-9.]+)&amp;').search(line)
+                coords = re.compile('lat=([0-9.-]+)&amp;lon=([0-9.-]+)&amp;').search(line)
             elif line.startswith('<p><span id="ctl00_ContentBody_CacheLogs">'):
                 logs = line
             if inhead:
-                if line.startswith('<p><strong>A cache '):
-                    owner = re.compile(".*by <[^>]+>([^<]+)</a>").match(line).group(1)
+                if line.startswith('<p><strong>A cache') or line.startswith('<p><strong>An Event'):
+                    owner = re.compile("by <[^>]+>([^<]+)</a>").search(line).group(1)
                 elif line.startswith('<p class="NoSpacing"><strong>Size:</strong>'):
-                    size = re.compile(".*container/([^\\.]+)\\.").match(line).group(1)
+                    size = re.compile("container/([^\\.]+)\\.").search(line).group(1)
                     difficulty = re.compile('<span id="ctl00_ContentBody_Difficulty"><[^>]+alt="([0-9\\.]+) out of').search(line).group(1)
                     terrain = re.compile('<span id="ctl00_ContentBody_Terrain"><[^>]+alt="([0-9\\.]+) out of').search(line).group(1)
 #                elif line.startswith('<a id="lnkPrintFriendly" class="lnk" href="cdpf.aspx?guid'):
@@ -560,11 +738,18 @@ class CacheDownloader():
             if indesc:
                 desc += "%s\n" % line
                 
-            #if inhints:
-            #    hints += "%s\n" % line
+            if inhints:
+                hints += line + " "
                 
             if inwaypoints:
                 waypoints += "%s  " % line
+    
+        if owner == '':
+            print "\n\n|||||||||||||||||||||||||||||||||||||||||||||||||||\n\n"
+            for line in cache_page:
+                print line
+            print "\n\n|||||||||||||||||||||||||||||||||||||||||||||||||||\n\n"
+            raise Exception("Could not parse Cache page. Maybe the format changed. Please update to latest version or contact author.")
 
         coordinate.owner = self.__decode_htmlentities(owner)
         if size == 'micro':
@@ -573,7 +758,7 @@ class CacheDownloader():
             coordinate.size = 2
         elif size == 'regular':
             coordinate.size = 3
-        elif size == 'big':
+        elif size == 'large' or size == 'big':
             coordinate.size = 4
         elif size == 'not_chosen':
             coordinate.size = 5
@@ -589,130 +774,11 @@ class CacheDownloader():
         coordinate.hints = self.__treat_hints(hints)
         coordinate.set_waypoints(self.__treat_waypoints(waypoints))
         coordinate.set_logs(self.__treat_logs(logs))
-        print coordinate.logs
         self.__treat_images(images)
         coordinate.set_images(self.images)
                 
         return coordinate
                 
-        
-class HTMLExporter():
-    def __init__(self, downloader, path):
-        self.downloader = downloader
-        self.path = path
-        if not os.path.exists(path):
-            try:
-                os.mkdir(path)
-            except:
-                raise
-                
-    def export(self, coordinate, folder = None):
-        if coordinate.name == '':
-            raise Exception('Koordinate hat keinen Namen')
-        if folder == None:
-            folder = self.path
-        filename = self.__get_uri(coordinate, folder)
-        f = open(filename, 'w')
-        self.__write_html(f, coordinate)
-        f.close()
-        self.__copy_images(coordinate, folder)
-        
-    def __copy_images(self, coordinate, folder):
-        for image, description in coordinate.get_images().items():
-            src = os.path.realpath(os.path.join(self.path, image))
-            dst = os.path.realpath(os.path.join(folder, image))
-            if not src == dst and not os.path.exists(dst) and os.path.exists(src):
-                import shutil
-                shutil.copy(src, dst)
-                
-    def __get_uri(self, coordinate, folder):
-        return os.path.join(folder, "%s%shtml" % (coordinate.name, os.extsep))
-                
-    def write_index(self, caches):
-        b = [{'n': c.name, 't': c.title} for c in caches]
-        caches = json.dumps(b)
-        f = open(os.path.join(self.path, "index.html"), 'w')
-        f.write('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"')
-        f.write(' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">')
-        f.write('<html xmlns="http://www.w3.org/1999/xhtml"> <head>')
-        f.write('<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />')
-        f.write(' <title>Geocache suchen</title> <script type="text/javascript">\n')
-        f.write(' var caches = %s;' % caches)
-        f.write("""function refresh() {
-            s = document.getElementById('search'); t = s.value.toLowerCase(); ht = '';
-                   if (t.length > 2) { for (var c in caches) {
-                                   if (caches[c]['t'].toLowerCase().indexOf(t) != -1 || caches[c]['n'].toLowerCase().indexOf(t) != -1) {
-                                           ht = ht + "<a href='" + caches[c]['n'] + ".html'>" + caches[c]['n'] + "|" + caches[c]['t'] + "<br>";
-                                   } }
-                   } else { ht = "(Bitte mehr als 2 Zeichen eingeben)"; }
-                   document.getElementById('res').innerHTML = ht; }
-                  </script>
-                 </head> <body>
-                  <fieldset><legend>Geocache suchen</legend>
-                  <input type="text" name="search" id="search" onkeyup="refresh()" />
-                  </fieldset>
-                  <fieldset><legend>Ergebnisse</legend>
-                  <div id="res">Bitte Suchbegriff eingeben!</div>
-                  </fieldset>  </body> </html>
-                """)
-        f.close()
-                
-                
-
-    def __write_html(self, f, coordinate):
-        f.write('<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"')
-        f.write(' "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n')
-        f.write('<html xmlns="http://www.w3.org/1999/xhtml">\n <head>\n')
-        f.write('<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />')
-        self.__write_header(f, coordinate)
-        f.write(' </head>\n <body>\n')
-        self.__write_body(f, coordinate)
-        f.write(' </body>\n</html>\n')
-        
-    def __write_header(self, f, coordinate):
-        f.write('  <title>%s|%s</title>\n' % (coordinate.name, coordinate.title))
-                
-    def __write_body(self, f, coordinate):
-        f.write('  <h2>%s|%s</h2>\n' % (coordinate.name, coordinate.title))
-        f.write('  <fieldset><legend>Daten</legend>\n')
-        f.write('   <div style="display:inline-block;"><b>Size:</b> %s/5</div><br />\n' % coordinate.size)
-        f.write('   <div style="display:inline-block;"><b>Difficulty:</b> %.1f/5</div><br />\n' % (coordinate.difficulty / 10))
-        f.write('   <div style="display:inline-block;"><b>Terrain:</b> %.1f/5</div><br />\n' % (coordinate.terrain / 10))
-        f.write('  </fieldset>\n')
-        f.write('  <fieldset><legend>Koordinaten</legend>\n')
-        f.write('   <div style="display:inline-block;"><b>MAIN:</b> <code>%s %s</code></div><br />\n' % (coordinate.get_lat(geo.Coordinate.FORMAT_DM), coordinate.get_lon(geo.Coordinate.FORMAT_DM)))
-        if len(coordinate.get_waypoints()) > 0:
-            f.write('   <table>\n')
-            for w in coordinate.get_waypoints():
-                if not (w['lat'] == -1 and w['lon'] == -1):
-                    n = geo.Coordinate(w['lat'], w['lon'])
-                    latlon = "%s %s" % (n.get_lat(geo.Coordinate.FORMAT_DM), n.get_lon(geo.Coordinate.FORMAT_DM))
-                else:
-                    latlon = "???"
-                f.write('    <tr style="background-color:#bbf"><th>%s</th><td><code>%s</code></td></tr>\n' % (w['name'], latlon))
-                f.write('    <tr style="background-color:#ddd"><td colspan="2">%s</tr>\n' % w['comment'])
-            f.write('   </table>\n')
-        f.write('  </fieldset>')
-        f.write('  <fieldset><legend>Cachebeschreibung</legend>\n')
-        f.write(self.__replace_images(coordinate.desc, coordinate))
-        f.write('  </fieldset>')
-        if len(coordinate.get_images()) > 0:
-            f.write('  <fieldset><legend>Bilder</legend>\n')
-            for image, description in coordinate.get_images().items():
-                f.write('   <em>%s:</em><br />\n' % description)
-                f.write('   <img src="%s" />\n' % image)
-                f.write('   <hr />\n')
-            f.write('  </fieldset>')
-
-    def __replace_images(self, text, coordinate):
-        return re.sub(r'\[\[img:([^\]]+)\]\]', lambda a: self.__replace_image_callback(a, coordinate), text)
-
-    def __replace_image_callback(self, match, coordinate):
-        if match.group(1) in coordinate.get_images().keys():
-            return '<img src="%s" />' % match.group(1)
-        else:
-            return ' [image not found -- please re-download geocache description] '
-
         
 """
 class GpxReader():

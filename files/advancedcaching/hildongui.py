@@ -23,7 +23,15 @@
 
 # todo:
 # save last viewed cache
-# notizspeichern prüfen
+# 0.5.3
+# cachenamen neben icons
+# cachenamen beim runterladen
+# begrenzung der max. download caches aus übersicht
+# sortierung der caches bei suche
+# korrekte buttons für optionen und fieldnotes
+# banner-api
+# 0.5.4
+# fieldnotes - individueller text.
 
 
  
@@ -1178,9 +1186,6 @@ class HildonGui(SimpleGui):
             print self.current_cache, cache.name, self.current_cache_window_open
             return False
 
-    def _on_map_changed(self, something):
-        self.redraw_marks()
-        return False
 
 
 

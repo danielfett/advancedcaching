@@ -17,12 +17,12 @@
 #
 #        Author: Daniel Fett advancedcaching@fragcom.de
 #
-
+import socket
 import os
 import cookielib
 import urllib
 import urllib2
-
+socket.setdefaulttimeout(30)
 class FileDownloader():
     USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; U; Linux i686; de; rv:1.9.0.12) Gecko/2009070811  Windows NT Firefox/3.1'
 
@@ -46,7 +46,7 @@ class FileDownloader():
 
     def login(self):
         if self.username == '' or self.password == '':
-            raise Exception("Please configure your username and password.")
+            raise Exception("Please configure your username/password and restart the application")
         print "+ Checking Login status"
         cj = cookielib.LWPCookieJar(self.cookiefile)
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
@@ -88,7 +88,7 @@ class FileDownloader():
         self.logged_in = True
         try:
             cj.save()
-        except Exception as e:
+        except Exception, e:
             print "+ Could not save cookies:", e
 
 

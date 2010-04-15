@@ -117,7 +117,11 @@ Just start the string with 'q:':
 
 
 from geo import Coordinate
-import json
+try:
+    import json
+    json.dumps
+except (ImportError, AttributeError):
+    import simplejson as json
 import sys
 
 import downloader
@@ -125,15 +129,17 @@ import geocaching
 import gobject
 import gpsreader
 import os
+import os.path
 import provider
 import math
+import threading
 
 #import cProfile
 #import pstats
 
 
 if len(sys.argv) == 1:
-    print usage % ({'name' : sys.argv[0]})
+    print usage % ({'name': sys.argv[0]})
     exit()
         
 arg = sys.argv[1].strip()
@@ -143,9 +149,14 @@ if arg == '--simple':
 elif arg == '--desktop':
     import biggui
     gui = biggui.BigGui
+elif arg == '--hildon':
+    import hildongui
+    gui = hildongui.HildonGui
 else:
     import cli
     gui = cli.Cli
+    
+
 
         
 class Standbypreventer():
@@ -179,42 +190,62 @@ class Standbypreventer():
     def __try_run(self, command):
         try:
             os.system(command)
-        except Exception as e:
+        except Exception, e:
             print "Could not prevent Standby: %s" % e
 
-class Core():
+class Core(gobject.GObject):
+
+    __gsignals__ = {
+        'map-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'cache-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'fieldnotes-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'good-fix': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'no-fix': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        }
+
     SETTINGS_DIR = os.path.expanduser('~/.agtl')
     CACHES_DB = os.path.join(SETTINGS_DIR, "caches.db")
     COOKIE_FILE = os.path.join(SETTINGS_DIR, "cookies.lwp")
+
+    MAEMO_HOME = os.path.expanduser("~/MyDocs/.")
+    MAPS_DIR = 'Maps/'
+
+    DATA_DIR = os.path.expanduser('~/') if not os.path.exists(MAEMO_HOME) else MAEMO_HOME
     
     DEFAULT_SETTINGS = {
         'download_visible': True,
         'download_notfound': True,
         'download_new': True,
         'download_nothing': False,
-        'download_create_index': True,
+        'download_create_index': False,
         'download_run_after': False,
         'download_run_after_string': '',
-        'download_output_dir': os.path.expanduser('~/caches/'),
+        'download_output_dir': os.path.expanduser(DATA_DIR + 'geocaches/'),
         'map_position_lat': 49.7540,
         'map_position_lon': 6.66135,
         'map_zoom': 7,
         'download_resize': True,
         'download_resize_pixel': 400,
         'options_show_name': True,
-        'options_username': "Username",
-        'options_password': "Pass",
+        'options_username': "",
+        'options_password': "",
         'last_target_lat': 50,
         'last_target_lon': 10,
         'last_target_name': 'default',
         'download_noimages': False,
-        'download_map_path': os.path.expanduser('~/Maps/OSM/'),
-        'options_hide_found': False
+        'download_map_path': DATA_DIR + MAPS_DIR,
+        'options_hide_found': False,
+        'options_show_error': True,
+        'map_providers': [
+            ('OpenStreetMaps', {'remote_url': "http://128.40.168.104/mapnik/%(zoom)d/%(x)d/%(y)d.png", 'prefix': 'OpenStreetMap I'}),
+            ('OpenCycleMaps', {'remote_url': 'http://andy.sandbox.cloudmade.com/tiles/cycle/%(zoom)d/%(x)d/%(y)d.png', 'prefix': 'OpenCycleMap'})
+
+        ]
     }
             
     def __init__(self, guitype, root):
-        if not os.path.exists(self.SETTINGS_DIR):
-            os.mkdir(self.SETTINGS_DIR)
+        gobject.GObject.__init__(self)
+        self.create_recursive(self.SETTINGS_DIR)
 
         dataroot = os.path.join(root, 'data')
         
@@ -222,6 +253,8 @@ class Core():
         # seems to crash dbus/fso/whatever
                         
         self.__read_config()
+        self.create_recursive(self.settings['download_output_dir'])
+        self.create_recursive(self.settings['download_map_path'])
                 
         #self.standbypreventer.set_status(Standbypreventer.STATUS_SCREEN_ON)
                 
@@ -234,21 +267,37 @@ class Core():
         #pointprovider = PointProvider(':memory:', self.downloader)
         #reader = GpxReader(pointprovider)
         #reader.read_file('../../file.loc')
-        
         self.gui = guitype(self, self.pointprovider, self.userpointprovider, dataroot)
         self.gui.write_settings(self.settings)
-        if 'gpsprovider' in self.gui.USES:
-            self.gps_thread = gpsreader.GpsReader(self)
+
+        if '--sim' in sys.argv:
+            self.gps_thread = gpsreader.FakeGpsReader(self)
+            gobject.timeout_add(1000, self.__read_gps)
+            self.gui.set_target(gpsreader.FakeGpsReader.get_target())
+        elif 'gpsprovider' in self.gui.USES:
+            self.gps_thread = gpsreader.GpsReader()
             #self.gps_thread = gpsreader.FakeGpsReader(self)
             gobject.timeout_add(1000, self.__read_gps)
-
+        elif 'locationgpsprovider' in self.gui.USES:
+            self.gps_thread = gpsreader.LocationGpsReader(self.__read_gps_cb_error, self.__read_gps_cb_changed)
+            gobject.idle_add(self.gps_thread.start)  
         if 'geonames' in self.gui.USES:
             import geonames
             self.geonames = geonames.Geonames(self.downloader)
-        
         self.gui.show()
-                
-                
+
+    @staticmethod
+    def create_recursive(path):
+        if path != '/':
+            if not os.path.exists(path):
+                head, tail = os.path.split(path)
+                Core.create_recursive(head)
+                try:
+                    os.mkdir(path)
+                except Exception:
+                    # let others fail here.
+                    pass
+
                 
     def __del__(self):
         self.settings = self.gui.read_settings()
@@ -269,16 +318,16 @@ class Core():
             if len(together) == 0:
                 together = [route[i]] 
             if (i < len(route) - 1):
-                brg = route[i].bearing_to(route[i+1])
+                brg = route[i].bearing_to(route[i + 1])
                 
             if len(together) < MAX_TOGETHER \
                 and (i < len(route) - 1) \
                 and (abs(brg - 90) < TOL
-                or abs(brg + 90) < TOL
-                or abs(brg) < TOL
-                or abs (brg - 180) < TOL) \
-                and route[i].distance_to(route[i+1]) < (r*1000*2):
-                    together.append(route[i+1])
+                     or abs(brg + 90) < TOL
+                     or abs(brg) < TOL
+                     or abs (brg - 180) < TOL) \
+                and route[i].distance_to(route[i + 1]) < (r * 1000 * 2):
+                    together.append(route[i + 1])
             else:
                 min_lat = min([x.lat for x in together])
                 min_lon = min([x.lon for x in together])
@@ -302,15 +351,31 @@ class Core():
         #m = re.search(r'/([NS]?)\s*(\d{1,2})\.(\d{1,2})\D+(\d+)\s*([WE]?)\s*(\d{1,3})\.(\d{1,2})\D+(\d+)', text, re.I)
         #if m != None:
         self.__try_show_cache_by_search('%' + text + '%')
+
+    # called by gui
+    def set_filter(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location=None, marked=None):
+        self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked=marked)
+        self.emit('map-changed')
                 
     # called by gui
-    def on_start_search_advanced(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location = None, marked = None):
-                
-                
-        self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked = marked)
+    def reset_filter(self):
+        self.pointprovider.set_filter()
+        self.emit('map-changed')
+
+    # called by gui
+    def on_start_search_advanced(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location=None, marked=None):
+        self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked=marked)
         points = self.pointprovider.get_points_filter(location)
         self.gui.display_results_advanced(points)
-                                
+
+    def get_points_filter(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location=None, marked=None):
+        self.pointprovider.push_filter()
+        self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked=marked)
+        points = self.pointprovider.get_points_filter(location)
+        truncated = (len(points) >= self.pointprovider.MAX_RESULTS)
+        self.pointprovider.pop_filter()
+        return (points, truncated)
+
 
     # called by gui
     def on_destroy(self):
@@ -318,49 +383,93 @@ class Core():
         self.__write_config()
 
     # called by gui
-    def on_download(self, location):
+    def on_download(self, location, sync=False):
         self.gui.set_download_progress(0.5, "Downloading...")
         cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
-        try:
-            caches = cd.get_geocaches(location)
-        except Exception as e:
-            self.gui.show_error(e)
-            print e
-            return []
+        cd.connect("download-error", self.on_download_error)
+        cd.connect("already-downloading-error", self.on_already_downloading_error)
+        if not sync:
+            def same_thread(arg1, arg2):
+                gobject.idle_add(self.on_download_complete, arg1, arg2)
+                return False
+
+            cd.connect("finished-overview", same_thread)
+            t = threading.Thread(target=cd.get_geocaches, args=[location])
+            t.daemon = False
+            t.start()
+            return False
         else:
-            new_caches = []
-            for c in caches:
-                point_new = self.pointprovider.add_point(c)
-                if point_new:
-                    new_caches.append(c)
-            self.pointprovider.save()
-            
+            return self.on_download_complete(None, cd.get_geocaches(location))
+
+    # called on signal by downloading thread
+    def on_download_complete(self, something, caches, sync=False):
+        new_caches = []
+        for c in caches:
+            point_new = self.pointprovider.add_point(c)
+            if point_new:
+                new_caches.append(c)
+        self.pointprovider.save()
+        self.gui.hide_progress()
+        self.emit('map-changed')
+        if sync:
             return (caches, new_caches)
-        finally:
+        else:
+            return False
+
+    # called on signal by downloading thread
+    def on_already_downloading_error(self, something, error):
+        self.gui.show_error(error)
+
+    # called on signal by downloading thread
+    def on_download_error(self, something, error):
+        print error
+        def same_thread(error):
             self.gui.hide_progress()
+            self.gui.show_error(error)
+            return False
+        gobject.idle_add(same_thread, error)
 
     # called by gui
-    def on_download_cache(self, cache):
+    def on_download_cache(self, cache, sync=False):
+        #
         self.gui.set_download_progress(0.5, "Downloading %s..." % cache.name)
 
-        try:
-            cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd.connect("download-error", self.on_download_error)
+        cd.connect("already-downloading-error", self.on_already_downloading_error)
+        if not sync:
+            def same_thread(arg1, arg2):
+                gobject.idle_add(self.on_download_cache_complete, arg1, arg2)
+                return False
+            cd.connect("finished-single", same_thread)
+            t = threading.Thread(target=cd.update_coordinate, args=[cache])
+            t.daemon = False
+            t.start()
+            #t.join()
+            return False
+        else:
             full = cd.update_coordinate(cache)
-            self.pointprovider.add_point(full, True)
-            self.pointprovider.save()
-        except Exception as e:
-            self.gui.show_error(e)
-            return cache
-        finally:
-            self.gui.hide_progress()
-        return full
+            return full
+
+    # called on signal by downloading thread
+    def on_download_cache_complete(self, something, cache):
+        self.pointprovider.add_point(cache, True)
+        self.pointprovider.save()
+        self.gui.hide_progress()
+        self.emit('cache-changed', cache)
+        return False
                 
-    def on_export_cache(self, cache, folder = None):
+    def on_export_cache(self, cache, format, folder):
+        from exporter import GpxExporter
+        if (format == 'gpx'):
+            exporter = GpxExporter()
+        else:
+            raise Exception("Format currently not supported: %s" % format)
+
         self.gui.set_download_progress(0.5, "Exporting %s..." % cache.name)
         try:
-            exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
             exporter.export(cache, folder)
-        except Exception as e:
+        except Exception, e:
             self.gui.show_error(e)
         finally:
             self.gui.hide_progress()
@@ -371,6 +480,9 @@ class Core():
     # called by gui
     def on_download_descriptions(self, location, visibleonly=False):
         cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd.connect("download-error", self.on_download_error)
+        cd.connect("already-downloading-error", self.on_already_downloading_error)
+        
         #exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
                 
         self.pointprovider.push_filter()
@@ -394,34 +506,42 @@ class Core():
         else:
             self.pointprovider.set_filter(found=found, has_details=has_details, adapt_filter=False)
             caches = self.pointprovider.get_points_filter()
-                
-        print caches       
-                
-        count = len(caches)
-        i = 0.0
-        try:
-            for cache in caches:
-                self.gui.set_download_progress(i / count, "Downloading %s..." % cache.name)
-                full = cd.update_coordinate(cache)
-                self.pointprovider.add_point(full, True)
-                #exporter.export(full)
-                i += 1.0
-                                
-        except Exception as e:
-            self.gui.show_error(e)
-        finally:
-            self.gui.hide_progress()
-            self.pointprovider.pop_filter()
-            self.pointprovider.save()
-                
-                
-        #if self.settings['download_create_index']:
-        #        all_caches = pointprovider.get_points_filter(None, None, True)
-        #        exporter.write_index(all_caches)
 
-                
+        self.pointprovider.pop_filter()
 
-                        
+        def same_thread(arg1, arg2):
+            gobject.idle_add(self.on_download_descriptions_complete, arg1, arg2)
+            return False
+        
+        def same_thread_progress (arg1, arg2, arg3, arg4):
+            gobject.idle_add(self.on_download_progress, arg1, arg2, arg3, arg4)
+            return False
+
+        cd.connect('progress', self.on_download_progress)
+        cd.connect('finished-multiple', same_thread)
+
+        t = threading.Thread(target=cd.update_coordinates, args=[caches])
+        t.daemon = False
+        t.start()
+
+
+    # called on signal by downloading thread
+    def on_download_descriptions_complete(self, something, caches):
+        for c in caches:
+            self.pointprovider.add_point(c, True)
+        self.pointprovider.save()
+        self.gui.hide_progress()
+        for c in caches:
+            self.emit('cache-changed', c)
+        self.emit('map-changed')
+        return False
+
+
+    # called on signal by downloading thread
+    def on_download_progress(self, something, cache_name, i, max_i):
+        self.gui.set_download_progress(float(i) / float(max_i), "Downloading %s (%d of %d)..." % (cache_name, i, max_i))
+        return False
+    
     # called by gui
     def on_config_changed(self, new_settings):
         self.settings = new_settings
@@ -435,32 +555,88 @@ class Core():
     def on_fieldnotes_changed(self, cache, new_notes):
         self.pointprovider.update_field(cache, 'fieldnotes', new_notes)
 
-                
+    def set_alternative_position(self, cache, ap):
+        cache.set_alternative_position(ap)
+        self.pointprovider.update_field(cache, 'alter_lat', cache.alter_lat)
+        self.pointprovider.update_field(cache, 'alter_lon', cache.alter_lon)
+        self.emit('map-changed')
+
+    def write_fieldnote(self, cache, logas, logdate, fieldnotes):
+        self.pointprovider.update_field(cache, 'logas', logas)
+        self.pointprovider.update_field(cache, 'logdate', logdate)
+        self.pointprovider.update_field(cache, 'fieldnotes', fieldnotes)
+        self.emit('fieldnotes-changed')
+        
+        if logas == geocaching.GeocacheCoordinate.LOG_AS_FOUND:
+            self.pointprovider.update_field(cache, 'found', '1')
+            cache.found = 1
+
+        elif logas == geocaching.GeocacheCoordinate.LOG_AS_NOTFOUND:
+            self.pointprovider.update_field(cache, 'found', '0')
+            cache.found = 0
+        
+
     def on_upload_fieldnotes(self):
         self.gui.set_download_progress(0.5, "Uploading Fieldnotes...")
 
         caches = self.pointprovider.get_new_fieldnotes()
         fn = geocaching.FieldnotesUploader(self.downloader)
-        try:
-            for c in caches:
-                fn.add_fieldnote(c)
-            fn.upload()
-                        
-        except Exception as e:
-            self.gui.show_error(e)
-        else:
-            #self.gui.show_success("Field notes uploaded successfully.")
-            for c in caches:
-                self.pointprovider.update_field(c, 'logas', geocaching.GeocacheCoordinate.LOG_NO_LOG)
-        finally:
-            self.gui.hide_progress()
+        fn.connect("upload-error", self.on_download_error)
+        
+        def same_thread(arg1):
+            gobject.idle_add(self.on_upload_fieldnotes_finished, arg1, caches)
+            return False
+            
+        fn.connect('finished-uploading', same_thread)
+        
+        for c in caches:
+            fn.add_fieldnote(c)
+        t = threading.Thread(target=fn.upload)
+        t.daemon = False
+        t.start()
+        
+    def on_upload_fieldnotes_finished(self, widget, caches):
+        for c in caches:
+            self.pointprovider.update_field(c, 'logas', geocaching.GeocacheCoordinate.LOG_NO_LOG)
+        self.gui.hide_progress()
+        self.emit('fieldnotes-changed')
+
+    def get_new_fieldnotes_count(self):
+        return self.pointprovider.get_new_fieldnotes_count()
+
+    def set_cache_calc_vars(self, cache, vars):
+        self.pointprovider.update_field(cache, 'vars', vars)
+
+    #called by gui
+    def on_userdata_changed(self, username, password):
+        self.downloader.update_userdata(username, password)
                 
     def __read_gps(self):
         fix = self.gps_thread.get_data()
         if fix.position != None:
             self.gui.on_good_fix(fix)
+            self.emit('good-fix', fix)
         else:
             self.gui.on_no_fix(fix, self.gps_thread.status)
+            self.emit('no-fix', fix)
+        return True
+
+    def __read_gps_cb_error(self, control, error):
+        fix = gpsreader.Fix()
+        msg = gpsreader.LocationGpsReader.get_error_from_code(error)
+        self.gui.on_no_fix(fix, msg)
+        self.emit('no-fix', fix)
+        return True
+
+    def __read_gps_cb_changed(self, device):
+        fix = gpsreader.Fix.from_tuple(device.fix, device)
+        # @type fix gpsreader.Fix
+        if fix.position != None:
+            self.gui.on_good_fix(fix)
+            self.emit('good-fix', fix)
+        else:
+            self.gui.on_no_fix(fix, 'No fix')
+            self.emit('no-fix', fix)
         return True
                 
     def __read_config(self):
@@ -512,4 +688,7 @@ def determine_path ():
                         
 def start():
     Core(gui, determine_path())
+
+if __name__ == "__main__":
+    start()
 

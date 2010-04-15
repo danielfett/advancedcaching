@@ -28,7 +28,7 @@ if __name__ == "__main__":
  p.urgency="low"             #not used in maemo onl for deb os
  p.distribution="fremantle"
  p.repository="extras-devel"
- p.xsbc_bugtracker="http://github.com/webhamster/advancedcaching"
+ p.xsbc_bugtracker="http://github.com/webhamster/advancedcaching\nXB-Maemo-Display-Name: Advanced Geocaching Tool for Linux"
  #  p.postinstall="""#!/bin/sh
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your post install script
  #  p.postremove="""#!/bin/sh
@@ -38,16 +38,9 @@ if __name__ == "__main__":
  #  p.preremove="""#!/bin/sh
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your pre remove script
  version = "0.5.2"
- build = "0"############# for the first build of this version of your software. Increment for later re-builds of the same version of your software.
+ build = "1"############## for the first build of this version of your software. Increment for later re-builds of the same version of your software.
                              #Text with changelog information to be displayed in the package "Details" tab of the Maemo Application Manager
  changeloginformation = """
-Changes from 0.5.1:
- * Fixed downloading of geocaches
- * Added various features:
-   - Type a coordinate into the "notes" field and it is selectable in the "coords" tab
-   - Calculated coordinates are listed there, too
- * Fixed a lot of bugs
-Changes from 0.5.2:
  * Bug fix release for 0.5.1
 """
  dir_name = "src"            #Name of the subfolder containing your package source files (e.g. usr\share\icons\hicolor\scalable\myappicon.svg, usr\lib\myapp\somelib.py). We suggest to leave it named src in all projects and will refer to that in the wiki article on maemo.org
