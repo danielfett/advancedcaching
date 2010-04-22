@@ -37,6 +37,8 @@
 # todo
 # 
 import math
+import os
+import re
 
 import coordfinder
 import geo
@@ -44,9 +46,7 @@ import geocaching
 import gtk
 import hildon
 import openstreetmap
-import os
 import pango
-import re
 from simplegui import SimpleGui
 
 class HildonGui(SimpleGui):
@@ -132,13 +132,19 @@ class HildonGui(SimpleGui):
         os.system("browser --url='%s' &" % link)
 
     def _show_coord_change_dialog(self, widget, data):
-        dialog = gtk.Dialog("change coordinate", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-        #dialog
+        dialog = gtk.Dialog("change coordinate", None, gtk.DIALOG_DESTROY_WITH_PARENT, ())
+        dialog.set_size_request(-1, 480)
         def onclick(widget, data):
             widget.center_on_selected()
         h = gtk.Table()
-        h.set_size_request(-1, 200)
+        r = 0
         b = 0
+        sel = hildon.TouchSelector(text=True)
+        sel.append_text("N")
+        sel.append_text("S")
+        sel.connect('changed', onclick)
+        h.attach(sel, b, b + 1, r, r + 1)
+        b = 1
         for t in range(2):
             sel = hildon.TouchSelector(text=True)
             sel.append_text(" ")
@@ -146,28 +152,74 @@ class HildonGui(SimpleGui):
                 sel.append_text("%d" % i)
             sel.append_text(" ")
             sel.connect('changed', onclick)
-            h.attach(sel, b+t, b+t+1, 0, 1)
-        b = 2
-        h.attach(gtk.Label("."), b, b+1, 0, 1, 0, 0)
+            h.attach(sel, b + t, b + t + 1, r, r + 1)
         b = 3
+        h.attach(gtk.Label("."), b, b + 1, r, r + 1, 0, 0)
+        b = 4
         for t in range(2):
             sel = hildon.TouchSelector(text=True)
+            sel.append_text(" ")
             for i in range(10):
                 sel.append_text("%d" % i)
-
+            sel.append_text(" ")
             sel.connect('changed', onclick)
-            h.attach(sel, b+t, b+t+1, 0, 1)
-        b = 5
-        h.attach(gtk.Label("."), b, b+1, 0, 1, 0, 0)
+            h.attach(sel, b + t, b + t + 1, r, r + 1)
         b = 6
+        h.attach(gtk.Label("."), b, b + 1, r, r + 1, 0, 0)
+        b = 7
         for t in range(3):
             sel = hildon.TouchSelector(text=True)
+            sel.append_text(" ")
             for i in range(10):
                 sel.append_text("%d" % i)
-
+            sel.append_text(" ")
             sel.connect('changed', onclick)
-            h.attach(sel, b+t, b+t+1, 0, 1)
+            h.attach(sel, b + t, b + t + 1, r, r + 1)
+
+        h.attach(gtk.HSeparator(), 0, 10, 1, 2, gtk.FILL|gtk.EXPAND, gtk.FILL, 0, 10)
+        r = 2
+        b = 0
+        sel = hildon.TouchSelector(text=True)
+        sel.append_text("E")
+        sel.append_text("W")
+        sel.connect('changed', onclick)
+        h.attach(sel, b, b + 1, r, r + 1)
+        b = 1
+        for t in range(3):
+            sel = hildon.TouchSelector(text=True)
+            sel.append_text(" ")
+            for i in range(10):
+                sel.append_text("%d" % i)
+            sel.append_text(" ")
+            sel.connect('changed', onclick)
+            h.attach(sel, b + t, b + t + 1, r, r + 1)
+        b = 4
+        h.attach(gtk.Label("."), b, b + 1, r, r + 1, 0, 0)
+        b = 5
+        for t in range(2):
+            sel = hildon.TouchSelector(text=True)
+            sel.append_text(" ")
+            for i in range(10):
+                sel.append_text("%d" % i)
+            sel.append_text(" ")
+            sel.connect('changed', onclick)
+            h.attach(sel, b + t, b + t + 1, r, r+1)
+        b = 7
+        h.attach(gtk.Label("."), b, b + 1, r, r + 1, 0, 0)
+        b = 8
+        for t in range(3):
+            sel = hildon.TouchSelector(text=True)
+            sel.append_text(" ")
+            for i in range(10):
+                sel.append_text("%d" % i)
+            sel.append_text(" ")
+            sel.connect('changed', onclick)
+            h.attach(sel, b + t, b + t + 1, r, r + 1)
+
         dialog.vbox.pack_start(h)
+        b = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        b.set_label("OK")
+        dialog.vbox.pack_start(b, False, False)
         dialog.show_all()
         dialog.run()
 
@@ -181,7 +233,7 @@ class HildonGui(SimpleGui):
     def _on_key_press(self, window, event):
         return
         if event.keyval == gtk.keysyms.F7:
-            self.zoom( + 1)
+            self.zoom(+ 1)
             return False
         elif event.keyval == gtk.keysyms.F8:
             self.zoom(-1)
@@ -573,7 +625,7 @@ class HildonGui(SimpleGui):
         col1 = tv.append_column(ls, gtk.CellRendererText())
         
         c1cr = gtk.CellRendererText()
-        c1cr.ellipsize=pango.ELLIPSIZE_MIDDLE
+        c1cr.ellipsize = pango.ELLIPSIZE_MIDDLE
         c2cr = gtk.CellRendererText()
         c3cr = gtk.CellRendererText()
         c4cr = gtk.CellRendererText()
@@ -599,7 +651,7 @@ class HildonGui(SimpleGui):
             ls.clear()
             caches.sort(cmp=sortfunc)
             for c in caches:
-                ls.append([self.shorten_name(c.title, 40), " " + c.get_size_string(), ' D%s T%s' % (c.get_difficulty(), c.get_terrain()), " " + self.__format_distance(c.prox),c])
+                ls.append([self.shorten_name(c.title, 40), " " + c.get_size_string(), ' D%s T%s' % (c.get_difficulty(), c.get_terrain()), " " + self.__format_distance(c.prox), c])
             tv.handler_unblock_by_func(select_cache)
 
 
@@ -1103,13 +1155,13 @@ class HildonGui(SimpleGui):
         breaks are posix newlines (\n).
         """
         return reduce(lambda line, word, width=width: '%s%s%s' %
-                  (line,
-                   ' \n'[(len(line)-line.rfind('\n')-1
-                         + len(word.split('\n',1)[0]
-                              ) >= width)],
-                   word),
-                  text.split(' ')
-                 )
+                      (line,
+                      ' \n'[(len(line)-line.rfind('\n')-1
+                      + len(word.split('\n', 1)[0]
+                      ) >= width)],
+                      word),
+                      text.split(' ')
+                      )
 
     def _get_coord_selector(self, cache, callback, no_empty=False):
         selector = hildon.TouchSelector(text=True)
