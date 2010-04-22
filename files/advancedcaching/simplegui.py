@@ -1645,7 +1645,7 @@ class SimpleGui(object):
     def show_coordinate_input(self, start):
         udr = UpdownRows(self.format, start)
         dialog = gtk.Dialog("Change Target", None, gtk.DIALOG_MODAL, (gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE))
-                
+        dialog.set_size_request(-1, 480)
         frame = gtk.Frame("Latitude")
         frame.add(udr.table_lat)
         dialog.vbox.pack_start(frame)
@@ -1782,7 +1782,7 @@ class SimpleGui(object):
 
 
 class Updown():
-    def _init__(self, table, position, small):
+    def __init__(self, table, position, small):
         self.value = int(0)
         self.label = gtk.Label("0")
         self.button_up = gtk.Button("+")
@@ -1796,9 +1796,9 @@ class Updown():
             font = pango.FontDescription("sans 8")
         else:
             font = pango.FontDescription("sans 12")
-        self.label.modify_font(font)
-        self.button_up.child.modify_font(font)
-        self.button_down.child.modify_font(font)
+        #self.label.modify_font(font)
+        #self.button_up.child.modify_font(font)
+        #self.button_down.child.modify_font(font)
         
     def value_up(self, target):
         self.value = int((self.value + 1) % 10)
@@ -1818,13 +1818,13 @@ class Updown():
 
                 
 class PlusMinusUpdown():
-    def _init__(self, table, position, labels):
+    def __init__(self, table, position, labels):
         self.is_neg = False
         self.labels = labels
         self.button = gtk.Button(labels[0])
         table.attach(self.button, position, position + 1, 1, 2)
         self.button.connect('clicked', self.value_toggle)
-        self.button.child.modify_font(pango.FontDescription("sans 8"))
+        #self.button.child.modify_font(pango.FontDescription("sans 8"))
         
     def value_toggle(self, target):
         self.is_neg = not self.is_neg
@@ -1848,7 +1848,7 @@ class PlusMinusUpdown():
         self.button.child.set_text(text)
 
 class UpdownRows():
-    def _init__(self, format, coord):
+    def __init__(self, format, coord):
         self.format = format
         if coord == None:
             coord = geo.Coordinate(50, 10, 'none')

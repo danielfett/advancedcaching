@@ -132,6 +132,8 @@ class HildonGui(SimpleGui):
         os.system("browser --url='%s' &" % link)
 
     def _show_coord_change_dialog(self, widget, data):
+        self.show_coordinate_input(geo.Coordinate(49.123, 6.123))
+        return
         dialog = gtk.Dialog("change coordinate", None, gtk.DIALOG_DESTROY_WITH_PARENT, ())
         dialog.set_size_request(-1, 480)
         def onclick(widget, data):
