@@ -133,28 +133,40 @@ class HildonGui(SimpleGui):
 
     def _show_coord_change_dialog(self, widget, data):
         dialog = gtk.Dialog("change coordinate", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-        h = gtk.HBox()
+        #dialog
+        def onclick(widget, data):
+            widget.center_on_selected()
+        h = gtk.Table()
+        h.set_size_request(-1, 200)
+        b = 0
+        for t in range(2):
+            sel = hildon.TouchSelector(text=True)
+            sel.append_text(" ")
+            for i in range(10):
+                sel.append_text("%d" % i)
+            sel.append_text(" ")
+            sel.connect('changed', onclick)
+            h.attach(sel, b+t, b+t+1, 0, 1)
+        b = 2
+        h.attach(gtk.Label("."), b, b+1, 0, 1, 0, 0)
+        b = 3
         for t in range(2):
             sel = hildon.TouchSelector(text=True)
             for i in range(10):
                 sel.append_text("%d" % i)
 
-            h.pack_start(sel)
-        h.pack_start(gtk.Label("G "))
-
-        for t in range(2):
-            sel = hildon.TouchSelector(text=True)
-            for i in range(10):
-                sel.append_text("%d" % i)
-
-            h.pack_start(sel)
-        h.pack_start(gtk.Label("."))
+            sel.connect('changed', onclick)
+            h.attach(sel, b+t, b+t+1, 0, 1)
+        b = 5
+        h.attach(gtk.Label("."), b, b+1, 0, 1, 0, 0)
+        b = 6
         for t in range(3):
             sel = hildon.TouchSelector(text=True)
             for i in range(10):
                 sel.append_text("%d" % i)
 
-            h.pack_start(sel)
+            sel.connect('changed', onclick)
+            h.attach(sel, b+t, b+t+1, 0, 1)
         dialog.vbox.pack_start(h)
         dialog.show_all()
         dialog.run()
