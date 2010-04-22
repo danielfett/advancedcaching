@@ -36,11 +36,11 @@ def try_parse_coordinate(text):
     match = re.match(ur'''(?i)^([NS+-]?)\s?(\d\d?\d?)[ °]{0,2}(\d\d?\d?)[., ](\d+)['\s,]+([EOW+-]?)\s?(\d{1,3})[ °]{0,2}(\d\d?\d?)[., ](\d+)?[\s']*$''', text)
     if match != None:
         c = Coordinate(0, 0)
-        if match.group(1) in ['sS-']:
+        if match.group(1) in 'sS-':
             sign_lat = -1
         else:   
             sign_lat = 1
-        if match.group(5) in ['wW-']:
+        if match.group(5) in 'wW-':
             sign_lon = -1
         else:   
             sign_lon = 1
@@ -57,11 +57,11 @@ def try_parse_coordinate(text):
     
     if match != None:
         c = Coordinate(0, 0)
-        if match.group(1) in ['sS-']:
+        if match.group(1) in 'sS-':
             sign_lat = -1
         else:   
             sign_lat = 1
-        if match.group(4) in ['wW-']:
+        if match.group(4) in 'wW-':
             sign_lon = -1
         else:   
             sign_lon = 1
@@ -85,11 +85,11 @@ def search_coordinates(text):
     matches = re.finditer(ur'''(?i)([NS+-]?)\s?(\d\d?\d?)[ °]{1,2}(\d\d?\d?)[., ](\d+)['\s,]+([EOW+-]?)\s?(\d{1,3})[ °]{1,2}(\d\d?\d?)[., ](\d+)?[\s']*''', text)
     for match in matches:
         c = Coordinate(0, 0)
-        if match.group(1) in ['sS-']:
+        if match.group(1) in 'sS-':
             sign_lat = -1
         else:
             sign_lat = 1
-        if match.group(5) in ['wW-']:
+        if match.group(5) in 'wW-':
             sign_lon = -1
         else:
             sign_lon = 1
@@ -105,11 +105,11 @@ def search_coordinates(text):
     matches = re.finditer(ur'''(?i)([NS+-]?)\s?(\d\d?)[.,](\d+)[°']?[\s,]+([EOW+-]?)\s?(\d{1,3})[.,](\d+)['°]?\s*''', text)
     for match in matches:
         c = Coordinate(0, 0)
-        if match.group(1) in ['sS-']:
+        if match.group(1) in 'sS-':
             sign_lat = -1
         else:
             sign_lat = 1
-        if match.group(4) in ['wW-']:
+        if match.group(4) in 'wW-':
             sign_lon = -1
         else:
             sign_lon = 1

@@ -24,11 +24,12 @@
 # todo:
 # save last viewed cache
 # 0.5.3
+# browser öffnen
+# korrekte buttons für optionen und fieldnotes
 # cachenamen neben icons
 # cachenamen beim runterladen
 # begrenzung der max. download caches aus übersicht
 # sortierung der caches bei suche
-# korrekte buttons für optionen und fieldnotes
 # banner-api
 # 0.5.4
 # fieldnotes - individueller text.
@@ -611,11 +612,16 @@ class HildonGui(SimpleGui):
         opts.attach(password, 1, 2, 1, 2)
         password.set_text(self.settings['options_password'])
         
-        check_dl_images = gtk.CheckButton("Don't Download Images")
+        check_dl_images = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
+        check_dl_images.set_label("Don't Download Images")
         check_dl_images.set_active(self.settings['download_noimages'])
-        check_show_cache_id = gtk.CheckButton("Show Geocache ID on Map")
+
+        check_show_cache_id = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
+        check_show_cache_id.set_label("Show Geocache ID on Map")
         check_show_cache_id.set_active(self.settings['options_show_name'])
-        check_hide_found = gtk.CheckButton("Hide Found Geocaches on Map")
+
+        check_hide_found = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
+        check_hide_found.set_label("Hide Found Geocaches on Map")
         check_hide_found.set_active(self.settings['options_hide_found'])
         
         opts.attach(check_dl_images, 0, 2, 2, 3)
@@ -1220,14 +1226,19 @@ class HildonGui(SimpleGui):
         fieldnotes.set_placeholder("Your fieldnote text...")
         fieldnotes.get_buffer().set_text(cache.fieldnotes)
 
-        fieldnotes_log_as = gtk.combo_box_new_text()
+        fieldnotes_log_as_selector = hildon.TouchSelector(text=True)
+        
         for text, status in statuses:
-            fieldnotes_log_as.append_text(text)
+            fieldnotes_log_as_selector.append_text(text)
         i = 0
         for text, status in statuses:
             if cache.log_as == status:
-                fieldnotes_log_as.set_active(i)
+                fieldnotes_log_as_selector.select_iter(0, fieldnotes_log_as_selector.get_model(0).get_iter(i), False)
+                print text, i
             i += 1
+        fieldnotes_log_as = hildon.PickerButton(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
+        fieldnotes_log_as.set_title('Log Type')
+        fieldnotes_log_as.set_selector(fieldnotes_log_as_selector)
 
         dialog.vbox.pack_start(fieldnotes_log_as, False)
         dialog.vbox.pack_start(fieldnotes, True)
@@ -1239,13 +1250,13 @@ class HildonGui(SimpleGui):
             return
         from time import gmtime
         from time import strftime
-        
-        cache.logas = statuses[fieldnotes_log_as.get_active()][1]
-        cache.logdate = strftime('%Y-%m-%d', gmtime())
+
+        cache.log_as = statuses[fieldnotes_log_as_selector.get_selected_rows(0)[0][0]][1]
+        cache.log_date = strftime('%Y-%m-%d', gmtime())
         cache.fieldnotes = fieldnotes.get_buffer().get_text(fieldnotes.get_buffer().get_start_iter(), fieldnotes.get_buffer().get_end_iter())
-        self.core.write_fieldnote(self.current_cache, cache.logas, cache.logdate, cache.fieldnotes)
-
-
+        self.core.write_fieldnote(self.current_cache, cache.log_as, cache.log_date, cache.fieldnotes)
+        
+        
     def _on_upload_fieldnotes(self, some, thing):
         self.core.on_upload_fieldnotes()
 
