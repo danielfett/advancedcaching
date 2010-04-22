@@ -25,7 +25,6 @@
 # save last viewed cache
 # 0.5.3
 # browser öffnen
-# korrekte buttons für optionen und fieldnotes
 # cachenamen neben icons
 # cachenamen beim runterladen
 # begrenzung der max. download caches aus übersicht
@@ -129,6 +128,12 @@ class HildonGui(SimpleGui):
         self.window.add(self._create_main_view())
         self.window.set_app_menu(self._create_main_menu())
         self.update_fieldnotes_display()
+
+        gtk.link_button_set_uri_hook(self._open_browser)
+
+    def _open_browser(self, widget, link):
+        os.system('browser --url=%s' % link)
+
 
     def set_tile_loader(self, widget, loader):
         if widget.get_active():
@@ -731,10 +736,12 @@ class HildonGui(SimpleGui):
         l.set_markup("<b>Open Website</b>")
         l.set_alignment(0, 0.5)
         p.attach(l, 0, 1, 8, 9)
-        #z = gtk.HBox(True)
-        #z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/cache_details.aspx?wp=%s" % cache.name, 'Listing'))
-        #z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/log.aspx?wp=%s" % cache.name, 'Log'))
-        #p.attach(z, 1, 2, 8, 9)
+        z = gtk.HBox(True)
+
+        z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/cache_details.aspx?wp=%s" % cache.name, 'Listing'))
+        z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/log.aspx?wp=%s" % cache.name, 'Log'))
+        z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/cache_details.aspx?wp=%s&log=y#ctl00_ContentBody_CacheLogs" % cache.name, 'All Logs'))
+        p.attach(z, 1, 2, 8, 9)
 
         # cache-was-not-downloaded-yet-warning
         if not cache.was_downloaded():
