@@ -74,6 +74,8 @@ class HildonGui(SimpleGui):
     CACHE_DRAW_FONT = pango.FontDescription("Sans 10")
     MESSAGE_DRAW_FONT = pango.FontDescription("Sans 12")
 
+    LARGE_COORD_DIALOG = True
+
     def __init__(self, core, pointprovider, userpointprovider, dataroot):
         gtk.gdk.threads_init()
         self.ts = openstreetmap.TileServer()
@@ -126,7 +128,7 @@ class HildonGui(SimpleGui):
         self.update_fieldnotes_display()
 
         gtk.link_button_set_uri_hook(self._open_browser)
-        self._show_coord_change_dialog(None, None)
+        #self._show_coord_change_dialog(None, None)
 
     def _open_browser(self, widget, link):
         os.system("browser --url='%s' &" % link)

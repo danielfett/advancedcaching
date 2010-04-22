@@ -111,6 +111,8 @@ class SimpleGui(object):
     # quality indicator
     COLOR_QUALITY_OUTER = gtk.gdk.color_parse("black")
     COLOR_QUALITY_INNER = gtk.gdk.color_parse("green")
+
+    LARGE_COORD_DIALOG = False
         
     SETTINGS_CHECKBOXES = [
         'download_visible',
@@ -1643,9 +1645,10 @@ class SimpleGui(object):
         suc_dlg.destroy()
 
     def show_coordinate_input(self, start):
-        udr = UpdownRows(self.format, start)
+        udr = UpdownRows(self.format, start, self.LARGE_COORD_DIALOG)
         dialog = gtk.Dialog("Change Target", None, gtk.DIALOG_MODAL, (gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE))
-        dialog.set_size_request(-1, 480)
+        if self.LARGE_COORD_DIALOG:
+            dialog.set_size_request(-1, 480)
         frame = gtk.Frame("Latitude")
         frame.add(udr.table_lat)
         dialog.vbox.pack_start(frame)
@@ -1792,13 +1795,14 @@ class Updown():
         table.attach(self.button_down, position, position + 1, 2, 3)
         self.button_up.connect('clicked', self.value_up)
         self.button_down.connect('clicked', self.value_down)
-        if small:
-            font = pango.FontDescription("sans 8")
-        else:
-            font = pango.FontDescription("sans 12")
-        #self.label.modify_font(font)
-        #self.button_up.child.modify_font(font)
-        #self.button_down.child.modify_font(font)
+        if small != None:
+            if small:
+                font = pango.FontDescription("sans 8")
+            else:
+                font = pango.FontDescription("sans 12")
+            self.label.modify_font(font)
+            self.button_up.child.modify_font(font)
+            self.button_down.child.modify_font(font)
         
     def value_up(self, target):
         self.value = int((self.value + 1) % 10)
@@ -1818,13 +1822,14 @@ class Updown():
 
                 
 class PlusMinusUpdown():
-    def __init__(self, table, position, labels):
+    def __init__(self, table, position, labels, small = None):
         self.is_neg = False
         self.labels = labels
         self.button = gtk.Button(labels[0])
         table.attach(self.button, position, position + 1, 1, 2)
         self.button.connect('clicked', self.value_toggle)
-        #self.button.child.modify_font(pango.FontDescription("sans 8"))
+        if small != None:
+            self.button.child.modify_font(pango.FontDescription("sans 8"))
         
     def value_toggle(self, target):
         self.is_neg = not self.is_neg
@@ -1848,8 +1853,9 @@ class PlusMinusUpdown():
         self.button.child.set_text(text)
 
 class UpdownRows():
-    def __init__(self, format, coord):
+    def __init__(self, format, coord, large_dialog):
         self.format = format
+        self.large_dialog = large_dialog
         if coord == None:
             coord = geo.Coordinate(50, 10, 'none')
         if format == geo.Coordinate.FORMAT_DM:
@@ -1895,9 +1901,9 @@ class UpdownRows():
         table = gtk.Table(3, num + len(interrupt) + 1, False)
                 
         if is_long:
-            self.switcher_lon = PlusMinusUpdown(table, 0, ['W', 'E'])
+            self.switcher_lon = PlusMinusUpdown(table, 0, ['W', 'E'], None if self.large_dialog else False)
         else:
-            self.switcher_lat = PlusMinusUpdown(table, 0, ['S', 'N'])
+            self.switcher_lat = PlusMinusUpdown(table, 0, ['S', 'N'], None if self.large_dialog else False)
                 
         chooser = []
         cn = 0
@@ -1905,7 +1911,7 @@ class UpdownRows():
             if i in interrupt:
                 table.attach(gtk.Label(interrupt[i]), i, i + 1, 1, 2)
             else:
-                ud = Updown(table, i, cn < small)
+                ud = Updown(table, i, (cn < small) if not self.large_dialog else None)
                 if cn < len(initial_value):
                     ud.set_value(initial_value[cn])
                     chooser.append(ud)
