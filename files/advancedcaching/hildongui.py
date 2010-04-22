@@ -22,13 +22,12 @@
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
 
 # todo:
-# save last viewed cache
 # 0.5.3
-# begrenzung der max. download caches aus übersicht
-# sortierung der caches bei suche
+# kartengrenzen
 # banner-api
 # 0.5.4
 # fieldnotes - individueller text.
+# bessere coord-eingabe
 
 
  
@@ -127,9 +126,38 @@ class HildonGui(SimpleGui):
         self.update_fieldnotes_display()
 
         gtk.link_button_set_uri_hook(self._open_browser)
+        self._show_coord_change_dialog(None, None)
 
     def _open_browser(self, widget, link):
         os.system("browser --url='%s' &" % link)
+
+    def _show_coord_change_dialog(self, widget, data):
+        dialog = gtk.Dialog("change coordinate", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        h = gtk.HBox()
+        for t in range(2):
+            sel = hildon.TouchSelector(text=True)
+            for i in range(10):
+                sel.append_text("%d" % i)
+
+            h.pack_start(sel)
+        h.pack_start(gtk.Label("G "))
+
+        for t in range(2):
+            sel = hildon.TouchSelector(text=True)
+            for i in range(10):
+                sel.append_text("%d" % i)
+
+            h.pack_start(sel)
+        h.pack_start(gtk.Label("."))
+        for t in range(3):
+            sel = hildon.TouchSelector(text=True)
+            for i in range(10):
+                sel.append_text("%d" % i)
+
+            h.pack_start(sel)
+        dialog.vbox.pack_start(h)
+        dialog.show_all()
+        dialog.run()
 
 
     def set_tile_loader(self, widget, loader):
@@ -521,7 +549,6 @@ class HildonGui(SimpleGui):
         if self.gps_data != None and self.gps_data.position != None:
             for c in caches:
                 c.prox = c.distance_to(self.gps_data.position)
-                print c.difficulty
         else:
             for c in caches:
                 c.prox = None
@@ -550,7 +577,7 @@ class HildonGui(SimpleGui):
         col1.set_attributes(c4cr, text=3)
 
         def select_cache(widget, data, more):
-            self.show_cache(self._get_selected(widget)[4])
+            self.show_cache(self._get_selected(tv)[4])
         
         tv.connect("changed", select_cache, None)
 
@@ -890,7 +917,6 @@ class HildonGui(SimpleGui):
         self.current_cache_window_open = True
 
     def build_coordinates(self, cache, p):
-        print 'updating'
         widget_coords, clist = self._get_coord_selector(cache, lambda x, y, z: True)
 
 
@@ -1043,7 +1069,7 @@ class HildonGui(SimpleGui):
     def _on_show_image(self, path, caption):
         fullpath = os.path.join(self.settings['download_output_dir'], path)
         if not os.path.exists(fullpath):
-            print "ex nicht: " + fullpath
+            print "file does not exist: " + fullpath
             return
         win = hildon.StackableWindow()
         win.set_title(caption)
@@ -1169,7 +1195,6 @@ class HildonGui(SimpleGui):
             self.show_cache(cache)
             return False
         else:
-            print self.current_cache, cache.name, self.current_cache_window_open
             return False
 
 
@@ -1214,7 +1239,6 @@ class HildonGui(SimpleGui):
         for text, status in statuses:
             if cache.log_as == status:
                 fieldnotes_log_as_selector.select_iter(0, fieldnotes_log_as_selector.get_model(0).get_iter(i), False)
-                print text, i
             i += 1
         fieldnotes_log_as = hildon.PickerButton(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
         fieldnotes_log_as.set_title('Log Type')
@@ -1226,7 +1250,7 @@ class HildonGui(SimpleGui):
         result = dialog.run()
         dialog.hide()
         if result != gtk.RESPONSE_ACCEPT:
-            print 'not logged'
+            print 'Not logging this fieldnote'
             return
         from time import gmtime
         from time import strftime
