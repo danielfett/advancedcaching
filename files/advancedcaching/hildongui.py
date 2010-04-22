@@ -132,7 +132,7 @@ class HildonGui(SimpleGui):
         gtk.link_button_set_uri_hook(self._open_browser)
 
     def _open_browser(self, widget, link):
-        os.system('browser --url=%s' % link)
+        os.system('browser --url=%s &' % link)
 
 
     def set_tile_loader(self, widget, loader):
