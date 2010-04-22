@@ -369,6 +369,8 @@ class CacheDownloader(gobject.GObject):
     lock = threading.Lock()
                                  
     MAX_REC_DEPTH = 2
+
+    MAX_DOWNLOAD_NUM = 20
     
     def __init__(self, downloader, path, download_images, resize = None):
         gobject.GObject.__init__(self)
@@ -573,6 +575,9 @@ class CacheDownloader(gobject.GObject):
     def update_coordinates(self, coordinates):
         i = 0
         c = []
+        if len(coordinates) > self.MAX_DOWNLOAD_NUM:
+            self.emit("download-error", Exception("Downloading of more than %d descriptions is not supported." % self.MAX_DOWNLOAD_NUM))
+            return
         for cache in coordinates:
             self.emit("progress", cache.name, i, len(coordinates))
             u = self.update_coordinate(cache)

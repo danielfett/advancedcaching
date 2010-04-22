@@ -759,7 +759,7 @@ class SimpleGui(object):
 
             # print the name?
             if self.settings['options_show_name']:
-                layout = self.drawing_area.create_pango_layout(c.name)
+                layout = self.drawing_area.create_pango_layout(self.shorten_name(c.title, 20))
                 layout.set_font_description(self.CACHE_DRAW_FONT)
                 self.pixmap_marks.draw_layout(xgc, p[0] + 3 + radius, p[1] - 3 - radius, layout)
 
@@ -1755,7 +1755,31 @@ class SimpleGui(object):
         self.ts.set_zoom(newzoom)
         self.set_center(center)
                 
-                
+
+    @staticmethod
+    def shorten_name(s, chars):
+        max_pos = chars
+        min_pos = chars - 10
+
+        NOT_FOUND = -1
+
+        suffix = '…'
+
+        # Case 1: Return string if it is shorter (or equal to) than the limit
+        length = len(s)
+        if length <= max_pos:
+            return s
+        else:
+            # Case 2: Return it to nearest period if possible
+            try:
+                end = s.rindex('.', min_pos, max_pos)
+            except ValueError:
+                # Case 3: Return string to nearest space
+                end = s.rfind(' ', min_pos, max_pos)
+                if end == NOT_FOUND:
+                    end = max_pos
+            return s[0:end] + suffix
+
 
 class Updown():
     def _init__(self, table, position, small):
@@ -1888,3 +1912,4 @@ class UpdownRows():
                     cn = cn + 1
 
         return [table, chooser]
+

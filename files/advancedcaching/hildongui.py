@@ -24,9 +24,6 @@
 # todo:
 # save last viewed cache
 # 0.5.3
-# browser öffnen
-# cachenamen neben icons
-# cachenamen beim runterladen
 # begrenzung der max. download caches aus übersicht
 # sortierung der caches bei suche
 # banner-api
@@ -1144,30 +1141,6 @@ class HildonGui(SimpleGui):
         self.set_center(data)
         self.hide_cache_view(None, None)
 
-
-    @staticmethod
-    def shorten_name(s, chars):
-        max_pos = chars
-        min_pos = chars - 10
-
-        NOT_FOUND = -1
-
-        suffix = '…'
-
-        # Case 1: Return string if it is shorter (or equal to) than the limit
-        length = len(s)
-        if length <= max_pos:
-            return s
-        else:
-            # Case 2: Return it to nearest period if possible
-            try:
-                end = s.rindex('.', min_pos, max_pos)
-            except ValueError:
-                # Case 3: Return string to nearest space
-                end = s.rfind(' ', min_pos, max_pos)
-                if end == NOT_FOUND:
-                    end = max_pos
-            return s[0:end] + suffix
 
 
     @staticmethod
