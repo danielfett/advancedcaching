@@ -47,7 +47,7 @@ import gtk
 import hildon
 import openstreetmap
 import pango
-from simplegui import SimpleGui
+from simplegui import SimpleGui, UpdownRows
 
 class HildonGui(SimpleGui):
 
@@ -73,8 +73,6 @@ class HildonGui(SimpleGui):
     CACHES_ZOOM_LOWER_BOUND = 8
     CACHE_DRAW_FONT = pango.FontDescription("Sans 10")
     MESSAGE_DRAW_FONT = pango.FontDescription("Sans 12")
-
-    LARGE_COORD_DIALOG = True
 
     def __init__(self, core, pointprovider, userpointprovider, dataroot):
         gtk.gdk.threads_init()
@@ -128,105 +126,28 @@ class HildonGui(SimpleGui):
         self.update_fieldnotes_display()
 
         gtk.link_button_set_uri_hook(self._open_browser)
-        #self._show_coord_change_dialog(None, None)
+        #self.show_coordinate_input(geo.Coordinate(49.344, 6.584))
 
     def _open_browser(self, widget, link):
         os.system("browser --url='%s' &" % link)
 
-    def _show_coord_change_dialog(self, widget, data):
-        self.show_coordinate_input(geo.Coordinate(49.123, 6.123))
-        return
-        dialog = gtk.Dialog("change coordinate", None, gtk.DIALOG_DESTROY_WITH_PARENT, ())
+    def show_coordinate_input(self, start):
+        udr = UpdownRows(self.format, start, True)
+        dialog = gtk.Dialog("Change Target", None, gtk.DIALOG_MODAL, ("OK", gtk.RESPONSE_ACCEPT))
         dialog.set_size_request(-1, 480)
-        def onclick(widget, data):
-            widget.center_on_selected()
-        h = gtk.Table()
-        r = 0
-        b = 0
-        sel = hildon.TouchSelector(text=True)
-        sel.append_text("N")
-        sel.append_text("S")
-        sel.connect('changed', onclick)
-        h.attach(sel, b, b + 1, r, r + 1)
-        b = 1
-        for t in range(2):
-            sel = hildon.TouchSelector(text=True)
-            sel.append_text(" ")
-            for i in range(10):
-                sel.append_text("%d" % i)
-            sel.append_text(" ")
-            sel.connect('changed', onclick)
-            h.attach(sel, b + t, b + t + 1, r, r + 1)
-        b = 3
-        h.attach(gtk.Label("."), b, b + 1, r, r + 1, 0, 0)
-        b = 4
-        for t in range(2):
-            sel = hildon.TouchSelector(text=True)
-            sel.append_text(" ")
-            for i in range(10):
-                sel.append_text("%d" % i)
-            sel.append_text(" ")
-            sel.connect('changed', onclick)
-            h.attach(sel, b + t, b + t + 1, r, r + 1)
-        b = 6
-        h.attach(gtk.Label("."), b, b + 1, r, r + 1, 0, 0)
-        b = 7
-        for t in range(3):
-            sel = hildon.TouchSelector(text=True)
-            sel.append_text(" ")
-            for i in range(10):
-                sel.append_text("%d" % i)
-            sel.append_text(" ")
-            sel.connect('changed', onclick)
-            h.attach(sel, b + t, b + t + 1, r, r + 1)
-
-        h.attach(gtk.HSeparator(), 0, 10, 1, 2, gtk.FILL|gtk.EXPAND, gtk.FILL, 0, 10)
-        r = 2
-        b = 0
-        sel = hildon.TouchSelector(text=True)
-        sel.append_text("E")
-        sel.append_text("W")
-        sel.connect('changed', onclick)
-        h.attach(sel, b, b + 1, r, r + 1)
-        b = 1
-        for t in range(3):
-            sel = hildon.TouchSelector(text=True)
-            sel.append_text(" ")
-            for i in range(10):
-                sel.append_text("%d" % i)
-            sel.append_text(" ")
-            sel.connect('changed', onclick)
-            h.attach(sel, b + t, b + t + 1, r, r + 1)
-        b = 4
-        h.attach(gtk.Label("."), b, b + 1, r, r + 1, 0, 0)
-        b = 5
-        for t in range(2):
-            sel = hildon.TouchSelector(text=True)
-            sel.append_text(" ")
-            for i in range(10):
-                sel.append_text("%d" % i)
-            sel.append_text(" ")
-            sel.connect('changed', onclick)
-            h.attach(sel, b + t, b + t + 1, r, r+1)
-        b = 7
-        h.attach(gtk.Label("."), b, b + 1, r, r + 1, 0, 0)
-        b = 8
-        for t in range(3):
-            sel = hildon.TouchSelector(text=True)
-            sel.append_text(" ")
-            for i in range(10):
-                sel.append_text("%d" % i)
-            sel.append_text(" ")
-            sel.connect('changed', onclick)
-            h.attach(sel, b + t, b + t + 1, r, r + 1)
-
-        dialog.vbox.pack_start(h)
-        b = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        b.set_label("OK")
-        dialog.vbox.pack_start(b, False, False)
+        dialog.vbox.pack_start(udr.table_lat)
+                
+        dialog.vbox.pack_start(udr.table_lon)
+                
         dialog.show_all()
-        dialog.run()
-
+        res = dialog.run()
+        dialog.destroy()
+        if res == gtk.RESPONSE_ACCEPT:
+            c = udr.get_value()
+            c.name = 'manual'
+            return c
+        else:
+            return start
 
     def set_tile_loader(self, widget, loader):
         if widget.get_active():
@@ -464,7 +385,7 @@ class HildonGui(SimpleGui):
         sel_size.append_text('huge')
         sel_size.append_text('other')
         sel_size.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_MULTIPLE)
-        pick_size = hildon.PickerButton(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        pick_size = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         pick_size.set_selector(sel_size)
         pick_size.set_title("Select Size(s)")
         for i in range(5):
@@ -479,7 +400,7 @@ class HildonGui(SimpleGui):
         sel_type.append_text('mystery')
         sel_type.append_text('all')
         sel_type.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_MULTIPLE)
-        pick_type = hildon.PickerButton(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        pick_type = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         pick_type.set_selector(sel_type)
         pick_type.set_title("Select Type(s)")
         sel_type.unselect_all(0)
@@ -491,7 +412,7 @@ class HildonGui(SimpleGui):
         sel_status.append_text('found')
         sel_status.append_text('marked')
         sel_status.append_text('not found & marked')
-        pick_status = hildon.PickerButton(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        pick_status = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         pick_status.set_selector(sel_status)
         pick_status.set_title("Select Status")
         
@@ -503,7 +424,7 @@ class HildonGui(SimpleGui):
         sel_diff.append_text('3..4')
         sel_diff.append_text('4.5..5')
         sel_diff.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_MULTIPLE)
-        pick_diff = hildon.PickerButton(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        pick_diff = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         pick_diff.set_selector(sel_diff)
         pick_diff.set_title("Select Difficulty")
         for i in range(3):
@@ -514,13 +435,13 @@ class HildonGui(SimpleGui):
         sel_terr.append_text('3..4')
         sel_terr.append_text('4.5..5')
         sel_terr.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_MULTIPLE)
-        pick_terr = hildon.PickerButton(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        pick_terr = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         pick_terr.set_selector(sel_terr)
         pick_terr.set_title("Select Terrain")
         for i in range(3):
             sel_terr.select_iter(0, sel_terr.get_model(0).get_iter(i), False)
         
-        name = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+        name = hildon.Entry(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
         name.set_placeholder("search for name...")
         
         t = gtk.Table(4, 3, False)
@@ -746,27 +667,39 @@ class HildonGui(SimpleGui):
             c = self.gps_data.position
         else:
             c = geo.Coordinate(0, 0)
+
         dialog = gtk.Dialog("change target", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-        h_lat = gtk.HBox()      
-        l_lat = gtk.Label("Lat/Lon: ")
-        e_lat = hildon.Entry(gtk.HILDON_SIZE_AUTO)
-        e_lat.set_property('hildon-input-mode', gtk.HILDON_GTK_INPUT_MODE_ALPHA | gtk.HILDON_GTK_INPUT_MODE_SPECIAL | gtk.HILDON_GTK_INPUT_MODE_TELE)
-        e_lat.set_text("%s %s" % (c.get_lat(self.format), c.get_lon(self.format)))
-        h_lat.pack_start(l_lat, True)
-        h_lat.pack_start(e_lat, True)
-        
-        #e_lat.set_property("input-mode", gtk.HILDON_INPUT_MODE_HINT_NUMERICSPECIAL)
-        #l = gtk.Label("Use + for N/E, - for W/S.")
-        #l.set_alignment(0, 0.5)
-        #dialog.vbox.pack_start(l, False)
-        dialog.vbox.pack_start(h_lat, False)
+
+        bar_label = gtk.Label("Lat/Lon: ")
+        bar_entry = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+        bar_entry.set_property('hildon-input-mode', gtk.HILDON_GTK_INPUT_MODE_ALPHA | gtk.HILDON_GTK_INPUT_MODE_SPECIAL | gtk.HILDON_GTK_INPUT_MODE_TELE)
+        bar_entry.set_text(c.get_latlon(self.format))
+
+        def show_coord_input(widget):
+            try:
+                m = geo.try_parse_coordinate(bar_entry.get_text())
+            except Exception, e:
+                m = c
+            m_new = self.show_coordinate_input(m)
+            bar_entry.set_text(m_new.get_latlon(self.format))
+
+        bar_button = hildon.Button(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        bar_button.set_label("edit")
+        bar_button.connect("clicked", show_coord_input)
+
+        bar = gtk.HBox()      
+        bar.pack_start(bar_label, False)
+        bar.pack_start(bar_entry, True)
+        bar.pack_start(bar_button, False)
+
+        dialog.vbox.pack_start(bar, False)
 
         def sel_coord(widget, data, clist):
             tm = widget.get_model(0)
             iter = tm.get_iter(0)
             widget.get_selected(0, iter)
             coord = clist[tm.get_path(iter)[0]]
-            e_lat.set_text("%s %s" % (coord.get_lat(self.format), coord.get_lon(self.format)))
+            bar_entry.set_text(coord.get_latlon(self.format))
 
         if self.current_cache != None:
             sel, clist = self._get_coord_selector(self.current_cache, sel_coord, True)
@@ -778,7 +711,7 @@ class HildonGui(SimpleGui):
         result = dialog.run()
         dialog.hide()
         if result == gtk.RESPONSE_ACCEPT:
-            self.set_target(geo.try_parse_coordinate(e_lat.get_text()))
+            self.set_target(geo.try_parse_coordinate(bar_entry.get_text()))
 
     def show_cache(self, cache, select=True):
         if cache == None:
@@ -928,18 +861,37 @@ class HildonGui(SimpleGui):
         notebook.connect("switch-page", switchpage)
 
         # notes
-        p = hildon.PannableArea()
+        pan = hildon.PannableArea()
         self.cache_notes = gtk.TextView()
         #cache_notes.set_editable(True)
         self.cache_notes.get_buffer().set_text(cache.notes)
-        p.add(self.cache_notes)
+        pan.add(self.cache_notes)
 
-        notebook.append_page(p, gtk.Label("notes"))
         self.notes_changed = False
         def notes_changed(caller):
             self.notes_changed = True
-
         self.cache_notes.get_buffer().connect('changed', notes_changed)
+
+        def add_waypoint(widget):
+            if self.gps_data != None and self.gps_data.position != None:
+                c = self.gps_data.position
+            elif self.current_target != None:
+                c = self.current_target
+            else:
+                c = geo.Coordinate(0, 0)
+            res = self.show_coordinate_input(c)
+            text = "\n%s\n" % res.get_latlon(self.format)
+            self.cache_notes.get_buffer().insert(self.cache_notes.get_buffer().get_end_iter(), text)
+                
+
+        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
+        button.set_label("Add Waypoint")
+        button.connect("clicked", add_waypoint)
+
+        p = gtk.VBox()
+        p.pack_start(pan, True)
+        p.pack_start(button, False)
+        notebook.append_page(p, gtk.Label("notes"))
 
 
         win.add(notebook)
@@ -1008,13 +960,13 @@ class HildonGui(SimpleGui):
                 return
             self.core.set_alternative_position(cache, c)
             
-        h = gtk.HBox()
-        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
+        h = gtk.HBox(True)
+        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
         button.set_label("set as target")
         button.connect("clicked", set_coord_as_target)
         h.pack_start(button)
 
-        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
+        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
         button.set_label("set as main coordinate")
         button.connect("clicked", set_alternative_position)
         h.pack_start(button)
@@ -1308,7 +1260,7 @@ class HildonGui(SimpleGui):
             if cache.log_as == status:
                 fieldnotes_log_as_selector.select_iter(0, fieldnotes_log_as_selector.get_model(0).get_iter(i), False)
             i += 1
-        fieldnotes_log_as = hildon.PickerButton(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
+        fieldnotes_log_as = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
         fieldnotes_log_as.set_title('Log Type')
         fieldnotes_log_as.set_selector(fieldnotes_log_as_selector)
 
@@ -1361,7 +1313,7 @@ class HildonGui(SimpleGui):
 
     def set_center(self, coord, noupdate=False):
         SimpleGui.set_center(self, coord, noupdate)
-        self.button_center_as_target.set_value("%s %s" % (coord.get_lat(self.format), coord.get_lon(self.format)))
+        self.button_center_as_target.set_value(coord.get_latlon(self.format))
 
     def set_current_cache(self, cache):
         self.current_cache = cache
@@ -1376,7 +1328,7 @@ class HildonGui(SimpleGui):
 
     def set_target(self, cache):
         self.current_target = cache
-        coord = "%s %s" % (cache.get_lat(self.format), cache.get_lon(self.format))
+        coord = cache.get_latlon(self.format)
         self.label_target.set_value(coord)
         self.button_goto_target.set_value(coord)
         
@@ -1407,7 +1359,7 @@ class HildonGui(SimpleGui):
     def _drag_end(self, widget, event):
         SimpleGui._drag_end(self, widget, event)
         c = self.ts.num2deg(self.map_center_x, self.map_center_y)
-        self.button_center_as_target.set_value("%s %s" % (c.get_lat(self.format), c.get_lon(self.format)))
+        self.button_center_as_target.set_value(c.get_latlon(self.format))
 
 
     def on_zoom_changed(self, blub):
@@ -1509,7 +1461,7 @@ class HildonGui(SimpleGui):
 
         self.label_altitude.set_markup("Altitude\n<small>%d m</small>" % self.gps_data.altitude)
         self.label_bearing.set_markup("Bearing\n<small>%d°</small>" % self.gps_data.bearing)
-        self.label_latlon.set_markup("Current Position\n<small>%s %s</small>" % (self.gps_data.position.get_lat(self.format), self.gps_data.position.get_lon(self.format)))
+        self.label_latlon.set_markup("Current Position\n<small>%s</small>" % self.gps_data.position.get_latlon(self.format))
 
         if self.current_target == None:
             return

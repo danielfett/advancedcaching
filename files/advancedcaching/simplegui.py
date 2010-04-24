@@ -22,12 +22,11 @@
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
 
 # todo:
-# download logs
+# show logs
 # parse attributes
 # add "next waypoint" button
 # add description to displayed images
 # add translation support?
-# download in seperate thread?
 
 
  
@@ -111,8 +110,6 @@ class SimpleGui(object):
     # quality indicator
     COLOR_QUALITY_OUTER = gtk.gdk.color_parse("black")
     COLOR_QUALITY_INNER = gtk.gdk.color_parse("green")
-
-    LARGE_COORD_DIALOG = False
         
     SETTINGS_CHECKBOXES = [
         'download_visible',
@@ -1645,10 +1642,8 @@ class SimpleGui(object):
         suc_dlg.destroy()
 
     def show_coordinate_input(self, start):
-        udr = UpdownRows(self.format, start, self.LARGE_COORD_DIALOG)
+        udr = UpdownRows(self.format, start, False)
         dialog = gtk.Dialog("Change Target", None, gtk.DIALOG_MODAL, (gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE))
-        if self.LARGE_COORD_DIALOG:
-            dialog.set_size_request(-1, 480)
         frame = gtk.Frame("Latitude")
         frame.add(udr.table_lat)
         dialog.vbox.pack_start(frame)
@@ -1787,11 +1782,12 @@ class SimpleGui(object):
 class Updown():
     def __init__(self, table, position, small):
         self.value = int(0)
-        self.label = gtk.Label("0")
+        self.label = gtk.Label("<b>0</b>")
+        self.label.set_use_markup(True)
         self.button_up = gtk.Button("+")
         self.button_down = gtk.Button("-")
         table.attach(self.button_up, position, position + 1, 0, 1)
-        table.attach(self.label, position, position + 1, 1, 2)
+        table.attach(self.label, position, position + 1, 1, 2, 0, 0)
         table.attach(self.button_down, position, position + 1, 2, 3)
         self.button_up.connect('clicked', self.value_up)
         self.button_down.connect('clicked', self.value_down)
@@ -1817,7 +1813,7 @@ class Updown():
         self.update()
                 
     def update(self):
-        self.label.set_text(str(self.value))
+        self.label.set_markup("<b>%d</b>" % self.value)
                 
 
                 
@@ -1826,7 +1822,7 @@ class PlusMinusUpdown():
         self.is_neg = False
         self.labels = labels
         self.button = gtk.Button(labels[0])
-        table.attach(self.button, position, position + 1, 1, 2)
+        table.attach(self.button, position, position + 1, 1, 2, gtk.FILL, gtk.FILL)
         self.button.connect('clicked', self.value_toggle)
         if small != None:
             self.button.child.modify_font(pango.FontDescription("sans 8"))
@@ -1909,7 +1905,7 @@ class UpdownRows():
         cn = 0
         for i in xrange(1, num + len(interrupt) + 1):
             if i in interrupt:
-                table.attach(gtk.Label(interrupt[i]), i, i + 1, 1, 2)
+                table.attach(gtk.Label(interrupt[i]), i, i + 1, 1, 2, 0, 0)
             else:
                 ud = Updown(table, i, (cn < small) if not self.large_dialog else None)
                 if cn < len(initial_value):
