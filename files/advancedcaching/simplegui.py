@@ -629,6 +629,7 @@ class SimpleGui(object):
         offset_y = self.drag_offset_y #(self.drag_start_y - event.y)
         self.map_center_x += (offset_x / self.ts.tile_size())
         self.map_center_y += (offset_y / self.ts.tile_size())
+        self.map_center_x, self.map_center_y = self.ts.check_bounds(self.map_center_x, self.map_center_y)
         if offset_x ** 2 + offset_y ** 2 < self.CLICK_RADIUS ** 2:
             self.draw_at_x -= offset_x
             self.draw_at_y -= offset_y

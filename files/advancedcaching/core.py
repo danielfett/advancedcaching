@@ -142,6 +142,7 @@ if len(sys.argv) == 1:
     print usage % ({'name': sys.argv[0]})
     exit()
         
+
 arg = sys.argv[1].strip()
 if arg == '--simple':
     import simplegui
@@ -269,6 +270,8 @@ class Core(gobject.GObject):
         #reader.read_file('../../file.loc')
         self.gui = guitype(self, self.pointprovider, self.userpointprovider, dataroot)
         self.gui.write_settings(self.settings)
+
+
 
         if '--sim' in sys.argv:
             self.gps_thread = gpsreader.FakeGpsReader(self)

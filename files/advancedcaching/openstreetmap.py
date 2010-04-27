@@ -51,6 +51,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             self.tile = tile
             self.zoom = zoom
             self.gui = gui
+            self.realtile = self.gui.ts.check_bounds(*tile)
             self.base_dir = base_dir
             self.pbuf = None
             self.num = num
@@ -60,9 +61,9 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             self.my_noimage = None
 
         def set_paths(self):
-            self.local_path = os.path.join(self.base_dir, self.PREFIX, str(self.zoom), str(self.tile[0]))
-            self.local_filename =  os.path.join(self.local_path, "%d%s%s" % (self.tile[1], os.extsep, self.FILE_TYPE))
-            self.remote_filename = self.REMOTE_URL % {'zoom': self.zoom, 'x' : self.tile[0], 'y' : self.tile[1]}
+            self.local_path = os.path.join(self.base_dir, self.PREFIX, str(self.zoom), str(self.realtile[0]))
+            self.local_filename =  os.path.join(self.local_path, "%d%s%s" % (self.realtile[1], os.extsep, self.FILE_TYPE))
+            self.remote_filename = self.REMOTE_URL % {'zoom': self.zoom, 'x' : self.realtile[0], 'y' : self.realtile[1]}
 
         @staticmethod
         def create_recursive(path):
@@ -140,9 +141,6 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             return self.load(1)
 
         def draw(self, pbuf):
-            #gc.set_function(gtk.gdk.COPY)
-            #gc.set_rgb_fg_color(self.COLOR_BG)
-            # to draw "night mode": INVERT
 
             size = self.gui.ts.tile_size()
             x = self.gui.map_center_x
@@ -238,4 +236,11 @@ class TileServer():
         lat_deg = lat_rad * 180.0 / math.pi
         return geo.Coordinate(lat_deg, lon_deg)
 
+    def check_bounds(self, xtile, ytile):
+        max_x = 2**self.zoom
+        max_y = 2**self.zoom
+        return (
+            xtile % max_x,
+            ytile % max_y
+        )
 

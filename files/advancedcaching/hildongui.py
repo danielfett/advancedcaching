@@ -23,7 +23,6 @@
 
 # todo:
 # 0.5.3
-# kartengrenzen
 # banner-api
 # 0.5.4
 # fieldnotes - individueller text.
@@ -147,7 +146,7 @@ class HildonGui(SimpleGui):
             c.name = 'manual'
             return c
         else:
-            return start
+            return startd
 
     def set_tile_loader(self, widget, loader):
         if widget.get_active():
@@ -1360,7 +1359,6 @@ class HildonGui(SimpleGui):
         SimpleGui._drag_end(self, widget, event)
         c = self.ts.num2deg(self.map_center_x, self.map_center_y)
         self.button_center_as_target.set_value(c.get_latlon(self.format))
-
 
     def on_zoom_changed(self, blub):
         self.zoom()
