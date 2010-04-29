@@ -687,7 +687,7 @@ class SimpleGui(object, HTMLAware):
                     if not tile in tiles:
                         tiles.append(tile)
                         #print "Requesting ", tile, " zoom ", ts.zoom
-                        d = self.tile_loader(tile, self.ts.zoom, self, self.settings['download_map_path'], noimage_cantload = self.noimage_cantload, noimage_loading = self.noimage_loading, num = (i * dir_ew) * span_x + (j * dir_ns))
+                        d = self.tile_loader(tile, self.ts.zoom, self, self.settings['download_map_path'], noimage_cantload = self.noimage_cantload, noimage_loading = self.noimage_loading, undersample = True)
                         d.start()
         #print 'end draw map'
 

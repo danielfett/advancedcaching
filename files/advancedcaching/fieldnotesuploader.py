@@ -20,7 +20,6 @@
 
 import geocaching
 import os
-import datetime
 import re
 import gobject
 

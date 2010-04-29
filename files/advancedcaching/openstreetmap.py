@@ -45,25 +45,31 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
         FILE_TYPE = file_type#'png'
         REMOTE_URL = remote_url#"http://128.40.168.104/mapnik/%(zoom)d/%(x)d/%(y)d.png"
 
-        def __init__(self, tile, zoom, gui, base_dir, noimage_cantload, noimage_loading, num=0):
+        def __init__(self, tile, zoom, gui, base_dir, noimage_cantload, noimage_loading, undersample):
             threading.Thread.__init__(self)
             self.daemon = False
-            self.tile = tile
-            self.zoom = zoom
+            self.undersample = undersample
             self.gui = gui
+            self.tile = tile
             self.realtile = self.gui.ts.check_bounds(*tile)
+            if not undersample:
+                self.download_zoom = zoom
+                self.display_zoom = zoom
+            else:
+                self.download_zoom = zoom - 1
+                self.display_zoom = zoom
+                self.realtile = (int(self.realtile[0]/2), int(self.realtile[1]/2))
             self.base_dir = base_dir
             self.pbuf = None
-            self.num = num
             self.noimage_cantload = noimage_cantload
             self.noimage_loading = noimage_loading
             self.set_paths()
             self.my_noimage = None
 
         def set_paths(self):
-            self.local_path = os.path.join(self.base_dir, self.PREFIX, str(self.zoom), str(self.realtile[0]))
+            self.local_path = os.path.join(self.base_dir, self.PREFIX, str(self.download_zoom), str(self.realtile[0]))
             self.local_filename =  os.path.join(self.local_path, "%d%s%s" % (self.realtile[1], os.extsep, self.FILE_TYPE))
-            self.remote_filename = self.REMOTE_URL % {'zoom': self.zoom, 'x' : self.realtile[0], 'y' : self.realtile[1]}
+            self.remote_filename = self.REMOTE_URL % {'zoom': self.download_zoom, 'x' : self.realtile[0], 'y' : self.realtile[1]}
 
         @staticmethod
         def create_recursive(path):
@@ -101,11 +107,11 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             size = self.gui.ts.tile_size()
             # we have no image available. so what do now?
             # first, check if we've the "supertile" available (zoomed out)
-            supertile_zoom = self.zoom - 1
+            supertile_zoom = self.download_zoom - 1
             supertile_x = int(self.tile[0]/2)
             supertile_y = int(self.tile[1]/2)
-            supertile_name = os.path.join(self.base_dir, str(supertile_zoom), str(supertile_x), "%d%s%s" % (supertile_y, os.extsep, self.FILE_TYPE))
-            if os.path.exists(supertile_name):
+            supertile_name = os.path.join(self.base_dir, self.PREFIX, str(supertile_zoom), str(supertile_x), "%d%s%s" % (supertile_y, os.extsep, self.FILE_TYPE))
+            if not self.undersample and os.path.exists(supertile_name):
                 off_x = (self.tile[0]/2.0 - supertile_x) * size
                 off_y = (self.tile[1]/2.0 - supertile_y) * size
                 pbuf = gtk.gdk.pixbuf_new_from_file(supertile_name)
@@ -120,9 +126,22 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
         def load(self, tryno=0):
             # load the pixbuf to memory
             try:
-                self.pbuf = gtk.gdk.pixbuf_new_from_file(self.local_filename)
-                if self.pbuf.get_width() < self.gui.ts.tile_size() or self.pbuf.get_height() < self.gui.ts.tile_size():
-                    raise Exception("Image too small, probably corrupted file")
+                if self.undersample:
+                    # don't load the tile directly, but load the supertile instead
+                    supertile_x = int(self.tile[0]/2)
+                    supertile_y = int(self.tile[1]/2)
+                    off_x = (self.tile[0]/2.0 - supertile_x) * self.gui.ts.tile_size()
+                    off_y = (self.tile[1]/2.0 - supertile_y) * self.gui.ts.tile_size()
+                    pbuf = gtk.gdk.pixbuf_new_from_file(self.local_filename)
+                    if pbuf.get_width() < self.gui.ts.tile_size() or pbuf.get_height() < self.gui.ts.tile_size():
+                        raise Exception("Image too small, probably corrupted file")
+                    dest = gtk.gdk.Pixbuf(pbuf.get_colorspace(), pbuf.get_has_alpha(), pbuf.get_bits_per_sample(), self.gui.ts.tile_size(), self.gui.ts.tile_size())
+                    pbuf.scale(dest, 0, 0, 256, 256, -off_x*2, -off_y*2, 2, 2, gtk.gdk.INTERP_HYPER)
+                    self.pbuf = dest
+                else:
+                    self.pbuf = gtk.gdk.pixbuf_new_from_file(self.local_filename)
+                    if self.pbuf.get_width() < self.gui.ts.tile_size() or self.pbuf.get_height() < self.gui.ts.tile_size():
+                        raise Exception("Image too small, probably corrupted file")
                 return True
             except Exception, e:
                 if tryno == 0:
@@ -149,7 +168,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             yi = int(self.gui.map_center_y)
             span_x = int(math.ceil(float(self.gui.map_width) / (size * 2.0)))
             span_y = int(math.ceil(float(self.gui.map_height) / (size * 2.0)))
-            if self.tile[0] in xrange(xi - span_x, xi + span_x + 1, 1) and self.tile[1] in xrange(yi - span_y, yi + span_y + 1, 1) and self.zoom == self.gui.ts.zoom:
+            if self.tile[0] in xrange(xi - span_x, xi + span_x + 1, 1) and self.tile[1] in xrange(yi - span_y, yi + span_y + 1, 1) and self.display_zoom == self.gui.ts.zoom:
 
                 offset_x = int(self.gui.map_width / 2 - (x - int(x)) * size)
                 offset_y = int(self.gui.map_height / 2 -(y - int(y)) * size)
@@ -180,7 +199,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
 
             with TileLoader.semaphore:
                 try:
-                    if not self.zoom == self.gui.ts.zoom:
+                    if not self.display_zoom == self.gui.ts.zoom:
                         return None
                     info = urllib.urlretrieve(remote, local)
 

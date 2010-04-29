@@ -23,7 +23,10 @@
 
  
 ### For the gui :-)
-
+# OSD
+# double map size -- add button
+# sun compass
+# map drawing check for correct type
 
 # todo
 # 
@@ -158,7 +161,7 @@ class HildonGui(SimpleGui):
     def _create_main_view(self):
         root = gtk.VBox()
 
-        self.main_gpspage = gtk.Table(7, 2)
+        self.main_gpspage = gtk.Table(7, 3)
         self.drawing_area_arrow = gtk.DrawingArea()
 
         self.label_dist = gtk.Label()
@@ -188,30 +191,31 @@ class HildonGui(SimpleGui):
         button.set_size_request(270, -1)
         self.label_target = button
 
-        buttons = gtk.HBox()
+        #buttons = gtk.HBox()
 
-        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        button.set_title("Details")
-        button.set_sensitive(False)
-        button.connect("clicked", self._on_show_cache_details, None)
-        buttons.pack_start(button, True, True)
+        button_details = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button_details.set_title("Details")
+        button_details.set_sensitive(False)
+        button_details.connect("clicked", self._on_show_cache_details, None)
+        #buttons.pack_start(button, True, True)
         
-        self.button_show_details_small = button
+        self.button_show_details_small = button_details
         
-        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        button.set_label("Map")
-        button.connect("clicked", self._on_set_active_page, False)
-        buttons.pack_start(button, True, True)
+        button_map = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button_map.set_label("Map")
+        button_map.connect("clicked", self._on_set_active_page, False)
+        #buttons.pack_start(button, True, True)
 
 
-        self.main_gpspage.attach(self.label_dist, 1, 2, 0, 1, gtk.FILL, gtk.FILL | gtk.EXPAND)
-        self.main_gpspage.attach(self.label_bearing, 1, 2, 1, 2, gtk.FILL, gtk.FILL | gtk.EXPAND)
-        self.main_gpspage.attach(self.label_altitude, 1, 2, 2, 3, gtk.FILL, gtk.FILL | gtk.EXPAND)
-        self.main_gpspage.attach(self.label_latlon, 1, 2, 3, 4, gtk.FILL, gtk.FILL | gtk.EXPAND)
-        self.main_gpspage.attach(self.label_quality, 1, 2, 4, 5, gtk.FILL, gtk.FILL | gtk.EXPAND)
-        self.main_gpspage.attach(self.label_target, 1, 2, 5, 6, gtk.FILL, gtk.FILL | gtk.EXPAND)
-        self.main_gpspage.attach(buttons, 1, 2, 6, 7, gtk.FILL, gtk.FILL | gtk.EXPAND)
-        self.main_gpspage.attach(self.drawing_area_arrow, 0, 1, 0, 7, gtk.EXPAND | gtk.FILL, gtk.EXPAND | gtk.FILL)
+        self.main_gpspage.attach(self.label_dist, 1, 3, 0, 1, gtk.FILL, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage.attach(self.label_altitude, 1, 2, 1, 2, gtk.FILL, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage.attach(self.label_bearing, 2, 3, 1, 2, gtk.FILL, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage.attach(self.label_latlon, 1, 3, 2, 3, gtk.FILL, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage.attach(self.label_quality, 1, 3, 3, 4, gtk.FILL, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage.attach(self.label_target, 1, 3, 4, 5, gtk.FILL, 0)
+        self.main_gpspage.attach(button_details, 1, 2, 5, 6, gtk.FILL, 0)
+        self.main_gpspage.attach(button_map, 2, 3, 5, 6, gtk.FILL, 0)
+        self.main_gpspage.attach(self.drawing_area_arrow, 0, 1, 0, 6, gtk.EXPAND | gtk.FILL, gtk.EXPAND | gtk.FILL)
 
         self.main_mappage = gtk.VBox()
         self.drawing_area = gtk.DrawingArea()
@@ -1457,7 +1461,7 @@ class HildonGui(SimpleGui):
 
         target_distance = self.gps_data.position.distance_to(self.current_target)
         
-        self.label_dist.set_markup("Distance\n<small>%s</small>" % self.__format_distance(target_distance))
+        self.label_dist.set_markup("<span size='xx-large'>%s</span>" % self.__format_distance(target_distance))
 
     def __format_distance(self, distance):
         if distance == None:
