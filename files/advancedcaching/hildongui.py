@@ -21,14 +21,6 @@
  
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
 
-# todo:
-# 0.5.3
-# banner-api
-# 0.5.4
-# fieldnotes - individueller text.
-# bessere coord-eingabe
-
-
  
 ### For the gui :-)
 
@@ -85,7 +77,6 @@ class HildonGui(SimpleGui):
         self.core.connect('fieldnotes-changed', self._on_fieldnotes_changed)
 
         self.pointprovider = pointprovider
-        self.userpointprovider = userpointprovider
 
         self.build_tile_loaders()
                 
@@ -132,7 +123,7 @@ class HildonGui(SimpleGui):
 
     def show_coordinate_input(self, start):
         udr = UpdownRows(self.format, start, True)
-        dialog = gtk.Dialog("Change Target", None, gtk.DIALOG_MODAL, ("OK", gtk.RESPONSE_ACCEPT))
+        dialog = gtk.Dialog("Edit Target", None, gtk.DIALOG_MODAL, ("OK", gtk.RESPONSE_ACCEPT))
         dialog.set_size_request(-1, 480)
         dialog.vbox.pack_start(udr.table_lat)
                 
@@ -683,7 +674,7 @@ class HildonGui(SimpleGui):
             bar_entry.set_text(m_new.get_latlon(self.format))
 
         bar_button = hildon.Button(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        bar_button.set_label("edit")
+        bar_button.set_label(" Edit ")
         bar_button.connect("clicked", show_coord_input)
 
         bar = gtk.HBox()      

@@ -20,6 +20,8 @@ class PointProvider():
         self.filterstring = []
         self.filterargs = []
         c = self.conn.cursor()
+        c.execute('PRAGMA temp_store = MEMORY;')
+        c.execute('PRAGMA synchronous=OFF')
         c.execute('CREATE TABLE IF NOT EXISTS %s (%s)' % (self.cache_table, ', '.join([' '.join(m) for m in self.ctype.SQLROW.items()])))
         self.check_table()
         c.execute('CREATE INDEX IF NOT EXISTS %s_latlon ON %s (lat ASC, lon ASC)' % (self.cache_table, self.cache_table))
