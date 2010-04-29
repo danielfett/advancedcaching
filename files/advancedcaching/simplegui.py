@@ -46,8 +46,9 @@ import pango
 import openstreetmap
 import os
 import re
+from cachedownloader import HTMLAware
 
-class SimpleGui(object):
+class SimpleGui(object, HTMLAware):
     USES = ['gpsprovider']
     XMLFILE = "freerunner.glade"
 
@@ -401,31 +402,6 @@ class SimpleGui(object):
         p_x = int(point[0] * size - self.map_center_x * size + self.map_width / 2)
         p_y = int(point[1] * size - self.map_center_y * size + self.map_height / 2)
         return [p_x, p_y]
-                
-        
-    @staticmethod            
-    def _decode_htmlentities(string):
-        def substitute_entity(match):
-            from htmlentitydefs import name2codepoint as n2cp
-            ent = match.group(3)
-            if match.group(1) == "#":
-                # decoding by number
-                if match.group(2) == '':
-                    # number is in decimal
-                    return unichr(int(ent))
-                elif match.group(2) == 'x':
-                    # number is in hex
-                    return unichr(int('0x' + ent, 16))
-            else:
-                # they were using a name
-                cp = n2cp.get(ent)
-                if cp:
-                    return unichr(cp)
-                else:
-                    return match.group()
-
-        entity_re = re.compile(r'&(#?)(x?)(\w+);')
-        return entity_re.subn(substitute_entity, string)[0]
         
     def on_window_destroy(self, target, more=None, data=None):
         self.core.on_destroy()

@@ -133,6 +133,8 @@ import os.path
 import provider
 import math
 import threading
+from cachedownloader import GeocachingComCacheDownloader
+from fieldnotesuploader import FieldnotesUploader
 
 #import cProfile
 #import pstats
@@ -388,7 +390,7 @@ class Core(gobject.GObject):
     # called by gui
     def on_download(self, location, sync=False):
         self.gui.set_download_progress(0.5, "Downloading...")
-        cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd = GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
         cd.connect("already-downloading-error", self.on_already_downloading_error)
         if not sync:
@@ -437,7 +439,7 @@ class Core(gobject.GObject):
         #
         self.gui.set_download_progress(0.5, "Downloading %s..." % cache.name)
 
-        cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd = GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
         cd.connect("already-downloading-error", self.on_already_downloading_error)
         if not sync:
@@ -482,7 +484,7 @@ class Core(gobject.GObject):
                 
     # called by gui
     def on_download_descriptions(self, location, visibleonly=False):
-        cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd = GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
         cd.connect("already-downloading-error", self.on_already_downloading_error)
         
@@ -583,7 +585,7 @@ class Core(gobject.GObject):
         self.gui.set_download_progress(0.5, "Uploading Fieldnotes...")
 
         caches = self.pointprovider.get_new_fieldnotes()
-        fn = geocaching.FieldnotesUploader(self.downloader)
+        fn = FieldnotesUploader(self.downloader)
         fn.connect("upload-error", self.on_download_error)
         
         def same_thread(arg1):

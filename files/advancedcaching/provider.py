@@ -21,6 +21,8 @@ class PointProvider():
         self.filterargs = []
         c = self.conn.cursor()
         c.execute('PRAGMA temp_store = MEMORY;')
+        # yes, this setting is a bit dangerous for the database, but the 
+        # advantages outbalance unlikely database corruption
         c.execute('PRAGMA synchronous=OFF')
         c.execute('CREATE TABLE IF NOT EXISTS %s (%s)' % (self.cache_table, ', '.join([' '.join(m) for m in self.ctype.SQLROW.items()])))
         self.check_table()
