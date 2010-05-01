@@ -21,6 +21,7 @@
 
 import geo
 import socket
+from datetime import datetime
 
 try:
     import location
@@ -41,7 +42,8 @@ class Fix():
             dgps = False,
             quality = 0,
             error = 0,
-            error_bearing = 0):
+            error_bearing = 0,
+            timestamp = None):
         self.position = position
         self.altitude = altitude
         self.bearing = bearing
@@ -52,6 +54,10 @@ class Fix():
         self.quality = quality
         self.error = error
         self.error_bearing = error_bearing
+        if timestamp == None:
+            timestamp = datetime.utcnow()
+        else:
+            self.timestamp = timestamp
 
     @staticmethod
     def from_tuple(f, device):
@@ -72,6 +78,7 @@ class Fix():
         a.quality = 0
         a.error = f[6]/100.0
         a.error_bearing = f[10]
+        a.timestamp = datetime.utcfromtimestamp(f[2])
         return a
 
 class GpsReader():
@@ -156,6 +163,7 @@ class GpsReader():
                 lat, lon, alt, err_hor = splitted[3:7]
                 track, speed = splitted[8:10]
                 err_track = splitted[11]
+                time = datetime.utcfromtimestamp(splitted[1])
             except:
                 print "GPSD Output: \n%s\n  -- cannot be parsed." % data
                 self.status = "Could not read GPSD output."
@@ -196,7 +204,8 @@ class GpsReader():
                 dgps = dgps,
                 quality = quality,
                 error = err_hor,
-                error_bearing = err_track
+                error_bearing = err_track,
+                time = time
                 )
         except Exception, e:
             print "Fehler beim Auslesen der Daten: %s " % e

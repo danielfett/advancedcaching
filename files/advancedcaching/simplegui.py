@@ -37,6 +37,7 @@ import geo
 import geocaching
 import gobject
 import gtk
+import astral
 try:
     import gtk.glade
     import extListview
@@ -103,9 +104,12 @@ class SimpleGui(object, HTMLAware):
     COLOR_ARROW_CROSS = gtk.gdk.color_parse('darkslategray')
     COLOR_ARROW_ERROR = gtk.gdk.color_parse('gold')
     COLOR_NORTH_INDICATOR = gtk.gdk.color_parse("gold")
+    COLOR_SUN_INDICATOR = gtk.gdk.color_parse("yellow")
+    COLOR_SUN_INDICATOR_TEXT = gtk.gdk.color_parse("black")
     ARROW_LINE_WIDTH = 3
     NORTH_INDICATOR_SIZE = 30
     FONT_NORTH_INDICATOR = pango.FontDescription("Sans 9")
+    FONT_SUN_INDICATOR = pango.FontDescription("Sans 9")
 
 
     # quality indicator
@@ -471,6 +475,7 @@ class SimpleGui(object, HTMLAware):
         signal_width = 15
         error_circle_size = 0.95
         error_circle_width = 7
+        sun_size = 30
         
         if not self.drawing_area_arrow_configured:
             return
@@ -503,7 +508,11 @@ class SimpleGui(object, HTMLAware):
 
         display_bearing = self.gps_data.position.bearing_to(self.current_target) - self.gps_data.bearing
         display_distance = self.gps_data.position.distance_to(self.current_target)
-        display_north = math.radians(self.gps_data.bearing)
+        display_north = - math.radians(self.gps_data.bearing)
+        display_sun = math.radians((astral.get_sun_azimuth_from_fix(self.gps_data) - self.gps_data.bearing) % 360)
+        print "Moving direction: %d" % self.gps_data.bearing
+        print "Target Direction: %d" % self.gps_data.position.bearing_to(self.current_target)
+        print "Sun Direction: %d" % astral.get_sun_azimuth_from_fix(self.gps_data)
 
         # draw moving direction
         if self.COLOR_ARROW_CROSS != None:
@@ -563,6 +572,29 @@ class SimpleGui(object, HTMLAware):
             self.xgc_arrow.set_function(gtk.gdk.COPY)
             self.xgc_arrow.set_rgb_fg_color(self.COLOR_NORTH_INDICATOR)
             self.pixmap_arrow.draw_layout(self.xgc_arrow, position_x, position_y, self.north_indicator_layout)
+
+            # sun indicator
+            # center of sun indicator is this:
+            sun_center_x = int(width / 2 - math.sin(display_sun) * indicator_dist)
+            sun_center_y = int(height / 2 - math.cos(display_sun) * indicator_dist)
+            # draw the text            
+            sun_indicator_layout = widget.create_pango_layout("sun")
+            sun_indicator_layout.set_alignment(pango.ALIGN_CENTER)
+            sun_indicator_layout.set_font_description(self.FONT_SUN_INDICATOR)
+            # determine size of circle
+            circle_size = int((sun_indicator_layout.get_size()[0] / pango.SCALE) / 2)
+            # draw circle
+            self.xgc_arrow.set_function(gtk.gdk.COPY)
+            self.xgc_arrow.set_rgb_fg_color(self.COLOR_SUN_INDICATOR)
+            self.pixmap_arrow.draw_arc(self.xgc_arrow, True, sun_center_x - circle_size, sun_center_y - circle_size, circle_size * 2, circle_size * 2, 0, 64 * 360)
+            position_x = int(sun_center_x - (sun_indicator_layout.get_size()[0] / pango.SCALE) / 2)
+            position_y = int(sun_center_y - (sun_indicator_layout.get_size()[1] / pango.SCALE) / 2)
+
+            self.xgc_arrow.set_rgb_fg_color(self.COLOR_SUN_INDICATOR_TEXT)
+            self.pixmap_arrow.draw_layout(self.xgc_arrow, position_x, position_y, sun_indicator_layout)
+        
+            
+            
 
         else:
             # if we are closer than a few meters, the arrow will almost certainly
