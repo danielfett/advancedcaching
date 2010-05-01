@@ -107,6 +107,7 @@ class HildonGui(SimpleGui):
         self.drag_offset_y = 0
         self.notes_changed = False
         self.map_center_x, self.map_center_y = 100, 100
+        self.active_tile_loaders = []
         
         gtk.set_application_name("Geocaching Tool")
         program = hildon.Program.get_instance()
@@ -228,16 +229,15 @@ class HildonGui(SimpleGui):
         self.button_track = button
         buttons.pack_start(button, True, True)
 
-
+        icon = gtk.image_new_from_stock(gtk.STOCK_ZOOM_IN, gtk.ICON_SIZE_BUTTON)
         button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
-        button.set_label("+")
+        button.set_image(icon)
         button.connect("clicked", self.on_zoomin_clicked, None)
         buttons.pack_start(button, True, True)
 
-
-
+        icon = gtk.image_new_from_stock(gtk.STOCK_ZOOM_OUT, gtk.ICON_SIZE_BUTTON)
         button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
-        button.set_label("-")
+        button.set_image(icon)
         button.connect("clicked", self.on_zoomout_clicked, None)
         buttons.pack_start(button, True, True)
 
@@ -610,7 +610,7 @@ class HildonGui(SimpleGui):
     def _on_show_options(self, widget, data):
         dialog = gtk.Dialog("options", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
         
-        opts = gtk.Table(5, 2)
+        opts = gtk.Table(6, 2)
         opts.attach(gtk.Label("Username"), 0, 1, 0, 1)
         username = hildon.Entry(gtk.HILDON_SIZE_AUTO)
         #username.set_property(hildon.HILDON_AUTOCAP, False)
@@ -632,13 +632,18 @@ class HildonGui(SimpleGui):
         check_show_cache_id.set_label("Show Geocache ID on Map")
         check_show_cache_id.set_active(self.settings['options_show_name'])
 
+        check_map_double_size = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
+        check_map_double_size.set_label("Show Map in double size (ugly)")
+        check_map_double_size.set_active(self.settings['options_map_double_size'])
+
         check_hide_found = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         check_hide_found.set_label("Hide Found Geocaches on Map")
         check_hide_found.set_active(self.settings['options_hide_found'])
         
         opts.attach(check_dl_images, 0, 2, 2, 3)
         opts.attach(check_show_cache_id, 0, 2, 3, 4)
-        opts.attach(check_hide_found, 0, 2, 4, 5)
+        opts.attach(check_map_double_size, 0, 2, 4, 5)
+        opts.attach(check_hide_found, 0, 2, 5, 6)
         
         dialog.vbox.pack_start(opts)
         
@@ -651,6 +656,7 @@ class HildonGui(SimpleGui):
             self.settings['options_password'] = password.get_text()
             self.settings['download_noimages'] = check_dl_images.get_active()
             self.settings['options_show_name'] = check_show_cache_id.get_active()
+            self.settings['options_map_double_size'] = check_map_double_size.get_active()
             self.settings['options_hide_found'] = check_hide_found.get_active()
             self.core.on_userdata_changed(self.settings['options_username'], self.settings['options_password'])
 

@@ -161,6 +161,7 @@ class SimpleGui(object, HTMLAware):
         self.image_zoomed = False
         self.image_no = 0
         self.images = []
+        self.active_tile_loaders = []
 
         
         self.north_indicator_layout = None
@@ -659,14 +660,10 @@ class SimpleGui(object, HTMLAware):
                 
         if self.map_width == 0 or self.map_height == 0:
             return
-        #print 'begin draw marks'
         self._draw_marks()
-                
-        #print 'end draw marks'
-                
-        #self.xgc.set_function(gtk.gdk.COPY)
-        #self.xgc.set_rgb_fg_color(gtk.gdk.color_parse('white'))
-        #self.pixmap.draw_rectangle(self.xgc, True, 0, 0, self.map_width, self.map_height)
+
+        for x in self.active_tile_loaders:
+            x.halt()
                         
         size = self.ts.tile_size()
         xi = int(self.map_center_x)
@@ -674,6 +671,7 @@ class SimpleGui(object, HTMLAware):
         span_x = int(math.ceil(float(self.map_width) / (size * 2.0)))
         span_y = int(math.ceil(float(self.map_height) / (size * 2.0)))
         tiles = []
+        self.active_tile_loaders = []
         for i in xrange(0, span_x + 1, 1):
             for j in xrange(0, span_y + 1, 1):
                 for dir in xrange(0, 4, 1):
@@ -687,8 +685,9 @@ class SimpleGui(object, HTMLAware):
                     if not tile in tiles:
                         tiles.append(tile)
                         #print "Requesting ", tile, " zoom ", ts.zoom
-                        d = self.tile_loader(tile, self.ts.zoom, self, self.settings['download_map_path'], noimage_cantload = self.noimage_cantload, noimage_loading = self.noimage_loading, undersample = True)
+                        d = self.tile_loader(tile, self.ts.zoom, self, self.settings['download_map_path'], noimage_cantload = self.noimage_cantload, noimage_loading = self.noimage_loading, undersample = self.settings['options_map_double_size'])
                         d.start()
+                        self.active_tile_loaders.append(d)
         #print 'end draw map'
 
     def _draw_marks_caches(self, coords):

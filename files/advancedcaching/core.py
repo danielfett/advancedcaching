@@ -243,7 +243,8 @@ class Core(gobject.GObject):
             ('OpenStreetMaps', {'remote_url': "http://128.40.168.104/mapnik/%(zoom)d/%(x)d/%(y)d.png", 'prefix': 'OpenStreetMap I'}),
             ('OpenCycleMaps', {'remote_url': 'http://andy.sandbox.cloudmade.com/tiles/cycle/%(zoom)d/%(x)d/%(y)d.png', 'prefix': 'OpenCycleMap'})
 
-        ]
+        ],
+        'options_map_double_size' : False,
     }
             
     def __init__(self, guitype, root):
