@@ -580,4 +580,9 @@ print d3, a3, a3+90, (a3+180)%360
 '''
 a = Astral()
 def get_sun_azimuth_from_fix(fix):
-    return a.solar_azimuth(fix.timestamp, fix.position.lat, -fix.position.lon)
+    sunrise = a.sunrise_utc(fix.timestamp, fix.position.lat, -fix.position.lon)
+    sunset = a.sunset_utc(fix.timestamp, fix.position.lat, -fix.position.lon)
+    if fix.timestamp > sunrise and fix.timestamp < sunset:
+        return a.solar_azimuth(fix.timestamp, fix.position.lat, -fix.position.lon)
+    else:
+        return None

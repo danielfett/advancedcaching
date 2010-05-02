@@ -92,7 +92,8 @@ class HildonGui(SimpleGui):
         self.current_target = None
         self.gps_data = None
         self.gps_has_fix = False
-        self.gps_last_position = (0, 0)
+        self.gps_last_good_fix = None
+        self.gps_last_screen_position = (0, 0)
         self.banner = None
         self.old_cache_window = None
         self.old_search_window = None

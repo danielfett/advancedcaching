@@ -109,7 +109,7 @@ class SimpleGui(object, HTMLAware):
     ARROW_LINE_WIDTH = 3
     NORTH_INDICATOR_SIZE = 30
     FONT_NORTH_INDICATOR = pango.FontDescription("Sans 9")
-    FONT_SUN_INDICATOR = pango.FontDescription("Sans 10")
+    FONT_SUN_INDICATOR = pango.FontDescription("Sans 11")
 
 
     # quality indicator
@@ -157,7 +157,8 @@ class SimpleGui(object, HTMLAware):
         self.current_target = None
         self.gps_data = None
         self.gps_has_fix = False
-        self.gps_last_position = (0, 0)
+        self.gps_last_good_fix = None
+        self.gps_last_screen_position = (0, 0)
                 
         self.dragging = False
         self.block_changes = False
@@ -511,10 +512,9 @@ class SimpleGui(object, HTMLAware):
         display_bearing = self.gps_data.position.bearing_to(self.current_target) - self.gps_data.bearing
         display_distance = self.gps_data.position.distance_to(self.current_target)
         display_north = math.radians(self.gps_data.bearing)
-        display_sun = math.radians((- astral.get_sun_azimuth_from_fix(self.gps_data) + self.gps_data.bearing) % 360)
-        print "Moving direction: %d" % self.gps_data.bearing
-        print "Target Direction: %d" % self.gps_data.position.bearing_to(self.current_target)
-        print "Sun Direction: %d" % astral.get_sun_azimuth_from_fix(self.gps_data)
+        sun_angle = astral.get_sun_azimuth_from_fix(self.gps_data)
+        if sun_angle != None:
+            display_sun = math.radians((- sun_angle + self.gps_data.bearing) % 360)
 
         # draw moving direction
         if self.COLOR_ARROW_CROSS != None:
@@ -576,24 +576,25 @@ class SimpleGui(object, HTMLAware):
             self.pixmap_arrow.draw_layout(self.xgc_arrow, position_x, position_y, self.north_indicator_layout)
 
             # sun indicator
-            # center of sun indicator is this:
-            sun_center_x = int(width / 2 - math.sin(display_sun) * indicator_dist)
-            sun_center_y = int(height / 2 - math.cos(display_sun) * indicator_dist)
-            # draw the text            
-            sun_indicator_layout = widget.create_pango_layout("sun")
-            sun_indicator_layout.set_alignment(pango.ALIGN_CENTER)
-            sun_indicator_layout.set_font_description(self.FONT_SUN_INDICATOR)
-            # determine size of circle
-            circle_size = int((sun_indicator_layout.get_size()[0] / pango.SCALE) / 2)
-            # draw circle
-            self.xgc_arrow.set_function(gtk.gdk.COPY)
-            self.xgc_arrow.set_rgb_fg_color(self.COLOR_SUN_INDICATOR)
-            self.pixmap_arrow.draw_arc(self.xgc_arrow, True, sun_center_x - circle_size, sun_center_y - circle_size, circle_size * 2, circle_size * 2, 0, 64 * 360)
-            position_x = int(sun_center_x - (sun_indicator_layout.get_size()[0] / pango.SCALE) / 2)
-            position_y = int(sun_center_y - (sun_indicator_layout.get_size()[1] / pango.SCALE) / 2)
+            if sun_angle != None:
+                # center of sun indicator is this:
+                sun_center_x = int(width / 2 - math.sin(display_sun) * indicator_dist)
+                sun_center_y = int(height / 2 - math.cos(display_sun) * indicator_dist)
+                # draw the text            
+                sun_indicator_layout = widget.create_pango_layout("sun")
+                sun_indicator_layout.set_alignment(pango.ALIGN_CENTER)
+                sun_indicator_layout.set_font_description(self.FONT_SUN_INDICATOR)
+                # determine size of circle
+                circle_size = int((sun_indicator_layout.get_size()[0] / pango.SCALE) / 2)
+                # draw circle
+                self.xgc_arrow.set_function(gtk.gdk.COPY)
+                self.xgc_arrow.set_rgb_fg_color(self.COLOR_SUN_INDICATOR)
+                self.pixmap_arrow.draw_arc(self.xgc_arrow, True, sun_center_x - circle_size, sun_center_y - circle_size, circle_size * 2, circle_size * 2, 0, 64 * 360)
+                position_x = int(sun_center_x - (sun_indicator_layout.get_size()[0] / pango.SCALE) / 2)
+                position_y = int(sun_center_y - (sun_indicator_layout.get_size()[1] / pango.SCALE) / 2)
 
-            self.xgc_arrow.set_rgb_fg_color(self.COLOR_SUN_INDICATOR_TEXT)
-            self.pixmap_arrow.draw_layout(self.xgc_arrow, position_x, position_y, sun_indicator_layout)
+                self.xgc_arrow.set_rgb_fg_color(self.COLOR_SUN_INDICATOR_TEXT)
+                self.pixmap_arrow.draw_layout(self.xgc_arrow, position_x, position_y, sun_indicator_layout)
         
             
             
@@ -914,14 +915,12 @@ class SimpleGui(object, HTMLAware):
         else:
             t = False
                 
-                
-                
-        if self.gps_has_fix and self.gps_data != None and self.gps_data.position != None:
-            p = self._coord2point(self.gps_data.position)
+        if self.gps_last_good_fix != None and self.gps_last_good_fix.position != None:
+            p = self._coord2point(self.gps_last_good_fix.position)
             if p != False:
-                self.gps_last_position = p
+                self.gps_last_screen_position = p
 
-        p = self.gps_last_position
+        p = self.gps_last_screen_position
         if self.point_in_screen(p):
 
             xgc.line_width = 2
@@ -1099,6 +1098,7 @@ class SimpleGui(object, HTMLAware):
         
     def on_good_fix(self, gps_data):
         self.gps_data = gps_data
+        self.gps_last_good_fix = gps_data
         self.gps_has_fix = True
         self._draw_arrow()
         #self.do_events()
@@ -1112,9 +1112,9 @@ class SimpleGui(object, HTMLAware):
             return False
                 
         x, y = self._coord2point(self.gps_data.position)
-        if self.gps_last_position != None:
+        if self.gps_last_screen_position != None:
                                     
-            l, m = self.gps_last_position
+            l, m = self.gps_last_screen_position
             dist_from_last = (x - l) ** 2 + (y - m) ** 2
 
             # if we are tracking the user, redraw if far enough from center:
@@ -1124,7 +1124,7 @@ class SimpleGui(object, HTMLAware):
                 if dist_from_center > self.REDRAW_DISTANCE_TRACKING ** 2:
                     self.set_center(self.gps_data.position)
                     # update last position, as it is now drawed
-                    self.gps_last_position = (x, y)
+                    # self.gps_last_screen_position = (x, y)
                     return
 
             # if we are tracking and we have not moved out of the center
@@ -1138,16 +1138,17 @@ class SimpleGui(object, HTMLAware):
                     and self.gps_data.position.lon < max(a.lon, b.lon):
                         self.redraw_marks()
                 # update last position, as it is now drawed
-                self.gps_last_position = (x, y)
+                # self.gps_last_screen_position = (x, y)
             return
         else:
             self.redraw_marks()
             # also update when it was None
-            self.gps_last_position = (x, y)
+            #self.gps_last_screen_position = (x, y)
                 
                 
     def redraw_marks(self):
-
+        if self.dragging:
+            return
         self._draw_marks()
         self.refresh()
         
