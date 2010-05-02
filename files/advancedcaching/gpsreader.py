@@ -167,6 +167,7 @@ class GpsReader():
             except:
                 print "GPSD Output: \n%s\n  -- cannot be parsed." % data
                 self.status = "Could not read GPSD output."
+                return Fix()
             alt = self.to_float(alt)
             track = self.to_float(track)
             speed = self.to_float(speed)

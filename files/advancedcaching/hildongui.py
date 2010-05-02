@@ -97,6 +97,7 @@ class HildonGui(SimpleGui):
         self.old_cache_window = None
         self.old_search_window = None
         self.cache_calc_vars = {}
+        #self.osd_string = ''
                 
         self.dragging = False
         self.block_changes = False
@@ -1448,6 +1449,7 @@ class HildonGui(SimpleGui):
 
     def update_gps_display(self):
         if self.gps_data == None:
+            #self.osd_string = "<span gravity='west' size='xx-large'>No Fix </span>"
             return
 
         if self.gps_data.sats == 0:
@@ -1456,6 +1458,7 @@ class HildonGui(SimpleGui):
             text = "%d/%d sats, error: ±%3.1fm" % (self.gps_data.sats, self.gps_data.sats_known, self.gps_data.error)
         self.label_quality.set_markup("Accuracy\n<small>%s</small>" % text)
         if self.gps_data.altitude == None or self.gps_data.bearing == None:
+            #self.osd_string = "<span gravity='west' size='xx-large'>No Fix </span>"
             return
 
         self.label_altitude.set_markup("Altitude\n<small>%d m</small>" % self.gps_data.altitude)
@@ -1463,11 +1466,19 @@ class HildonGui(SimpleGui):
         self.label_latlon.set_markup("Current Position\n<small>%s</small>" % self.gps_data.position.get_latlon(self.format))
 
         if self.current_target == None:
+            #self.osd_string = ""
             return
 
         target_distance = self.gps_data.position.distance_to(self.current_target)
-        
-        self.label_dist.set_markup("<span size='xx-large'>%s</span>" % self.__format_distance(target_distance))
+        td_string = self.__format_distance(target_distance)
+        if self.gps_has_fix:
+            self.label_dist.set_markup("<span size='xx-large'>%s</span>" % td_string)
+
+            #self.osd_string = "<span gravity='west' size='xx-large'>%s </span>" % td_string
+        else:
+            self.label_dist.set_markup("<span size='xx-large'>No Fix</span>")
+
+            #self.osd_string = "<span gravity='west' size='xx-large'>No Fix </span>"
 
     def __format_distance(self, distance):
         if distance == None:

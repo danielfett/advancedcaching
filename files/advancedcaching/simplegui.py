@@ -109,7 +109,7 @@ class SimpleGui(object, HTMLAware):
     ARROW_LINE_WIDTH = 3
     NORTH_INDICATOR_SIZE = 30
     FONT_NORTH_INDICATOR = pango.FontDescription("Sans 9")
-    FONT_SUN_INDICATOR = pango.FontDescription("Sans 9")
+    FONT_SUN_INDICATOR = pango.FontDescription("Sans 10")
 
 
     # quality indicator
@@ -166,6 +166,8 @@ class SimpleGui(object, HTMLAware):
         self.image_no = 0
         self.images = []
         self.active_tile_loaders = []
+
+        #self.osd_string = ''
 
         
         self.north_indicator_layout = None
@@ -508,8 +510,8 @@ class SimpleGui(object, HTMLAware):
 
         display_bearing = self.gps_data.position.bearing_to(self.current_target) - self.gps_data.bearing
         display_distance = self.gps_data.position.distance_to(self.current_target)
-        display_north = - math.radians(self.gps_data.bearing)
-        display_sun = math.radians((astral.get_sun_azimuth_from_fix(self.gps_data) - self.gps_data.bearing) % 360)
+        display_north = math.radians(self.gps_data.bearing)
+        display_sun = math.radians((- astral.get_sun_azimuth_from_fix(self.gps_data) + self.gps_data.bearing) % 360)
         print "Moving direction: %d" % self.gps_data.bearing
         print "Target Direction: %d" % self.gps_data.position.bearing_to(self.current_target)
         print "Sun Direction: %d" % astral.get_sun_azimuth_from_fix(self.gps_data)
@@ -887,7 +889,12 @@ class SimpleGui(object, HTMLAware):
         # and now for our current data!
         #
                 
-                
+        
+        #layout = self.drawing_area.create_pango_layout("")
+        #layout.set_markup(self.osd_string)
+        #layout.set_font_description(self.MESSAGE_DRAW_FONT)
+        #self.pixmap_marks.draw_layout(xgc, self.map_width - layout.get_size()[0]/pango.SCALE, 20, layout)
+
                 
         # if we have a target, draw it
         if self.current_target != None:
@@ -1700,17 +1707,22 @@ class SimpleGui(object, HTMLAware):
         if self.current_target == None:
             return
                         
-                
-        target_distance = self.gps_data.position.distance_to(self.current_target)
-        if target_distance >= 1000:
-            label = "%3dkm" % round(target_distance / 1000)
-        elif display_dist >= 100:
-            label = "%3dm" % round(target_distance)
+        if self.gps_has_fix:
+            target_distance = self.gps_data.position.distance_to(self.current_target)
+            if target_distance >= 1000:
+                label = "%3dkm" % round(target_distance / 1000)
+            elif display_dist >= 100:
+                label = "%3dm" % round(target_distance)
+            else:
+                label = "%2.1fm" % round(target_distance, 1)
+            self.label_dist.set_text("<span size='large'>%s</span>" % label)
+            self.label_dist.set_use_markup(True)
+            
+            #self.osd_string = "<span gravity='west' size='xx-large'>%d </span>"
         else:
-            label = "%2.1fm" % round(target_distance, 1)
-        self.label_dist.set_text("<span size='large'>%s</span>" % label)
-        self.label_dist.set_use_markup(True)
-        
+            self.label_dist.set_text("<span size='large'>No Fix</span>")
+            self.label_dist.set_use_markup(True)
+            #self.osd_string = "<span gravity='west' size='xx-large'>No Fix </span>"
         
                 
                 
