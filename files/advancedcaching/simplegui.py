@@ -45,7 +45,7 @@ except (ImportError):
     print "Please install glade if you're NOT on the maemo platform."
 import pango
 import openstreetmap
-import os
+from os import path
 import re
 from cachedownloader import HTMLAware
 
@@ -139,8 +139,8 @@ class SimpleGui(object, HTMLAware):
     
         gtk.gdk.threads_init()
         self.ts = openstreetmap.TileServer()
-        self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-cantload.png'))
-        self.noimage_loading = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-loading.png'))
+        self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-cantload.png'))
+        self.noimage_loading = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-loading.png'))
         
         self.core = core
         self.core.connect('map-changed', self._on_map_changed)
@@ -181,7 +181,7 @@ class SimpleGui(object, HTMLAware):
         
         
         global xml
-        xml = gtk.glade.XML(os.path.join(dataroot, self.XMLFILE))
+        xml = gtk.glade.XML(path.join(dataroot, self.XMLFILE))
         self.load_ui()
         # self.build_tile_loaders()
 
@@ -1386,8 +1386,8 @@ class SimpleGui(object, HTMLAware):
             if self.current_cache == None or len(self.images) <= self.image_no:
                 self._update_cache_image(True)
                 return
-            filename = os.path.join(self.settings['download_output_dir'], self.images[self.image_no][0])
-            if not os.path.exists(filename):
+            filename = path.join(self.settings['download_output_dir'], self.images[self.image_no][0])
+            if not path.exists(filename):
                 self.image_cache_caption.set_text("not found: %s" % filename)
                 self.image_cache.set_from_stock(gtk.STOCK_GO_FORWARD, -1)
                 return

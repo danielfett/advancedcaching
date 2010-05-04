@@ -19,7 +19,6 @@
 #
 
 import geocaching
-import os
 import re
 import gobject
 

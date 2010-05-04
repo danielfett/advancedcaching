@@ -23,15 +23,13 @@
 
  
 ### For the gui :-)
-# OSD
-# double map size -- add button
-# sun compass
-# map drawing check for correct type
+# improve no-fix-display 
+# 
 
 # todo
 # 
-import math
-import os
+from math import ceil
+from os import path, system
 import re
 
 import coordfinder
@@ -71,8 +69,8 @@ class HildonGui(SimpleGui):
     def __init__(self, core, pointprovider, userpointprovider, dataroot):
         gtk.gdk.threads_init()
         self.ts = openstreetmap.TileServer()
-        self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-cantload.png'))
-        self.noimage_loading = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-loading.png'))
+        self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-cantload.png'))
+        self.noimage_loading = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-loading.png'))
         
         self.core = core
         self.core.connect('map-changed', self._on_map_changed)
@@ -125,7 +123,7 @@ class HildonGui(SimpleGui):
         #self.show_coordinate_input(geo.Coordinate(49.344, 6.584))
 
     def _open_browser(self, widget, link):
-        os.system("browser --url='%s' &" % link)
+        system("browser --url='%s' &" % link)
 
     def show_coordinate_input(self, start):
         udr = UpdownRows(self.format, start, True)
@@ -1022,7 +1020,7 @@ class HildonGui(SimpleGui):
         count = len(self.cache_calc.requires)
         # create table with n columns.
         cols = 7
-        rows = int(math.ceil(float(count) / float(cols)))
+        rows = int(ceil(float(count) / float(cols)))
         table = gtk.Table(rows, cols)
         i = 0
         requires_sort = list(self.cache_calc.requires)
@@ -1088,9 +1086,9 @@ class HildonGui(SimpleGui):
         self.cache_calc_viewport.show_all()
 
         
-    def _on_show_image(self, path, caption):
-        fullpath = os.path.join(self.settings['download_output_dir'], path)
-        if not os.path.exists(fullpath):
+    def _on_show_image(self, dpath, caption):
+        fullpath = path.join(self.settings['download_output_dir'], dpath)
+        if not path.exists(fullpath):
             print "file does not exist: " + fullpath
             return
         win = hildon.StackableWindow()

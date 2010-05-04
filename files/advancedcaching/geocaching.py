@@ -19,17 +19,11 @@
 #
 
 try:
-    import json
-    json.dumps
+    from json import loads, dumps
 except (ImportError, AttributeError):
-    import simplejson as json	 
+    from simplejson import loads, dumps
 import math
 import geo
-
-import threading
-import gobject
-
-
 
 class GeocacheCoordinate(geo.Coordinate):
     LOG_NO_LOG = 0
@@ -230,34 +224,34 @@ class GeocacheCoordinate(geo.Coordinate):
     def get_waypoints(self):
         if self.waypoints == None or self.waypoints == '':
             return []
-        return json.loads(self.waypoints)
+        return loads(self.waypoints)
 
     def get_vars(self):
         if self.vars == None or self.vars == '':
             return {}
-        return json.loads(self.vars)
+        return loads(self.vars)
 
     def set_vars(self, vars):
-        self.vars = json.dumps(vars)
+        self.vars = dumps(vars)
 
     def get_logs(self):
         if self.logs == None or self.logs == '':
             return []
-        return json.loads(self.logs)
+        return loads(self.logs)
 
     def get_images(self):
         if self.images == None or self.images == '':
             return []
-        return json.loads(self.images)
+        return loads(self.images)
 
     def set_waypoints(self, wps):
-        self.waypoints = json.dumps(wps)
+        self.waypoints = dumps(wps)
 
     def set_logs(self, ls):
-        self.logs = json.dumps(ls)
+        self.logs = dumps(ls)
 
     def set_images(self, imgs):
-        self.images = json.dumps(imgs)
+        self.images = dumps(imgs)
                 
                 
     def was_downloaded(self):

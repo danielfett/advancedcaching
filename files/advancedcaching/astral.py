@@ -565,19 +565,7 @@ class Astral(object):
         tanadenom = (cos(radians(lambd)))
 
         return degrees(atan2(tananum, tanadenom))
-'''
-a = Astral()
-a.solar_depression = 0
-d1 = datetime.datetime(2010, 5, 1, 15, 46, 00)
-d2 = datetime.datetime(2010, 4, 25, 10, 00, 00)
-d3 = datetime.datetime.now()
-a1 = a.solar_azimuth(d1, 49.6497391, -7.1681435)
-a2 = a.solar_azimuth(d2, 49.6497391, -7.1681435)
-a3 = a.solar_azimuth(d3, 49.6497391, -7.1681435)
-print d1, a1, a1+90, (a1+180)%360
-print d2, a2, a2+90, (a2+180)%360
-print d3, a3, a3+90, (a3+180)%360
-'''
+
 a = Astral()
 def get_sun_azimuth_from_fix(fix):
     sunrise = a.sunrise_utc(fix.timestamp, fix.position.lat, -fix.position.lon)

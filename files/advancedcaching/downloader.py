@@ -17,12 +17,11 @@
 #
 #        Author: Daniel Fett advancedcaching@fragcom.de
 #
-import socket
-import os
-import cookielib
-import urllib
+from socket import setdefaulttimeout
+from cookielib import LWPCookieJar
+from urllib import urlencode
 import urllib2
-socket.setdefaulttimeout(30)
+setdefaulttimeout(30)
 class FileDownloader():
     USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; U; Linux i686; de; rv:1.9.0.12) Gecko/2009070811  Windows NT Firefox/3.1'
 
@@ -33,12 +32,13 @@ class FileDownloader():
         self.logged_in = False
 
     def update_userdata(self, username, password):
+        from os import path, remove
         self.username = username
         self.password = password
         self.logged_in = False
-        if os.path.exists(self.cookiefile):
+        if path.exists(self.cookiefile):
             try:
-                os.remove(self.cookiefile)
+                remove(self.cookiefile)
             except:
                 print "* Could not remove cookie file?!"
                 pass
@@ -48,7 +48,7 @@ class FileDownloader():
         if self.username == '' or self.password == '':
             raise Exception("Please configure your username/password and restart the application")
         print "+ Checking Login status"
-        cj = cookielib.LWPCookieJar(self.cookiefile)
+        cj = LWPCookieJar(self.cookiefile)
         opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
         urllib2.install_opener(opener)
 
@@ -103,7 +103,7 @@ class FileDownloader():
 
         elif data == None:
             if (isinstance(values, dict)):
-                values = urllib.urlencode( values)
+                values = urlencode( values)
             req = urllib2.Request(url, values)
             self.add_headers(req)
             return urllib2.urlopen(req)

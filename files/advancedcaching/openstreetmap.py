@@ -21,22 +21,23 @@
 from __future__ import with_statement
 
 import math
+
 import geo
 import gobject
 import gtk
-import os
-import threading
-import urllib
-import socket
-socket.setdefaulttimeout(30)
+from os import path, mkdir, extsep, remove
+from threading import Thread, Semaphore, Lock
+from urllib import urlretrieve
+from socket import setdefaulttimeout
+setdefaulttimeout(30)
 
 
 def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, file_type = 'png'):
 
-    class TileLoader(threading.Thread):
+    class TileLoader(Thread):
         downloading = {}
-        semaphore = threading.Semaphore(40)
-        lock = threading.Lock() #download-lock
+        semaphore = Semaphore(40)
+        lock = Lock() #download-lock
         noimage_cantload = None
         noimage_loading = None
 
@@ -46,7 +47,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
         REMOTE_URL = remote_url#"http://128.40.168.104/mapnik/%(zoom)d/%(x)d/%(y)d.png"
 
         def __init__(self, tile, zoom, gui, base_dir, noimage_cantload, noimage_loading, undersample):
-            threading.Thread.__init__(self)
+            Thread.__init__(self)
             self.daemon = False
             self.undersample = undersample
             self.gui = gui
@@ -75,18 +76,18 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             self.stop = True
 
         def set_paths(self):
-            self.local_path = os.path.join(self.base_dir, self.PREFIX, str(self.download_zoom), str(self.realtile[0]))
-            self.local_filename =  os.path.join(self.local_path, "%d%s%s" % (self.realtile[1], os.extsep, self.FILE_TYPE))
+            self.local_path = path.join(self.base_dir, self.PREFIX, str(self.download_zoom), str(self.realtile[0]))
+            self.local_filename =  path.join(self.local_path, "%d%s%s" % (self.realtile[1], extsep, self.FILE_TYPE))
             self.remote_filename = self.REMOTE_URL % {'zoom': self.download_zoom, 'x' : self.realtile[0], 'y' : self.realtile[1]}
 
         @staticmethod
-        def create_recursive(path):
-            if path != '/':
-                if not os.path.exists(path):
-                    head, tail = os.path.split(path)
+        def create_recursive(dpath):
+            if dpath != '/':
+                if not path.exists(dpath):
+                    head, tail = path.split(dpath)
                     TileLoader.create_recursive(head)
                     try:
-                        os.mkdir(path)
+                        mkdir(dpath)
                     except Exception, e:
                         # let others fail here.
                         pass
@@ -94,7 +95,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
 
         def run(self):
             answer = True
-            if not os.path.isfile(self.local_filename):
+            if not path.isfile(self.local_filename):
                 self.create_recursive(self.local_path)
                 gobject.idle_add(lambda: self.draw(self.get_no_image(TileLoader.noimage_loading)))
                 answer = self.download(self.remote_filename, self.local_filename)
@@ -124,8 +125,8 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             supertile_zoom = self.download_zoom - 1
             supertile_x = int(self.tile[0]/2)
             supertile_y = int(self.tile[1]/2)
-            supertile_name = os.path.join(self.base_dir, self.PREFIX, str(supertile_zoom), str(supertile_x), "%d%s%s" % (supertile_y, os.extsep, self.FILE_TYPE))
-            if not self.undersample and os.path.exists(supertile_name):
+            supertile_name = path.join(self.base_dir, self.PREFIX, str(supertile_zoom), str(supertile_x), "%d%s%s" % (supertile_y, extsep, self.FILE_TYPE))
+            if not self.undersample and path.exists(supertile_name):
                 off_x = (self.tile[0]/2.0 - supertile_x) * size
                 off_y = (self.tile[1]/2.0 - supertile_y) * size
                 pbuf = gtk.gdk.pixbuf_new_from_file(supertile_name)
@@ -169,7 +170,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
 
         def recover(self):
             try:
-                os.remove(self.local_filename)
+                remove(self.local_filename)
             except:
                 pass
             self.download(self.remote_filename, self.local_filename)
@@ -207,7 +208,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 try:
                     if remote in TileLoader.downloading:
                         TileLoader.downloading['remote'].add_waitlist(self)
-                    if os.path.exists(local):
+                    if path.exists(local):
                         return True
                     TileLoader.downloading[remote] = self
                 except Exception:
@@ -217,7 +218,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 try:
                     if self.stop:
                         return None
-                    info = urllib.urlretrieve(remote, local)
+                    info = urlretrieve(remote, local)
 
                     if "text/html" in info[1]['Content-Type']:
                         return False

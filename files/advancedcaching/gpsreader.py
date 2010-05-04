@@ -20,8 +20,7 @@
 #
 
 import geo
-import socket
-import math
+from socket import AF_INET, SOCK_STREAM
 from datetime import datetime
 
 try:
@@ -125,7 +124,7 @@ class GpsReader():
     def connect(self):
         try:
 
-            self.gpsd_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.gpsd_connection = socket(AF_INET, SOCK_STREAM)
             self.gpsd_connection.connect(("127.0.0.1", 2947))
             self.status = "connected"
             self.connected = True
