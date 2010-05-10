@@ -22,10 +22,9 @@
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
 
 # todo:
-# show logs
-# parse attributes
-# add "next waypoint" button
-# add description to displayed images
+# parse attributes?
+# add "next waypoint" button?
+# add description to displayed images?
 # add translation support?
 
 

@@ -23,11 +23,7 @@
 
  
 ### For the gui :-)
-# improve no-fix-display 
-# 
 
-# todo
-# 
 from math import ceil
 from os import path, system
 import re
