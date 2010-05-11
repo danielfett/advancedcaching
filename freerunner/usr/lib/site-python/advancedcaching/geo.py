@@ -136,6 +136,7 @@ class Coordinate():
         self.lon = lon
         self.name = name
         try:
+            location
             self.distance_to = self.distance_to_liblocation
         except Exception:
             self.distance_to = self.distance_to_manual

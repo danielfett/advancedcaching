@@ -108,7 +108,7 @@ class SimpleGui(object, HTMLAware):
     ARROW_LINE_WIDTH = 3
     NORTH_INDICATOR_SIZE = 30
     FONT_NORTH_INDICATOR = pango.FontDescription("Sans 9")
-    FONT_SUN_INDICATOR = pango.FontDescription("Sans 11")
+    FONT_SUN_INDICATOR = pango.FontDescription("Sans 8")
 
 
     # quality indicator
@@ -1711,7 +1711,7 @@ class SimpleGui(object, HTMLAware):
             target_distance = self.gps_data.position.distance_to(self.current_target)
             if target_distance >= 1000:
                 label = "%3dkm" % round(target_distance / 1000)
-            elif display_dist >= 100:
+            elif target_distance >= 100:
                 label = "%3dm" % round(target_distance)
             else:
                 label = "%2.1fm" % round(target_distance, 1)

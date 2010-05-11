@@ -186,7 +186,7 @@ class GpsReader():
                 lat, lon, alt, err_hor = splitted[3:7]
                 track, speed = splitted[8:10]
                 err_track = splitted[11]
-                time = datetime.utcfromtimestamp(splitted[1])
+                time = datetime.utcfromtimestamp(int(float(splitted[1])))
             except:
                 print "GPSD Output: \n%s\n  -- cannot be parsed." % data
                 self.status = "Could not read GPSD output."
@@ -229,7 +229,7 @@ class GpsReader():
                 quality = quality,
                 error = err_hor,
                 error_bearing = err_track,
-                time = time
+                timestamp = time
                 )
         except Exception, e:
             print "Fehler beim Auslesen der Daten: %s " % e
