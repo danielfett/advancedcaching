@@ -20,7 +20,7 @@
 #
 
 import geo
-from socket import AF_INET, SOCK_STREAM
+from socket import socket, AF_INET, SOCK_STREAM
 from datetime import datetime
 
 try:

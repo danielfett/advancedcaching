@@ -22,12 +22,10 @@
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
 
 # todo:
-# download logs
-# parse attributes
-# add "next waypoint" button
-# add description to displayed images
+# parse attributes?
+# add "next waypoint" button?
+# add description to displayed images?
 # add translation support?
-# download in seperate thread?
 
 
  
@@ -38,6 +36,7 @@ import geo
 import geocaching
 import gobject
 import gtk
+import astral
 try:
     import gtk.glade
     import extListview
@@ -45,10 +44,11 @@ except (ImportError):
     print "Please install glade if you're NOT on the maemo platform."
 import pango
 import openstreetmap
-import os
+from os import path
 import re
+from cachedownloader import HTMLAware
 
-class SimpleGui(object):
+class SimpleGui(object, HTMLAware):
     USES = ['gpsprovider']
     XMLFILE = "freerunner.glade"
 
@@ -103,9 +103,12 @@ class SimpleGui(object):
     COLOR_ARROW_CROSS = gtk.gdk.color_parse('darkslategray')
     COLOR_ARROW_ERROR = gtk.gdk.color_parse('gold')
     COLOR_NORTH_INDICATOR = gtk.gdk.color_parse("gold")
+    COLOR_SUN_INDICATOR = gtk.gdk.color_parse("yellow")
+    COLOR_SUN_INDICATOR_TEXT = gtk.gdk.color_parse("black")
     ARROW_LINE_WIDTH = 3
     NORTH_INDICATOR_SIZE = 30
     FONT_NORTH_INDICATOR = pango.FontDescription("Sans 9")
+    FONT_SUN_INDICATOR = pango.FontDescription("Sans 11")
 
 
     # quality indicator
@@ -135,8 +138,8 @@ class SimpleGui(object):
     
         gtk.gdk.threads_init()
         self.ts = openstreetmap.TileServer()
-        self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-cantload.png'))
-        self.noimage_loading = gtk.gdk.pixbuf_new_from_file(os.path.join(dataroot, 'noimage-loading.png'))
+        self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-cantload.png'))
+        self.noimage_loading = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-loading.png'))
         
         self.core = core
         self.core.connect('map-changed', self._on_map_changed)
@@ -153,7 +156,8 @@ class SimpleGui(object):
         self.current_target = None
         self.gps_data = None
         self.gps_has_fix = False
-        self.gps_last_position = (0, 0)
+        self.gps_last_good_fix = None
+        self.gps_last_screen_position = (0, 0)
                 
         self.dragging = False
         self.block_changes = False
@@ -161,6 +165,9 @@ class SimpleGui(object):
         self.image_zoomed = False
         self.image_no = 0
         self.images = []
+        self.active_tile_loaders = []
+
+        #self.osd_string = ''
 
         
         self.north_indicator_layout = None
@@ -173,7 +180,7 @@ class SimpleGui(object):
         
         
         global xml
-        xml = gtk.glade.XML(os.path.join(dataroot, self.XMLFILE))
+        xml = gtk.glade.XML(path.join(dataroot, self.XMLFILE))
         self.load_ui()
         # self.build_tile_loaders()
 
@@ -402,31 +409,6 @@ class SimpleGui(object):
         p_x = int(point[0] * size - self.map_center_x * size + self.map_width / 2)
         p_y = int(point[1] * size - self.map_center_y * size + self.map_height / 2)
         return [p_x, p_y]
-                
-        
-    @staticmethod            
-    def _decode_htmlentities(string):
-        def substitute_entity(match):
-            from htmlentitydefs import name2codepoint as n2cp
-            ent = match.group(3)
-            if match.group(1) == "#":
-                # decoding by number
-                if match.group(2) == '':
-                    # number is in decimal
-                    return unichr(int(ent))
-                elif match.group(2) == 'x':
-                    # number is in hex
-                    return unichr(int('0x' + ent, 16))
-            else:
-                # they were using a name
-                cp = n2cp.get(ent)
-                if cp:
-                    return unichr(cp)
-                else:
-                    return match.group()
-
-        entity_re = re.compile(r'&(#?)(x?)(\w+);')
-        return entity_re.subn(substitute_entity, string)[0]
         
     def on_window_destroy(self, target, more=None, data=None):
         self.core.on_destroy()
@@ -495,6 +477,7 @@ class SimpleGui(object):
         signal_width = 15
         error_circle_size = 0.95
         error_circle_width = 7
+        sun_size = 30
         
         if not self.drawing_area_arrow_configured:
             return
@@ -528,6 +511,9 @@ class SimpleGui(object):
         display_bearing = self.gps_data.position.bearing_to(self.current_target) - self.gps_data.bearing
         display_distance = self.gps_data.position.distance_to(self.current_target)
         display_north = math.radians(self.gps_data.bearing)
+        sun_angle = astral.get_sun_azimuth_from_fix(self.gps_data)
+        if sun_angle != None:
+            display_sun = math.radians((- sun_angle + self.gps_data.bearing) % 360)
 
         # draw moving direction
         if self.COLOR_ARROW_CROSS != None:
@@ -588,6 +574,30 @@ class SimpleGui(object):
             self.xgc_arrow.set_rgb_fg_color(self.COLOR_NORTH_INDICATOR)
             self.pixmap_arrow.draw_layout(self.xgc_arrow, position_x, position_y, self.north_indicator_layout)
 
+            # sun indicator
+            if sun_angle != None:
+                # center of sun indicator is this:
+                sun_center_x = int(width / 2 - math.sin(display_sun) * indicator_dist)
+                sun_center_y = int(height / 2 - math.cos(display_sun) * indicator_dist)
+                # draw the text            
+                sun_indicator_layout = widget.create_pango_layout("sun")
+                sun_indicator_layout.set_alignment(pango.ALIGN_CENTER)
+                sun_indicator_layout.set_font_description(self.FONT_SUN_INDICATOR)
+                # determine size of circle
+                circle_size = int((sun_indicator_layout.get_size()[0] / pango.SCALE) / 2)
+                # draw circle
+                self.xgc_arrow.set_function(gtk.gdk.COPY)
+                self.xgc_arrow.set_rgb_fg_color(self.COLOR_SUN_INDICATOR)
+                self.pixmap_arrow.draw_arc(self.xgc_arrow, True, sun_center_x - circle_size, sun_center_y - circle_size, circle_size * 2, circle_size * 2, 0, 64 * 360)
+                position_x = int(sun_center_x - (sun_indicator_layout.get_size()[0] / pango.SCALE) / 2)
+                position_y = int(sun_center_y - (sun_indicator_layout.get_size()[1] / pango.SCALE) / 2)
+
+                self.xgc_arrow.set_rgb_fg_color(self.COLOR_SUN_INDICATOR_TEXT)
+                self.pixmap_arrow.draw_layout(self.xgc_arrow, position_x, position_y, sun_indicator_layout)
+        
+            
+            
+
         else:
             # if we are closer than a few meters, the arrow will almost certainly
             # point in the wrong direction. therefore, we don't draw the arrow.
@@ -630,6 +640,7 @@ class SimpleGui(object):
         offset_y = self.drag_offset_y #(self.drag_start_y - event.y)
         self.map_center_x += (offset_x / self.ts.tile_size())
         self.map_center_y += (offset_y / self.ts.tile_size())
+        self.map_center_x, self.map_center_y = self.ts.check_bounds(self.map_center_x, self.map_center_y)
         if offset_x ** 2 + offset_y ** 2 < self.CLICK_RADIUS ** 2:
             self.draw_at_x -= offset_x
             self.draw_at_y -= offset_y
@@ -683,14 +694,10 @@ class SimpleGui(object):
                 
         if self.map_width == 0 or self.map_height == 0:
             return
-        #print 'begin draw marks'
         self._draw_marks()
-                
-        #print 'end draw marks'
-                
-        #self.xgc.set_function(gtk.gdk.COPY)
-        #self.xgc.set_rgb_fg_color(gtk.gdk.color_parse('white'))
-        #self.pixmap.draw_rectangle(self.xgc, True, 0, 0, self.map_width, self.map_height)
+
+        for x in self.active_tile_loaders:
+            x.halt()
                         
         size = self.ts.tile_size()
         xi = int(self.map_center_x)
@@ -698,6 +705,7 @@ class SimpleGui(object):
         span_x = int(math.ceil(float(self.map_width) / (size * 2.0)))
         span_y = int(math.ceil(float(self.map_height) / (size * 2.0)))
         tiles = []
+        self.active_tile_loaders = []
         for i in xrange(0, span_x + 1, 1):
             for j in xrange(0, span_y + 1, 1):
                 for dir in xrange(0, 4, 1):
@@ -711,8 +719,9 @@ class SimpleGui(object):
                     if not tile in tiles:
                         tiles.append(tile)
                         #print "Requesting ", tile, " zoom ", ts.zoom
-                        d = self.tile_loader(tile, self.ts.zoom, self, self.settings['download_map_path'], noimage_cantload = self.noimage_cantload, noimage_loading = self.noimage_loading, num = (i * dir_ew) * span_x + (j * dir_ns))
+                        d = self.tile_loader(tile, self.ts.zoom, self, self.settings['download_map_path'], noimage_cantload = self.noimage_cantload, noimage_loading = self.noimage_loading, undersample = self.settings['options_map_double_size'])
                         d.start()
+                        self.active_tile_loaders.append(d)
         #print 'end draw map'
 
     def _draw_marks_caches(self, coords):
@@ -759,7 +768,7 @@ class SimpleGui(object):
 
             # print the name?
             if self.settings['options_show_name']:
-                layout = self.drawing_area.create_pango_layout(c.name)
+                layout = self.drawing_area.create_pango_layout(self.shorten_name(c.title, 20))
                 layout.set_font_description(self.CACHE_DRAW_FONT)
                 self.pixmap_marks.draw_layout(xgc, p[0] + 3 + radius, p[1] - 3 - radius, layout)
 
@@ -880,7 +889,12 @@ class SimpleGui(object):
         # and now for our current data!
         #
                 
-                
+        
+        #layout = self.drawing_area.create_pango_layout("")
+        #layout.set_markup(self.osd_string)
+        #layout.set_font_description(self.MESSAGE_DRAW_FONT)
+        #self.pixmap_marks.draw_layout(xgc, self.map_width - layout.get_size()[0]/pango.SCALE, 20, layout)
+
                 
         # if we have a target, draw it
         if self.current_target != None:
@@ -900,14 +914,12 @@ class SimpleGui(object):
         else:
             t = False
                 
-                
-                
-        if self.gps_has_fix and self.gps_data != None and self.gps_data.position != None:
-            p = self._coord2point(self.gps_data.position)
+        if self.gps_last_good_fix != None and self.gps_last_good_fix.position != None:
+            p = self._coord2point(self.gps_last_good_fix.position)
             if p != False:
-                self.gps_last_position = p
+                self.gps_last_screen_position = p
 
-        p = self.gps_last_position
+        p = self.gps_last_screen_position
         if self.point_in_screen(p):
 
             xgc.line_width = 2
@@ -1085,6 +1097,7 @@ class SimpleGui(object):
         
     def on_good_fix(self, gps_data):
         self.gps_data = gps_data
+        self.gps_last_good_fix = gps_data
         self.gps_has_fix = True
         self._draw_arrow()
         #self.do_events()
@@ -1098,9 +1111,9 @@ class SimpleGui(object):
             return False
                 
         x, y = self._coord2point(self.gps_data.position)
-        if self.gps_last_position != None:
+        if self.gps_last_screen_position != None:
                                     
-            l, m = self.gps_last_position
+            l, m = self.gps_last_screen_position
             dist_from_last = (x - l) ** 2 + (y - m) ** 2
 
             # if we are tracking the user, redraw if far enough from center:
@@ -1110,7 +1123,7 @@ class SimpleGui(object):
                 if dist_from_center > self.REDRAW_DISTANCE_TRACKING ** 2:
                     self.set_center(self.gps_data.position)
                     # update last position, as it is now drawed
-                    self.gps_last_position = (x, y)
+                    # self.gps_last_screen_position = (x, y)
                     return
 
             # if we are tracking and we have not moved out of the center
@@ -1124,16 +1137,17 @@ class SimpleGui(object):
                     and self.gps_data.position.lon < max(a.lon, b.lon):
                         self.redraw_marks()
                 # update last position, as it is now drawed
-                self.gps_last_position = (x, y)
+                # self.gps_last_screen_position = (x, y)
             return
         else:
             self.redraw_marks()
             # also update when it was None
-            self.gps_last_position = (x, y)
+            #self.gps_last_screen_position = (x, y)
                 
                 
     def redraw_marks(self):
-
+        if self.dragging:
+            return
         self._draw_marks()
         self.refresh()
         
@@ -1371,8 +1385,8 @@ class SimpleGui(object):
             if self.current_cache == None or len(self.images) <= self.image_no:
                 self._update_cache_image(True)
                 return
-            filename = os.path.join(self.settings['download_output_dir'], self.images[self.image_no][0])
-            if not os.path.exists(filename):
+            filename = path.join(self.settings['download_output_dir'], self.images[self.image_no][0])
+            if not path.exists(filename):
                 self.image_cache_caption.set_text("not found: %s" % filename)
                 self.image_cache.set_from_stock(gtk.STOCK_GO_FORWARD, -1)
                 return
@@ -1643,9 +1657,8 @@ class SimpleGui(object):
         suc_dlg.destroy()
 
     def show_coordinate_input(self, start):
-        udr = UpdownRows(self.format, start)
+        udr = UpdownRows(self.format, start, False)
         dialog = gtk.Dialog("Change Target", None, gtk.DIALOG_MODAL, (gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE))
-                
         frame = gtk.Frame("Latitude")
         frame.add(udr.table_lat)
         dialog.vbox.pack_start(frame)
@@ -1694,17 +1707,22 @@ class SimpleGui(object):
         if self.current_target == None:
             return
                         
-                
-        target_distance = self.gps_data.position.distance_to(self.current_target)
-        if target_distance >= 1000:
-            label = "%3dkm" % round(target_distance / 1000)
-        elif display_dist >= 100:
-            label = "%3dm" % round(target_distance)
+        if self.gps_has_fix:
+            target_distance = self.gps_data.position.distance_to(self.current_target)
+            if target_distance >= 1000:
+                label = "%3dkm" % round(target_distance / 1000)
+            elif display_dist >= 100:
+                label = "%3dm" % round(target_distance)
+            else:
+                label = "%2.1fm" % round(target_distance, 1)
+            self.label_dist.set_text("<span size='large'>%s</span>" % label)
+            self.label_dist.set_use_markup(True)
+            
+            #self.osd_string = "<span gravity='west' size='xx-large'>%d </span>"
         else:
-            label = "%2.1fm" % round(target_distance, 1)
-        self.label_dist.set_text("<span size='large'>%s</span>" % label)
-        self.label_dist.set_use_markup(True)
-        
+            self.label_dist.set_text("<span size='large'>No Fix</span>")
+            self.label_dist.set_use_markup(True)
+            #self.osd_string = "<span gravity='west' size='xx-large'>No Fix </span>"
         
                 
                 
@@ -1755,26 +1773,52 @@ class SimpleGui(object):
         self.ts.set_zoom(newzoom)
         self.set_center(center)
                 
-                
+
+    @staticmethod
+    def shorten_name(s, chars):
+        max_pos = chars
+        min_pos = chars - 10
+
+        NOT_FOUND = -1
+
+        suffix = '…'
+
+        # Case 1: Return string if it is shorter (or equal to) than the limit
+        length = len(s)
+        if length <= max_pos:
+            return s
+        else:
+            # Case 2: Return it to nearest period if possible
+            try:
+                end = s.rindex('.', min_pos, max_pos)
+            except ValueError:
+                # Case 3: Return string to nearest space
+                end = s.rfind(' ', min_pos, max_pos)
+                if end == NOT_FOUND:
+                    end = max_pos
+            return s[0:end] + suffix
+
 
 class Updown():
-    def _init__(self, table, position, small):
+    def __init__(self, table, position, small):
         self.value = int(0)
-        self.label = gtk.Label("0")
+        self.label = gtk.Label("<b>0</b>")
+        self.label.set_use_markup(True)
         self.button_up = gtk.Button("+")
         self.button_down = gtk.Button("-")
         table.attach(self.button_up, position, position + 1, 0, 1)
-        table.attach(self.label, position, position + 1, 1, 2)
+        table.attach(self.label, position, position + 1, 1, 2, 0, 0)
         table.attach(self.button_down, position, position + 1, 2, 3)
         self.button_up.connect('clicked', self.value_up)
         self.button_down.connect('clicked', self.value_down)
-        if small:
-            font = pango.FontDescription("sans 8")
-        else:
-            font = pango.FontDescription("sans 12")
-        self.label.modify_font(font)
-        self.button_up.child.modify_font(font)
-        self.button_down.child.modify_font(font)
+        if small != None:
+            if small:
+                font = pango.FontDescription("sans 8")
+            else:
+                font = pango.FontDescription("sans 12")
+            self.label.modify_font(font)
+            self.button_up.child.modify_font(font)
+            self.button_down.child.modify_font(font)
         
     def value_up(self, target):
         self.value = int((self.value + 1) % 10)
@@ -1789,18 +1833,19 @@ class Updown():
         self.update()
                 
     def update(self):
-        self.label.set_text(str(self.value))
+        self.label.set_markup("<b>%d</b>" % self.value)
                 
 
                 
 class PlusMinusUpdown():
-    def _init__(self, table, position, labels):
+    def __init__(self, table, position, labels, small = None):
         self.is_neg = False
         self.labels = labels
         self.button = gtk.Button(labels[0])
-        table.attach(self.button, position, position + 1, 1, 2)
+        table.attach(self.button, position, position + 1, 1, 2, gtk.FILL, gtk.FILL)
         self.button.connect('clicked', self.value_toggle)
-        self.button.child.modify_font(pango.FontDescription("sans 8"))
+        if small != None:
+            self.button.child.modify_font(pango.FontDescription("sans 8"))
         
     def value_toggle(self, target):
         self.is_neg = not self.is_neg
@@ -1824,8 +1869,9 @@ class PlusMinusUpdown():
         self.button.child.set_text(text)
 
 class UpdownRows():
-    def _init__(self, format, coord):
+    def __init__(self, format, coord, large_dialog):
         self.format = format
+        self.large_dialog = large_dialog
         if coord == None:
             coord = geo.Coordinate(50, 10, 'none')
         if format == geo.Coordinate.FORMAT_DM:
@@ -1871,20 +1917,21 @@ class UpdownRows():
         table = gtk.Table(3, num + len(interrupt) + 1, False)
                 
         if is_long:
-            self.switcher_lon = PlusMinusUpdown(table, 0, ['W', 'E'])
+            self.switcher_lon = PlusMinusUpdown(table, 0, ['W', 'E'], None if self.large_dialog else False)
         else:
-            self.switcher_lat = PlusMinusUpdown(table, 0, ['S', 'N'])
+            self.switcher_lat = PlusMinusUpdown(table, 0, ['S', 'N'], None if self.large_dialog else False)
                 
         chooser = []
         cn = 0
         for i in xrange(1, num + len(interrupt) + 1):
             if i in interrupt:
-                table.attach(gtk.Label(interrupt[i]), i, i + 1, 1, 2)
+                table.attach(gtk.Label(interrupt[i]), i, i + 1, 1, 2, 0, 0)
             else:
-                ud = Updown(table, i, cn < small)
+                ud = Updown(table, i, (cn < small) if not self.large_dialog else None)
                 if cn < len(initial_value):
                     ud.set_value(initial_value[cn])
                     chooser.append(ud)
                     cn = cn + 1
 
         return [table, chooser]
+

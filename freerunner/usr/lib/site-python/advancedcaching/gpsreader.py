@@ -20,7 +20,8 @@
 #
 
 import geo
-import socket
+from socket import AF_INET, SOCK_STREAM
+from datetime import datetime
 
 try:
     import location
@@ -30,6 +31,9 @@ except (ImportError):
 class Fix():
     BEARING_HOLD_EPD = 90 # arbitrary, yet non-random value
     last_bearing = 0
+    # tracking the minimum difference between a received fix time and
+    # our current internal time. 
+    min_timediff = datetime.utcnow() - datetime.utcfromtimestamp(0)
     
     def __init__(self,
             position = None,
@@ -41,7 +45,8 @@ class Fix():
             dgps = False,
             quality = 0,
             error = 0,
-            error_bearing = 0):
+            error_bearing = 0,
+            timestamp = None):
         self.position = position
         self.altitude = altitude
         self.bearing = bearing
@@ -52,26 +57,51 @@ class Fix():
         self.quality = quality
         self.error = error
         self.error_bearing = error_bearing
+        if timestamp == None:
+            self.timestamp = datetime.utcnow()
+        else:
+            self.timestamp = timestamp
 
     @staticmethod
     def from_tuple(f, device):
         a = Fix()
+        # check if this is an actual fix
         if (not f[1] & (location.GPS_DEVICE_LATLONG_SET | location.GPS_DEVICE_ALTITUDE_SET | location.GPS_DEVICE_TRACK_SET)):
             return a
-        a.position = geo.Coordinate(f[4], f[5])
-        a.altitude = f[7]
-        if f[10] > Fix.BEARING_HOLD_EPD:
-            a.bearing = Fix.last_bearing
-        else:
-            a.bearing = f[9]
-            Fix.last_bearing = a.bearing
-        a.speed = f[11]
+            
+        # location independent data
         a.sats = device.satellites_in_use
         a.sats_known = device.satellites_in_view
         a.dgps = False
         a.quality = 0
+
+        
+
+        # if this fix is too old, discard it
+        if f[2] == f[2]: # is not NaN
+            a.timestamp = datetime.utcfromtimestamp(f[2])
+        else:
+            a.timestamp = datetime.utcfromtimestamp(0)
+
+        Fix.min_timediff = min(Fix.min_timediff, datetime.utcnow() - a.timestamp)
+        # if this fix is too old, discard it
+        if ((datetime.utcnow() - a.timestamp) - Fix.min_timediff).seconds > LocationGpsReader.TIMEOUT:
+            return a
+
+        # now on for location dependent data
+        #if f[10] > Fix.BEARING_HOLD_EPD:
+        #    a.bearing = Fix.last_bearing
+        #else:
+        a.altitude = f[7]
+
+        a.bearing = f[9]
+        #    Fix.last_bearing = a.bearing
+        a.position = geo.Coordinate(f[4], f[5])
+
+        a.speed = f[11]
         a.error = f[6]/100.0
         a.error_bearing = f[10]
+
         return a
 
 class GpsReader():
@@ -94,7 +124,7 @@ class GpsReader():
     def connect(self):
         try:
 
-            self.gpsd_connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.gpsd_connection = socket(AF_INET, SOCK_STREAM)
             self.gpsd_connection.connect(("127.0.0.1", 2947))
             self.status = "connected"
             self.connected = True
@@ -156,9 +186,11 @@ class GpsReader():
                 lat, lon, alt, err_hor = splitted[3:7]
                 track, speed = splitted[8:10]
                 err_track = splitted[11]
+                time = datetime.utcfromtimestamp(splitted[1])
             except:
                 print "GPSD Output: \n%s\n  -- cannot be parsed." % data
                 self.status = "Could not read GPSD output."
+                return Fix()
             alt = self.to_float(alt)
             track = self.to_float(track)
             speed = self.to_float(speed)
@@ -196,7 +228,8 @@ class GpsReader():
                 dgps = dgps,
                 quality = quality,
                 error = err_hor,
-                error_bearing = err_track
+                error_bearing = err_track,
+                time = time
                 )
         except Exception, e:
             print "Fehler beim Auslesen der Daten: %s " % e
@@ -210,6 +243,8 @@ class GpsReader():
             return 0.0
 
 class LocationGpsReader():
+    TIMEOUT = 5
+
     def __init__(self, cb_error, cb_changed):
         print "+ Using liblocation GPS device"
 

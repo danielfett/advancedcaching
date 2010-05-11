@@ -1,10 +1,10 @@
 Package: advancedcaching
 Section: x11
 Priority: optional
-Version: 0.5.3
+Version: 0.6.0
 Architecture: all
 Maintainer: Daniel Fett
-Depends: python-pygtk, python-html, python-image, python-netclient, python-misc, python-sqlite3, python-mime, python-json
+Depends: python-pygtk, python-html, python-image, python-netclient, python-misc, python-sqlite3, python-mime, python-json, python-io
 Suggests: python-json
 Source: none
 Description: "towards paperless geocaching"

@@ -21,22 +21,23 @@
 from __future__ import with_statement
 
 import math
+
 import geo
 import gobject
 import gtk
-import os
-import threading
-import urllib
-import socket
-socket.setdefaulttimeout(30)
+from os import path, mkdir, extsep, remove
+from threading import Thread, Semaphore, Lock
+from urllib import urlretrieve
+from socket import setdefaulttimeout
+setdefaulttimeout(30)
 
 
 def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, file_type = 'png'):
 
-    class TileLoader(threading.Thread):
-        downloading = []
-        semaphore = threading.Semaphore(40)
-        lock = threading.Lock() #download-lock
+    class TileLoader(Thread):
+        downloading = {}
+        semaphore = Semaphore(40)
+        lock = Lock() #download-lock
         noimage_cantload = None
         noimage_loading = None
 
@@ -45,33 +46,48 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
         FILE_TYPE = file_type#'png'
         REMOTE_URL = remote_url#"http://128.40.168.104/mapnik/%(zoom)d/%(x)d/%(y)d.png"
 
-        def __init__(self, tile, zoom, gui, base_dir, noimage_cantload, noimage_loading, num=0):
-            threading.Thread.__init__(self)
+        def __init__(self, tile, zoom, gui, base_dir, noimage_cantload, noimage_loading, undersample):
+            Thread.__init__(self)
             self.daemon = False
-            self.tile = tile
-            self.zoom = zoom
+            self.undersample = undersample
             self.gui = gui
+            self.tile = tile
+            self.realtile = self.gui.ts.check_bounds(*tile)
+            if not undersample:
+                self.download_zoom = zoom
+                self.display_zoom = zoom
+            else:
+                self.download_zoom = zoom - 1
+                self.display_zoom = zoom
+                self.realtile = (int(self.realtile[0]/2), int(self.realtile[1]/2))
             self.base_dir = base_dir
             self.pbuf = None
-            self.num = num
             self.noimage_cantload = noimage_cantload
             self.noimage_loading = noimage_loading
             self.set_paths()
             self.my_noimage = None
+            self.stop = False
+            self.waitlist = []
+
+        def add_waitlist(l):
+            self.waitlist.append(l)
+
+        def halt(self):
+            self.stop = True
 
         def set_paths(self):
-            self.local_path = os.path.join(self.base_dir, self.PREFIX, str(self.zoom), str(self.tile[0]))
-            self.local_filename =  os.path.join(self.local_path, "%d%s%s" % (self.tile[1], os.extsep, self.FILE_TYPE))
-            self.remote_filename = self.REMOTE_URL % {'zoom': self.zoom, 'x' : self.tile[0], 'y' : self.tile[1]}
+            self.local_path = path.join(self.base_dir, self.PREFIX, str(self.download_zoom), str(self.realtile[0]))
+            self.local_filename =  path.join(self.local_path, "%d%s%s" % (self.realtile[1], extsep, self.FILE_TYPE))
+            self.remote_filename = self.REMOTE_URL % {'zoom': self.download_zoom, 'x' : self.realtile[0], 'y' : self.realtile[1]}
 
         @staticmethod
-        def create_recursive(path):
-            if path != '/':
-                if not os.path.exists(path):
-                    head, tail = os.path.split(path)
+        def create_recursive(dpath):
+            if dpath != '/':
+                if not path.exists(dpath):
+                    head, tail = path.split(dpath)
                     TileLoader.create_recursive(head)
                     try:
-                        os.mkdir(path)
+                        mkdir(dpath)
                     except Exception, e:
                         # let others fail here.
                         pass
@@ -79,10 +95,12 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
 
         def run(self):
             answer = True
-            if not os.path.isfile(self.local_filename):
+            if not path.isfile(self.local_filename):
                 self.create_recursive(self.local_path)
                 gobject.idle_add(lambda: self.draw(self.get_no_image(TileLoader.noimage_loading)))
                 answer = self.download(self.remote_filename, self.local_filename)
+            for x in self.waitlist:
+                gobject.idle_add(x.run_again())
             # now the file hopefully exists
             if answer == True:
                 self.load()
@@ -93,6 +111,10 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 #print "nothing"
                 pass
 
+        def run_again(self):
+            self.load()
+            gobject.idle_add(lambda: self.draw(self.pbuf))
+            return False
 
         def get_no_image(self, default):
             if self.my_noimage != None:
@@ -100,11 +122,11 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             size = self.gui.ts.tile_size()
             # we have no image available. so what do now?
             # first, check if we've the "supertile" available (zoomed out)
-            supertile_zoom = self.zoom - 1
+            supertile_zoom = self.download_zoom - 1
             supertile_x = int(self.tile[0]/2)
             supertile_y = int(self.tile[1]/2)
-            supertile_name = os.path.join(self.base_dir, str(supertile_zoom), str(supertile_x), "%d%s%s" % (supertile_y, os.extsep, self.FILE_TYPE))
-            if os.path.exists(supertile_name):
+            supertile_name = path.join(self.base_dir, self.PREFIX, str(supertile_zoom), str(supertile_x), "%d%s%s" % (supertile_y, extsep, self.FILE_TYPE))
+            if not self.undersample and path.exists(supertile_name):
                 off_x = (self.tile[0]/2.0 - supertile_x) * size
                 off_y = (self.tile[1]/2.0 - supertile_y) * size
                 pbuf = gtk.gdk.pixbuf_new_from_file(supertile_name)
@@ -118,10 +140,25 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
 
         def load(self, tryno=0):
             # load the pixbuf to memory
+            if self.stop:
+                return True
             try:
-                self.pbuf = gtk.gdk.pixbuf_new_from_file(self.local_filename)
-                if self.pbuf.get_width() < self.gui.ts.tile_size() or self.pbuf.get_height() < self.gui.ts.tile_size():
-                    raise Exception("Image too small, probably corrupted file")
+                if self.undersample:
+                    # don't load the tile directly, but load the supertile instead
+                    supertile_x = int(self.tile[0]/2)
+                    supertile_y = int(self.tile[1]/2)
+                    off_x = (self.tile[0]/2.0 - supertile_x) * self.gui.ts.tile_size()
+                    off_y = (self.tile[1]/2.0 - supertile_y) * self.gui.ts.tile_size()
+                    pbuf = gtk.gdk.pixbuf_new_from_file(self.local_filename)
+                    if pbuf.get_width() < self.gui.ts.tile_size() or pbuf.get_height() < self.gui.ts.tile_size():
+                        raise Exception("Image too small, probably corrupted file")
+                    dest = gtk.gdk.Pixbuf(pbuf.get_colorspace(), pbuf.get_has_alpha(), pbuf.get_bits_per_sample(), self.gui.ts.tile_size(), self.gui.ts.tile_size())
+                    pbuf.scale(dest, 0, 0, 256, 256, -off_x*2, -off_y*2, 2, 2, gtk.gdk.INTERP_HYPER)
+                    self.pbuf = dest
+                else:
+                    self.pbuf = gtk.gdk.pixbuf_new_from_file(self.local_filename)
+                    if self.pbuf.get_width() < self.gui.ts.tile_size() or self.pbuf.get_height() < self.gui.ts.tile_size():
+                        raise Exception("Image too small, probably corrupted file")
                 return True
             except Exception, e:
                 if tryno == 0:
@@ -133,16 +170,13 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
 
         def recover(self):
             try:
-                os.remove(self.local_filename)
+                remove(self.local_filename)
             except:
                 pass
             self.download(self.remote_filename, self.local_filename)
             return self.load(1)
 
         def draw(self, pbuf):
-            #gc.set_function(gtk.gdk.COPY)
-            #gc.set_rgb_fg_color(self.COLOR_BG)
-            # to draw "night mode": INVERT
 
             size = self.gui.ts.tile_size()
             x = self.gui.map_center_x
@@ -151,7 +185,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             yi = int(self.gui.map_center_y)
             span_x = int(math.ceil(float(self.gui.map_width) / (size * 2.0)))
             span_y = int(math.ceil(float(self.gui.map_height) / (size * 2.0)))
-            if self.tile[0] in xrange(xi - span_x, xi + span_x + 1, 1) and self.tile[1] in xrange(yi - span_y, yi + span_y + 1, 1) and self.zoom == self.gui.ts.zoom:
+            if self.tile[0] in xrange(xi - span_x, xi + span_x + 1, 1) and self.tile[1] in xrange(yi - span_y, yi + span_y + 1, 1) and not self.stop:
 
                 offset_x = int(self.gui.map_width / 2 - (x - int(x)) * size)
                 offset_y = int(self.gui.map_height / 2 -(y - int(y)) * size)
@@ -166,25 +200,25 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                     self.gui.pixmap.draw_pixbuf(gc, self.noimage_cantload, 0, 0, dx, dy, size, size)
 
                 self.gui.drawing_area.queue_draw_area(max(self.gui.draw_root_x + self.gui.draw_at_x  + dx, 0), max(self.gui.draw_root_y + self.gui.draw_at_y  + dy, 0), size, size)
-
+            return False
 
         def download(self, remote, local):
             #print "downloading", remote
             with TileLoader.lock:
                 try:
                     if remote in TileLoader.downloading:
-                        return None
-                    if os.path.exists(local):
-                        return None
-                    TileLoader.downloading.append(remote)
+                        TileLoader.downloading['remote'].add_waitlist(self)
+                    if path.exists(local):
+                        return True
+                    TileLoader.downloading[remote] = self
                 except Exception:
                     pass
 
             with TileLoader.semaphore:
                 try:
-                    if not self.zoom == self.gui.ts.zoom:
+                    if self.stop:
                         return None
-                    info = urllib.urlretrieve(remote, local)
+                    info = urlretrieve(remote, local)
 
                     if "text/html" in info[1]['Content-Type']:
                         return False
@@ -193,7 +227,10 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                     print "Download Error", e
                     return False
                 finally:
-                    TileLoader.downloading.remove(remote)
+                    try:
+                        del TileLoader.downloading[remote]
+                    except Exception, e:
+                        pass
     return TileLoader
 
                 
@@ -238,4 +275,11 @@ class TileServer():
         lat_deg = lat_rad * 180.0 / math.pi
         return geo.Coordinate(lat_deg, lon_deg)
 
+    def check_bounds(self, xtile, ytile):
+        max_x = 2**self.zoom
+        max_y = 2**self.zoom
+        return (
+            xtile % max_x,
+            ytile % max_y
+        )
 

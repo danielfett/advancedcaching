@@ -1,7 +1,7 @@
-import math
-import sqlite3
+from math import sqrt
+from sqlite3 import connect, Row
 
-import copy
+from copy import copy
 
 
 
@@ -11,8 +11,8 @@ class PointProvider():
     def __init__(self, filename, downloader, ctype, table):
 
         self.filterstack = []
-        self.conn = sqlite3.connect(filename)
-        self.conn.row_factory = sqlite3.Row
+        self.conn = connect(filename)
+        self.conn.row_factory = Row
         self.conn.text_factory = str
         self.ctype = ctype
         self.downloader = downloader
@@ -20,6 +20,10 @@ class PointProvider():
         self.filterstring = []
         self.filterargs = []
         c = self.conn.cursor()
+        c.execute('PRAGMA temp_store = MEMORY;')
+        # yes, this setting is a bit dangerous for the database, but the 
+        # advantages outbalance unlikely database corruption
+        c.execute('PRAGMA synchronous=OFF')
         c.execute('CREATE TABLE IF NOT EXISTS %s (%s)' % (self.cache_table, ', '.join([' '.join(m) for m in self.ctype.SQLROW.items()])))
         self.check_table()
         c.execute('CREATE INDEX IF NOT EXISTS %s_latlon ON %s (lat ASC, lon ASC)' % (self.cache_table, self.cache_table))
@@ -28,7 +32,7 @@ class PointProvider():
 
     def check_table(self):
         c = self.conn.cursor()
-        fields = copy.copy(self.ctype.SQLROW)
+        fields = copy(self.ctype.SQLROW)
         c.execute('PRAGMA TABLE_INFO(%s)' % self.cache_table)
         for row in c:
             if row[1] in fields.keys():
@@ -121,8 +125,8 @@ class PointProvider():
 
         
     def get_nearest_point_filter(self, center, c1, c2, found):
-        filterstring = copy.copy(self.filterstring)
-        filterargs = copy.copy(self.filterargs)
+        filterstring = copy(self.filterstring)
+        filterargs = copy(self.filterargs)
                 
         filterstring.append('((lat BETWEEN ? AND ?) AND (lon BETWEEN ? AND ?))')
         filterargs.append(min(c1.lat, c2.lat))
@@ -148,7 +152,7 @@ class PointProvider():
             # we have points very close to each other
             # for the sake of performance, using simpler
             # distance calc here
-            dist = math.sqrt((row['lat'] - center.lat) ** 2 + (row['lon'] - center.lon) ** 2)
+            dist = sqrt((row['lat'] - center.lat) ** 2 + (row['lon'] - center.lon) ** 2)
             if dist < mindist:
                 mindistrow = row
                 mindist = dist
@@ -161,13 +165,13 @@ class PointProvider():
     def set_filter(self, found=None, has_details=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, adapt_filter=False, marked=None):
         # a value "None" means: apply no filtering on this value
 
-        filter = copy.copy(locals())
+        filter = copy(locals())
         del filter['self']
         self.filter = filter
 
         if adapt_filter:
-            filterstring = copy.copy(self.filterstring)
-            filterargs = copy.copy(self.filterargs)
+            filterstring = copy(self.filterstring)
+            filterargs = copy(self.filterargs)
         else:
             filterstring = []
             filterargs = []
@@ -236,8 +240,8 @@ class PointProvider():
         self.filterstring, self.filterargs = self.filterstack.pop()
                 
     def get_points_filter(self, location=None, found=None, max_results=None):
-        filterstring = copy.copy(self.filterstring)
-        filterargs = copy.copy(self.filterargs)
+        filterstring = copy(self.filterstring)
+        filterargs = copy(self.filterargs)
 
         if max_results == None:
             max_results = self.MAX_RESULTS

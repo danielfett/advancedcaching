@@ -36,11 +36,11 @@ def try_parse_coordinate(text):
     match = re.match(ur'''(?i)^([NS+-]?)\s?(\d\d?\d?)[ °]{0,2}(\d\d?\d?)[., ](\d+)['\s,]+([EOW+-]?)\s?(\d{1,3})[ °]{0,2}(\d\d?\d?)[., ](\d+)?[\s']*$''', text)
     if match != None:
         c = Coordinate(0, 0)
-        if match.group(1) in ['sS-']:
+        if match.group(1) in 'sS-':
             sign_lat = -1
         else:   
             sign_lat = 1
-        if match.group(5) in ['wW-']:
+        if match.group(5) in 'wW-':
             sign_lon = -1
         else:   
             sign_lon = 1
@@ -57,11 +57,11 @@ def try_parse_coordinate(text):
     
     if match != None:
         c = Coordinate(0, 0)
-        if match.group(1) in ['sS-']:
+        if match.group(1) in 'sS-':
             sign_lat = -1
         else:   
             sign_lat = 1
-        if match.group(4) in ['wW-']:
+        if match.group(4) in 'wW-':
             sign_lon = -1
         else:   
             sign_lon = 1
@@ -85,11 +85,11 @@ def search_coordinates(text):
     matches = re.finditer(ur'''(?i)([NS+-]?)\s?(\d\d?\d?)[ °]{1,2}(\d\d?\d?)[., ](\d+)['\s,]+([EOW+-]?)\s?(\d{1,3})[ °]{1,2}(\d\d?\d?)[., ](\d+)?[\s']*''', text)
     for match in matches:
         c = Coordinate(0, 0)
-        if match.group(1) in ['sS-']:
+        if match.group(1) in 'sS-':
             sign_lat = -1
         else:
             sign_lat = 1
-        if match.group(5) in ['wW-']:
+        if match.group(5) in 'wW-':
             sign_lon = -1
         else:
             sign_lon = 1
@@ -105,11 +105,11 @@ def search_coordinates(text):
     matches = re.finditer(ur'''(?i)([NS+-]?)\s?(\d\d?)[.,](\d+)[°']?[\s,]+([EOW+-]?)\s?(\d{1,3})[.,](\d+)['°]?\s*''', text)
     for match in matches:
         c = Coordinate(0, 0)
-        if match.group(1) in ['sS-']:
+        if match.group(1) in 'sS-':
             sign_lat = -1
         else:
             sign_lat = 1
-        if match.group(4) in ['wW-']:
+        if match.group(4) in 'wW-':
             sign_lon = -1
         else:
             sign_lon = 1
@@ -180,8 +180,10 @@ class Coordinate():
             ]
             
     def to_dm(self):
-        return [[int(math.floor(self.lat)), (self.lat - math.floor(self.lat)) * 60],
-            [int(math.floor(self.lon)), (self.lon - math.floor(self.lon)) * 60]]
+        lat = abs(self.lat)
+        lon = abs(self.lon)
+        return [[int(math.floor(lat)), (lat - math.floor(lat)) * 60],
+            [int(math.floor(lon)), (lon - math.floor(lon)) * 60]]
     
     def bearing_to(self, target):
         lat1 = math.radians(self.lat)
@@ -236,6 +238,9 @@ class Coordinate():
         elif format == self.FORMAT_DM:
             return "%s %d° %06.3f'" % (c, math.floor(l), (l - math.floor(l)) * 60)
 
+    def get_latlon(self, format = 1): # that is FORMAT_DM
+        return "%s %s" % (self.get_lat(format), self.get_lon(format))
+
     def distance_to_manual (self, target):
         dlat = math.pow(math.sin(math.radians(target.lat-self.lat) / 2), 2)
         dlon = math.pow(math.sin(math.radians(target.lon-self.lon) / 2), 2)
@@ -248,7 +253,7 @@ class Coordinate():
 
 
     def __str__(self):
-        return "%s %s" % (self.get_lat(Coordinate.FORMAT_DM), self.get_lon(Coordinate.FORMAT_DM))
+        return self.get_latlon()
         
     def serialize(self):
 

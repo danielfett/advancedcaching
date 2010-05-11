@@ -1,5 +1,5 @@
 #!/bin/sh
-IPKG='../ipkg-utils-1.7/ipkg-build'
+IPKG='ipkg-utils-1.7/ipkg-build'
 PKGROOT='freerunner'
 VERSION="Version: "`grep -oP "(?<=version=').*(?=')" files/setup.py`
 

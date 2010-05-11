@@ -118,31 +118,31 @@ Just start the string with 'q:':
 
 from geo import Coordinate
 try:
-    import json
-    json.dumps
+    from json import loads, dumps
 except (ImportError, AttributeError):
-    import simplejson as json
-import sys
+    from simplejson import loads, dumps
+from sys import argv, exit
 
 import downloader
 import geocaching
 import gobject
 import gpsreader
-import os
-import os.path
+from os import path, mkdir
 import provider
-import math
-import threading
+from threading import Thread
+from cachedownloader import GeocachingComCacheDownloader
+from fieldnotesuploader import FieldnotesUploader
 
 #import cProfile
 #import pstats
 
 
-if len(sys.argv) == 1:
-    print usage % ({'name': sys.argv[0]})
+if len(argv) == 1:
+    print usage % ({'name': argv[0]})
     exit()
         
-arg = sys.argv[1].strip()
+
+arg = argv[1].strip()
 if arg == '--simple':
     import simplegui
     gui = simplegui.SimpleGui
@@ -203,14 +203,14 @@ class Core(gobject.GObject):
         'no-fix': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         }
 
-    SETTINGS_DIR = os.path.expanduser('~/.agtl')
-    CACHES_DB = os.path.join(SETTINGS_DIR, "caches.db")
-    COOKIE_FILE = os.path.join(SETTINGS_DIR, "cookies.lwp")
+    SETTINGS_DIR = path.expanduser('~/.agtl')
+    CACHES_DB = path.join(SETTINGS_DIR, "caches.db")
+    COOKIE_FILE = path.join(SETTINGS_DIR, "cookies.lwp")
 
-    MAEMO_HOME = os.path.expanduser("~/MyDocs/.")
+    MAEMO_HOME = path.expanduser("~/MyDocs/.")
     MAPS_DIR = 'Maps/'
 
-    DATA_DIR = os.path.expanduser('~/') if not os.path.exists(MAEMO_HOME) else MAEMO_HOME
+    DATA_DIR = path.expanduser('~/') if not path.exists(MAEMO_HOME) else MAEMO_HOME
     
     DEFAULT_SETTINGS = {
         'download_visible': True,
@@ -220,7 +220,7 @@ class Core(gobject.GObject):
         'download_create_index': False,
         'download_run_after': False,
         'download_run_after_string': '',
-        'download_output_dir': os.path.expanduser(DATA_DIR + 'geocaches/'),
+        'download_output_dir': path.expanduser(DATA_DIR + 'geocaches/'),
         'map_position_lat': 49.7540,
         'map_position_lon': 6.66135,
         'map_zoom': 7,
@@ -240,14 +240,15 @@ class Core(gobject.GObject):
             ('OpenStreetMaps', {'remote_url': "http://128.40.168.104/mapnik/%(zoom)d/%(x)d/%(y)d.png", 'prefix': 'OpenStreetMap I'}),
             ('OpenCycleMaps', {'remote_url': 'http://andy.sandbox.cloudmade.com/tiles/cycle/%(zoom)d/%(x)d/%(y)d.png', 'prefix': 'OpenCycleMap'})
 
-        ]
+        ],
+        'options_map_double_size' : False,
     }
             
     def __init__(self, guitype, root):
         gobject.GObject.__init__(self)
         self.create_recursive(self.SETTINGS_DIR)
 
-        dataroot = os.path.join(root, 'data')
+        dataroot = path.join(root, 'data')
         
         #self.standbypreventer = Standbypreventer()
         # seems to crash dbus/fso/whatever
@@ -270,7 +271,9 @@ class Core(gobject.GObject):
         self.gui = guitype(self, self.pointprovider, self.userpointprovider, dataroot)
         self.gui.write_settings(self.settings)
 
-        if '--sim' in sys.argv:
+
+
+        if '--sim' in argv:
             self.gps_thread = gpsreader.FakeGpsReader(self)
             gobject.timeout_add(1000, self.__read_gps)
             self.gui.set_target(gpsreader.FakeGpsReader.get_target())
@@ -287,13 +290,13 @@ class Core(gobject.GObject):
         self.gui.show()
 
     @staticmethod
-    def create_recursive(path):
-        if path != '/':
-            if not os.path.exists(path):
-                head, tail = os.path.split(path)
+    def create_recursive(dpath):
+        if dpath != '/':
+            if not path.exists(dpath):
+                head, tail = path.split(dpath)
                 Core.create_recursive(head)
                 try:
-                    os.mkdir(path)
+                    os.mkdir(dpath)
                 except Exception:
                     # let others fail here.
                     pass
@@ -329,14 +332,15 @@ class Core(gobject.GObject):
                 and route[i].distance_to(route[i + 1]) < (r * 1000 * 2):
                     together.append(route[i + 1])
             else:
+                from math import sqrt
                 min_lat = min([x.lat for x in together])
                 min_lon = min([x.lon for x in together])
                 max_lat = max([x.lat for x in together])
                 max_lon = max([x.lon for x in together])
                 c1 = Coordinate(min_lat, min_lon)
                 c2 = Coordinate(max_lat, max_lon)
-                new_c1 = c1.transform(-45, r * 1000 * math.sqrt(2))
-                new_c2 = c2.transform(-45 + 180, r * 1000 * math.sqrt(2))
+                new_c1 = c1.transform(-45, r * 1000 * sqrt(2))
+                new_c2 = c2.transform(-45 + 180, r * 1000 * sqrt(2))
                 out.append((new_c1, new_c2))
                 together = []
         print "* Needing %d unique queries" % len(out)
@@ -385,7 +389,7 @@ class Core(gobject.GObject):
     # called by gui
     def on_download(self, location, sync=False):
         self.gui.set_download_progress(0.5, "Downloading...")
-        cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd = GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
         cd.connect("already-downloading-error", self.on_already_downloading_error)
         if not sync:
@@ -394,7 +398,7 @@ class Core(gobject.GObject):
                 return False
 
             cd.connect("finished-overview", same_thread)
-            t = threading.Thread(target=cd.get_geocaches, args=[location])
+            t = Thread(target=cd.get_geocaches, args=[location])
             t.daemon = False
             t.start()
             return False
@@ -434,7 +438,7 @@ class Core(gobject.GObject):
         #
         self.gui.set_download_progress(0.5, "Downloading %s..." % cache.name)
 
-        cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd = GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
         cd.connect("already-downloading-error", self.on_already_downloading_error)
         if not sync:
@@ -442,7 +446,7 @@ class Core(gobject.GObject):
                 gobject.idle_add(self.on_download_cache_complete, arg1, arg2)
                 return False
             cd.connect("finished-single", same_thread)
-            t = threading.Thread(target=cd.update_coordinate, args=[cache])
+            t = Thread(target=cd.update_coordinate, args=[cache])
             t.daemon = False
             t.start()
             #t.join()
@@ -479,7 +483,7 @@ class Core(gobject.GObject):
                 
     # called by gui
     def on_download_descriptions(self, location, visibleonly=False):
-        cd = geocaching.CacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd = GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
         cd.connect("already-downloading-error", self.on_already_downloading_error)
         
@@ -520,7 +524,7 @@ class Core(gobject.GObject):
         cd.connect('progress', self.on_download_progress)
         cd.connect('finished-multiple', same_thread)
 
-        t = threading.Thread(target=cd.update_coordinates, args=[caches])
+        t = Thread(target=cd.update_coordinates, args=[caches])
         t.daemon = False
         t.start()
 
@@ -580,7 +584,7 @@ class Core(gobject.GObject):
         self.gui.set_download_progress(0.5, "Uploading Fieldnotes...")
 
         caches = self.pointprovider.get_new_fieldnotes()
-        fn = geocaching.FieldnotesUploader(self.downloader)
+        fn = FieldnotesUploader(self.downloader)
         fn.connect("upload-error", self.on_download_error)
         
         def same_thread(arg1):
@@ -591,7 +595,7 @@ class Core(gobject.GObject):
         
         for c in caches:
             fn.add_fieldnote(c)
-        t = threading.Thread(target=fn.upload)
+        t = Thread(target=fn.upload)
         t.daemon = False
         t.start()
         
@@ -640,15 +644,15 @@ class Core(gobject.GObject):
         return True
                 
     def __read_config(self):
-        filename = os.path.join(self.SETTINGS_DIR, 'config')
-        if not os.path.exists(filename):
+        filename = path.join(self.SETTINGS_DIR, 'config')
+        if not path.exists(filename):
             self.settings = self.DEFAULT_SETTINGS
             return
         f = file(filename, 'r')
         string = f.read()
         self.settings = {}
         if string != '':
-            tmp_settings = json.loads(string)
+            tmp_settings = loads(string)
             for k, v in self.DEFAULT_SETTINGS.items():
                 if k in tmp_settings.keys() != None:
                     self.settings[k] = tmp_settings[k]
@@ -668,22 +672,22 @@ class Core(gobject.GObject):
         return False
                 
     def __write_config(self):
-        filename = os.path.join(self.SETTINGS_DIR, 'config')
+        filename = path.join(self.SETTINGS_DIR, 'config')
         f = file(filename, 'w')
-        f.write(json.dumps(self.settings, sort_keys=True, indent=4))
+        f.write(dumps(self.settings, sort_keys=True, indent=4))
 
 
 def determine_path ():
     """Borrowed from wxglade.py"""
     try:
         root = __file__
-        if os.path.islink (root):
-            root = os.path.realpath (root)
-        return os.path.dirname(os.path.abspath (root))
+        if path.islink (root):
+            root = path.realpath (root)
+        return path.dirname(path.abspath (root))
     except:
         print "I'm sorry, but something is wrong."
         print "There is no __file__ variable. Please contact the author."
-        sys.exit()
+        exit()
 
                         
 def start():
