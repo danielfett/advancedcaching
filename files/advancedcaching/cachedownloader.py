@@ -38,10 +38,9 @@ import re
 import gobject
 
 
-class HTMLAware():
-
+class HTMLManipulations:
     COMMENT_REGEX = re.compile('<!--.*?-->', re.DOTALL)
-
+    
     @staticmethod
     def _strip_html(text, soft = False):
         if not soft:
@@ -77,9 +76,8 @@ class HTMLAware():
 
         entity_re = re.compile(r'&(#?)(x?)(\w+);')
         return entity_re.subn(substitute_entity, string)[0]
-        
 
-class CacheDownloader(gobject.GObject, HTMLAware):
+class CacheDownloader(gobject.GObject):
     __gsignals__ = { 'finished-overview': (gobject.SIGNAL_RUN_FIRST,\
                                  gobject.TYPE_NONE,\
                                  (gobject.TYPE_PYOBJECT,)),
@@ -349,7 +347,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             print "\n\n|||||||||||||||||||||||||||||||||||||||||||||||||||\n\n"
             raise Exception("Could not parse Cache page. Maybe the format changed. Please update to latest version or contact author.")
 
-        coordinate.owner = self._decode_htmlentities(owner)
+        coordinate.owner = HTMLManipulations._decode_htmlentities(owner)
         if size == 'micro':
             coordinate.size = 1
         elif size == 'small':
@@ -380,7 +378,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 
     
     def __treat_hints(self, hints):
-        hints = self._strip_html(self._replace_br(hints)).strip()
+        hints = HTMLManipulations._strip_html(HTMLManipulations._replace_br(hints)).strip()
         hints = self._rot13(hints)
         hints = re.sub(r'\[([^\]]+)\]', lambda match: self._rot13(match.group(0)), hints)
         return hints
@@ -396,7 +394,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         return desc
         
     def __treat_html(self, html):
-        html = self.COMMENT_REGEX.sub('', html)
+        html = HTMLManipulations.COMMENT_REGEX.sub('', html)
         html = self.__replace_images(html)
         return html
 
@@ -429,8 +427,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
                              'lat': self.__from_dm(m.group('lat_sign'), m.group('lat_d'), m.group('lat_m')),
                              'lon': self.__from_dm(m.group('lon_sign'), m.group('lon_d'), m.group('lon_m')),
                              'id': "%s%s" % m.group('id_prefix', 'id'),
-                             'name': self._decode_htmlentities(m.group('name')),
-                             'comment': self._decode_htmlentities(self._strip_html(self._replace_br(m.group('comment')), True))
+                             'name': HTMLManipulations._decode_htmlentities(m.group('name')),
+                             'comment': HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(m.group('comment')), True))
                              })
 
         return waypoints
@@ -442,13 +440,13 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 continue
             id = self._download_image(url = m.group(1))
             if id != None:
-                self.__add_image(id, self._decode_htmlentities(self._strip_html(m.group(2))))
+                self.__add_image(id, HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(m.group(2))))
 
     def __treat_logs(self, logs):
         lines = logs.split('<tr>') # lines 0 and 1 are useless!
         output = []
         for l in lines:
-            #lines = [re.sub("\w+", ' ', self._decode_htmlentities(self._strip_html(x, True)), '').sub('[ view this log ]') for x in lines[2:]]
+            #lines = [re.sub("\w+", ' ', HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(x, True)), '').sub('[ view this log ]') for x in lines[2:]]
             m = re.match(r"""<td[^>]+><strong><img src="http://www\.geocaching\.com/images/icons/icon_([a-z]+)\.gif" alt="" />""" +
                 r"""&nbsp;([^ ]+) (\d+)(, (\d+))? by <a href[^>]+>([^<]+)</a></strong> \(\d+ found\)<br />(.+)""" +
                 r"""<br /><br /><small>""", l, re.DOTALL)
@@ -463,7 +461,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 if year == '' or year == None:
                     year = datetime.datetime.now().year
                 finder = m.group(6)
-                text = self._strip_html(self._replace_br(m.group(7)), True)
+                text = HTMLManipulations._strip_html(HTMLManipulations._replace_br(m.group(7)), True)
                 output.append(dict(type=type, month=month, day=day, year=year, finder=finder, text=text))
         return output
 

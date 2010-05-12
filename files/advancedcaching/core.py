@@ -115,7 +115,6 @@ Just start the string with 'q:':
 '''
    
 
-
 from geo import Coordinate
 try:
     from json import loads, dumps

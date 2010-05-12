@@ -46,9 +46,9 @@ import pango
 import openstreetmap
 from os import path
 import re
-from cachedownloader import HTMLAware
+from cachedownloader import HTMLManipulations
 
-class SimpleGui(object, HTMLAware):
+class SimpleGui():
     USES = ['gpsprovider']
     XMLFILE = "freerunner.glade"
 
@@ -132,7 +132,6 @@ class SimpleGui(object, HTMLAware):
         'options_password',
         'download_map_path'
     ]
-
                 
     def __init__(self, core, pointprovider, userpointprovider, dataroot):
     
@@ -1680,7 +1679,7 @@ class SimpleGui(object, HTMLAware):
         text = re.sub(r"""(?i)<img[^>]+alt=["']?([^'"> ]+)[^>]+>""", SimpleGui.replace_image_tag, text)
         text = re.sub(r'(?i)<(br|p)[^>]*?>', "\n", text)
         text = re.sub(r'<[^>]*?>', '', text)
-        text = SimpleGui._decode_htmlentities(text)
+        text = HTMLManipulations._decode_htmlentities(text)
         text = re.sub(r'[\n\r]+\s*[\n\r]+', '\n', text)
         return text.strip()
                 
