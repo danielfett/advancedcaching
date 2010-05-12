@@ -225,15 +225,17 @@ class HildonGui(SimpleGui):
         self.button_track = button
         buttons.pack_start(button, True, True)
 
-        icon = gtk.image_new_from_stock(gtk.STOCK_ZOOM_IN, gtk.ICON_SIZE_BUTTON)
+        #icon = gtk.image_new_from_stock(gtk.STOCK_ZOOM_IN, gtk.ICON_SIZE_BUTTON)
         button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
-        button.set_image(icon)
+        button.set_label("+")
+        #button.set_image(icon)
         button.connect("clicked", self.on_zoomin_clicked, None)
         buttons.pack_start(button, True, True)
 
-        icon = gtk.image_new_from_stock(gtk.STOCK_ZOOM_OUT, gtk.ICON_SIZE_BUTTON)
+        #icon = gtk.image_new_from_stock(gtk.STOCK_ZOOM_OUT, gtk.ICON_SIZE_BUTTON)
         button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
-        button.set_image(icon)
+        button.set_label("-")
+        #button.set_image(icon)
         button.connect("clicked", self.on_zoomout_clicked, None)
         buttons.pack_start(button, True, True)
 
