@@ -126,7 +126,7 @@ import downloader
 import geocaching
 import gobject
 import gpsreader
-from os import path, mkdir
+from os import path, mkdir, system
 import provider
 from threading import Thread
 from cachedownloader import GeocachingComCacheDownloader
@@ -188,7 +188,7 @@ class Standbypreventer():
                         
     def __try_run(self, command):
         try:
-            os.system(command)
+            system(command)
         except Exception, e:
             print "Could not prevent Standby: %s" % e
 
@@ -295,9 +295,9 @@ class Core(gobject.GObject):
                 head, tail = path.split(dpath)
                 Core.create_recursive(head)
                 try:
-                    os.mkdir(dpath)
-                except Exception:
-                    # let others fail here.
+                    mkdir(dpath)
+                except Exception, e:
+                    print e
                     pass
 
                 
