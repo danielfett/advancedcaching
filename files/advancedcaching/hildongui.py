@@ -20,7 +20,17 @@
 
  
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
-
+# download map data
+# parse coordinates from text
+# portrait mode
+# - gps view
+#   reorder arrow in table
+# - map view
+#   delete label "track"
+# - delete saved details view? or reconfigure
+# - details switching
+# details on waypoints
+# edit waypoints
  
 ### For the gui :-)
 
@@ -36,7 +46,7 @@ import hildon
 import openstreetmap
 import pango
 from simplegui import SimpleGui, UpdownRows
-
+from portrait import FremantleRotation
 class HildonGui(SimpleGui):
 
     USES = ['locationgpsprovider']
@@ -104,6 +114,7 @@ class HildonGui(SimpleGui):
         self.notes_changed = False
         self.map_center_x, self.map_center_y = 100, 100
         self.active_tile_loaders = []
+        self.reorder_functions = []
         
         gtk.set_application_name("Geocaching Tool")
         program = hildon.Program.get_instance()
@@ -111,12 +122,15 @@ class HildonGui(SimpleGui):
         program.add_window(self.window)
         self.window.connect("delete_event", self.on_window_destroy, None)
         self.window.connect("key-press-event", self._on_key_press)
+        self.window.connect('configure_event', self.__configure_root)
         self.window.add(self._create_main_view())
         self.window.set_app_menu(self._create_main_menu())
         self.update_fieldnotes_display()
 
         gtk.link_button_set_uri_hook(self._open_browser)
         #self.show_coordinate_input(geo.Coordinate(49.344, 6.584))
+
+        self.rotation_manager = FremantleRotation('advancedcaching')
 
     def _open_browser(self, widget, link):
         system("browser --url='%s' &" % link)
@@ -158,7 +172,8 @@ class HildonGui(SimpleGui):
     def _create_main_view(self):
         root = gtk.VBox()
 
-        self.main_gpspage = gtk.Table(7, 3)
+        self.main_gpspage = gtk.VBox()
+        self.main_gpspage_table = gtk.Table(7, 3)
         self.drawing_area_arrow = gtk.DrawingArea()
 
         self.label_dist = gtk.Label()
@@ -204,16 +219,42 @@ class HildonGui(SimpleGui):
         #buttons.pack_start(button, True, True)
 
 
-        self.main_gpspage.attach(self.label_dist, 1, 3, 0, 1, gtk.FILL, gtk.FILL | gtk.EXPAND)
-        self.main_gpspage.attach(self.label_altitude, 1, 2, 1, 2, gtk.FILL, gtk.FILL | gtk.EXPAND)
-        self.main_gpspage.attach(self.label_bearing, 2, 3, 1, 2, gtk.FILL, gtk.FILL | gtk.EXPAND)
-        self.main_gpspage.attach(self.label_latlon, 1, 3, 2, 3, gtk.FILL, gtk.FILL | gtk.EXPAND)
-        self.main_gpspage.attach(self.label_quality, 1, 3, 3, 4, gtk.FILL, gtk.FILL | gtk.EXPAND)
-        self.main_gpspage.attach(self.label_target, 1, 3, 4, 5, gtk.FILL, 0)
-        self.main_gpspage.attach(button_details, 1, 2, 5, 6, gtk.FILL, 0)
-        self.main_gpspage.attach(button_map, 2, 3, 5, 6, gtk.FILL, 0)
-        self.main_gpspage.attach(self.drawing_area_arrow, 0, 1, 0, 6, gtk.EXPAND | gtk.FILL, gtk.EXPAND | gtk.FILL)
+        self.main_gpspage_table.attach(self.label_dist, 1, 3, 1, 2, gtk.FILL | gtk.EXPAND, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage_table.attach(self.label_altitude, 1, 2, 2, 3, gtk.FILL | gtk.EXPAND, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage_table.attach(self.label_bearing, 2, 3, 2, 3, gtk.FILL | gtk.EXPAND, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage_table.attach(self.label_latlon, 1, 3, 3, 4, gtk.FILL | gtk.EXPAND, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage_table.attach(self.label_quality, 1, 3, 4, 5, gtk.FILL | gtk.EXPAND, gtk.FILL | gtk.EXPAND)
+        self.main_gpspage_table.attach(self.label_target, 1, 3, 5, 6, gtk.FILL | gtk.EXPAND, 0)
+        self.main_gpspage_table.attach(button_details, 1, 2, 6, 7, gtk.FILL | gtk.EXPAND, 0)
+        self.main_gpspage_table.attach(button_map, 2, 3, 6, 7, gtk.FILL | gtk.EXPAND, 0)
+        self.main_gpspage_table.attach(self.drawing_area_arrow, 0, 1, 0, 7, gtk.EXPAND | gtk.FILL, gtk.EXPAND | gtk.FILL)
 
+        def reorder_gps(portrait):
+            x = self.drawing_area_arrow.get_parent()
+            if x != None:
+                x.remove(self.drawing_area_arrow)
+
+            x = self.main_gpspage_table.get_parent()
+            if x != None:
+                x.remove(self.main_gpspage_table)
+
+            for x in self.main_gpspage.get_children():
+                self.main_gpspage.remove(x)
+
+            if portrait: 
+                self.main_gpspage.pack_start(self.drawing_area_arrow, True)
+                self.main_gpspage.pack_start(self.main_gpspage_table, False)
+            else:
+                landscape_hbox = gtk.HBox(True)
+                landscape_hbox.pack_start(self.drawing_area_arrow, True)
+                landscape_hbox.pack_start(self.main_gpspage_table, True)
+                self.main_gpspage.pack_start(landscape_hbox)
+                landscape_hbox.show()
+
+        self.reorder_functions.append(reorder_gps)
+
+        self.main_gpspage.pack_start(self.main_gpspage_table, False, True)
+        
         self.main_mappage = gtk.VBox()
         self.drawing_area = gtk.DrawingArea()
 
@@ -224,6 +265,14 @@ class HildonGui(SimpleGui):
         button.connect("clicked", self.on_track_toggled, None)
         self.button_track = button
         buttons.pack_start(button, True, True)
+        def reorder_gps(portrait):
+            if portrait: 
+                text = ''
+            else:
+                text = 'track'
+            self.button_track.set_label(text)
+
+        self.reorder_functions.append(reorder_gps)
 
         #icon = gtk.image_new_from_stock(gtk.STOCK_ZOOM_IN, gtk.ICON_SIZE_BUTTON)
         button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
@@ -277,9 +326,18 @@ class HildonGui(SimpleGui):
         self.drawing_area_arrow.connect("expose_event", self._expose_event_arrow)
         self.drawing_area_arrow.connect("configure_event", self._configure_event_arrow)
         self.drawing_area_arrow.set_events(gtk.gdk.EXPOSURE_MASK)
-        
 
         return root
+
+    def __configure_root(self, root, event):
+        #(x, y, width, height) = root.get_allocation()
+        if event != None:
+            w, h = event.width, event.height
+        else:
+            x, y, w, h = root.get_allocation()
+
+        for x in self.reorder_functions:
+            x(w < h)
 
     def _create_main_menu(self):
         menu = hildon.AppMenu()
@@ -607,8 +665,8 @@ class HildonGui(SimpleGui):
         
     def _on_show_options(self, widget, data):
         dialog = gtk.Dialog("options", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-        
-        opts = gtk.Table(6, 2)
+        dialog.set_size_request(800, 480)
+        opts = gtk.Table(7, 2)
         opts.attach(gtk.Label("Username"), 0, 1, 0, 1)
         username = hildon.Entry(gtk.HILDON_SIZE_AUTO)
         #username.set_property(hildon.HILDON_AUTOCAP, False)
@@ -637,25 +695,55 @@ class HildonGui(SimpleGui):
         check_hide_found = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         check_hide_found.set_label("Hide Found Geocaches on Map")
         check_hide_found.set_active(self.settings['options_hide_found'])
+
+        rotate_settings = (
+            (FremantleRotation.AUTOMATIC, 'Automatic'),
+            (FremantleRotation.NEVER, 'Landscape'),
+            (FremantleRotation.ALWAYS, 'Portrait')
+        )
+        rotate_selector = hildon.TouchSelector(text=True)
+        
+        i = 0
+        for status, text in rotate_settings:
+            rotate_selector.append_text(text)
+            if self.settings['options_rotate_screen'] == status:
+                rotate_selector.select_iter(0, rotate_selector.get_model(0).get_iter(i), False)
+            i += 1
+
+        rotate_screen = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
+        rotate_screen.set_title('Screen Rotation')
+        rotate_screen.set_selector(rotate_selector)
+
+
+        check_hide_found = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
+        check_hide_found.set_label("Hide Found Geocaches on Map")
+        check_hide_found.set_active(self.settings['options_hide_found'])
         
         opts.attach(check_dl_images, 0, 2, 2, 3)
         opts.attach(check_show_cache_id, 0, 2, 3, 4)
         opts.attach(check_map_double_size, 0, 2, 4, 5)
         opts.attach(check_hide_found, 0, 2, 5, 6)
-        
-        dialog.vbox.pack_start(opts)
+        opts.attach(rotate_screen, 0, 2, 6, 7)
+        p = hildon.PannableArea()
+        vp = gtk.Viewport()
+        p.add(vp)
+        vp.add(opts)
+        dialog.vbox.pack_start(p, True)
         
         
         dialog.show_all()
         result = dialog.run()
         dialog.hide()
         if result == gtk.RESPONSE_ACCEPT:
+            rotate = rotate_settings[rotate_selector.get_selected_rows(0)[0][0]][0]
+            self.rotation_manager.set_mode(rotate)
             self.settings['options_username'] = username.get_text()
             self.settings['options_password'] = password.get_text()
             self.settings['download_noimages'] = check_dl_images.get_active()
             self.settings['options_show_name'] = check_show_cache_id.get_active()
             self.settings['options_map_double_size'] = check_map_double_size.get_active()
             self.settings['options_hide_found'] = check_hide_found.get_active()
+            self.settings['options_rotate_screen'] = rotate
             self.core.on_userdata_changed(self.settings['options_username'], self.settings['options_password'])
 
     def _on_show_dialog_change_target(self, widget, data):
@@ -729,7 +817,7 @@ class HildonGui(SimpleGui):
         
         notebook = gtk.Notebook()
         notebook.set_tab_pos(gtk.POS_BOTTOM)
-        
+                
         # info
         p = gtk.Table(10, 2)
         labels = (
@@ -806,6 +894,12 @@ class HildonGui(SimpleGui):
             widget_hints.set_line_wrap(True)
             widget_hints.set_alignment(0, 0)
             widget_hints.set_size_request(self.window.size_request()[0] - 10, -1)
+
+            def reorder_description(portrait):
+                widget_description.set_size_request(self.window.size_request()[0] - 10, -1)
+                widget_hints.set_size_request(self.window.size_request()[0] - 10, -1)
+            self.reorder_functions.append(reorder_description)
+
             vp.add(widget_hints)
             notebook.append_page(p, gtk.Label("logs & hints"))
 
@@ -860,6 +954,7 @@ class HildonGui(SimpleGui):
 
         # notes
         pan = hildon.PannableArea()
+        pan.set_property('mov-mode', hildon.MOVEMENT_MODE_BOTH)
         self.cache_notes = gtk.TextView()
         #cache_notes.set_editable(True)
         self.cache_notes.get_buffer().set_text(cache.notes)
@@ -887,12 +982,43 @@ class HildonGui(SimpleGui):
         button.connect("clicked", add_waypoint)
 
         p = gtk.VBox()
-        p.pack_start(pan, True)
         p.pack_start(button, False)
+        p.pack_start(pan, True)
         notebook.append_page(p, gtk.Label("notes"))
+        
+        notebook_switcher = gtk.HBox(True)
 
+        def switch_nb(widget, forward):
+            if forward:
+                notebook.next_page()
+            else:
+                notebook.prev_page()
+        for label, fwd in (('<-', False), ('->', True)):
+            nb = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
+            nb.set_label(label)
+            nb.connect('clicked', switch_nb, fwd)
+            notebook_switcher.pack_start(nb)
+        details = gtk.VBox()
+        details.pack_start(notebook)
+        details.pack_start(notebook_switcher, False)
 
-        win.add(notebook)
+        def reorder_details(portrait):
+            notebook.set_property('show-tabs', not portrait)
+            if portrait:
+                notebook_switcher.show()
+            else:   
+                notebook_switcher.hide()
+        self.reorder_functions.append(reorder_details)
+        
+        def destroy(obj):
+            self.reorder_functions.remove(reorder_details)
+            try:
+                self.reorder_functions.remove(reorder_description)
+            except NameError:
+                pass
+        win.connect('destroy', destroy)
+
+        win.add(details)
         
         # menu
         menu = hildon.AppMenu()
@@ -929,6 +1055,7 @@ class HildonGui(SimpleGui):
         win.set_app_menu(menu)        
         win.show_all()
 
+        self.__configure_root(win, None)
 
 
         win.connect('delete_event', self.hide_cache_view)
@@ -969,8 +1096,8 @@ class HildonGui(SimpleGui):
         button.connect("clicked", set_alternative_position)
         h.pack_start(button)
         
-        p.pack_start(widget_coords, True, True)
         p.pack_start(h, False, True)
+        p.pack_start(widget_coords, True, True)
         widget_coords.show_all()
         h.show_all()
 
@@ -1092,6 +1219,7 @@ class HildonGui(SimpleGui):
         win = hildon.StackableWindow()
         win.set_title(caption)
         p = hildon.PannableArea()
+        p.set_property('mov-mode', hildon.MOVEMENT_MODE_BOTH)
         vp = gtk.Viewport()
         p.add(vp)
         i = gtk.Image()

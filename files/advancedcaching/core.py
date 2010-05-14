@@ -241,6 +241,7 @@ class Core(gobject.GObject):
 
         ],
         'options_map_double_size' : False,
+        'options_rotate_screen' : 0
     }
             
     def __init__(self, guitype, root):
