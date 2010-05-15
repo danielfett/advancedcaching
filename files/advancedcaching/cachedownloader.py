@@ -418,7 +418,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                              r'<td>(?P<id>[^<]+)</td>\s*' +
                              r'<td><a href=[^>]+>(?P<name>[^<]+)</a>[^<]+</td>\s*' +
                              r'<td>(\?\?\?|(?P<lat_sign>N|S) (?P<lat_d>\d+)° (?P<lat_m>[0-9\.]+) (?P<lon_sign>E|W) (?P<lon_d>\d+)° (?P<lon_m>[0-9\.]+))</td>\s*' +
-                             r'<td>.+?</td>\s+</tr>\s*<tr>\s+<td>Note:</td>' +
+                             r'<td>.*?</td>\s+</tr>\s*<tr>\s+<td>Note:</td>' +
                              r'\s*<td colspan="4">(?P<comment>.*?)</td>\s*<td>&nbsp;</td>\s*</tr> ', data, re.DOTALL)
         for m in finder:
             if m.group(1) == None:
