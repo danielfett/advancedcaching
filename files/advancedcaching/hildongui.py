@@ -22,6 +22,7 @@
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
 # download map data
 # parse coordinates from text
+# direction indicator in map view
 # portrait mode
 # - gps view
 #   reorder arrow in table
@@ -306,6 +307,7 @@ class HildonGui(SimpleGui):
         #self.main_mappage.pack_start(self.drawing_area, True)
         pan = hildon.PannableArea()
         pan.add(self.drawing_area)
+
         self.main_mappage.pack_start(pan, True)
         self.main_mappage.pack_start(buttons, False)
         root.pack_start(self.main_gpspage, True)
@@ -1062,44 +1064,43 @@ class HildonGui(SimpleGui):
         self.current_cache_window_open = True
 
     def build_coordinates(self, cache, p):
-        widget_coords, clist = self._get_coord_selector(cache, lambda x, y, z: True)
 
-
-        def set_coord_as_target(widget):
+        def show_details(widget_coords, stuff, clist):
             tm = widget_coords.get_model(0)
             iter = tm.get_iter(0)
             widget_coords.get_selected(0, iter)
             c = clist[tm.get_path(iter)[0]]
             if c == None:
                 return
+            self.__show_coordinate_details(c, cache)
+        widget_coords, clist = self._get_coord_selector(cache, show_details)
+
+
+        p.pack_start(widget_coords, True, True)
+        widget_coords.show_all()
+
+    def __show_coordinate_details(self, c, cache):
+        RESPONSE_AS_TARGET, RESPONSE_AS_MAIN = range(2)
+        name = "Coordinate Details" if (c.name == "") else c.name
+        dialog = gtk.Dialog(name, None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        if c.lat != None:
+            dialog.add_button("as Target", RESPONSE_AS_TARGET)
+            dialog.add_button("as Main Coord.", RESPONSE_AS_MAIN)
+        lbl = gtk.Label()
+        lbl.set_markup("<b>%s</b>\n%s" % (c.get_latlon(self.format) if c.lat != None else '???', c.comment))        
+        lbl.set_line_wrap(True)
+        lbl.set_alignment(0, 0.5)
+        dialog.vbox.pack_start(lbl)
+        dialog.show_all()
+        resp = dialog.run()
+        dialog.hide()
+        if resp == RESPONSE_AS_TARGET:
             self.set_current_cache(cache)
             self.set_target(c)
             self.hide_cache_view()
-
-        def set_alternative_position(widget):
-            tm = widget_coords.get_model(0)
-            iter = tm.get_iter(0)
-            widget_coords.get_selected(0, iter)
-            c = clist[tm.get_path(iter)[0]]
-            if c == None:
-                return
+        elif resp == RESPONSE_AS_MAIN:
             self.core.set_alternative_position(cache, c)
-            
-        h = gtk.HBox(True)
-        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
-        button.set_label("set as target")
-        button.connect("clicked", set_coord_as_target)
-        h.pack_start(button)
 
-        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
-        button.set_label("set as main coordinate")
-        button.connect("clicked", set_alternative_position)
-        h.pack_start(button)
-        
-        p.pack_start(h, False, True)
-        p.pack_start(widget_coords, True, True)
-        widget_coords.show_all()
-        h.show_all()
 
     def update_coords(self):
         for x in self.cache_coord_page.get_children():
@@ -1178,6 +1179,8 @@ class HildonGui(SimpleGui):
         p = gtk.VBox()
         
         for c in self.cache_calc.coords:
+            if len(c.requires) == 0:
+                continue
             label_text = '<b>%s</b>\n' % c.orig
             button = None
             if c.has_requires():
@@ -1251,16 +1254,19 @@ class HildonGui(SimpleGui):
         selector.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_SINGLE)
         format = lambda n: "%s %s" % (re.sub(r' ', '', n.get_lat(self.format)), re.sub(r' ', '', n.get_lon(self.format)))
         selector.append_text("First Waypoint: %s" % format(cache))
+        cache.comment = "Original coordinate given in the cache description."
         clist = {0: cache}
         i = 1
         for w in cache.get_waypoints():
             if not (w['lat'] == -1 and w['lon'] == -1):
-                coord = geo.Coordinate(w['lat'], w['lon'])
+                coord = geo.Coordinate(w['lat'], w['lon'], w['name'])
+                coord.comment = self._strip_html(w['comment'])
                 latlon = format(coord)
             elif no_empty:
                 continue
             else:
-                coord = None
+                coord = geo.Coordinate(None, None, w['name'])
+                coord.comment = self._strip_html(w['comment'])
                 latlon = '???'
             text = self.wrap("%s - %s - %s\n%s" % (w['name'], latlon, w['id'], self._strip_html(w['comment'])), 80)
             selector.append_text(text)
@@ -1269,6 +1275,7 @@ class HildonGui(SimpleGui):
         
         for coord in geo.search_coordinates(cache.notes):
             selector.append_text("manually entered: " + format(coord))
+            coord.comment = "This coordinate was manually entered in the notes field."
             clist[i] = coord
             i += 1
         if self.cache_calc != None:
@@ -1276,6 +1283,14 @@ class HildonGui(SimpleGui):
                 if coord == False:
                     continue
                 selector.append_text("calculated: %s = %s" % (coord.name, format(coord)))
+                coord.comment = "This coordinate was calculated:\n%s = %s" % (coord.name, format(coord))
+                clist[i] = coord
+                i += 1
+            for coord in self.cache_calc.get_plain_coordinates():
+                if coord == False:
+                    continue
+                selector.append_text("found: %s = %s" % (coord.name, format(coord)))
+                coord.comment = "This coordinate was found in the description."
                 clist[i] = coord
                 i += 1
 

@@ -36,10 +36,6 @@ ei N 49° 45.(A-1)(C-1)(B*E+5) E 006° 37.(B+1)(A)(E+1). ... bei N 49° 45.(G/3)
 ''', {'A': 2, 'D': 4, 'G': 3,'T': 1, 'R': 2, 'S': 1, 'H': 4, 'B': 2, 'C': 9, 'E': 0, 'F': 1})
 HTML = '''
 
-			        <td>Note:</td> 
-			        <td colspan="4">Hier findest du die erste Dose mit weiteren Informationen. S3 findest du bei<p>N49° 21.10(A-1)' E6° 40.(A-1)04'</td> 
-			        <td>&nbsp;</td> 
-		        </tr>  
 '''
 import geo
 import re
@@ -64,8 +60,10 @@ class CalcCoordinateManager():
                 result = c.try_get_solution()
 
     def get_solutions(self):
-        return [c.result for c in self.coords if c.has_requires()]
-    
+        return [c.result for c in self.coords if c.has_requires() and len(c.requires) > 0]
+
+    def get_plain_coordinates(self):
+        return [c.result for c in self.coords if len(c.requires) == 0]
         
 
 class CalcCoordinate():
@@ -182,19 +180,20 @@ class CalcCoordinate():
                 continue
             foundsigs.append(sig)
             c = CalcCoordinate(*match)
-            if len(c.requires) == 0:
-                continue
+            #if len(c.requires) == 0:
+            #    continue
             found.append(c)
             requires |= c.requires
         return (found, requires)
-'''
+
 if __name__ == "__main__":
     from simplegui import SimpleGui
     print '\n\n========================================================='
     h = SimpleGui._strip_html(HTML) 
     print h
-    for x in h:
-        print "%d -> %s" % (ord(x), x)
+    #for x in h:
+    #    print "%d -> %s" % (ord(x), x)
     print '---------------------------------------------------------'
-    CalcCoordinate.find(h)
-'''
+    for instance in CalcCoordinate.find(h)[0]:
+        print "Found: %s" % (instance.orig)
+
