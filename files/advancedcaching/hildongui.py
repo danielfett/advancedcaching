@@ -21,16 +21,7 @@
  
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
 # download map data
-# parse coordinates from text
 # direction indicator in map view
-# portrait mode
-# - gps view
-#   reorder arrow in table
-# - map view
-#   delete label "track"
-# - delete saved details view? or reconfigure
-# - details switching
-# details on waypoints
 # edit waypoints
  
 ### For the gui :-)
