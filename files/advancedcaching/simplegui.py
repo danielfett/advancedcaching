@@ -202,6 +202,7 @@ class SimpleGui():
             tl = openstreetmap.get_tile_loader(**params)
             tl.noimage_loading = self.noimage_loading
             tl.noimage_cantload = self.noimage_cantload
+            tl.base_dir = self.core.settings['download_map_path']
             self.tile_loaders.append((name, tl))
         self.tile_loader = self.tile_loaders[0][1]
         
@@ -409,8 +410,8 @@ class SimpleGui():
         point = self.ts.deg2num(coord)
         size = self.ts.tile_size()
                 
-        p_x = int(point[0] - self.map_center_x) * size + (self.map_width / 2)
-        p_y = int(point[1] - self.map_center_y) * size + (self.map_height / 2)
+        p_x = int(point[0] * size - self.map_center_x * size + self.map_width / 2)
+        p_y = int(point[1] * size - self.map_center_y * size + self.map_height / 2)
         return [p_x, p_y]
         
     def on_window_destroy(self, target, more=None, data=None):
@@ -713,7 +714,6 @@ class SimpleGui():
         offset_y = int(self.map_height / 2 -(self.map_center_y - int(self.map_center_y)) * size)
 
         self.active_tile_loaders = []
-        path = self.settings['download_map_path']
         undersample = self.settings['options_map_double_size']
         for i in xrange(-span_x, span_x + 1, 1):
             for j in xrange(-span_y, span_y + 1, 1):
@@ -722,7 +722,7 @@ class SimpleGui():
                 dx = i * size + offset_x
                 dy = j * size + offset_y
 
-                d = self.tile_loader(tile, self.ts.zoom, self, path, undersample = undersample, x = dx, y = dy)
+                d = self.tile_loader(tile, self.ts.zoom, self, undersample = undersample, x = dx, y = dy)
                 d.start()
                 self.active_tile_loaders.append(d)
 

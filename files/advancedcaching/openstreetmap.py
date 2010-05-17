@@ -31,7 +31,6 @@ from urllib import urlretrieve
 from socket import setdefaulttimeout
 setdefaulttimeout(30)
 
-
 def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, file_type = 'png'):
 
     class TileLoader(Thread):
@@ -40,13 +39,17 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
         lock = Lock() #download-lock
         noimage_cantload = None
         noimage_loading = None
+        base_dir = ''
 
         PREFIX = prefix#'OSM'
         MAX_ZOOM = max_zoom#18
         FILE_TYPE = file_type#'png'
         REMOTE_URL = remote_url#"http://128.40.168.104/mapnik/%(zoom)d/%(x)d/%(y)d.png"
 
-        def __init__(self, tile, zoom, gui, base_dir,undersample, x, y):
+        TPL_LOCAL_PATH = path.join("%s", PREFIX, "%d", "%d")
+        TPL_LOCAL_FILENAME = path.join("%s", "%%d%s%s" % (extsep, FILE_TYPE))
+
+        def __init__(self, tile, zoom, gui, undersample, x, y):
             Thread.__init__(self)
             self.daemon = False
             self.undersample = undersample
@@ -60,9 +63,8 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 self.download_zoom = zoom - 1
                 self.display_zoom = zoom
                 self.realtile = (int(self.realtile[0]/2), int(self.realtile[1]/2))
-            self.base_dir = base_dir
             self.pbuf = None
-            self.set_paths()
+
             self.my_noimage = None
             self.stop = False
             self.waitlist = []
@@ -70,16 +72,17 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             self.y = y
             self.size = self.gui.ts.tile_size()
 
+            # setup paths
+            self.local_path = self.TPL_LOCAL_PATH % (self.base_dir, self.download_zoom, self.realtile[0])
+            self.local_filename = self.TPL_LOCAL_FILENAME % (self.local_path, self.realtile[1])
+            self.remote_filename = self.REMOTE_URL % {'zoom': self.download_zoom, 'x' : self.realtile[0], 'y' : self.realtile[1]}
+
         def add_waitlist(l):
             self.waitlist.append(l)
 
         def halt(self):
             self.stop = True
-
-        def set_paths(self):
-            self.local_path = path.join(self.base_dir, self.PREFIX, str(self.download_zoom), str(self.realtile[0]))
-            self.local_filename =  path.join(self.local_path, "%d%s%s" % (self.realtile[1], extsep, self.FILE_TYPE))
-            self.remote_filename = self.REMOTE_URL % {'zoom': self.download_zoom, 'x' : self.realtile[0], 'y' : self.realtile[1]}
+            
 
         @staticmethod
         def create_recursive(dpath):
@@ -98,7 +101,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             answer = True
             if not path.isfile(self.local_filename):
                 self.create_recursive(self.local_path)
-                gobject.idle_add(lambda: self.draw(self.get_no_image(TileLoader.noimage_loading)))
+                gobject.idle_add(lambda: self.draw(self.get_no_image(self.noimage_loading)))
                 answer = self.download(self.remote_filename, self.local_filename)
             for x in self.waitlist:
                 gobject.idle_add(x.run_again())
@@ -107,7 +110,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 self.load()
                 gobject.idle_add(lambda: self.draw(self.pbuf))
             elif answer == False:
-                gobject.idle_add(lambda: self.draw(self.get_no_image(TileLoader.noimage_cantload)))
+                gobject.idle_add(lambda: self.draw(self.get_no_image(self.noimage_cantload)))
                 pass
             else:
                 #print "nothing"
@@ -128,7 +131,9 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             supertile_zoom = self.download_zoom - 1
             supertile_x = int(tile[0]/2)
             supertile_y = int(tile[1]/2)
-            supertile_name = path.join(self.base_dir, self.PREFIX, str(supertile_zoom), str(supertile_x), "%d%s%s" % (supertile_y, extsep, self.FILE_TYPE))
+            supertile_path = self.TPL_LOCAL_PATH % (self.base_dir, supertile_zoom, supertile_x)
+            supertile_name = self.TPL_LOCAL_FILENAME % (supertile_path, supertile_y)
+            #supertile_name = path.join(TileLoader.base_dir, self.PREFIX, str(supertile_zoom), str(supertile_x), "%d%s%s" % (supertile_y, extsep, self.FILE_TYPE))
             if not self.undersample and path.exists(supertile_name):
                 off_x = (tile[0]/2.0 - supertile_x) * size
                 off_y = (tile[1]/2.0 - supertile_y) * size
@@ -170,7 +175,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 else:
                     print e
                     print "cnl 2"
-                    self.pbuf = TileLoader.noimage_cantload
+                    self.pbuf = self.noimage_cantload
                     return True
 
         def recover(self):
