@@ -409,8 +409,8 @@ class SimpleGui():
         point = self.ts.deg2num(coord)
         size = self.ts.tile_size()
                 
-        p_x = int(point[0] * size - self.map_center_x * size + self.map_width / 2)
-        p_y = int(point[1] * size - self.map_center_y * size + self.map_height / 2)
+        p_x = int(point[0] - self.map_center_x) * size + (self.map_width / 2)
+        p_y = int(point[1] - self.map_center_y) * size + (self.map_height / 2)
         return [p_x, p_y]
         
     def on_window_destroy(self, target, more=None, data=None):
@@ -543,8 +543,8 @@ class SimpleGui():
             self.xgc_arrow.line_style = gtk.gdk.LINE_ON_OFF_DASH 
             ecc = int(error_circle_size * circle_size)
             err = min(self.gps_data.error_bearing, 181) # don't draw multiple circles :-)
-            err_start = (90-(display_bearing + err))*64
-            err_delta = err * 2 * 64
+            err_start = int((90-(display_bearing + err))*64)
+            err_delta = int(err * 2 * 64)
             self.pixmap_arrow.draw_arc(self.xgc_arrow, False, center_x - ecc, center_y - ecc, ecc * 2, ecc * 2, err_start, err_delta)
             self.xgc_arrow.line_style = gtk.gdk.LINE_SOLID
 
@@ -681,6 +681,8 @@ class SimpleGui():
         
                 
     def _drag_start(self, widget, event):
+        for x in self.active_tile_loaders:
+            x.halt()
         self.drag_start_x = event.x
         self.drag_start_y = event.y
         self.drag_offset_x = 0
@@ -701,37 +703,28 @@ class SimpleGui():
 
         for x in self.active_tile_loaders:
             x.halt()
-                        
+
         size = self.ts.tile_size()
         xi = int(self.map_center_x)
         yi = int(self.map_center_y)
         span_x = int(math.ceil(float(self.map_width) / (size * 2.0)))
         span_y = int(math.ceil(float(self.map_height) / (size * 2.0)))
-        tiles = []
+        offset_x = int(self.map_width / 2 - (self.map_center_x - int(self.map_center_x)) * size)
+        offset_y = int(self.map_height / 2 -(self.map_center_y - int(self.map_center_y)) * size)
+
         self.active_tile_loaders = []
-        for i in xrange(0, span_x + 1, 1):
-            for j in xrange(0, span_y + 1, 1):
-                for dir in xrange(0, 4, 1):
-                    dir_ns = dir_ew = 1
-                    if dir % 2 == 1: # if dir == 1 or dir == 3
-                        dir_ns = -1
-                    if dir > 1:
-                        dir_ew = -1
-                                
-                    tile = (xi + (i * dir_ew), yi + (j * dir_ns))
+        path = self.settings['download_map_path']
+        undersample = self.settings['options_map_double_size']
+        for i in xrange(-span_x, span_x + 1, 1):
+            for j in xrange(-span_y, span_y + 1, 1):
+                tile = (xi + i, yi + j)
 
-                    offset_x = int(self.map_width / 2 - (self.map_center_x - int(self.map_center_x)) * size)
-                    offset_y = int(self.map_height / 2 -(self.map_center_y - int(self.map_center_y)) * size)
-                    dx = (tile[0] - xi) * size + offset_x
-                    dy = (tile[1] - yi) * size + offset_y
+                dx = i * size + offset_x
+                dy = j * size + offset_y
 
-                    if not tile in tiles:
-                        tiles.append(tile)
-                        #print "Requesting ", tile, " zoom ", ts.zoom
-                        d = self.tile_loader(tile, self.ts.zoom, self, self.settings['download_map_path'], undersample = self.settings['options_map_double_size'], x = dx, y = dy)
-                        d.start()
-                        self.active_tile_loaders.append(d)
-        #print 'end draw map'
+                d = self.tile_loader(tile, self.ts.zoom, self, path, undersample = undersample, x = dx, y = dy)
+                d.start()
+                self.active_tile_loaders.append(d)
 
     def _draw_marks_caches(self, coords):
         xgc = self.xgc

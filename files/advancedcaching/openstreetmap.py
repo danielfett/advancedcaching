@@ -99,7 +99,6 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             if not path.isfile(self.local_filename):
                 self.create_recursive(self.local_path)
                 gobject.idle_add(lambda: self.draw(self.get_no_image(TileLoader.noimage_loading)))
-                self.draw(self.get_no_image(TileLoader.noimage_loading))
                 answer = self.download(self.remote_filename, self.local_filename)
             for x in self.waitlist:
                 gobject.idle_add(x.run_again())
@@ -187,13 +186,12 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             if not self.stop:
 
                 gc = self.gui.xgc
-
+                
                 if pbuf != None:
                     self.gui.pixmap.draw_pixbuf(gc, pbuf, 0, 0, x, y, size, size)
                 else:
-                    print "could not load"
                     self.gui.pixmap.draw_pixbuf(gc, self.noimage_cantload, 0, 0, x, y, size, size)
-
+                
                 self.gui.drawing_area.queue_draw_area(max(x, 0), max(y, 0), size, size)
             return False
 
@@ -248,7 +246,6 @@ class TileServer():
         return 256
                 
     def deg2tilenum(self, lat_deg, lon_deg):
-        #lat_rad = lat_deg * math.pi / 180.0
         lat_rad = math.radians(lat_deg)
         n = 2 ** self.zoom
         xtile = int((lon_deg + 180) / 360 * n)
@@ -257,7 +254,6 @@ class TileServer():
                 
     def deg2num(self, coord):
         lat_rad = math.radians(coord.lat)
-        #lat_rad = (coord.lat * math.pi) / 180.0
         n = 2 ** self.zoom
         xtile = (coord.lon + 180) / 360 * n
         ytile = (1.0 - math.log(math.tan(lat_rad) + (1.0 / math.cos(lat_rad))) / math.pi) / 2.0 * n
