@@ -100,8 +100,11 @@ class GeocacheCoordinate(geo.Coordinate):
         'alter_lat' : 'REAL',
         'alter_lon' : 'REAL'
         }
-    def __init__(self, lat, lon, name=''):
+    def __init__(self, lat, lon = None, name = '', data = None):
         geo.Coordinate.__init__(self, lat, lon, name)
+        if data != None:
+            self.unserialize(data)
+            return
         # NAME = GC-ID
         self.title = ''
         self.shortdesc = ''

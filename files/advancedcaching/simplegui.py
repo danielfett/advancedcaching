@@ -137,9 +137,9 @@ class SimpleGui():
     
         gtk.gdk.threads_init()
         self.ts = openstreetmap.TileServer()
-        self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-cantload.png'))
-        self.noimage_loading = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-loading.png'))
         
+        self.noimage_loading = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-cantload.png'))
+        self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-loading.png'))
         self.core = core
         self.core.connect('map-changed', self._on_map_changed)
         self.core.connect('cache-changed', self._on_cache_changed)
@@ -197,8 +197,12 @@ class SimpleGui():
 
     def build_tile_loaders(self):
         self.tile_loaders = []
-        for name, params in self.core.settings['map_providers']:
-            self.tile_loaders.append((name, openstreetmap.get_tile_loader(**params)))
+        
+        for name, params in self.core.settings['map_providers']:    
+            tl = openstreetmap.get_tile_loader(**params)
+            tl.noimage_loading = self.noimage_loading
+            tl.noimage_cantload = self.noimage_cantload
+            self.tile_loaders.append((name, tl))
         self.tile_loader = self.tile_loaders[0][1]
         
     def load_ui(self):
@@ -715,10 +719,16 @@ class SimpleGui():
                         dir_ew = -1
                                 
                     tile = (xi + (i * dir_ew), yi + (j * dir_ns))
+
+                    offset_x = int(self.map_width / 2 - (self.map_center_x - int(self.map_center_x)) * size)
+                    offset_y = int(self.map_height / 2 -(self.map_center_y - int(self.map_center_y)) * size)
+                    dx = (tile[0] - xi) * size + offset_x
+                    dy = (tile[1] - yi) * size + offset_y
+
                     if not tile in tiles:
                         tiles.append(tile)
                         #print "Requesting ", tile, " zoom ", ts.zoom
-                        d = self.tile_loader(tile, self.ts.zoom, self, self.settings['download_map_path'], noimage_cantload = self.noimage_cantload, noimage_loading = self.noimage_loading, undersample = self.settings['options_map_double_size'])
+                        d = self.tile_loader(tile, self.ts.zoom, self, self.settings['download_map_path'], undersample = self.settings['options_map_double_size'], x = dx, y = dy)
                         d.start()
                         self.active_tile_loaders.append(d)
         #print 'end draw map'
