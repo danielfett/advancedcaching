@@ -1047,11 +1047,9 @@ class SimpleGui():
 
     def on_download_details_map_clicked(self, some, thing=None):
         self.core.on_download_descriptions(self.get_visible_area(), True)
-        self._draw_map()
 
     def on_download_details_sync_clicked(self, something):
         self.core.on_download_descriptions(self.get_visible_area())
-        self._draw_map()
                 
     def on_actions_clicked(self, widget, event):
         xml.get_widget('menu_actions').popup(None, None, None, event.button, event.get_time())

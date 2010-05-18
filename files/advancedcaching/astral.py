@@ -7,6 +7,9 @@
 
 import datetime
 from math import cos, sin, tan, acos, asin, atan2, floor, radians, degrees
+
+SUN_POSITION_CACHE_DURATION = 3600 # seconds
+
 class Astral(object):
     def __init__(self):
         """Initialise the list of cities.
@@ -567,10 +570,15 @@ class Astral(object):
         return degrees(atan2(tananum, tanadenom))
 
 a = Astral()
+sun_cache_result = None
+sun_cache_time = None
 def get_sun_azimuth_from_fix(fix):
-    sunrise = a.sunrise_utc(fix.timestamp, fix.position.lat, -fix.position.lon)
-    sunset = a.sunset_utc(fix.timestamp, fix.position.lat, -fix.position.lon)
-    if fix.timestamp > sunrise and fix.timestamp < sunset:
-        return a.solar_azimuth(fix.timestamp, fix.position.lat, -fix.position.lon)
-    else:
-        return None
+    if sun_cache_time == None or abs((fix.timestamp - sun_cache_time).seconds) > SUN_POSITION_CACHE_DURATION:
+        sun_cache_time = fix.timestamp
+        sunrise = a.sunrise_utc(fix.timestamp, fix.position.lat, -fix.position.lon)
+        sunset = a.sunset_utc(fix.timestamp, fix.position.lat, -fix.position.lon)
+        if fix.timestamp > sunrise and fix.timestamp < sunset:
+            sun_cache_result = a.solar_azimuth(fix.timestamp, fix.position.lat, -fix.position.lon)
+        else:
+            sun_cache_result = None
+    return sun_cache_result
