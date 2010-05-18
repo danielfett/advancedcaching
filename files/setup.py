@@ -2,7 +2,7 @@ from distutils.core import setup
 from setuptools import setup
 files = ['data/*']
 setup(name='agtl',
-	version='0.6.0-freerunner1',
+	version='0.6.2-freerunner0',
 	description='Towards paperless geocaching',
 	author='Daniel Fett',
 	author_email='agtl@fragcom.de',

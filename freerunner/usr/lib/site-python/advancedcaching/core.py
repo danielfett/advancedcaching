@@ -115,7 +115,6 @@ Just start the string with 'q:':
 '''
    
 
-
 from geo import Coordinate
 try:
     from json import loads, dumps
@@ -127,14 +126,12 @@ import downloader
 import geocaching
 import gobject
 import gpsreader
-from os import path, mkdir
+from os import path, mkdir, system
 import provider
 from threading import Thread
 from cachedownloader import GeocachingComCacheDownloader
 from fieldnotesuploader import FieldnotesUploader
 
-#import cProfile
-#import pstats
 
 
 if len(argv) == 1:
@@ -189,7 +186,7 @@ class Standbypreventer():
                         
     def __try_run(self, command):
         try:
-            os.system(command)
+            system(command)
         except Exception, e:
             print "Could not prevent Standby: %s" % e
 
@@ -242,6 +239,7 @@ class Core(gobject.GObject):
 
         ],
         'options_map_double_size' : False,
+        'options_rotate_screen' : 0
     }
             
     def __init__(self, guitype, root):
@@ -296,9 +294,9 @@ class Core(gobject.GObject):
                 head, tail = path.split(dpath)
                 Core.create_recursive(head)
                 try:
-                    os.mkdir(dpath)
-                except Exception:
-                    # let others fail here.
+                    mkdir(dpath)
+                except Exception, e:
+                    print e
                     pass
 
                 
@@ -690,8 +688,55 @@ def determine_path ():
         exit()
 
                         
+
 def start():
     Core(gui, determine_path())
+
+def start_profile(what):
+    import cProfile
+    p = cProfile.Profile()
+    p.run(what)
+    stats = p.getstats()
+    print "BY CALLS:\n------------------------------------------------------------"
+    def c(x, y):
+        if x.callcount < y.callcount:
+            return 1
+        elif x.callcount == y.callcount:
+            return 0
+        else:
+            return -1
+    stats.sort(cmp = c)
+    for line in stats[:100]:
+        print "%d %4f %s" % (line.callcount, line.totaltime, line.code)
+        if line.calls == None:
+            continue
+        line.calls.sort(cmp = c)
+        for line in line.calls[:10]:
+            print "-- %d %4f %s" % (line.callcount, line.totaltime, line.code)
+
+    
+    print "BY TOTALTIME:\n------------------------------------------------------------"
+    def c(x, y):
+        if x.totaltime < y.totaltime:
+            return 1
+        elif x.totaltime == y.totaltime:
+            return 0
+        else:
+            return -1
+    stats.sort(cmp = c)
+    for line in stats[:30]:
+        print "%d %4f %s" % (line.callcount, line.totaltime, line.code)
+        if line.calls == None:
+            continue
+        line.calls.sort(cmp = c)
+        for line in line.calls[:10]:
+            print "-- %d %4f %s" % (line.callcount, line.totaltime, line.code)
+
+
+if '--profile' in argv:
+    start = start_profile('start()')
+
+        
 
 if __name__ == "__main__":
     start()

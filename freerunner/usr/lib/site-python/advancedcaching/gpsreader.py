@@ -86,6 +86,7 @@ class Fix():
         Fix.min_timediff = min(Fix.min_timediff, datetime.utcnow() - a.timestamp)
         # if this fix is too old, discard it
         if ((datetime.utcnow() - a.timestamp) - Fix.min_timediff).seconds > LocationGpsReader.TIMEOUT:
+            print "Discarding fix: Timestamp diff is %d, should not be > %d" % (((datetime.utcnow() - a.timestamp) - Fix.min_timediff).seconds, LocationGpsReader.TIMEOUT)
             return a
 
         # now on for location dependent data

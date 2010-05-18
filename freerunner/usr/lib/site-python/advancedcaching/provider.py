@@ -28,6 +28,7 @@ class PointProvider():
         self.check_table()
         c.execute('CREATE INDEX IF NOT EXISTS %s_latlon ON %s (lat ASC, lon ASC)' % (self.cache_table, self.cache_table))
         c.execute('CREATE INDEX IF NOT EXISTS %s_name ON %s (name ASC)' % (self.cache_table, self.cache_table))
+        c.execute('CREATE INDEX IF NOT EXISTS %s_fieldnote ON %s (logas)' % (self.cache_table, self.cache_table))
         c.close()
 
     def check_table(self):
@@ -87,21 +88,17 @@ class PointProvider():
         
     # should never ever be used with anything except a user provided query
     def get_by_query(self, query):
-        c = self.conn.cursor()
 
-        c.execute(query)
+        c = self.conn.execute(query)
         return self.pack_result(c)
                 
     def get_points(self, c1, c2):
                 
-        c = self.conn.cursor()
-
-        c.execute('SELECT * FROM %s WHERE (lat BETWEEN ? AND ?) AND (lon BETWEEN ? AND ?)' % self.cache_table, (min(c1.lat, c2.lat), max(c1.lat, c2.lat), min(c1.lon, c2.lon), max(c1.lon, c2.lon)))
+        c = self.conn.execute('SELECT * FROM %s WHERE (lat BETWEEN ? AND ?) AND (lon BETWEEN ? AND ?)' % self.cache_table, (min(c1.lat, c2.lat), max(c1.lat, c2.lat), min(c1.lon, c2.lon), max(c1.lon, c2.lon)))
         return self.pack_result(c)
                 
     def get_titles_and_names(self):
-        c = self.conn.cursor()
-        c.execute('SELECT name, title FROM %s' % self.cache_table)
+        c = self.conn.execute('SELECT name, title FROM %s' % self.cache_table)
         strings = []
         for row in c:
             strings.append(row['name'])
@@ -110,17 +107,13 @@ class PointProvider():
         return strings
             
     def get_new_fieldnotes_count(self):
-        c = self.conn.cursor()
-
-        c.execute('SELECT count(*) AS cnt FROM %s WHERE logas != %d' % (self.cache_table, self.ctype.LOG_NO_LOG))
+        c = self.conn.execute('SELECT count(*) AS cnt FROM %s WHERE logas != %d' % (self.cache_table, self.ctype.LOG_NO_LOG))
         for row in c:
             return row['cnt']
         return 0
 
     def get_new_fieldnotes(self):
-        c = self.conn.cursor()
-
-        c.execute('SELECT * FROM %s WHERE logas != %d' % (self.cache_table, self.ctype.LOG_NO_LOG))
+        c = self.conn.execute('SELECT * FROM %s WHERE logas != %d' % (self.cache_table, self.ctype.LOG_NO_LOG))
         return self.pack_result(c)
 
         
@@ -139,12 +132,12 @@ class PointProvider():
         elif found == False:
             filterstring.append('(found = 0)')
     
-        c = self.conn.cursor()
+        
         # we don't have 'power' or other advanced mathematic operators
         # in sqlite, so doing distance calculation in python
         query = 'SELECT * FROM %s WHERE %s' % (self.cache_table, " AND ".join(filterstring))
                 
-        c.execute(query, tuple(filterargs))
+        c = self.conn.execute(query, tuple(filterargs))
 
         mindist = () # we use this as positive infinity
         mindistrow = None
@@ -158,8 +151,7 @@ class PointProvider():
                 mindist = dist
         if mindistrow == None:
             return None
-        coord = self.ctype(mindistrow['lat'], mindistrow['lon'])
-        coord.unserialize(mindistrow)
+        coord = self.ctype(mindistrow['lat'], mindistrow['lon'], '', mindistrow)
         return coord
                 
     def set_filter(self, found=None, has_details=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, adapt_filter=False, marked=None):
@@ -260,25 +252,20 @@ class PointProvider():
         elif found == False:
             filterstring.append('(found = 0)')
 
-        c = self.conn.cursor()
+        
         query = 'SELECT * FROM %s WHERE %s LIMIT %s' % (self.cache_table, " AND ".join(filterstring), max_results)
 
-        c.execute(query, tuple(filterargs))
+        c = self.conn.execute(query, tuple(filterargs))
         return self.pack_result(c)
 
     def pack_result(self, cursor):
-        points = []
-        for row in cursor:
-            coord = self.ctype(row['lat'], row['lon'])
-            coord.unserialize(row)
-            points.append(coord)
+        points = [self.ctype(None, None, None, row) for row in cursor]
         cursor.close()
         return points
                 
     def find_by_string(self, string):
         query = 'SELECT * FROM %s WHERE name LIKE ? OR title LIKE ? LIMIT 2' % self.cache_table
-        c = self.conn.cursor()
-        c.execute(query, (string, string))
+        c = self.conn.execute(query, (string, string))
         row = c.fetchone()
         coord = self.ctype(row['lat'], row['lon'])
         coord.unserialize(row)
@@ -290,6 +277,5 @@ class PointProvider():
                 
     def update_field(self, coordinate, field, newvalue):
         query = 'UPDATE %s SET %s = ? WHERE name = ?' % (self.cache_table, field)
-        c = self.conn.cursor()
-        c.execute(query, (newvalue, coordinate.name))
+        c = self.conn.execute(query, (newvalue, coordinate.name))
         self.save()

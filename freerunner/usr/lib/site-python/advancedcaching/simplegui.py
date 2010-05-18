@@ -46,9 +46,9 @@ import pango
 import openstreetmap
 from os import path
 import re
-from cachedownloader import HTMLAware
+from cachedownloader import HTMLManipulations
 
-class SimpleGui(object, HTMLAware):
+class SimpleGui():
     USES = ['gpsprovider']
     XMLFILE = "freerunner.glade"
 
@@ -132,15 +132,14 @@ class SimpleGui(object, HTMLAware):
         'options_password',
         'download_map_path'
     ]
-
                 
     def __init__(self, core, pointprovider, userpointprovider, dataroot):
     
         gtk.gdk.threads_init()
         self.ts = openstreetmap.TileServer()
-        self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-cantload.png'))
-        self.noimage_loading = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-loading.png'))
         
+        self.noimage_loading = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-cantload.png'))
+        self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-loading.png'))
         self.core = core
         self.core.connect('map-changed', self._on_map_changed)
         self.core.connect('cache-changed', self._on_cache_changed)
@@ -198,8 +197,13 @@ class SimpleGui(object, HTMLAware):
 
     def build_tile_loaders(self):
         self.tile_loaders = []
-        for name, params in self.core.settings['map_providers']:
-            self.tile_loaders.append((name, openstreetmap.get_tile_loader(**params)))
+        
+        for name, params in self.core.settings['map_providers']:    
+            tl = openstreetmap.get_tile_loader(**params)
+            tl.noimage_loading = self.noimage_loading
+            tl.noimage_cantload = self.noimage_cantload
+            tl.base_dir = self.core.settings['download_map_path']
+            self.tile_loaders.append((name, tl))
         self.tile_loader = self.tile_loaders[0][1]
         
     def load_ui(self):
@@ -540,8 +544,8 @@ class SimpleGui(object, HTMLAware):
             self.xgc_arrow.line_style = gtk.gdk.LINE_ON_OFF_DASH 
             ecc = int(error_circle_size * circle_size)
             err = min(self.gps_data.error_bearing, 181) # don't draw multiple circles :-)
-            err_start = (90-(display_bearing + err))*64
-            err_delta = err * 2 * 64
+            err_start = int((90-(display_bearing + err))*64)
+            err_delta = int(err * 2 * 64)
             self.pixmap_arrow.draw_arc(self.xgc_arrow, False, center_x - ecc, center_y - ecc, ecc * 2, ecc * 2, err_start, err_delta)
             self.xgc_arrow.line_style = gtk.gdk.LINE_SOLID
 
@@ -678,6 +682,8 @@ class SimpleGui(object, HTMLAware):
         
                 
     def _drag_start(self, widget, event):
+        for x in self.active_tile_loaders:
+            x.halt()
         self.drag_start_x = event.x
         self.drag_start_y = event.y
         self.drag_offset_x = 0
@@ -694,35 +700,31 @@ class SimpleGui(object, HTMLAware):
                 
         if self.map_width == 0 or self.map_height == 0:
             return
-        self._draw_marks()
 
         for x in self.active_tile_loaders:
             x.halt()
-                        
+
         size = self.ts.tile_size()
         xi = int(self.map_center_x)
         yi = int(self.map_center_y)
         span_x = int(math.ceil(float(self.map_width) / (size * 2.0)))
         span_y = int(math.ceil(float(self.map_height) / (size * 2.0)))
-        tiles = []
+        offset_x = int(self.map_width / 2 - (self.map_center_x - int(self.map_center_x)) * size)
+        offset_y = int(self.map_height / 2 -(self.map_center_y - int(self.map_center_y)) * size)
+
         self.active_tile_loaders = []
-        for i in xrange(0, span_x + 1, 1):
-            for j in xrange(0, span_y + 1, 1):
-                for dir in xrange(0, 4, 1):
-                    dir_ns = dir_ew = 1
-                    if dir % 2 == 1: # if dir == 1 or dir == 3
-                        dir_ns = -1
-                    if dir > 1:
-                        dir_ew = -1
-                                
-                    tile = (xi + (i * dir_ew), yi + (j * dir_ns))
-                    if not tile in tiles:
-                        tiles.append(tile)
-                        #print "Requesting ", tile, " zoom ", ts.zoom
-                        d = self.tile_loader(tile, self.ts.zoom, self, self.settings['download_map_path'], noimage_cantload = self.noimage_cantload, noimage_loading = self.noimage_loading, undersample = self.settings['options_map_double_size'])
-                        d.start()
-                        self.active_tile_loaders.append(d)
-        #print 'end draw map'
+        undersample = self.settings['options_map_double_size']
+        for i in xrange(-span_x, span_x + 1, 1):
+            for j in xrange(-span_y, span_y + 1, 1):
+                tile = (xi + i, yi + j)
+
+                dx = i * size + offset_x
+                dy = j * size + offset_y
+
+                d = self.tile_loader(tile, self.ts.zoom, self, undersample = undersample, x = dx, y = dy)
+                d.start()
+                self.active_tile_loaders.append(d)
+        self._draw_marks()
 
     def _draw_marks_caches(self, coords):
         xgc = self.xgc
@@ -744,7 +746,6 @@ class SimpleGui(object, HTMLAware):
             p = self._coord2point(c)
 
             if c.alter_lat != None and (c.alter_lat != 0 and c.alter_lon != 0):
-                print c.alter_lat
                 x = self._coord2point(geo.Coordinate(c.alter_lat, c.alter_lon))
                 if x != p:
                     self.pixmap_marks.draw_line(xgc, p[0], p[1], x[0], x[1])
@@ -1680,7 +1681,7 @@ class SimpleGui(object, HTMLAware):
         text = re.sub(r"""(?i)<img[^>]+alt=["']?([^'"> ]+)[^>]+>""", SimpleGui.replace_image_tag, text)
         text = re.sub(r'(?i)<(br|p)[^>]*?>', "\n", text)
         text = re.sub(r'<[^>]*?>', '', text)
-        text = SimpleGui._decode_htmlentities(text)
+        text = HTMLManipulations._decode_htmlentities(text)
         text = re.sub(r'[\n\r]+\s*[\n\r]+', '\n', text)
         return text.strip()
                 
