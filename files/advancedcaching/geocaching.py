@@ -59,6 +59,12 @@ class GeocacheCoordinate(geo.Coordinate):
     LOG_TYPE_NOTFOUND = 'sad'
     LOG_TYPE_NOTE = 'note'
     LOG_TYPE_MAINTENANCE = 'maint'
+    LOG_TYPE_PUBLISHED = 'greenlight'
+    LOG_TYPE_DISABLED = 'disabled'
+    LOG_TYPE_NEEDS_MAINTENANCE = 'needsmaint'
+    LOG_TYPE_WILLATTEND = 'rsvp'
+    LOG_TYPE_ATTENDED = 'attended'
+    LOG_TYPE_UPDATE = 'coord_update'
 
     SIZES = ['other', 'micro', 'small', 'regular', 'big', 'other']
 

@@ -447,7 +447,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         output = []
         for l in lines:
             #lines = [re.sub("\w+", ' ', HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(x, True)), '').sub('[ view this log ]') for x in lines[2:]]
-            m = re.match(r"""<td[^>]+><strong><img src="http://www\.geocaching\.com/images/icons/icon_([a-z]+)\.gif" alt="" />""" +
+            m = re.match(r"""<td[^>]+><strong><img src="http://www\.geocaching\.com/images/icons/(?:icon_([a-z]+)|(coord_update))\.gif" alt="" />""" +
                 r"""&nbsp;([^ ]+) (\d+)(, (\d+))? by <a href[^>]+>([^<]+)</a></strong> \(\d+ found\)<br />(.+)""" +
                 r"""<br /><br /><small>""", l, re.DOTALL)
             if m == None:
