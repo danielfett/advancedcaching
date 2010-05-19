@@ -36,7 +36,7 @@ import geo
 import geocaching
 import gobject
 import gtk
-import astral
+from astral import Astral
 try:
     import gtk.glade
     import extListview
@@ -176,7 +176,8 @@ class SimpleGui():
         self.notes_changed = False
         self.fieldnotes_changed = False
         self.map_center_x, self.map_center_y = 100, 100
-        
+
+        self.astral = Astral()
         
         global xml
         xml = gtk.glade.XML(path.join(dataroot, self.XMLFILE))
@@ -517,7 +518,7 @@ class SimpleGui():
         display_bearing = self.gps_data.position.bearing_to(self.current_target) - self.gps_data.bearing
         display_distance = self.gps_data.position.distance_to(self.current_target)
         display_north = math.radians(self.gps_data.bearing)
-        sun_angle = astral.get_sun_azimuth_from_fix(self.gps_data)
+        sun_angle = self.astral.get_sun_azimuth_from_fix(self.gps_data)
         if sun_angle != None:
             display_sun = math.radians((- sun_angle + self.gps_data.bearing) % 360)
 
@@ -621,12 +622,10 @@ class SimpleGui():
         multiply = height / (2 * (2-self.ARROW_OFFSET))
         offset_x = width / 2
         offset_y = height / 2
-        s = math.sin(math.radians(angle))
-        c = math.cos(math.radians(angle))
-        arrow_transformed = []
-        for (x, y) in self.ARROW_SHAPE:
-            arrow_transformed.append((int(x * multiply * c + offset_x - y * multiply * s),
-                                     int(y * multiply * c + offset_y + x * multiply * s)))
+        s = multiply * math.sin(math.radians(angle))
+        c = multiply * math.cos(math.radians(angle))
+        arrow_transformed = [(int(x * c + offset_x - y * s),
+                                     int(y * c + offset_y + x * s)) for x, y in self.ARROW_SHAPE]
         return arrow_transformed
                 
                 
@@ -732,16 +731,19 @@ class SimpleGui():
         xgc = self.xgc
         draw_short = (len(coords) > self.TOO_MUCH_POINTS)
 
+        default_radius = self.CACHE_DRAW_SIZE
+        found, regular, multi, default = self.COLOR_FOUND, self.COLOR_REGULAR, self.COLOR_MULTI, self.COLOR_DEFAULT
+
         for c in coords: # for each geocache
-            radius = self.CACHE_DRAW_SIZE
+            radius = default_radius
             if c.found:
-                color = self.COLOR_FOUND
+                color = found
             elif c.type == geocaching.GeocacheCoordinate.TYPE_REGULAR:
-                color = self.COLOR_REGULAR
+                color = regular
             elif c.type == geocaching.GeocacheCoordinate.TYPE_MULTI:
-                color = self.COLOR_MULTI
+                color = multi
             else:
-                color = self.COLOR_DEFAULT
+                color = default
 
             xgc.set_rgb_fg_color(color)
 
@@ -861,33 +863,6 @@ class SimpleGui():
             else:
                 self._draw_marks_caches(coords)
             
-                        
-        #
-        # next, draw the user defined points
-        #
-        """
-                coords = self.userpointprovider.get_points_filter((self.pixmap_markspoint2coord([0,0]), self.pixmap_markspoint2coord([self.map_width, self.map_height])))
-
-                xgc.set_function(gtk.gdk.AND)
-                radius = 7
-                color = gtk.gdk.color_parse('darkorchid')
-                for c in coords: # for each geocache
-                        p = self.coord2point(c)
-                        xgc.line_width = 3                
-                        xgc.set_rgb_fg_color(color)
-                        radius = 8
-                        self.pixmap_marks.draw_line(xgc, p[0] - radius, p[1], p[0], p[1] + radius)
-                        self.pixmap_marks.draw_line(xgc, p[0], p[1] + radius, p[0] + radius, p[1])
-                        self.pixmap_marks.draw_line(xgc, p[0] + radius, p[1], p[0], p[1] - radius)
-                        self.pixmap_marks.draw_line(xgc, p[0], p[1] - radius, p[0] - radius, p[1])
-                        xgc.line_width = 1
-                        self.pixmap_marks.draw_line(xgc, p[0], p[1] - 2, p[0], p[1] + 3) #  |
-                        self.pixmap_marks.draw_line(xgc, p[0] - 2, p[1], p[0] + 3, p[1]) # ---
-                        layout = self.drawing_area.create_pango_layout(c.name)
-                        layout.set_font_description(font)
-                        self.pixmap_marks.draw_layout(xgc, p[0] + 3 + radius, p[1] - 3 - radius, layout)
-                
-                """
         #
         # and now for our current data!
         #

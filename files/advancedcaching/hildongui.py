@@ -125,6 +125,8 @@ class HildonGui(SimpleGui):
 
         self.rotation_manager = FremantleRotation('advancedcaching')
 
+        self.astral = Astral()
+
     def _open_browser(self, widget, link):
         system("browser --url='%s' &" % link)
 
@@ -432,7 +434,7 @@ class HildonGui(SimpleGui):
         pick_size = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         pick_size.set_selector(sel_size)
         pick_size.set_title("Select Size(s)")
-        for i in range(5):
+        for i in xrange(5):
             sel_size.select_iter(0, sel_size.get_model(0).get_iter(i), False)
         
         sel_type = hildon.TouchSelector(text=True)
@@ -471,7 +473,7 @@ class HildonGui(SimpleGui):
         pick_diff = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         pick_diff.set_selector(sel_diff)
         pick_diff.set_title("Select Difficulty")
-        for i in range(3):
+        for i in xrange(3):
             sel_diff.select_iter(0, sel_diff.get_model(0).get_iter(i), False)
                         
         sel_terr = hildon.TouchSelector(text=True)
@@ -482,7 +484,7 @@ class HildonGui(SimpleGui):
         pick_terr = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         pick_terr.set_selector(sel_terr)
         pick_terr.set_title("Select Terrain")
-        for i in range(3):
+        for i in xrange(3):
             sel_terr.select_iter(0, sel_terr.get_model(0).get_iter(i), False)
         
         name = hildon.Entry(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
@@ -1281,7 +1283,7 @@ class HildonGui(SimpleGui):
             for coord in self.cache_calc.get_plain_coordinates():
                 if coord == False:
                     continue
-                selector.append_text("found: %s = %s" % (coord.name, format(coord)))
+                selector.append_text("found: %s" % (coord.name, format(coord)))
                 coord.comment = "This coordinate was found in the description."
                 clist[i] = coord
                 i += 1

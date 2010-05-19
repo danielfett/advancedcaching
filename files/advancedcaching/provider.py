@@ -24,7 +24,7 @@ class PointProvider():
         # yes, this setting is a bit dangerous for the database, but the 
         # advantages outbalance unlikely database corruption
         c.execute('PRAGMA synchronous=OFF')
-        c.execute('CREATE TABLE IF NOT EXISTS %s (%s)' % (self.cache_table, ', '.join([' '.join(m) for m in self.ctype.SQLROW.items()])))
+        c.execute('CREATE TABLE IF NOT EXISTS %s (%s)' % (self.cache_table, ', '.join(' '.join(m) for m in self.ctype.SQLROW.items())))
         self.check_table()
         c.execute('CREATE INDEX IF NOT EXISTS %s_latlon ON %s (lat ASC, lon ASC)' % (self.cache_table, self.cache_table))
         c.execute('CREATE INDEX IF NOT EXISTS %s_name ON %s (name ASC)' % (self.cache_table, self.cache_table))
@@ -61,7 +61,7 @@ class PointProvider():
     def add_point(self, p, replace=False):
                 
         if replace:
-            self.conn.execute("INSERT OR REPLACE INTO %s (`%s`) VALUES (%s)" % (self.cache_table, '`, `'.join(self.ctype.SQLROW.keys()), ', '.join([':%s' % k for k in self.ctype.SQLROW.keys()])), p.serialize())
+            self.conn.execute("INSERT OR REPLACE INTO %s (`%s`) VALUES (%s)" % (self.cache_table, '`, `'.join(self.ctype.SQLROW.keys()), ', '.join(':%s' % k for k in self.ctype.SQLROW.keys())), p.serialize())
             return None
         else:
             c = self.conn.cursor()
@@ -73,7 +73,7 @@ class PointProvider():
                 self.conn.execute("UPDATE %s SET found = ?, type = ?, lat = ?, lon = ?, status = ? WHERE name = ?" % self.cache_table, (p.found, p.type, p.lat, p.lon, p.status, p.name))
                 return False
             else:
-                self.conn.execute("INSERT INTO %s (`%s`) VALUES (%s)" % (self.cache_table, '`, `'.join(self.ctype.SQLROW.keys()), ', '.join([':%s' % k for k in self.ctype.SQLROW.keys()])), p.serialize())
+                self.conn.execute("INSERT INTO %s (`%s`) VALUES (%s)" % (self.cache_table, '`, `'.join(self.ctype.SQLROW.keys()), ', '.join(':%s' % k for k in self.ctype.SQLROW.keys())), p.serialize())
                 return True
             
                 
@@ -190,7 +190,7 @@ class PointProvider():
             filterstring.append("((name LIKE '%%%s%%') OR (title LIKE '%%%s%%'))" % (name_search, name_search))
                         
         if size != None:
-            filterstring.append('(size IN (%s))' % (", ".join([str(b) for b in size])))
+            filterstring.append('(size IN (%s))' % (", ".join(str(b) for b in size)))
 
         if terrain != None:
             if type(terrain) == tuple:
@@ -198,7 +198,7 @@ class PointProvider():
                 filterargs.append(terrain[0] * 10)
                 filterargs.append(terrain[1] * 10)
             elif type(terrain) == list:
-                filterstring.append('(terrain IN (%s))' % (", ".join(['?' for b in terrain])))
+                filterstring.append('(terrain IN (%s))' % (", ".join('?' for b in terrain)))
                 for b in terrain:
                     filterargs.append(b * 10)
 
@@ -209,13 +209,13 @@ class PointProvider():
                 filterargs.append(diff[0] * 10)
                 filterargs.append(diff[1] * 10)
             elif type(diff) == list:
-                filterstring.append('(difficulty IN (%s))' % (", ".join(['?' for b in diff])))
+                filterstring.append('(difficulty IN (%s))' % (", ".join('?' for b in diff)))
                 for b in diff:
                     filterargs.append(b * 10)
                         
         if ctype != None:
             if len(ctype) > 0:
-                filterstring.append('(type IN (%s))' % (", ".join(['?' for b in ctype])))
+                filterstring.append('(type IN (%s))' % (", ".join('?' for b in ctype)))
                 for b in ctype:
                     filterargs.append(b)
                                         
