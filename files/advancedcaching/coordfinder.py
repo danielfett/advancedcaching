@@ -20,22 +20,33 @@
 
 from __future__ import division
 TEST = ('''
-Formel ein: N49° 4A.BC3 E006° 4D.EF1 und bla
-Formel ein: N49° 4A.B(A-E)2 E006° 4D.C(F-B)7 sfef
-bei N49 44,2A E6 41,2A befand
- N49 44,(B/2)(A+(3*7)3) E6 41,B(A-9) sta
-ei
-N 49° 44.(TRRRS) - (S*S)
-E 006° 41.RSR
-PS
-n bei: N 49° 45.999-12*A-62 E 006° 38.999-12*A-60', {}),
-bei N 49° 45.EBA E 006° 37.DFC und', {}),
- zu N 49° 45.(A B C)+7 E 006° 38.(D E F)- 138
-bei
-ei N 49° 45.(A-1)(C-1)(B*E+5) E 006° 37.(B+1)(A)(E+1). ... bei N 49° 45.(G/3)(H)(H-D) E 006° 36. (H-2)(A-D-F)(G/3). Am Referenzpunkt N 49° 45.((G+1)/(A*2))(A)((R-S+1)*D) E 006° 36. (D+1)(H)(1)
+
+
+
 ''', {'A': 2, 'D': 4, 'G': 3,'T': 1, 'R': 2, 'S': 1, 'H': 4, 'B': 2, 'C': 9, 'E': 0, 'F': 1})
 HTML = '''
 
+<br /></p> 
+<p><font face="Arial, sans-serif"><font size=
+"4"><b>Final:</b></font></font></p> 
+<p style="font-style: normal"><font color="#000000"><font face=
+"Arial, sans-serif"><font size="3"><b><span style=
+"background: transparent">N 49°
+(B-C+A+0,5*D).(F+D)(F-G)(C-2*A)</span></b></font></font></font></p> 
+<p style="font-style: normal"><font color="#000000"><font face=
+"Arial, sans-serif"><font size="3"><b><span style=
+"background: transparent">E 6°
+(2*A+C).(G-E)(B-C+0,5*D)(F-D)</span></b></font></font></font></p> 
+<p style="font-style: normal; font-weight: normal"><font color=
+"#000000"><font face="Arial, sans-serif"><font size=
+"3"><span style="background: transparent">Es müssen keine Zäune
+oder Mauern überwunden werden.</span></font></font></font></p> 
+<p><br /> 
+<br /></p></span> 
+                
+            </div> 
+            <p> 
+</p> 
 '''
 import geo
 import re
@@ -94,7 +105,7 @@ class CalcCoordinate():
         self.vars = {}
 
     def prepare(self, text):
-        return re.sub('[^A-Za-z()+*/0-9-]', '', text)
+        return (re.sub('[^A-Za-z()+*/0-9-.,]', '', text)).replace(',', '.')
 
     def set_vars(self, var):
         self.warnings = []
@@ -170,11 +181,12 @@ class CalcCoordinate():
         text = text.replace(unichr(160), ' ')
         text = re.sub(ur''' +''', ' ', text)
 
-        matches = re.findall(ur'''(?<![a-zA-Z])([NSns])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}([A-Za-z ()+*/0-9-]+)[.,\s]([A-Za-z ()+*/0-9-]+)['`\s,/]+([EOWeow])\s?([A-Za-z() +*/0-9-]+?)[\s|]{1,2}([A-Za-z ()+*/0-9-]+)[.,\s]([A-Za-z ()+*/0-9-]+)[\s'`]*(?![a-zA-Z])''', text)
+        single_calc_part = ur'''((?:\([A-Za-z +*/0-9-.,]+\)|[A-Za-z ()+*/0-9-])+)'''
+        matches = re.findall(ur'''(?<![a-zA-Z])([NSns])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s['`\s,/]+([EOWeow])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s[\s'`]*(?![a-zA-Z])''' % {'calc' : single_calc_part}, text)
         found = []
         requires = set()
         for match in matches:
-            sig = "|".join(re.sub('[^A-Za-z()+*/0-9-]+', '', x) for x in match)
+            sig = "|".join(re.sub('[^A-Za-z()+*/0-9-.,]+', '', x) for x in match)
 
             if sig in foundsigs:
                 continue

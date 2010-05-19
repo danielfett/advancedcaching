@@ -23,6 +23,7 @@
 # download map data
 # direction indicator in map view
 # edit waypoints
+# restructure hints and description
  
 ### For the gui :-)
 
@@ -913,7 +914,7 @@ class HildonGui(SimpleGui):
                         t = 'MAINTENANCE'
                     else:
                         t = l['type'].upper()
-                    text_hints += '%s by %s at %4d/%d/%d: %s\n\n' % (t, l['finder'], int(l['year']), int(l['month']), int(l['day']), l['text'])
+                    text_hints = '%s%s by %s at %4d/%d/%d: %s\n\n' % (text_hints, t, l['finder'], int(l['year']), int(l['month']), int(l['day']), l['text'])
                 text_hints += '\n----------------\n'
             else:
                 text_hints = 'No Logs.\n\n'
@@ -927,10 +928,9 @@ class HildonGui(SimpleGui):
 
             # calculated coords
             text = text_longdesc
-            for w in cache.get_waypoints():
-                text += " | " + w['comment']
+            text += " | ".join(w['comment'] for w in cache.get_waypoints())
             self.cache_calc = coordfinder.CalcCoordinateManager(cache, text)
-            if len(self.cache_calc.coords) > 0:
+            if len(self.cache_calc.requires) > 0:
                 self.build_cache_calc(cache, notebook)
 
         # coords
