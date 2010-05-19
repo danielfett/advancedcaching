@@ -28,9 +28,11 @@
 ### For the gui :-)
 
 from math import ceil
-from os import path, system
+from os import path
+from os import system
 import re
 
+from astral import Astral
 import coordfinder
 import geo
 import geocaching
@@ -38,8 +40,9 @@ import gtk
 import hildon
 import openstreetmap
 import pango
-from simplegui import SimpleGui, UpdownRows
 from portrait import FremantleRotation
+from simplegui import SimpleGui
+from simplegui import UpdownRows
 class HildonGui(SimpleGui):
 
     USES = ['locationgpsprovider']
@@ -158,7 +161,7 @@ class HildonGui(SimpleGui):
     def _on_key_press(self, window, event):
         return
         if event.keyval == gtk.keysyms.F7:
-            self.zoom(+ 1)
+            self.zoom( + 1)
             return False
         elif event.keyval == gtk.keysyms.F8:
             self.zoom(-1)
@@ -694,10 +697,10 @@ class HildonGui(SimpleGui):
         check_hide_found.set_active(self.settings['options_hide_found'])
 
         rotate_settings = (
-            (FremantleRotation.AUTOMATIC, 'Automatic'),
-            (FremantleRotation.NEVER, 'Landscape'),
-            (FremantleRotation.ALWAYS, 'Portrait')
-        )
+                           (FremantleRotation.AUTOMATIC, 'Automatic'),
+                           (FremantleRotation.NEVER, 'Landscape'),
+                           (FremantleRotation.ALWAYS, 'Portrait')
+                           )
         rotate_selector = hildon.TouchSelector(text=True)
         
         i = 0
@@ -761,7 +764,7 @@ class HildonGui(SimpleGui):
         def show_coord_input(widget):
             try:
                 m = geo.try_parse_coordinate(bar_entry.get_text())
-            except Exception, e:
+            except Exception:
                 m = c
             m_new = self.show_coordinate_input(m)
             bar_entry.set_text(m_new.get_latlon(self.format))
@@ -1283,7 +1286,7 @@ class HildonGui(SimpleGui):
             for coord in self.cache_calc.get_plain_coordinates():
                 if coord == False:
                     continue
-                selector.append_text("found: %s" % (coord.name, format(coord)))
+                selector.append_text("found: %s" % (format(coord)))
                 coord.comment = "This coordinate was found in the description."
                 clist[i] = coord
                 i += 1

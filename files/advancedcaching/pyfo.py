@@ -29,7 +29,6 @@ Luke Arno can be found at http://lukearno.com/
 
 """
 
-import re
 from xml.sax.saxutils import escape
 
 
@@ -46,14 +45,14 @@ def isiterable(it):
 def make_attributes(dct):
     """Turn a dict into string of XML attributes."""
     return u"".join((' %s="%s"' % (x, escape(unicode(y))) 
-                     for x, y in dct.iteritems()))
+                    for x, y in dct.iteritems()))
 
 
 def pyfo(node, 
-         prolog=False, 
-         pretty=False, 
-         indent_size=2, 
-         encoding='utf-8', 
+         prolog=False,
+         pretty=False,
+         indent_size=2,
+         encoding='utf-8',
          collapse=True):
     """Generate XML using native python data structures.
    
@@ -109,14 +108,14 @@ def pyfo(node,
         contents = contents.items()
     if isinstance(contents, tuple):
         contents = pyfo(contents, 
-                        pretty=pretty, 
-                        indent_size=indent_size, 
+                        pretty=pretty,
+                        indent_size=indent_size,
                         collapse=collapse)
     elif not isinstance(contents, basestring) and isiterable(contents):
         cgen = (pyfo(c, 
-                     pretty=pretty, 
-                     indent_size=indent_size, 
-                     collapse=collapse) 
+                pretty=pretty,
+                indent_size=indent_size,
+                collapse=collapse)
                 for c in contents)
         contents = indent.join((c for c in cgen if c))
     elif contents not in [None, ""]:
@@ -130,14 +129,14 @@ def pyfo(node,
         prolog = u''
     if contents or not collapse:
         return u'%s<%s%s>%s%s%s</%s>' % (prolog, 
-                                         name, 
-                                         make_attributes(dct), 
+                                         name,
+                                         make_attributes(dct),
                                          indent,
-                                         contents or '', 
+                                         contents or '',
                                          unindent,
                                          name)
     else:
         return u'%s<%s%s/>' % (prolog, 
-                               name, 
+                               name,
                                make_attributes(dct))
 

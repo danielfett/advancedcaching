@@ -22,7 +22,7 @@ try:
     from json import loads, dumps
 except (ImportError, AttributeError):
     from simplejson import loads, dumps
-import math
+
 import geo
 
 class GeocacheCoordinate(geo.Coordinate):
@@ -93,14 +93,14 @@ class GeocacheCoordinate(geo.Coordinate):
         'fieldnotes': 'TEXT',
         'logas': 'INTEGER',
         'logdate': 'TEXT',
-        'marked' : 'INTEGER',
-        'logs' : 'TEXT',
-        'status' : 'INTEGER',
-        'vars' : 'TEXT',
-        'alter_lat' : 'REAL',
-        'alter_lon' : 'REAL'
+        'marked': 'INTEGER',
+        'logs': 'TEXT',
+        'status': 'INTEGER',
+        'vars': 'TEXT',
+        'alter_lat': 'REAL',
+        'alter_lon': 'REAL'
         }
-    def __init__(self, lat, lon = None, name = '', data = None):
+    def __init__(self, lat, lon=None, name='', data=None):
         geo.Coordinate.__init__(self, lat, lon, name)
         if data != None:
             self.unserialize(data)
@@ -132,9 +132,9 @@ class GeocacheCoordinate(geo.Coordinate):
     def clone(self):
         n = GeocacheCoordinate(self.lat, self.lon)
         for k in ('title', 'name', 'shortdesc', 'desc', 'hints', 'type', \
-            'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
-            'images', 'notes', 'fieldnotes', 'log_as', 'log_date', 'marked', \
-            'logs', 'status', 'vars', 'alter_lat', 'alter_lon'):
+                  'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
+                  'images', 'notes', 'fieldnotes', 'log_as', 'log_date', 'marked', \
+                  'logs', 'status', 'vars', 'alter_lat', 'alter_lon'):
             setattr(n, k, getattr(self, k))
         return n
         
@@ -177,12 +177,12 @@ class GeocacheCoordinate(geo.Coordinate):
             'fieldnotes': self.fieldnotes,
             'logas': self.log_as,
             'logdate': self.log_date,
-            'marked' : marked,
-            'logs' : self.logs,
-            'status' : self.status,
-            'vars' : self.vars,
-            'alter_lat' : self.alter_lat,
-            'alter_lon' : self.alter_lon,
+            'marked': marked,
+            'logs': self.logs,
+            'status': self.status,
+            'vars': self.vars,
+            'alter_lat': self.alter_lat,
+            'alter_lon': self.alter_lon,
         }
                 
     def unserialize(self, data):
@@ -270,7 +270,7 @@ class GeocacheCoordinate(geo.Coordinate):
                 minlon = min(minlon, wpt['lon'])
                 maxlon = max(maxlon, wpt['lon'])
 
-        return {'minlat' : "%.5f" % minlat, 'maxlat' : "%.5f" % maxlat, 'minlon' : "%.5f" % minlon, 'maxlon' : "%.5f" % maxlon}
+        return {'minlat': "%.5f" % minlat, 'maxlat': "%.5f" % maxlat, 'minlon': "%.5f" % minlon, 'maxlon': "%.5f" % maxlon}
     
     def get_size_string(self):
         if self.size == -1:

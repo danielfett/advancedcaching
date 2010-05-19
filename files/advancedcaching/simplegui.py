@@ -32,11 +32,11 @@
 ### For the gui :-)
 import math
 
+from astral import Astral
 import geo
 import geocaching
 import gobject
 import gtk
-from astral import Astral
 try:
     import gtk.glade
     import extListview
@@ -200,7 +200,7 @@ class SimpleGui():
         self.tile_loaders = []
         
         for name, params in self.core.settings['map_providers']:    
-            tl = openstreetmap.get_tile_loader(**params)
+            tl = openstreetmap.get_tile_loader( ** params)
             tl.noimage_loading = self.noimage_loading
             tl.noimage_cantload = self.noimage_cantload
             tl.base_dir = self.core.settings['download_map_path']
@@ -318,12 +318,12 @@ class SimpleGui():
          ROW_ID,
          ) = range(6)
         columns = (
-                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
-                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
+                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE, ), False, True),
+                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE, ), False, True),
                    ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
                    ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
                    ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
-                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
+                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID, ), False, True),
                    )
         self.cachelist = listview = extListview.ExtListView(columns, sortable=True, useMarkup=True, canShowHideColumns=False)
         self.cachelist_contents = []
@@ -340,7 +340,7 @@ class SimpleGui():
                    ('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
                    ('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
                    ('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
-                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT,), False, True),
+                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT, ), False, True),
                    )
         self.coordlist = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
         self.coordlist.connect('extlistview-button-pressed', self.on_waypoint_clicked)
@@ -455,7 +455,7 @@ class SimpleGui():
             else:
                 t = "%.1f" % (r.terrain / 10)
             title = self._format_cache_title(r)
-            rows.append((title, r.type, s, t, d, r.name, ))
+            rows.append((title, r.type, s, t, d, r.name,))
         self.cachelist.replaceContent(rows)
         self.notebook_search.set_current_page(1)
         self.redraw_marks()
@@ -484,7 +484,6 @@ class SimpleGui():
         signal_width = 15
         error_circle_size = 0.95
         error_circle_width = 7
-        sun_size = 30
         
         if not self.drawing_area_arrow_configured:
             return
@@ -547,7 +546,7 @@ class SimpleGui():
             self.xgc_arrow.line_style = gtk.gdk.LINE_ON_OFF_DASH 
             ecc = int(error_circle_size * circle_size)
             err = min(self.gps_data.error_bearing, 181) # don't draw multiple circles :-)
-            err_start = int((90-(display_bearing + err))*64)
+            err_start = int((90-(display_bearing + err)) * 64)
             err_delta = int(err * 2 * 64)
             self.pixmap_arrow.draw_arc(self.xgc_arrow, False, center_x - ecc, center_y - ecc, ecc * 2, ecc * 2, err_start, err_delta)
             self.xgc_arrow.line_style = gtk.gdk.LINE_SOLID
@@ -625,7 +624,7 @@ class SimpleGui():
         s = multiply * math.sin(math.radians(angle))
         c = multiply * math.cos(math.radians(angle))
         arrow_transformed = [(int(x * c + offset_x - y * s),
-                                     int(y * c + offset_y + x * s)) for x, y in self.ARROW_SHAPE]
+                              int(y * c + offset_y + x * s)) for x, y in self.ARROW_SHAPE]
         return arrow_transformed
                 
                 
@@ -722,7 +721,7 @@ class SimpleGui():
                 dx = i * size + offset_x
                 dy = j * size + offset_y
 
-                d = self.tile_loader(tile, self.ts.zoom, undersample = undersample, x = dx, y = dy)
+                d = self.tile_loader(tile, self.ts.zoom, undersample=undersample, x=dx, y=dy)
                 d.start()
                 self.active_tile_loaders.append(d)
         self._draw_marks()
@@ -1344,7 +1343,7 @@ class SimpleGui():
         self.zoom()
                 
     def on_zoomin_clicked(self, widget, data=None):
-        self.zoom(+ 1)
+        self.zoom( + 1)
                 
     def on_zoomout_clicked(self, widget, data=None):
         self.zoom(-1)
@@ -1442,7 +1441,7 @@ class SimpleGui():
         if event.direction == gtk.gdk.SCROLL_DOWN:
             self.zoom(-1)
         else:
-            self.zoom(+ 1)
+            self.zoom( + 1)
         
                 
     def set_center(self, coord, noupdate=False):
@@ -1814,7 +1813,7 @@ class Updown():
 
                 
 class PlusMinusUpdown():
-    def __init__(self, table, position, labels, small = None):
+    def __init__(self, table, position, labels, small=None):
         self.is_neg = False
         self.labels = labels
         self.button = gtk.Button(labels[0])

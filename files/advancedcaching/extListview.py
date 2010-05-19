@@ -69,7 +69,7 @@ signal_new('extlistview-dnd', gtk.TreeView, SIGNAL_RUN_LAST, TYPE_NONE, (gdk.Dra
 signal_new('extlistview-modified', gtk.TreeView, SIGNAL_RUN_LAST, TYPE_NONE, ())
 signal_new('extlistview-button-pressed', gtk.TreeView, SIGNAL_RUN_LAST, TYPE_NONE, (gdk.Event, TYPE_PYOBJECT))
 signal_new('extlistview-column-visibility-changed', gtk.TreeView, SIGNAL_RUN_LAST, TYPE_NONE, (TYPE_STRING, TYPE_BOOLEAN))
-signal_new('button-press-event', gtk.TreeViewColumn, SIGNAL_RUN_LAST, TYPE_NONE, (gdk.Event,))
+signal_new('button-press-event', gtk.TreeViewColumn, SIGNAL_RUN_LAST, TYPE_NONE, (gdk.Event, ))
 
 
 class ExtListViewColumn(gtk.TreeViewColumn):
@@ -294,7 +294,7 @@ class ExtListView(gtk.TreeView):
             self.sortAscending = True
 
         # Dump the rows, sort them, and reorder the list
-        rows     = [tuple(r) + (i, ) for i, r in enumerate(self.store)]
+        rows     = [tuple(r) + (i,) for i, r in enumerate(self.store)]
         criteria = self.sortColCriteria[column]
         rows.sort(lambda r1, r2: self.__cmpRows(r1, r2, criteria, self.sortAscending))
         self.store.reorder([r[-1] for r in rows])
@@ -442,7 +442,7 @@ class ExtListView(gtk.TreeView):
             return
 
         # Insert the additional column used for the mark management
-        if type(rows[0]) is tuple: rows[:] = [row + (False, ) for row in rows]
+        if type(rows[0]) is tuple: rows[:] = [row + (False,) for row in rows]
         else:                      rows[:] = [row + [False] for row in rows]
 
         # Move the mark if needed
