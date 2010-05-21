@@ -51,7 +51,7 @@ oder Mauern überwunden werden.</span></font></font></font></p>
 import geo
 import re
 
-class CalcCoordinateManager():
+class CalcCoordinateManager(object):
     def __init__(self, cache, text):
         self.vars = cache.get_vars()
         self.coords, self.requires = CalcCoordinate.find(text)

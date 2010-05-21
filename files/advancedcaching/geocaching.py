@@ -21,9 +21,14 @@
 try:
     from json import loads, dumps
 except (ImportError, AttributeError):
-    from simplejson import loads, dumps
+    from simplejson import loads as loads_n
+    from simplejson import dumps 
 
 import geo
+
+def loads(what):
+    print "loads %d" % len(what)
+    return loads_n(what)
 
 class GeocacheCoordinate(geo.Coordinate):
     LOG_NO_LOG = 0
@@ -78,6 +83,11 @@ class GeocacheCoordinate(geo.Coordinate):
         TYPE_VIRTUAL: 'Virtual Cache'
     }
 
+    ATTRS = ('lat', 'lon', 'title', 'name', 'shortdesc', 'desc', 'hints', 'type', \
+              'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
+              'images', 'notes', 'fieldnotes', 'logas', 'logdate', 'marked', \
+              'logs', 'status', 'vars', 'alter_lat', 'alter_lon')
+
 
     SQLROW = {
         'lat': 'REAL',
@@ -126,8 +136,8 @@ class GeocacheCoordinate(geo.Coordinate):
         self.images = ''
         self.notes = ''
         self.fieldnotes = ''
-        self.log_as = self.LOG_NO_LOG
-        self.log_date = ''
+        self.logas = self.LOG_NO_LOG
+        self.logdate = ''
         self.marked = False
         self.logs = ''
         self.status = self.STATUS_NORMAL
@@ -137,10 +147,7 @@ class GeocacheCoordinate(geo.Coordinate):
 
     def clone(self):
         n = GeocacheCoordinate(self.lat, self.lon)
-        for k in ('title', 'name', 'shortdesc', 'desc', 'hints', 'type', \
-                  'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
-                  'images', 'notes', 'fieldnotes', 'log_as', 'log_date', 'marked', \
-                  'logs', 'status', 'vars', 'alter_lat', 'alter_lon'):
+        for k in self.ATTRS:
             setattr(n, k, getattr(self, k))
         return n
         
@@ -154,82 +161,30 @@ class GeocacheCoordinate(geo.Coordinate):
         return self.STATUS_TEXT[self.status]
 
     def serialize(self):
+        ret = {}
+        for key in self.ATTRS:
+            ret[key] = getattr(self, key)
 
-        if self.found:
-            found = 1
-        else:
-            found = 0
-        if self.marked:
-            marked = 1
-        else:
-            marked = 0
-        return {
-            'lat': self.lat,
-            'lon': self.lon,
-            'name': self.name,
-            'title': self.title,
-            'shortdesc': self.shortdesc,
-            'desc': self.desc,
-            'hints': self.hints,
-            'type': self.type,
-            'size': self.size,
-            'difficulty': self.difficulty,
-            'terrain': self.terrain,
-            'owner': self.owner,
-            'found': found,
-            'waypoints': self.waypoints,
-            'images': self.images,
-            'notes': self.notes,
-            'fieldnotes': self.fieldnotes,
-            'logas': self.log_as,
-            'logdate': self.log_date,
-            'marked': marked,
-            'logs': self.logs,
-            'status': self.status,
-            'vars': self.vars,
-            'alter_lat': self.alter_lat,
-            'alter_lon': self.alter_lon,
-        }
+        ret['found'] = 1 if self.found else 0
+        ret['marked'] = 1 if self.marked else 0
+        return ret
                 
     def unserialize(self, data):
-        self.lat = data['lat']
-        self.lon = data['lon']
-        self.name = data['name']
-        self.title = data['title']
-        self.shortdesc = data['shortdesc']
-        self.desc = data['desc']
-        self.hints = data['hints']
-        self.type = data['type']
-        self.size = int(data['size'])
-        self.difficulty = float(data['difficulty'])
-        self.terrain = float(data['terrain'])
-        self.owner = data['owner']
-        self.found = (data['found'] == 1)
-        self.waypoints = data['waypoints']
-        self.images = data['images']
-        if data['notes'] == None:
-            self.notes = ''
-        else:
-            self.notes = data['notes']
-        if data['fieldnotes'] == None:
-            self.fieldnotes = ''
-        else:
-            self.fieldnotes = data['fieldnotes']
-        self.log_as = data['logas']
-        self.log_date = data['logdate']
-        self.marked = (data['marked'] == 1)
-        if data['logs'] == None:
-            self.logs = ''
-        else:
-            self.logs = data['logs']
-        if data['vars'] == None:
-            self.vars = ''
-        else:
-            self.vars = data['vars']
-        self.status = data['status']
-        self.alter_lat = data['alter_lat']
-        self.alter_lon = data['alter_lon']
+        print 'unser'
+        ret = {}
+        for key in self.ATTRS:
+            ret[key] = data[key]
 
+        if ret['notes'] == None:
+            self.notes = ''
+        if ret['fieldnotes'] == None:
+            self.fieldnotes = ''
+        if ret['logs'] == None:
+            self.logs = ''
+        if ret['vars'] == None:
+            self.vars = ''
+        ret['found'] = (ret['found'] == 1)
+        self.__dict__ = ret
     def get_waypoints(self):
         if self.waypoints == None or self.waypoints == '':
             return []
@@ -251,7 +206,11 @@ class GeocacheCoordinate(geo.Coordinate):
     def get_images(self):
         if self.images == None or self.images == '':
             return []
-        return loads(self.images)
+        try:
+            return self.saved_images
+        except (AttributeError):
+            self.saved_images = loads(self.images)
+            return self.saved_images
 
     def set_waypoints(self, wps):
         self.waypoints = dumps(wps)

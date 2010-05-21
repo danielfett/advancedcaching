@@ -121,7 +121,7 @@ def search_coordinates(text):
         output.append(c)
     return output
 
-class Coordinate():
+class Coordinate(object):
     SQLROW = {'lat': 'REAL', 'lon': 'REAL', 'name': 'TEXT'}
     
     RADIUS_EARTH = 6371000.0

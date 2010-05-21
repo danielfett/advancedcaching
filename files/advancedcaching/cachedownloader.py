@@ -38,7 +38,7 @@ import re
 import gobject
 
 
-class HTMLManipulations:
+class HTMLManipulations(object):
     COMMENT_REGEX = re.compile('<!--.*?-->', re.DOTALL)
     
     @staticmethod
