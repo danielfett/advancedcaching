@@ -70,7 +70,6 @@ class HildonGui(SimpleGui):
 
     def __init__(self, core, pointprovider, userpointprovider, dataroot):
         gtk.gdk.threads_init()
-        hildon.hildon_gtk_init()
         self.ts = openstreetmap.TileServer()
 
         self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-cantload.png'))
