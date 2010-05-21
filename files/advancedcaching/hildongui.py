@@ -132,6 +132,7 @@ class HildonGui(SimpleGui):
         self.astral = Astral()
 
     def on_window_destroy(self, target, more=None, data=None):
+        hildon.hildon_gtk_window_take_screenshot(self.window, True)
         SimpleGui.on_window_destroy(self, target, more, data)
 
 
@@ -163,8 +164,6 @@ class HildonGui(SimpleGui):
 
 
     def _on_key_press(self, window, event):
-        print 'now'
-        hildon.hildon_gtk_window_take_screenshot(self.window, True)
         return
         if event.keyval == gtk.keysyms.F7:
             self.zoom( + 1)
@@ -990,25 +989,12 @@ class HildonGui(SimpleGui):
         pan.add(self.cache_notes)
 
         self.notes_changed = False
-        def notes_changed(caller):
-            self.notes_changed = True
-        self.cache_notes.get_buffer().connect('changed', notes_changed)
+        self.cache_notes.get_buffer().connect('changed', self.on_notes_changed)
 
-        def add_waypoint(widget):
-            if self.gps_data != None and self.gps_data.position != None:
-                c = self.gps_data.position
-            elif self.current_target != None:
-                c = self.current_target
-            else:
-                c = geo.Coordinate(0, 0)
-            res = self.show_coordinate_input(c)
-            text = "\n%s\n" % res.get_latlon(self.format)
-            self.cache_notes.get_buffer().insert(self.cache_notes.get_buffer().get_end_iter(), text)
-                
 
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
         button.set_label("Add Waypoint")
-        button.connect("clicked", add_waypoint)
+        button.connect("clicked", self._on_add_waypoint_clicked)
 
         p = gtk.VBox()
         p.pack_start(button, False)
@@ -1239,6 +1225,19 @@ class HildonGui(SimpleGui):
             self.cache_calc_viewport.remove(x)
         self.cache_calc_viewport.add(p)
         self.cache_calc_viewport.show_all()
+
+
+
+    def _on_add_waypoint_clicked (widget):
+            if self.gps_data != None and self.gps_data.position != None:
+                c = self.gps_data.position
+            elif self.current_target != None:
+                c = self.current_target
+            else:
+                c = geo.Coordinate(0, 0)
+            res = self.show_coordinate_input(c)
+            text = "\n%s\n" % res.get_latlon(self.format)
+            self.cache_notes.get_buffer().insert(self.cache_notes.get_buffer().get_end_iter(), text)
 
         
     def _on_show_image(self, dpath, caption):

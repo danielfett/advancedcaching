@@ -1161,7 +1161,7 @@ class SimpleGui():
         self.update_gps_display()
         self._draw_arrow()
 
-    def on_notes_changed(self, something, somethingelse):
+    def on_notes_changed(self, something, somethingelse = None):
         self.notes_changed = True
         
     def on_fieldnotes_changed(self, something, somethingelse):
