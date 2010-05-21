@@ -70,6 +70,7 @@ class HildonGui(SimpleGui):
 
     def __init__(self, core, pointprovider, userpointprovider, dataroot):
         gtk.gdk.threads_init()
+        hildon.hildon_gtk_init()
         self.ts = openstreetmap.TileServer()
 
         self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-cantload.png'))
@@ -131,6 +132,10 @@ class HildonGui(SimpleGui):
 
         self.astral = Astral()
 
+    def on_window_destroy(self, target, more=None, data=None):
+        SimpleGui.on_window_destroy(self, target, more, data)
+
+
     def _open_browser(self, widget, link):
         system("browser --url='%s' &" % link)
 
@@ -159,6 +164,8 @@ class HildonGui(SimpleGui):
 
 
     def _on_key_press(self, window, event):
+        print 'now'
+        hildon.hildon_gtk_window_take_screenshot(self.window, True)
         return
         if event.keyval == gtk.keysyms.F7:
             self.zoom( + 1)
@@ -666,7 +673,7 @@ class HildonGui(SimpleGui):
     def _on_show_options(self, widget, data):
         dialog = gtk.Dialog("options", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
         dialog.set_size_request(800, 480)
-        opts = gtk.Table(7, 2)
+        opts = gtk.Table(8, 2)
         opts.attach(gtk.Label("Username"), 0, 1, 0, 1)
         username = hildon.Entry(gtk.HILDON_SIZE_AUTO)
         #username.set_property(hildon.HILDON_AUTOCAP, False)
@@ -696,6 +703,10 @@ class HildonGui(SimpleGui):
         check_hide_found.set_label("Hide Found Geocaches on Map")
         check_hide_found.set_active(self.settings['options_hide_found'])
 
+        check_show_html_description = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
+        check_show_html_description.set_label("Show Cache Description with HTML")
+        check_show_html_description.set_active(self.settings['options_show_html_description'])
+
         rotate_settings = (
                            (FremantleRotation.AUTOMATIC, 'Automatic'),
                            (FremantleRotation.NEVER, 'Landscape'),
@@ -723,7 +734,8 @@ class HildonGui(SimpleGui):
         opts.attach(check_show_cache_id, 0, 2, 3, 4)
         opts.attach(check_map_double_size, 0, 2, 4, 5)
         opts.attach(check_hide_found, 0, 2, 5, 6)
-        opts.attach(rotate_screen, 0, 2, 6, 7)
+        opts.attach(check_show_html_description, 0, 2, 6, 7)
+        opts.attach(rotate_screen, 0, 2, 7, 8)
         p = hildon.PannableArea()
         vp = gtk.Viewport()
         p.add(vp)
@@ -736,6 +748,8 @@ class HildonGui(SimpleGui):
         dialog.hide()
         if result == gtk.RESPONSE_ACCEPT:
             rotate = rotate_settings[rotate_selector.get_selected_rows(0)[0][0]][0]
+            if self.settings['options_show_html_description'] != check_show_html_description.get_active():
+                self.old_cache_window = None
             self.rotation_manager.set_mode(rotate)
             self.settings['options_username'] = username.get_text()
             self.settings['options_password'] = password.get_text()
@@ -743,6 +757,7 @@ class HildonGui(SimpleGui):
             self.settings['options_show_name'] = check_show_cache_id.get_active()
             self.settings['options_map_double_size'] = check_map_double_size.get_active()
             self.settings['options_hide_found'] = check_hide_found.get_active()
+            self.settings['options_show_html_description'] = check_show_html_description.get_active()
             self.settings['options_rotate_screen'] = rotate
             self.core.on_userdata_changed(self.settings['options_username'], self.settings['options_password'])
 
@@ -862,29 +877,45 @@ class HildonGui(SimpleGui):
         self.cache_calc = None
         if cache.was_downloaded():
         
-            # desc
+            # Description
             p = hildon.PannableArea()
-            vp = gtk.Viewport()
-            p.add(vp)
-            widget_description = gtk.Label()
-            widget_description.set_line_wrap(True)
-            widget_description.set_alignment(0, 0)
-            widget_description.set_size_request(self.window.size_request()[0] - 10, -1)
-            vp.add(widget_description)
-
             notebook.append_page(p, gtk.Label("description"))
-            text_shortdesc = self._strip_html(cache.shortdesc)
-            if cache.status == geocaching.GeocacheCoordinate.STATUS_DISABLED:
-                text_shortdesc = 'This Cache is not available!\n' + text_shortdesc
-            text_longdesc = self._strip_html(re.sub(r'(?i)<img[^>]+?>', ' [to get all images, re-download description] ', re.sub(r'\[\[img:([^\]]+)\]\]', lambda a: self._replace_image_callback(a, cache), cache.desc)))
+            text_longdesc = re.sub(r'(?i)<img[^>]+?>', ' [to get all images, re-download description] ', re.sub(r'\[\[img:([^\]]+)\]\]', lambda a: self._replace_image_callback(a, cache), cache.desc))
+            if not self.settings['options_show_html_description']:
+                
+                widget_description = gtk.Label()
+                widget_description.set_line_wrap(True)
+                widget_description.set_alignment(0, 0)
+                widget_description.set_size_request(self.window.size_request()[0] - 10, -1)
+                p.add_with_viewport(widget_description)
 
-            if text_longdesc == '':
-                text_longdesc = '(no Description available)'
-            if not text_shortdesc == '':
-                showdesc = text_shortdesc + "\n\n" + text_longdesc
+                text_shortdesc = self._strip_html(cache.shortdesc)
+                if cache.status == geocaching.GeocacheCoordinate.STATUS_DISABLED:
+                    text_shortdesc = '<u>This Cache is not available!</u>\n%s' % text_shortdesc
+                text_longdesc = self._strip_html(text_longdesc)
+
+                if text_longdesc == '':
+                    text_longdesc = '<i>(no Description available)</i>'
+                if not text_shortdesc == '':
+                    showdesc = "<b>%s</b>\n\n%s" % (text_shortdesc, text_longdesc)
+                else:
+                    showdesc = text_longdesc
+                widget_description.set_markup(showdesc)
+                
             else:
-                showdesc = text_longdesc
-            widget_description.set_text(showdesc)
+                import gtkhtml2
+                description = gtkhtml2.Document()
+                description.clear()
+                description.open_stream('text/html')
+                description.write_stream('<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body>%s<hr>%s</body></html>' % (cache.shortdesc, text_longdesc))
+                description.close_stream()
+                description.connect('link-clicked', self._open_browser)
+
+                widget_description = gtkhtml2.View()
+                widget_description.set_document(description)
+                p.set_property("mov-mode", hildon.MOVEMENT_MODE_BOTH)
+                p.add(widget_description)
+                
 
             # logs&hints
             p = hildon.PannableArea()
