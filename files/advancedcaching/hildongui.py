@@ -898,6 +898,7 @@ class HildonGui(SimpleGui):
                     showdesc = "<b>%s</b>\n\n%s" % (text_shortdesc, text_longdesc)
                 else:
                     showdesc = text_longdesc
+                showdesc = showdesc.replace('&', '&amp;')
                 widget_description.set_markup(showdesc)
                 
             else:
@@ -1442,10 +1443,10 @@ class HildonGui(SimpleGui):
         from time import gmtime
         from time import strftime
 
-        cache.log_as = statuses[fieldnotes_log_as_selector.get_selected_rows(0)[0][0]][1]
-        cache.log_date = strftime('%Y-%m-%d', gmtime())
+        cache.logas = statuses[fieldnotes_log_as_selector.get_selected_rows(0)[0][0]][1]
+        cache.logdate = strftime('%Y-%m-%d', gmtime())
         cache.fieldnotes = fieldnotes.get_buffer().get_text(fieldnotes.get_buffer().get_start_iter(), fieldnotes.get_buffer().get_end_iter())
-        self.core.write_fieldnote(self.current_cache, cache.log_as, cache.log_date, cache.fieldnotes)
+        self.core.write_fieldnote(self.current_cache, cache.logas, cache.logdate, cache.fieldnotes)
         
         
     def _on_upload_fieldnotes(self, some, thing):

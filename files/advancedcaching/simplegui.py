@@ -1576,17 +1576,17 @@ class SimpleGui():
         self.cache_elements['fieldnotes'].set_text(cache.fieldnotes)
 
         # Set field note (log) settings
-        if cache.log_as == geocaching.GeocacheCoordinate.LOG_AS_FOUND:
+        if cache.logas == geocaching.GeocacheCoordinate.LOG_AS_FOUND:
             self.cache_elements['log_found'].set_active(True)
-        elif cache.log_as == geocaching.GeocacheCoordinate.LOG_AS_NOTFOUND:
+        elif cache.logas == geocaching.GeocacheCoordinate.LOG_AS_NOTFOUND:
             self.cache_elements['log_notfound'].set_active(True)
-        elif cache.log_as == geocaching.GeocacheCoordinate.LOG_AS_NOTE:
+        elif cache.logas == geocaching.GeocacheCoordinate.LOG_AS_NOTE:
             self.cache_elements['log_note'].set_active(True)
         else:
             self.cache_elements['log_no'].set_active(True)
 
-        if cache.log_date != '':
-            self.cache_elements['log_date'].set_text('fieldnote date: %s' % cache.log_date)
+        if cache.logdate != '':
+            self.cache_elements['log_date'].set_text('fieldnote date: %s' % cache.logdate)
         else:
             self.cache_elements['log_date'].set_text('fieldnote date: not set')
 
