@@ -951,7 +951,7 @@ class HildonGui(SimpleGui):
                 w_date = gtk.Label()
                 w_date.set_markup("<b>%4d-%02d-%02d</b>" % (int(l['year']), int(l['month']), int(l['day'])))
                 w_date.set_alignment(0.95, 0)
-                w_text = gtk.Label(l['text'])
+                w_text = gtk.Label("%s\n" % l['text'].strip())
                 w_text.set_line_wrap(True)
                 w_text.set_alignment(0, 0)
                 w_text.connect('configure-event', self._on_configure_label)
@@ -1035,6 +1035,7 @@ class HildonGui(SimpleGui):
         notebook.append_page(p, gtk.Label("notes"))
         
         notebook_switcher = gtk.HBox(True)
+        notebook_switcher.set_no_show_all(True)
 
         def switch_nb(widget, forward):
             if forward:
@@ -1054,10 +1055,10 @@ class HildonGui(SimpleGui):
             portrait = (event.width < event.height)
             notebook.set_property('show-tabs', not portrait)
             if portrait:
-                notebook_switcher.show()
+                notebook_switcher.show_all()
             else:   
                 notebook_switcher.hide()
-        notebook.connect('configure-event', self.reorder_details)
+        notebook.connect('configure-event', reorder_details)
         
 
         win.add(details)

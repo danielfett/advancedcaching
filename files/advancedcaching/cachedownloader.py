@@ -281,7 +281,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         shortdesc = desc = hints = waypoints = images = logs = owner = ''
         for line in cache_page:
             line = line.strip()
-            #line = unicode(line, errors='replace')
+            
             if section == '' and line.startswith('<div id="doc3" class="yui-t1">'):
                 section = 'head'
             elif section == 'head' and line.startswith('<span id="ctl00_ContentBody_ShortDescription">'):
@@ -306,7 +306,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 section = 'after-images'
             elif section == 'after-images' and line.startswith('<p><span id="ctl00_ContentBody_CacheLogs">'):
                 logs = line
-            print section, ':', line
+
             if section == 'head':
                 if line.startswith('<p><strong>A cache') or line.startswith('<p><strong>An Event'):
                     owner = re.compile("by <[^>]+>([^<]+)</a>").search(line).group(1)
@@ -343,7 +343,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             coordinate.size = 3
         elif size == 'large' or size == 'big':
             coordinate.size = 4
-        elif size == 'not_chosen':
+        elif size == 'not_chosen' or size == 'other':
             coordinate.size = 5
         else:
             print "Size not known: %s" % size
