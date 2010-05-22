@@ -253,6 +253,7 @@ class HildonGui(SimpleGui):
         self.main_gpspage_table.attach(self.drawing_area_arrow, 0, 1, 0, 7, gtk.EXPAND | gtk.FILL, gtk.EXPAND | gtk.FILL)
 
         def reorder_gps(widget, event):
+            print event.width, event.height
             portrait = (event.width < event.height)
             x = self.drawing_area_arrow.get_parent()
             if x != None:
@@ -290,6 +291,7 @@ class HildonGui(SimpleGui):
         self.button_track = button
         buttons.pack_start(button, True, True)
         def reorder_map(widget, event):
+            print 'map', event.height, event.width
             portrait = (event.width < event.height)
             if portrait: 
                 text = ''
@@ -1103,6 +1105,8 @@ class HildonGui(SimpleGui):
 
 
     def _on_configure_label(self, widget, event):
+        print 'conf'
+        print event.width, event.height 
         widget.set_size_request(event.width - 10, -1)
 
     def build_coordinates(self, cache, p):
