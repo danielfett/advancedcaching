@@ -28,6 +28,7 @@
 ### For the gui :-)
 
 from math import ceil
+from os import extsep
 from os import path
 from os import system
 import re
@@ -68,12 +69,24 @@ class HildonGui(SimpleGui):
     CACHE_DRAW_FONT = pango.FontDescription("Sans 10")
     MESSAGE_DRAW_FONT = pango.FontDescription("Sans 12")
 
+    ICONS = {
+        geocaching.GeocacheCoordinate.LOG_TYPE_FOUND: 'emoticon_grin',
+        geocaching.GeocacheCoordinate.LOG_TYPE_NOTFOUND: 'cross',
+        geocaching.GeocacheCoordinate.LOG_TYPE_NOTE: 'comment',
+        geocaching.GeocacheCoordinate.LOG_TYPE_MAINTENANCE: 'wrench',
+        geocaching.GeocacheCoordinate.LOG_TYPE_PUBLISHED: 'accept',
+        geocaching.GeocacheCoordinate.LOG_TYPE_DISABLED: 'delete',
+        geocaching.GeocacheCoordinate.LOG_TYPE_NEEDS_MAINTENANCE: 'error',
+        geocaching.GeocacheCoordinate.LOG_TYPE_WILLATTEND: 'calendar_edit',
+        geocaching.GeocacheCoordinate.LOG_TYPE_ATTENDED: 'group',
+        geocaching.GeocacheCoordinate.LOG_TYPE_UPDATE: 'asterisk_yellow',
+    }
+
     def __init__(self, core, pointprovider, userpointprovider, dataroot):
         gtk.gdk.threads_init()
+        self._prepare_images(dataroot)
         self.ts = openstreetmap.TileServer()
 
-        self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-cantload.png'))
-        self.noimage_loading = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-loading.png'))
         
         self.core = core
         self.core.connect('map-changed', self._on_map_changed)
@@ -126,7 +139,6 @@ class HildonGui(SimpleGui):
 
         gtk.link_button_set_uri_hook(self._open_browser)
         #self.show_coordinate_input(geo.Coordinate(49.344, 6.584))
-
         self.rotation_manager = FremantleRotation('advancedcaching')
 
         self.astral = Astral()
@@ -135,6 +147,15 @@ class HildonGui(SimpleGui):
         hildon.hildon_gtk_window_take_screenshot(self.window, True)
         SimpleGui.on_window_destroy(self, target, more, data)
 
+    def _prepare_images(self, dataroot):
+        p = "%s%s%%s" % (path.join(dataroot, '%s'), extsep)
+        self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(p % ('noimage-cantload', 'png'))
+        self.noimage_loading = gtk.gdk.pixbuf_new_from_file(p % ('noimage-loading', 'png'))
+        out = {}
+
+        for key, name in self.ICONS.items():
+            out[key] = gtk.gdk.pixbuf_new_from_file(p % (name, 'png'))
+        self.icon_pixbufs = out
 
     def _open_browser(self, widget, link):
         system("browser --url='%s' &" % link)
@@ -166,7 +187,7 @@ class HildonGui(SimpleGui):
     def _on_key_press(self, window, event):
         return
         if event.keyval == gtk.keysyms.F7:
-            self.zoom( + 1)
+            self.zoom(+ 1)
             return False
         elif event.keyval == gtk.keysyms.F8:
             self.zoom(-1)
@@ -900,6 +921,7 @@ class HildonGui(SimpleGui):
                     showdesc = text_longdesc
                 showdesc = showdesc.replace('&', '&amp;')
                 widget_description.set_markup(showdesc)
+                widget_description.connect('configure-event', self._on_configure_label)
                 
             else:
                 import gtkhtml2
@@ -918,41 +940,62 @@ class HildonGui(SimpleGui):
 
             # logs&hints
             p = hildon.PannableArea()
-            vp = gtk.Viewport()
-            p.add(vp)
-            widget_hints = gtk.Label()
-            widget_hints.set_line_wrap(True)
-            widget_hints.set_alignment(0, 0)
-            widget_hints.set_size_request(self.window.size_request()[0] - 10, -1)
-
-            def reorder_description(portrait):
-                widget_description.set_size_request(self.window.size_request()[0] - 10, -1)
-                widget_hints.set_size_request(self.window.size_request()[0] - 10, -1)
-            self.reorder_functions.append(reorder_description)
-
-            vp.add(widget_hints)
+            widget_hints = gtk.VBox()
+            p.add_with_viewport(widget_hints)
             notebook.append_page(p, gtk.Label("logs & hints"))
+            #widget_hints.set_line_wrap(True)
+            #widget_hints.set_alignment(0, 0)
+            #widget_hints.set_size_request(self.window.size_request()[0] - 10, -1)
+
 
             logs = cache.get_logs()
-            if len(logs) > 0:
-                text_hints = 'LOGS:\n'
-                for l in logs:
-                    if l['type'] == geocaching.GeocacheCoordinate.LOG_TYPE_FOUND:
-                        t = 'FOUND'
-                    elif l['type'] == geocaching.GeocacheCoordinate.LOG_TYPE_NOTFOUND:
-                        t = 'NOT FOUND'
-                    elif l['type'] == geocaching.GeocacheCoordinate.LOG_TYPE_NOTE:
-                        t = 'NOTE'
-                    elif l['type'] == geocaching.GeocacheCoordinate.LOG_TYPE_MAINTENANCE:
-                        t = 'MAINTENANCE'
-                    else:
-                        t = l['type'].upper()
-                    text_hints = '%s%s by %s at %4d/%d/%d: %s\n\n' % (text_hints, t, l['finder'], int(l['year']), int(l['month']), int(l['day']), l['text'])
-                text_hints += '\n----------------\n'
+            
+            for l in logs:
+                try:
+                    w_type = gtk.image_new_from_pixbuf(self.icon_pixbufs[l['type']])
+                except KeyError:
+                    w_type = gtk.Label(l['type'].upper())
+                    w_type.set_alignment(0, 0)
+                w_name = gtk.Label()
+                w_name.set_markup(" <b>%s</b>" % l['finder'].replace('&', '&amp;'))
+                w_name.set_alignment(0, 0)
+                w_date = gtk.Label()
+                w_date.set_markup("<b>%4d-%02d-%02d</b>" % (int(l['year']), int(l['month']), int(l['day'])))
+                w_date.set_alignment(0.95, 0)
+                w_text = gtk.Label(l['text'])
+                w_text.set_line_wrap(True)
+                w_text.set_alignment(0, 0)
+                w_text.connect('configure-event', self._on_configure_label)
+                w_text.set_size_request(self.window.size_request()[0] - 10, -1)
+                w_first = gtk.HBox()
+                w_first.pack_start(w_type, False, False)
+                w_first.pack_start(w_name)
+                w_first.pack_start(w_date)
+                widget_hints.pack_start(w_first, False, False)
+                widget_hints.pack_start(w_text, False, False)
+                widget_hints.pack_start(gtk.HSeparator(), False, False)
+
+            hints = cache.hints.strip()
+            if len(hints) > 0:
+                button_hints = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
+                button_hints.set_label('Show Hints (%d chars)' % len(hints))
+                label_hints = gtk.Label()
+                label_hints.set_line_wrap(True)
+                label_hints.set_alignment(0, 0)
+                label_hints.connect('configure-event', self._on_configure_label)
+                label_hints.set_size_request(self.window.size_request()[0] - 10, -1)
+                def show_hints(widget):
+                    label_hints.set_text(hints)
+                    widget.hide()
+                button_hints.connect('clicked', show_hints)
+                widget_hints.pack_start(button_hints, False, False)
+                widget_hints.pack_start(label_hints, False, False)
             else:
-                text_hints = 'No Logs.\n\n'
-            text_hints += "Hints:\n%s" % cache.hints
-            widget_hints.set_text(text_hints)
+                label_hints = gtk.Label()
+                label_hints.set_markup('<i>No hints available</i>')
+                widget_hints.pack_start(label_hints, False, False)
+
+
 
             # images
             
@@ -1076,6 +1119,10 @@ class HildonGui(SimpleGui):
 
         win.connect('delete_event', self.hide_cache_view)
         self.current_cache_window_open = True
+
+
+    def _on_configure_label(self, widget, event):
+        widget.set_size_request(self.window.size_request()[0] - 10, -1)
 
     def build_coordinates(self, cache, p):
 
@@ -1230,15 +1277,15 @@ class HildonGui(SimpleGui):
 
 
     def _on_add_waypoint_clicked (widget):
-            if self.gps_data != None and self.gps_data.position != None:
-                c = self.gps_data.position
-            elif self.current_target != None:
-                c = self.current_target
-            else:
-                c = geo.Coordinate(0, 0)
-            res = self.show_coordinate_input(c)
-            text = "\n%s\n" % res.get_latlon(self.format)
-            self.cache_notes.get_buffer().insert(self.cache_notes.get_buffer().get_end_iter(), text)
+        if self.gps_data != None and self.gps_data.position != None:
+            c = self.gps_data.position
+        elif self.current_target != None:
+            c = self.current_target
+        else:
+            c = geo.Coordinate(0, 0)
+        res = self.show_coordinate_input(c)
+        text = "\n%s\n" % res.get_latlon(self.format)
+        self.cache_notes.get_buffer().insert(self.cache_notes.get_buffer().get_end_iter(), text)
 
         
     def _on_show_image(self, dpath, caption):
@@ -1295,7 +1342,7 @@ class HildonGui(SimpleGui):
                 coord = geo.Coordinate(None, None, w['name'])
                 coord.comment = self._strip_html(w['comment'])
                 latlon = '???'
-            text = self.wrap("%s - %s - %s\n%s" % (w['name'], latlon, w['id'], self._strip_html(w['comment'])), 80)
+            text = "%s - %s - %s\n%s" % (w['name'], latlon, w['id'], self.shorten_name(self._strip_html(w['comment']), 65))
             selector.append_text(text)
             clist[i] = coord
             i += 1

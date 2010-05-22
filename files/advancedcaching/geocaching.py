@@ -19,16 +19,11 @@
 #
 
 try:
-    from json import loads, dumps
+    from simplejson import dumps, loads
 except (ImportError, AttributeError):
-    from simplejson import loads as loads_n
-    from simplejson import dumps 
+    from json import loads, dumps
 
 import geo
-
-def loads(what):
-    print "loads %d" % len(what)
-    return loads_n(what)
 
 class GeocacheCoordinate(geo.Coordinate):
     LOG_NO_LOG = 0
@@ -84,9 +79,9 @@ class GeocacheCoordinate(geo.Coordinate):
     }
 
     ATTRS = ('lat', 'lon', 'title', 'name', 'shortdesc', 'desc', 'hints', 'type', \
-              'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
-              'images', 'notes', 'fieldnotes', 'logas', 'logdate', 'marked', \
-              'logs', 'status', 'vars', 'alter_lat', 'alter_lon')
+             'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
+             'images', 'notes', 'fieldnotes', 'logas', 'logdate', 'marked', \
+             'logs', 'status', 'vars', 'alter_lat', 'alter_lon')
 
 
     SQLROW = {
@@ -170,7 +165,6 @@ class GeocacheCoordinate(geo.Coordinate):
         return ret
                 
     def unserialize(self, data):
-        print 'unser'
         ret = {}
         for key in self.ATTRS:
             ret[key] = data[key]
@@ -185,10 +179,15 @@ class GeocacheCoordinate(geo.Coordinate):
             self.vars = ''
         ret['found'] = (ret['found'] == 1)
         self.__dict__ = ret
+        
     def get_waypoints(self):
         if self.waypoints == None or self.waypoints == '':
             return []
-        return loads(self.waypoints)
+        try:
+            return self.saved_waypoints
+        except (AttributeError):
+            self.saved_waypoints = loads(self.waypoints)
+            return self.saved_waypoints
 
     def get_vars(self):
         if self.vars == None or self.vars == '':
@@ -214,13 +213,20 @@ class GeocacheCoordinate(geo.Coordinate):
 
     def set_waypoints(self, wps):
         self.waypoints = dumps(wps)
+        try:
+            del self.saved_waypoints
+        except:
+            pass
 
     def set_logs(self, ls):
         self.logs = dumps(ls)
 
     def set_images(self, imgs):
         self.images = dumps(imgs)
-                
+        try:
+            del self.saved_images
+        except:
+            pass
                 
     def was_downloaded(self):
         return (self.shortdesc != '' or self.desc != '')

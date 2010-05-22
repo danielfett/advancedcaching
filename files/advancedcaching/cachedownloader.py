@@ -277,68 +277,55 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
                 
     def _parse_cache_page(self, cache_page, coordinate):
-        indesc = inshortdesc = inwaypoints = inhints = False
-        inhead = True
+        section = ''
         shortdesc = desc = hints = waypoints = images = logs = owner = ''
         for line in cache_page:
             line = line.strip()
             #line = unicode(line, errors='replace')
-        
-            if line.startswith('<span id="ctl00_ContentBody_ShortDescription">'):
-                inhead = False
-                inshortdesc = True
-            elif line.startswith('<span id="ctl00_ContentBody_LongDescription">'):
-                inhead = False
-                inshortdesc = False
-                indesc = True
-            elif line.startswith('<div class="CacheDetailNavigationWidget">'):
-                inhead = False
-                inshortdesc = False
-                indesc = False
-            elif line.startswith('<div id="div_hint" class="HalfLeft">'):
-                inhead = False
-                inshortdesc = False
-                indesc = False
-                inhints = True
-            elif inhints and line.startswith('</div>'):
-                inhints = False
-            elif line.startswith('<div id="ctl00_ContentBody_uxlrgMap" class="fr"> '):
-                inhead = False
-                inshortdesc = False
-                indesc = False
-            elif line.startswith('<p><p><strong>Additional Waypoints</strong>'):
-                inhead = False
-                inshortdesc = False
-                indesc = False
-                inwaypoints = True
-            elif line.startswith('</table>') and inwaypoints:
-                inwaypoints = False
-            elif line.startswith('<p><span id="ctl00_ContentBody_Images">'):
-                images = line
-            elif line.startswith('<span id="ctl00_ContentBody_LatLon" style="font-weight:bold;">'):
-                coords = re.compile('lat=([0-9.-]+)&amp;lon=([0-9.-]+)&amp;').search(line)
-            elif line.startswith('<p><span id="ctl00_ContentBody_CacheLogs">'):
+            if section == '' and line.startswith('<div id="doc3" class="yui-t1">'):
+                section = 'head'
+            elif section == 'head' and line.startswith('<span id="ctl00_ContentBody_ShortDescription">'):
+                section = 'shortdesc'
+            elif (section == 'head' or section == 'shortdesc') and line.startswith('<span id="ctl00_ContentBody_LongDescription">'):
+                section = 'desc'
+            elif (section == 'desc' or section == 'shortdesc') and line.startswith('<div class="CacheDetailNavigationWidget">'):
+                section = 'after-desc'
+            elif section == 'after-desc' and line.startswith('<div id="div_hint" class="HalfLeft">'):
+                section = 'hints'
+            elif section == 'hints' and line.startswith('</div>'):
+                section = 'after-hints'
+            elif (section == 'after-hints' or section == 'after-desc') and line.startswith('<div id="ctl00_ContentBody_uxlrgMap" class="fr">'):
+                section = 'pre-waypoints'
+            elif section == 'after-hints' and line.startswith('<p><p><strong>Additional Waypoints</strong></p></p>'):
+                section = 'waypoints'
+            elif section == 'waypoints' and line.startswith('</table>'):
+                section = 'after-waypoints'
+            elif (section == 'pre-waypoints' or section == 'after-waypoints') and line.startswith('<p><span id="ctl00_ContentBody_Images">'):
+                section = 'images'
+            elif section == 'images' and line.startswith('<h3>Logged Visits'):
+                section = 'after-images'
+            elif section == 'after-images' and line.startswith('<p><span id="ctl00_ContentBody_CacheLogs">'):
                 logs = line
-            if inhead:
+            print section, ':', line
+            if section == 'head':
                 if line.startswith('<p><strong>A cache') or line.startswith('<p><strong>An Event'):
                     owner = re.compile("by <[^>]+>([^<]+)</a>").search(line).group(1)
                 elif line.startswith('<p class="NoSpacing"><strong>Size:</strong>'):
                     size = re.compile("container/([^\\.]+)\\.").search(line).group(1)
                     difficulty = re.compile('<span id="ctl00_ContentBody_Difficulty"><[^>]+alt="([0-9\\.]+) out of').search(line).group(1)
                     terrain = re.compile('<span id="ctl00_ContentBody_Terrain"><[^>]+alt="([0-9\\.]+) out of').search(line).group(1)
-#                elif line.startswith('<a id="lnkPrintFriendly" class="lnk" href="cdpf.aspx?guid'):
-#                    guid = re.compile('.*cdpf\\.aspx\?guid=([a-z0-9-]+)"').match(line).group(1)
-            if inshortdesc:
-                shortdesc += "%s\n" % line
-                
-            if indesc:
-                desc += "%s\n" % line
-                
-            if inhints:
-                hints += line + " "
-                
-            if inwaypoints:
-                waypoints += "%s  " % line
+                elif line.startswith('<span id="ctl00_ContentBody_LatLon" style="font-weight:bold;">'):
+                    coords = re.compile('lat=([0-9.-]+)&amp;lon=([0-9.-]+)&amp;').search(line)
+            elif section == 'shortdesc':
+                shortdesc = "%s%s\n" % (shortdesc, line)
+            elif section == 'desc':
+                desc = "%s%s\n" % (desc, line)
+            elif section == 'hints':
+                hints = "%s%s " % (hints, line)
+            elif section == 'waypoints':
+                waypoints = "%s%s  " % (waypoints, line)
+            elif section == 'images':
+                images = "%s%s " % (images, line)
     
         if owner == '':
             print "\n\n|||||||||||||||||||||||||||||||||||||||||||||||||||\n\n"
