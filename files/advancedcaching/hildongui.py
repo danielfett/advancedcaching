@@ -131,7 +131,6 @@ class HildonGui(SimpleGui):
         program.add_window(self.window)
         self.window.connect("delete_event", self.on_window_destroy, None)
         self.window.connect("key-press-event", self._on_key_press)
-        self.window.connect('configure_event', self.__configure_root)
         self.window.add(self._create_main_view())
         self.window.set_app_menu(self._create_main_menu())
         self.update_fieldnotes_display()
