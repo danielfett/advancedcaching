@@ -137,7 +137,7 @@ class HildonGui(SimpleGui):
 
         gtk.link_button_set_uri_hook(self._open_browser)
         #self.show_coordinate_input(geo.Coordinate(49.344, 6.584))
-        self.rotation_manager = FremantleRotation('advancedcaching')
+        self.rotation_manager = FremantleRotation('advancedcaching', mode = self.core.settings['options_rotate_screen'])
 
         self.astral = Astral()
 
@@ -253,7 +253,7 @@ class HildonGui(SimpleGui):
         self.main_gpspage_table.attach(self.drawing_area_arrow, 0, 1, 0, 7, gtk.EXPAND | gtk.FILL, gtk.EXPAND | gtk.FILL)
 
         def reorder_gps(widget, event):
-            print event.width, event.height
+            widget = self.main_gpspage
             portrait = (event.width < event.height)
             x = self.drawing_area_arrow.get_parent()
             if x != None:
@@ -276,7 +276,8 @@ class HildonGui(SimpleGui):
                 widget.pack_start(landscape_hbox)
                 landscape_hbox.show()
 
-        self.main_gpspage.connect('configure-event', reorder_gps)
+        self.window.connect('configure-event', reorder_gps)
+        self.main_gpspage.add_events(gtk.gdk.STRUCTURE_MASK)
 
         self.main_gpspage.pack_start(self.main_gpspage_table, False, True)
         
@@ -291,15 +292,14 @@ class HildonGui(SimpleGui):
         self.button_track = button
         buttons.pack_start(button, True, True)
         def reorder_map(widget, event):
-            print 'map', event.height, event.width
             portrait = (event.width < event.height)
             if portrait: 
                 text = ''
             else:
                 text = 'track'
-            button.set_label(text)
+            self.button_track.set_label(text)
 
-        self.main_mappage.connect('configure-event', reorder_map)
+        self.window.connect('configure-event', reorder_map)
 
 
         #icon = gtk.image_new_from_stock(gtk.STOCK_ZOOM_IN, gtk.ICON_SIZE_BUTTON)
@@ -912,7 +912,7 @@ class HildonGui(SimpleGui):
                     showdesc = text_longdesc
                 showdesc = showdesc.replace('&', '&amp;')
                 widget_description.set_markup(showdesc)
-                widget_description.connect('configure-event', self._on_configure_label)
+                self.window.connect('configure-event', self._on_configure_label, widget_description)
                 
             else:
                 import gtkhtml2
@@ -956,7 +956,7 @@ class HildonGui(SimpleGui):
                 w_text = gtk.Label("%s\n" % l['text'].strip())
                 w_text.set_line_wrap(True)
                 w_text.set_alignment(0, 0)
-                w_text.connect('configure-event', self._on_configure_label)
+                self.window.connect('configure-event', self._on_configure_label, w_text)
                 w_text.set_size_request(self.window.size_request()[0] - 10, -1)
                 w_first = gtk.HBox()
                 w_first.pack_start(w_type, False, False)
@@ -973,7 +973,7 @@ class HildonGui(SimpleGui):
                 label_hints = gtk.Label()
                 label_hints.set_line_wrap(True)
                 label_hints.set_alignment(0, 0)
-                label_hints.connect('configure-event', self._on_configure_label)
+                self.window.connect('configure-event', self._on_configure_label, label_hints)
                 label_hints.set_size_request(self.window.size_request()[0] - 10, -1)
                 def show_hints(widget):
                     label_hints.set_text(hints)
@@ -1104,9 +1104,7 @@ class HildonGui(SimpleGui):
         self.current_cache_window_open = True
 
 
-    def _on_configure_label(self, widget, event):
-        print 'conf'
-        print event.width, event.height 
+    def _on_configure_label(self, source, event, widget):
         widget.set_size_request(event.width - 10, -1)
 
     def build_coordinates(self, cache, p):
