@@ -130,7 +130,6 @@ class HildonGui(SimpleGui):
         self.window = hildon.StackableWindow()
         program.add_window(self.window)
         self.window.connect("delete_event", self.on_window_destroy, None)
-        self.window.connect("key-press-event", self._on_key_press)
         self.window.add(self._create_main_view())
         self.window.set_app_menu(self._create_main_menu())
         self.update_fieldnotes_display()
@@ -183,6 +182,7 @@ class HildonGui(SimpleGui):
 
 
     def _on_key_press(self, window, event):
+        #self.rotation_manager.set_mode(FremantleRotation.ALWAYS)
         return
         if event.keyval == gtk.keysyms.F7:
             self.zoom(+ 1)
@@ -839,6 +839,8 @@ class HildonGui(SimpleGui):
         
         win = hildon.StackableWindow()
         win.set_title(cache.title)
+
+        win.connect("key-press-event", self._on_key_press)
         
         notebook = gtk.Notebook()
         notebook.set_tab_pos(gtk.POS_BOTTOM)
@@ -1057,6 +1059,7 @@ class HildonGui(SimpleGui):
             portrait = (event.width < event.height)
             notebook.set_property('show-tabs', not portrait)
             if portrait:
+                notebook_switcher.show()
                 notebook_switcher.show_all()
             else:   
                 notebook_switcher.hide()
