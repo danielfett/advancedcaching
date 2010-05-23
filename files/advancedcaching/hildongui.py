@@ -1039,7 +1039,7 @@ class HildonGui(SimpleGui):
         notebook.append_page(p, gtk.Label("notes"))
         
         notebook_switcher = gtk.HBox(True)
-        notebook_switcher.set_no_show_all(True)
+        #notebook_switcher.set_no_show_all(True)
 
         def switch_nb(widget, forward):
             if forward:
@@ -1059,7 +1059,6 @@ class HildonGui(SimpleGui):
             portrait = (event.width < event.height)
             notebook.set_property('show-tabs', not portrait)
             if portrait:
-                notebook_switcher.show()
                 notebook_switcher.show_all()
             else:   
                 notebook_switcher.hide()
