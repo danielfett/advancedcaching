@@ -956,8 +956,8 @@ class HildonGui(SimpleGui):
                 w_text = gtk.Label("%s\n" % l['text'].strip())
                 w_text.set_line_wrap(True)
                 w_text.set_alignment(0, 0)
-                self.window.connect('configure-event', self._on_configure_label, w_text)
                 w_text.set_size_request(self.window.size_request()[0] - 10, -1)
+                self.window.connect('configure-event', self._on_configure_label, w_text)
                 w_first = gtk.HBox()
                 w_first.pack_start(w_type, False, False)
                 w_first.pack_start(w_name)
@@ -1060,7 +1060,7 @@ class HildonGui(SimpleGui):
                 notebook_switcher.show_all()
             else:   
                 notebook_switcher.hide()
-        notebook.connect('configure-event', reorder_details)
+        self.window.connect('configure-event', reorder_details)
         
 
         win.add(details)
@@ -1258,8 +1258,7 @@ class HildonGui(SimpleGui):
         self.cache_calc_viewport.show_all()
 
 
-
-    def _on_add_waypoint_clicked (widget):
+    def _on_add_waypoint_clicked (self, widget):
         if self.gps_data != None and self.gps_data.position != None:
             c = self.gps_data.position
         elif self.current_target != None:
