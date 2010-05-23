@@ -23,7 +23,21 @@
 # download map data
 # direction indicator in map view
 # edit waypoints
-# restructure hints and description
+# improved waypoint handling
+# - list of user waypoints:
+#   - per cache
+#   - "free" waypoints
+# - add/remove/edit of waypoints
+# - still parse waypoints from notes
+# - add parsing of calculations from notes
+# save selected geocache
+# automatically deselect "track"
+# show on map for waypoints
+# changes in menu:
+# - map filters -> selection button
+# - new "tools" button:
+#   - download map
+#   - upload fieldnotes
  
 ### For the gui :-)
 
@@ -157,7 +171,7 @@ class HildonGui(SimpleGui):
     def _open_browser(self, widget, link):
         system("browser --url='%s' &" % link)
 
-    def show_coordinate_input(self, start):
+    def show_coordinate_input(self, start, none_on_cancel = False):
         udr = UpdownRows(self.format, start, True)
         dialog = gtk.Dialog("Edit Target", None, gtk.DIALOG_MODAL, ("OK", gtk.RESPONSE_ACCEPT))
         dialog.set_size_request(-1, 480)
@@ -172,6 +186,8 @@ class HildonGui(SimpleGui):
             c = udr.get_value()
             c.name = 'manual'
             return c
+        elif none_on_cancel:
+            return None
         else:
             return startd
 
@@ -935,10 +951,6 @@ class HildonGui(SimpleGui):
             widget_hints = gtk.VBox()
             p.add_with_viewport(widget_hints)
             notebook.append_page(p, gtk.Label("logs & hints"))
-            #widget_hints.set_line_wrap(True)
-            #widget_hints.set_alignment(0, 0)
-            #widget_hints.set_size_request(self.window.size_request()[0] - 10, -1)
-
 
             logs = cache.get_logs()
             
@@ -958,7 +970,7 @@ class HildonGui(SimpleGui):
                 w_text.set_line_wrap(True)
                 w_text.set_alignment(0, 0)
                 w_text.set_size_request(self.window.size_request()[0] - 10, -1)
-                self.window.connect('configure-event', self._on_configure_label, w_text)
+                self.window.connect('configure-event', self._on_configure_label, w_text, True)
                 w_first = gtk.HBox()
                 w_first.pack_start(w_type, False, False)
                 w_first.pack_start(w_name)
@@ -987,12 +999,8 @@ class HildonGui(SimpleGui):
                 label_hints.set_markup('<i>No hints available</i>')
                 widget_hints.pack_start(label_hints, False, False)
 
-
-
             # images
-            
-            if len(cache.get_images()) > 0:
-                self.build_cache_images(cache, notebook)
+            self.build_cache_images(cache, notebook)
 
             # calculated coords
             text = text_longdesc
@@ -1002,17 +1010,13 @@ class HildonGui(SimpleGui):
                 self.build_cache_calc(cache, notebook)
 
         # coords
-
-
         p = gtk.VBox()
-        #self.build_coordinates(cache, p)
         self.cache_coord_page = p
         x = notebook.get_n_pages()
         notebook.append_page(p, gtk.Label("coords"))
         def switchpage(caller, page, pageno):
             if pageno != x:
                 return
-            cache.notes = self.get_cache_notes()
             self.update_coords()
         notebook.connect("switch-page", switchpage)
 
@@ -1020,13 +1024,10 @@ class HildonGui(SimpleGui):
         pan = hildon.PannableArea()
         pan.set_property('mov-mode', hildon.MOVEMENT_MODE_BOTH)
         self.cache_notes = gtk.TextView()
-        #cache_notes.set_editable(True)
-        self.cache_notes.get_buffer().set_text(cache.notes)
         pan.add(self.cache_notes)
-
-        self.notes_changed = False
+        self.cache_notes.get_buffer().set_text(cache.notes)
         self.cache_notes.get_buffer().connect('changed', self.on_notes_changed)
-
+        self.notes_changed = False
 
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
         button.set_label("Add Waypoint")
@@ -1036,9 +1037,11 @@ class HildonGui(SimpleGui):
         p.pack_start(button, False)
         p.pack_start(pan, True)
         notebook.append_page(p, gtk.Label("notes"))
-        
-        notebook_switcher = gtk.HBox(True)
 
+
+        # portrait mode notebook switcher
+        notebook_switcher = gtk.HBox(True)
+        notebook_switcher.set_no_show_all(True)
         def switch_nb(widget, forward):
             if forward:
                 notebook.next_page()
@@ -1058,8 +1061,8 @@ class HildonGui(SimpleGui):
 
             notebook.set_property('show-tabs', not portrait)
             if portrait:
-                notebook_switcher.show()
-            else:   
+                notebook_switcher.show_all()
+            else:
                 notebook_switcher.hide()
         self.window.connect('configure-event', reorder_details)
         
@@ -1100,13 +1103,16 @@ class HildonGui(SimpleGui):
         
         win.set_app_menu(menu)        
         win.show_all()
+        notebook_switcher.set_no_show_all(False)
         reorder_details(None, win.get_allocation())
         win.connect('delete_event', self.hide_cache_view)
         self.current_cache_window_open = True
 
 
-    def _on_configure_label(self, source, event, widget):
+    def _on_configure_label(self, source, event, widget, force = False):
         widget.set_size_request(event.width - 10, -1)
+        if force:
+            widget.realize()
 
     def build_coordinates(self, cache, p):
 
@@ -1125,12 +1131,13 @@ class HildonGui(SimpleGui):
         widget_coords.show_all()
 
     def __show_coordinate_details(self, c, cache):
-        RESPONSE_AS_TARGET, RESPONSE_AS_MAIN = range(2)
+        RESPONSE_AS_TARGET, RESPONSE_AS_MAIN, RESPONSE_COPY_EDIT = range(3)
         name = "Coordinate Details" if (c.name == "") else c.name
         dialog = gtk.Dialog(name, None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
         if c.lat != None:
             dialog.add_button("as Target", RESPONSE_AS_TARGET)
             dialog.add_button("as Main Coord.", RESPONSE_AS_MAIN)
+            dialog.add_button("copy & edit", RESPONSE_COPY_EDIT)
         lbl = gtk.Label()
         lbl.set_markup("<b>%s</b>\n%s" % (c.get_latlon(self.format) if c.lat != None else '???', c.comment))        
         lbl.set_line_wrap(True)
@@ -1145,9 +1152,14 @@ class HildonGui(SimpleGui):
             self.hide_cache_view()
         elif resp == RESPONSE_AS_MAIN:
             self.core.set_alternative_position(cache, c)
+        elif resp == RESPONSE_COPY_EDIT:
+            self._add_waypoint_to_notes(c)
+            self.update_coords()
+
 
 
     def update_coords(self):
+        self.current_cache.notes = self.get_cache_notes()
         for x in self.cache_coord_page.get_children():
             self.cache_coord_page.remove(x)
         self.build_coordinates(self.current_cache, self.cache_coord_page)
@@ -1158,8 +1170,10 @@ class HildonGui(SimpleGui):
         selector.get_column(0).get_cells()[0].set_property('xalign', 0)
         selector.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_SINGLE)
 
-
-        imagelist = self.current_cache.get_images().items()
+        images = self.current_cache.get_images()
+        if len(images) == 0:
+            return
+        imagelist = images.items()
         imagelist.sort(cmp=lambda x, y: cmp(x[1], y[1]))
         i = 1
         for filename, caption in imagelist:
@@ -1260,7 +1274,12 @@ class HildonGui(SimpleGui):
 
 
     def _on_add_waypoint_clicked (self, widget):
-        if self.gps_data != None and self.gps_data.position != None:
+        self._add_waypoint_to_notes(None)
+
+    def _add_waypoint_to_notes(self, start = None):
+        if start != None:
+            c = start
+        elif self.gps_data != None and self.gps_data.position != None:
             c = self.gps_data.position
         elif self.current_target != None:
             c = self.current_target
