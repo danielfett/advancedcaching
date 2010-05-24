@@ -1221,7 +1221,7 @@ class SimpleGui():
             else:
                 valmap = {'1..1.5': 1.5, '2..2.5': 2.5, '3..3.5': 3.5, '4..4.5': 4.5, '5': 5}
                 default = 5
-            if input in valmap.keys():
+            if input in valmap:
                 return valmap[input]
             else:
                 return default
@@ -1605,7 +1605,7 @@ class SimpleGui():
 
 
     def _replace_image_callback(self, match, coordinate):
-        if match.group(1) in coordinate.get_images().keys():
+        if match.group(1) in coordinate.get_images():
             desc = coordinate.get_images()[match.group(1)]
             if desc.strip() != '':
                 return ' [image: %s] ' % desc
@@ -1707,28 +1707,28 @@ class SimpleGui():
         self.ts.set_zoom(self.settings['map_zoom'])
         self.set_center(geo.Coordinate(self.settings['map_position_lat'], self.settings['map_position_lon']))
                 
-        if 'last_target_lat' in self.settings.keys():
+        if 'last_target_lat' in self.settings:
             self.set_target(geo.Coordinate(self.settings['last_target_lat'], self.settings['last_target_lon'], self.settings['last_target_name']))
 
         for x in self.SETTINGS_CHECKBOXES:
-            if x in self.settings.keys():
+            if x in self.settings:
                 w = xml.get_widget('check_%s' % x)
                 if w == None:
                     continue
                 w.set_active(self.settings[x])
-            elif x in self.DEFAULT_SETTINGS.keys():
+            elif x in self.DEFAULT_SETTINGS:
                 w = xml.get_widget('check_%s' % x)
                 if w == None:
                     continue
                 w.set_active(self.DEFAULT_SETTINGS[x])
         
         for x in self.SETTINGS_INPUTS:
-            if x in self.settings.keys():
+            if x in self.settings:
                 w = xml.get_widget('input_%s' % x)
                 if w == None:
                     continue
                 w.set_text(str(self.settings[x]))
-            elif x in self.DEFAULT_SETTINGS.keys():
+            elif x in self.DEFAULT_SETTINGS:
                 w = xml.get_widget('input_%s' % x)
                 if w == None:
                     continue

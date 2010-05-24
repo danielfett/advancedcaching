@@ -36,7 +36,7 @@ class PointProvider():
         fields = copy(self.ctype.SQLROW)
         c.execute('PRAGMA TABLE_INFO(%s)' % self.cache_table)
         for row in c:
-            if row[1] in fields.keys():
+            if row[1] in fields:
                 del fields[row[1]]
 
         # add all remaining fields
@@ -267,8 +267,7 @@ class PointProvider():
         query = 'SELECT * FROM %s WHERE name LIKE ? OR title LIKE ? LIMIT 2' % self.cache_table
         c = self.conn.execute(query, (string, string))
         row = c.fetchone()
-        coord = self.ctype(row['lat'], row['lon'])
-        coord.unserialize(row)
+        coord = self.ctype(None, None, None, row)
                 
         # we cannot reliably determine # of results, so using workaround here
         if c.fetchone() != None:
@@ -277,5 +276,16 @@ class PointProvider():
                 
     def update_field(self, coordinate, field, newvalue):
         query = 'UPDATE %s SET %s = ? WHERE name = ?' % (self.cache_table, field)
-        c = self.conn.execute(query, (newvalue, coordinate.name))
+        self.conn.execute(query, (newvalue, coordinate.name))
         self.save()
+
+    def get_by_name(self, gcname):
+        query = 'SELECT * FROM %s WHERE name LIKE ? LIMIT 2' % self.cache_table
+        c = self.conn.execute(query, (gcname,))
+        row = c.fetchone()
+        if row != None:
+            coord = self.ctype(None, None, None, row)
+            return coord
+        else:
+            return None
+        

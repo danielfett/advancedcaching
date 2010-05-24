@@ -229,6 +229,7 @@ class Core(gobject.GObject):
         'last_target_lat': 50,
         'last_target_lon': 10,
         'last_target_name': 'default',
+        'last_selected_geocache' : '',
         'download_noimages': False,
         'download_map_path': DATA_DIR + MAPS_DIR,
         'options_hide_found': False,
@@ -610,6 +611,9 @@ class Core(gobject.GObject):
     def set_cache_calc_vars(self, cache, vars):
         self.pointprovider.update_field(cache, 'vars', vars)
 
+    def get_geocache_by_name(self, name):
+        return self.pointprovider.get_by_name(name)
+
     #called by gui
     def on_userdata_changed(self, username, password):
         self.downloader.update_userdata(username, password)
@@ -653,7 +657,7 @@ class Core(gobject.GObject):
         if string != '':
             tmp_settings = loads(string)
             for k, v in self.DEFAULT_SETTINGS.items():
-                if k in tmp_settings.keys() != None:
+                if k in tmp_settings != None:
                     self.settings[k] = tmp_settings[k]
                 else:
                     self.settings[k] = v

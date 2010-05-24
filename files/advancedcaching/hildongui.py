@@ -38,6 +38,8 @@
 # - new "tools" button:
 #   - download map
 #   - upload fieldnotes
+# find location by name
+# add 'download map around geocaches' feature
  
 ### For the gui :-)
 
@@ -150,7 +152,7 @@ class HildonGui(SimpleGui):
 
         gtk.link_button_set_uri_hook(self._open_browser)
         #self.show_coordinate_input(geo.Coordinate(49.344, 6.584))
-        self.rotation_manager = FremantleRotation('advancedcaching', mode = self.core.settings['options_rotate_screen'])
+        self.rotation_manager = FremantleRotation('advancedcaching')
 
         self.astral = Astral()
 
@@ -1217,7 +1219,7 @@ class HildonGui(SimpleGui):
             m.pack_start(gtk.Label(str(char)))
             e = hildon.Entry(gtk.HILDON_SIZE_AUTO)
             e.set_property("hildon-input-mode", gtk.HILDON_GTK_INPUT_MODE_NUMERIC)
-            if char in self.cache_calc.vars.keys():
+            if char in self.cache_calc.vars:
                 e.set_text(self.cache_calc.vars[char])
             e.connect('changed', input_changed, str(char))
             e.set_size_request(50, -1)
@@ -1251,7 +1253,7 @@ class HildonGui(SimpleGui):
             else:
                 label_text += "<i>Needs "
                 for r in c.requires:
-                    if r in self.cache_calc.vars.keys():
+                    if r in self.cache_calc.vars:
                         label_text += "<s>%s </s>" % r
                     else:
                         label_text += "<b>%s </b>" % r
@@ -1739,7 +1741,10 @@ class HildonGui(SimpleGui):
             settings['last_target_lat'] = self.current_target.lat
             settings['last_target_lon'] = self.current_target.lon
 
-        for i in ['options_username', 'options_password', 'download_noimages', 'options_show_name', 'options_hide_found']:
+        if self.current_cache != None:
+            settings['last_selected_geocache'] = self.current_cache.name
+
+        for i in ['options_username', 'options_password', 'download_noimages', 'options_show_name', 'options_hide_found', 'options_show_html_description', 'options_map_double_size', 'options_rotate_screen']:
             settings[i] = self.settings[i]
         self.settings = settings
         return settings
@@ -1748,11 +1753,17 @@ class HildonGui(SimpleGui):
     def write_settings(self, settings):
         self.settings = settings
         self.block_changes = True
-        self.ts.set_zoom(self.settings['map_zoom'])
-        self.set_center(geo.Coordinate(self.settings['map_position_lat'], self.settings['map_position_lon']))
+        self.ts.set_zoom(settings['map_zoom'])
+        self.set_center(geo.Coordinate(settings['map_position_lat'], settings['map_position_lon']))
+        self.rotation_manager.set_mode(settings['options_rotate_screen'])
 
-        if 'last_target_lat' in self.settings.keys():
-            self.set_target(geo.Coordinate(self.settings['last_target_lat'], self.settings['last_target_lon'], self.settings['last_target_name']))
+
+        if 'last_target_lat' in settings:
+            self.set_target(geo.Coordinate(settings['last_target_lat'], settings['last_target_lon'], settings['last_target_name']))
+        if 'last_selected_geocache' in settings and settings['last_selected_geocache'] not in (None, ''):
+            cache = self.core.get_geocache_by_name(settings['last_selected_geocache'])
+            if cache != None:
+                self.set_current_cache(cache)
 
         self.block_changes = False
 

@@ -119,7 +119,7 @@ class CacheDownloader(gobject.GObject):
 
     def _download_image(self, url):
         print "+ Checking download for %s" % url
-        if url in self.downloaded_images.keys():
+        if url in self.downloaded_images:
             return self.downloaded_images[url]
         
         ext = url.rsplit('.', 1)[1]
@@ -243,8 +243,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
         text = content.replace("\\'", "'")
         a = json.loads(text.replace('\t', ' '))
         points = []
-        if not 'cc' in a['cs'].keys():
-            if 'count' in a['cs'].keys() and 'count' != 0:
+        if not 'cc' in a['cs']:
+            if 'count' in a['cs'] and 'count' != 0:
                 # let's try to download one half of the geocaches first
                 mlat = (c1.lat + c2.lat)/2
                 nc1 = geo.Coordinate(min(c1.lat, c2.lat), min(c1.lon, c2.lon))
@@ -467,8 +467,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
             return "[[img:%s]]" % id
 
     def __add_image(self, id, description = ''):
-        if ((id in self.images.keys() and len(description) > len(self.images[id]))
-            or id not in self.images.keys()):
+        if ((id in self.images and len(description) > len(self.images[id]))
+            or id not in self.images):
             self.images[id] = description
 
     @staticmethod

@@ -113,7 +113,7 @@ class CalcCoordinate():
 
     def has_requires(self):
         for i in self.requires:
-            if not i in self.vars.keys():
+            if not i in self.vars:
                 return False
         return True
 

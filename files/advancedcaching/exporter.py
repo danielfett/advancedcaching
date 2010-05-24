@@ -267,7 +267,7 @@ class HTMLExporter():
         return re.sub(r'\[\[img:([^\]]+)\]\]', lambda a: self.__replace_image_callback(a, coordinate), text)
 
     def __replace_image_callback(self, match, coordinate):
-        if match.group(1) in coordinate.get_images().keys():
+        if match.group(1) in coordinate.get_images():
             return '<img src="%s" />' % match.group(1)
         else:
             return ' [image not found -- please re-download geocache description] '
