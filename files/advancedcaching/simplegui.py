@@ -658,6 +658,8 @@ class SimpleGui():
                 found = None
             cache = self.pointprovider.get_nearest_point_filter(c, c1, c2, found)
             self.core.on_cache_selected(cache)
+        else:
+            self.button_track.set_active(False)
         self.draw_at_x = self.draw_at_y = 0
         if offset_x != 0 or offset_y != 0:
             gobject.idle_add(self._draw_map)
@@ -1096,7 +1098,7 @@ class SimpleGui():
                 n, o = self.map_width / 2, self.map_height / 2
                 dist_from_center = (x - n) ** 2 + (y - o) ** 2
                 if dist_from_center > self.REDRAW_DISTANCE_TRACKING ** 2:
-                    self.set_center(self.gps_data.position)
+                    self.set_center(self.gps_data.position, reset_track = False)
                     # update last position, as it is now drawed
                     # self.gps_last_screen_position = (x, y)
                     return
@@ -1444,13 +1446,15 @@ class SimpleGui():
             self.zoom( + 1)
         
                 
-    def set_center(self, coord, noupdate=False):
+    def set_center(self, coord, noupdate=False, reset_track = False):
         #xml.get_widget("notebook_all").set_current_page(0)
         self.map_center_x, self.map_center_y = self.ts.deg2num(coord)
         self.draw_at_x = 0
         self.draw_at_y = 0
         if not noupdate:
             self._draw_map()
+        if reset_track:
+            self.button_track.set_active(False)
                 
     #called by core
     def set_download_progress(self, fraction, text):

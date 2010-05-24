@@ -30,9 +30,7 @@
 # - add/remove/edit of waypoints
 # - still parse waypoints from notes
 # - add parsing of calculations from notes
-# save selected geocache
-# automatically deselect "track"
-# show on map for waypoints
+# 'show on map' for waypoints
 # changes in menu:
 # - map filters -> selection button
 # - new "tools" button:
@@ -1528,9 +1526,12 @@ class HildonGui(SimpleGui):
         #
         ##############################################
 
-    def set_center(self, coord, noupdate=False):
+    def set_center(self, coord, noupdate=False, reset_track = True):
         SimpleGui.set_center(self, coord, noupdate)
         self.button_center_as_target.set_value(coord.get_latlon(self.format))
+        if reset_track:
+            self.button_track.set_active(False)
+
 
     def set_current_cache(self, cache):
         self.current_cache = cache
