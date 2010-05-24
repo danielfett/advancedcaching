@@ -52,21 +52,21 @@ import geo
 import re
 
 class CalcCoordinateManager(object):
-    def __init__(self, cache, text):
-        self.vars = cache.get_vars()
+    def __init__(self, cache, text, vars):
+        self.__vars = vars
         self.coords, self.requires = CalcCoordinate.find(text)
         self.update()
         
     def set_var(self, char, value):
         if value != '':
-            self.vars[char] = value
+            self.__vars[char] = value
         else:
-            del self.vars[char]
+            del self.__vars[char]
         self.update()
 
     def update(self):
         for c in self.coords:
-            c.set_vars(self.vars)
+            c.set_vars(self.__vars)
             if c.has_requires():
                 result = c.try_get_solution()
 
@@ -75,6 +75,9 @@ class CalcCoordinateManager(object):
 
     def get_plain_coordinates(self):
         return [c.result for c in self.coords if len(c.requires) == 0]
+
+    def get_vars(self):
+        return self.__vars
         
 
 class CalcCoordinate():

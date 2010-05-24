@@ -49,6 +49,16 @@ class HTMLManipulations(object):
             return re.sub(r'<[^>]*?>', ' ', text)
 
     @staticmethod
+    def strip_html_visual(text, image_replace_callback):
+        text = text.replace("\n", " ")
+        text = re.sub(r"""(?i)<img[^>]+alt=["']?([^'"> ]+)[^>]+>""", image_replace_callback, text)
+        text = re.sub(r'(?i)<(br|p)[^>]*?>', "\n", text)
+        text = re.sub(r'<[^>]*?>', '', text)
+        text = HTMLManipulations._decode_htmlentities(text)
+        text = re.sub(r'[\n\r]+\s*[\n\r]+', '\n', text)
+        return text.strip()
+
+    @staticmethod
     def _replace_br(text):
         return re.sub('<[bB][rR]\s*/?>|</?[pP]>', '\n', text)
 

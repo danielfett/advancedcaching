@@ -47,8 +47,8 @@ from os import path
 from os import system
 import re
 
+from advancedcaching.openstreetmap import gobject
 from astral import Astral
-import coordfinder
 import geo
 import geocaching
 import gtk
@@ -96,7 +96,7 @@ class HildonGui(SimpleGui):
         geocaching.GeocacheCoordinate.LOG_TYPE_UPDATE: 'asterisk_yellow',
     }
 
-    def __init__(self, core, pointprovider, userpointprovider, dataroot):
+    def __init__(self, core, dataroot):
         gtk.gdk.threads_init()
         self._prepare_images(dataroot)
         self.ts = openstreetmap.TileServer()
@@ -106,8 +106,6 @@ class HildonGui(SimpleGui):
         self.core.connect('map-changed', self._on_map_changed)
         self.core.connect('cache-changed', self._on_cache_changed)
         self.core.connect('fieldnotes-changed', self._on_fieldnotes_changed)
-
-        self.pointprovider = pointprovider
 
         self.build_tile_loaders()
                 
@@ -171,7 +169,7 @@ class HildonGui(SimpleGui):
     def _open_browser(self, widget, link):
         system("browser --url='%s' &" % link)
 
-    def show_coordinate_input(self, start, none_on_cancel = False):
+    def show_coordinate_input(self, start, none_on_cancel=False):
         udr = UpdownRows(self.format, start, True)
         dialog = gtk.Dialog("Edit Target", None, gtk.DIALOG_MODAL, ("OK", gtk.RESPONSE_ACCEPT))
         dialog.set_size_request(-1, 480)
@@ -201,7 +199,7 @@ class HildonGui(SimpleGui):
         self.rotation_manager.set_mode(FremantleRotation.ALWAYS)
         return
         if event.keyval == gtk.keysyms.F7:
-            self.zoom(+ 1)
+            self.zoom( + 1)
             return False
         elif event.keyval == gtk.keysyms.F8:
             self.zoom(-1)
@@ -410,13 +408,13 @@ class HildonGui(SimpleGui):
         button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_title("Download Overview")
         button.set_value("for the visible area")
-        button.connect("clicked", self.on_download_clicked, None)
+        button.connect("clicked", self.on_download_clicked)
         menu.append(button)
     
         button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_title("Download Details")
         button.set_value("for all visible caches")
-        button.connect("clicked", self.on_download_details_map_clicked, None)
+        button.connect("clicked", self.on_download_details_map_clicked)
         menu.append(button)
 
         button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
@@ -901,7 +899,6 @@ class HildonGui(SimpleGui):
             p.attach(gtk.Label("Please download full details to see the description."), 0, 2, 9, 10)
         
         notebook.append_page(p, gtk.Label("info"))
-        self.cache_calc = None
         if cache.was_downloaded():
         
             # Description
@@ -944,6 +941,7 @@ class HildonGui(SimpleGui):
                 widget_description.set_document(description)
                 p.set_property("mov-mode", hildon.MOVEMENT_MODE_BOTH)
                 p.add(widget_description)
+                text_longdesc = self._strip_html(text_longdesc)
                 
 
             # logs&hints
@@ -1003,10 +1001,8 @@ class HildonGui(SimpleGui):
             self.build_cache_images(cache, notebook)
 
             # calculated coords
-            text = text_longdesc
-            text += " | ".join(w['comment'] for w in cache.get_waypoints())
-            self.cache_calc = coordfinder.CalcCoordinateManager(cache, text)
-            if len(self.cache_calc.requires) > 0:
+            cache.start_calc(text_longdesc)
+            if len(cache.calc.requires) > 0:
                 self.build_cache_calc(cache, notebook)
 
         # coords
@@ -1056,7 +1052,7 @@ class HildonGui(SimpleGui):
         details.pack_start(notebook)
         details.pack_start(notebook_switcher, False)
 
-        def reorder_details(widget, event = None):
+        def reorder_details(widget, event=None):
             portrait = (event.width < event.height)
 
             notebook.set_property('show-tabs', not portrait)
@@ -1109,7 +1105,7 @@ class HildonGui(SimpleGui):
         self.current_cache_window_open = True
 
 
-    def _on_configure_label(self, source, event, widget, force = False):
+    def _on_configure_label(self, source, event, widget, force=False):
         widget.set_size_request(event.width - 10, -1)
         if force:
             widget.realize()
@@ -1132,7 +1128,10 @@ class HildonGui(SimpleGui):
 
     def __show_coordinate_details(self, c, cache):
         RESPONSE_AS_TARGET, RESPONSE_AS_MAIN, RESPONSE_COPY_EDIT = range(3)
-        name = "Coordinate Details" if (c.name == "") else c.name
+        try:
+            name = c.display_text
+        except AttributeError:
+            name = "Coordinate Details" if (c.name == "") else c.name
         dialog = gtk.Dialog(name, None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
         if c.lat != None:
             dialog.add_button("as Target", RESPONSE_AS_TARGET)
@@ -1198,18 +1197,19 @@ class HildonGui(SimpleGui):
     def build_cache_calc(self, cache, notebook):
 
         def input_changed(widget, char):
-            self.cache_calc.set_var(char, widget.get_text())
-            self.show_cache_calc_results()
+            cache.calc.set_var(char, widget.get_text())
+            self.show_cache_calc_results(cache)
 
         p = gtk.VBox()
-        count = len(self.cache_calc.requires)
+        count = len(cache.calc.requires)
         # create table with n columns.
         cols = 7
         rows = int(ceil(float(count) / float(cols)))
         table = gtk.Table(rows, cols)
         i = 0
-        requires_sort = list(self.cache_calc.requires)
+        requires_sort = list(cache.calc.requires)
         requires_sort.sort()
+        vars = cache.calc.get_vars()
         for char in requires_sort:
             row = i / cols
             col = i % cols
@@ -1217,8 +1217,10 @@ class HildonGui(SimpleGui):
             m.pack_start(gtk.Label(str(char)))
             e = hildon.Entry(gtk.HILDON_SIZE_AUTO)
             e.set_property("hildon-input-mode", gtk.HILDON_GTK_INPUT_MODE_NUMERIC)
-            if char in self.cache_calc.vars:
-                e.set_text(self.cache_calc.vars[char])
+            try:
+                e.set_text(vars[char])
+            except KeyError:
+                pass
             e.connect('changed', input_changed, str(char))
             e.set_size_request(50, -1)
             m.pack_start(e)
@@ -1231,40 +1233,27 @@ class HildonGui(SimpleGui):
         a.add(vp)
         p.pack_start(a, True)
         self.cache_calc_viewport = vp
-        self.show_cache_calc_results()
+        self.show_cache_calc_results(cache)
         notebook.append_page(p, gtk.Label("calc"))
 
-    def show_cache_calc_results(self):
+    def show_cache_calc_results(self, cache):
         p = gtk.VBox()
-        
-        for c in self.cache_calc.coords:
+        vars = cache.calc.get_vars()
+        for c in cache.calc.coords:
             if len(c.requires) == 0:
                 continue
-            label_text = '<b>%s</b>\n' % c.orig
-            button = None
             if c.has_requires():
-                label_text += '= %s\n' % c.replaced_result
-                if c.result != False:
-                    label_text += '= %s\n' % c.result
-                for warning in c.warnings:
-                    label_text += "<b>!</b> <span color='gold'>%s</span>\n" % warning
+                text_calc = "= %s\n%s%s" % (c.replaced_result, c.result if c.result != False else '', "".join("\n<b>!</b> <span color='gold'>%s</span>" % warning for warning in c.warnings))
             else:
-                label_text += "<i>Needs "
-                for r in c.requires:
-                    if r in self.cache_calc.vars:
-                        label_text += "<s>%s </s>" % r
-                    else:
-                        label_text += "<b>%s </b>" % r
-                label_text += "</i>\n"
+                text_calc = "<i>Needs %s</i>\n" % (', '.join(("<s>%s</s>" if r in vars else "<b>%s</b>") % r for r in cache.calc.requires))
 
-            b = gtk.Table(2, 1)
+            label_text = '<b>%s</b>\n%s' % (c.orig, text_calc)
+
             l = gtk.Label()
             l.set_alignment(0, 0.5)
             l.set_markup(label_text)
-            b.attach(l, 0, 1, 0, 2, gtk.EXPAND | gtk.FILL, gtk.EXPAND | gtk.FILL)
-            if button != None:
-                b.attach(button, 1, 2, 1, 2, 0, 0)
-            p.pack_start(b, False)
+            
+            p.pack_start(l, False)
             p.pack_start(gtk.HSeparator(), False)
             
         for x in self.cache_calc_viewport.get_children():
@@ -1276,7 +1265,7 @@ class HildonGui(SimpleGui):
     def _on_add_waypoint_clicked (self, widget):
         self._add_waypoint_to_notes(None)
 
-    def _add_waypoint_to_notes(self, start = None):
+    def _add_waypoint_to_notes(self, start=None):
         if start != None:
             c = start
         elif self.gps_data != None and self.gps_data.position != None:
@@ -1326,50 +1315,9 @@ class HildonGui(SimpleGui):
         selector = hildon.TouchSelector(text=True)
         selector.get_column(0).get_cells()[0].set_property('xalign', 0)
         selector.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_SINGLE)
-        format = lambda n: "%s %s" % (re.sub(r' ', '', n.get_lat(self.format)), re.sub(r' ', '', n.get_lon(self.format)))
-        selector.append_text("First Waypoint: %s" % format(cache))
-        cache.comment = "Original coordinate given in the cache description."
-        clist = {0: cache}
-        i = 1
-        for w in cache.get_waypoints():
-            if not (w['lat'] == -1 and w['lon'] == -1):
-                coord = geo.Coordinate(w['lat'], w['lon'], w['name'])
-                coord.comment = self._strip_html(w['comment'])
-                latlon = format(coord)
-            elif no_empty:
-                continue
-            else:
-                coord = geo.Coordinate(None, None, w['name'])
-                coord.comment = self._strip_html(w['comment'])
-                latlon = '???'
-            text = "%s - %s - %s\n%s" % (w['name'], latlon, w['id'], self.shorten_name(self._strip_html(w['comment']), 65))
-            selector.append_text(text)
-            clist[i] = coord
-            i += 1
-        
-        for coord in geo.search_coordinates(cache.notes):
-            selector.append_text("manually entered: " + format(coord))
-            coord.comment = "This coordinate was manually entered in the notes field."
-            clist[i] = coord
-            i += 1
-        if self.cache_calc != None:
-            for coord in self.cache_calc.get_solutions():
-                if coord == False:
-                    continue
-                selector.append_text("calculated: %s = %s" % (coord.name, format(coord)))
-                coord.comment = "This coordinate was calculated:\n%s = %s" % (coord.name, format(coord))
-                clist[i] = coord
-                i += 1
-            for coord in self.cache_calc.get_plain_coordinates():
-                if coord == False:
-                    continue
-                selector.append_text("found: %s" % (format(coord)))
-                coord.comment = "This coordinate was found in the description."
-                clist[i] = coord
-                i += 1
-
-        
-
+        clist = cache.get_collected_coordinates(include_unknown=not no_empty, format=self.format, htmlcallback=self._strip_html, shorten_callback=lambda text: self.shorten_name(text, 65))
+        for number, c in clist.items():
+            selector.append_text(c.display_text)
         selector.connect('changed', callback, clist)
         return selector, clist
 
@@ -1472,7 +1420,7 @@ class HildonGui(SimpleGui):
             fieldnotes_log_as_selector.append_text(text)
         i = 0
         for text, status in statuses:
-            if cache.log_as == status:
+            if cache.logas == status:
                 fieldnotes_log_as_selector.select_iter(0, fieldnotes_log_as_selector.get_model(0).get_iter(i), False)
             i += 1
         fieldnotes_log_as = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
@@ -1493,7 +1441,7 @@ class HildonGui(SimpleGui):
         cache.logas = statuses[fieldnotes_log_as_selector.get_selected_rows(0)[0][0]][1]
         cache.logdate = strftime('%Y-%m-%d', gmtime())
         cache.fieldnotes = fieldnotes.get_buffer().get_text(fieldnotes.get_buffer().get_start_iter(), fieldnotes.get_buffer().get_end_iter())
-        self.core.write_fieldnote(self.current_cache, cache.logas, cache.logdate, cache.fieldnotes)
+        self.core.save_fieldnote(cache)
         
         
     def _on_upload_fieldnotes(self, some, thing):
@@ -1526,11 +1474,9 @@ class HildonGui(SimpleGui):
         #
         ##############################################
 
-    def set_center(self, coord, noupdate=False, reset_track = True):
-        SimpleGui.set_center(self, coord, noupdate)
+    def set_center(self, coord, noupdate=False, reset_track=True):
+        SimpleGui.set_center(self, coord, noupdate, reset_track)
         self.button_center_as_target.set_value(coord.get_latlon(self.format))
-        if reset_track:
-            self.button_track.set_active(False)
 
 
     def set_current_cache(self, cache):
@@ -1538,6 +1484,7 @@ class HildonGui(SimpleGui):
         self.button_show_details.set_value(self.shorten_name(cache.title, 25))
         self.button_show_details.set_sensitive(True)
         self.button_show_details_small.set_sensitive(True)
+        gobject.idle_add(self.redraw_marks)
 
     def _on_set_target_clicked(self, some, cache):
         self.set_target(cache)
@@ -1590,7 +1537,7 @@ class HildonGui(SimpleGui):
         else:
             newzoom = self.ts.get_zoom() + direction
         self.ts.set_zoom(newzoom)
-        self.set_center(center)
+        self.set_center(center, reset_track=False)
 
         ##############################################
         #
@@ -1612,12 +1559,12 @@ class HildonGui(SimpleGui):
 
 
     def hide_cache_view(self, widget=None, data=None):
-        if self.cache_calc != None:
-            self.current_cache.set_vars(self.cache_calc.vars)
-            self.core.set_cache_calc_vars(self.current_cache, self.current_cache.vars)
+        if self.current_cache.calc != None:
+            self.core.save_cache_attribute(self.current_cache, 'vars')
         self.current_cache_window_open = False
         if self.notes_changed:
-            self.core.on_notes_changed(self.current_cache, self.get_cache_notes())
+            self.current_cache.notes = self.get_cache_notes()
+            self.core.save_cache_attribute(self.current_cache, 'notes')
             self.notes_changed = False
         self.old_cache_window = hildon.WindowStack.get_default().peek()
         hildon.WindowStack.get_default().pop(hildon.WindowStack.get_default().size()-1)
@@ -1639,7 +1586,7 @@ class HildonGui(SimpleGui):
             self.banner.show_all()
         else:
             self.banner.set_text(text)
-
+        
 
 
     def show_error(self, errormsg):

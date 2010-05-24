@@ -41,19 +41,19 @@ class RunError(Exception):
         return repr(self.msg)
 
 class Cli():
-    USES = ['geonames']
+    USES = ['geonames'] 
 
     # operators
     EQ = 0
     MIN = 1
     MAX = 2
 
-    def __init__(self, core, pointprovider, userpointprovider, dataroot):
+    def __init__(self, core, dataroot):
         self.nt = 1
         self.core = core
         self.caches = None
         self.new_caches = []
-        self.pointprovider = pointprovider
+        self.pointprovider = core.pointprovider
         pass
         
     def write_settings(self, settings):

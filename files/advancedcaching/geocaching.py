@@ -115,7 +115,9 @@ class GeocacheCoordinate(geo.Coordinate):
         geo.Coordinate.__init__(self, lat, lon, name)
         if data != None:
             self.unserialize(data)
+            self.calc = None
             return
+        self.calc = None
         # NAME = GC-ID
         self.title = ''
         self.shortdesc = ''
@@ -158,11 +160,18 @@ class GeocacheCoordinate(geo.Coordinate):
     def serialize(self):
         ret = {}
         for key in self.ATTRS:
-            ret[key] = getattr(self, key)
-
-        ret['found'] = 1 if self.found else 0
-        ret['marked'] = 1 if self.marked else 0
+            ret[key] = self.serialize_one(key) 
         return ret
+
+    def serialize_one(self, attribute):
+        if attribute == 'found':
+            return 1 if self.found else 0
+        elif attribute == 'marked':
+            return 1 if self.marked else 0
+        elif attribute == 'vars':
+            return dumps(self.calc.get_vars()) if self.calc != None else ''
+        else:
+            return getattr(self, attribute)
                 
     def unserialize(self, data):
         ret = {}
@@ -181,7 +190,7 @@ class GeocacheCoordinate(geo.Coordinate):
         self.__dict__ = ret
         
     def get_waypoints(self):
-        if self.waypoints == None or self.waypoints == '':
+        if self.waypoints in (None, '{}', ''):
             return []
         try:
             return self.saved_waypoints
@@ -189,13 +198,6 @@ class GeocacheCoordinate(geo.Coordinate):
             self.saved_waypoints = loads(self.waypoints)
             return self.saved_waypoints
 
-    def get_vars(self):
-        if self.vars == None or self.vars == '':
-            return {}
-        return loads(self.vars)
-
-    def set_vars(self, vars):
-        self.vars = dumps(vars)
 
     def get_logs(self):
         if self.logs == None or self.logs == '':
@@ -260,7 +262,63 @@ class GeocacheCoordinate(geo.Coordinate):
         self.alter_lat = coord.lat
         self.alter_lon = coord.lon
 
+    def start_calc(self, stripped_desc):
+        from coordfinder import CalcCoordinateManager
+        if self.vars == None or self.vars == '':
+            vars = {}
+        else:
+            vars = loads(self.vars)
+        text = stripped_desc
+        text += " | ".join(w['comment'] for w in self.get_waypoints())
+        self.calc = CalcCoordinateManager(self, text, vars)
 
+    def get_collected_coordinates(self, format, include_unknown = True, htmlcallback = lambda x: x, shorten_callback = lambda x: x):
+        cache = self
+        cache.display_text = "Geocache: %s" % cache.get_latlon(format)
+        cache.comment = "Original coordinate given in the cache description."
+        clist = {0: cache}
+        i = 1
+        # waypoints
+        for w in self.get_waypoints():
+            if not (w['lat'] == -1 and w['lon'] == -1):
+                coord = geo.Coordinate(w['lat'], w['lon'], w['name'])
+                coord.comment = htmlcallback(w['comment'])
+                latlon = coord.get_latlon(format)
+            elif not include_unknown:
+                continue
+            else:
+                coord = geo.Coordinate(None, None, w['name'])
+                coord.comment = htmlcallback(w['comment'])
+                latlon = '???'
+            coord.display_text = "%s - %s - %s\n%s" % (w['name'], latlon, w['id'], shorten_callback(htmlcallback(w['comment'])))
+            clist[i] = coord
+            i += 1
+
+        # parsed from notes
+        for coord in geo.search_coordinates(self.notes):
+            coord.display_text = "manually entered: %s" % coord.get_latlon(format)
+            coord.comment = "This coordinate was manually entered in the notes field."
+            clist[i] = coord
+            i += 1
+
+        # cache calc
+        if self.calc != None:
+            for coord in self.calc.get_solutions():
+                if coord == False:
+                    continue
+                coord.display_text = "calculated: %s = %s" % (coord.name, coord.get_latlon(format))
+                coord.comment = "This coordinate was calculated:\n%s = %s" % (coord.name, coord.get_latlon(format))
+                clist[i] = coord
+                i += 1
+
+            for coord in self.calc.get_plain_coordinates():
+                if coord == False:
+                    continue
+                coord.display_text = "found: %s" % (coord.get_latlon(format))
+                coord.comment = "This coordinate was found in the description."
+                clist[i] = coord
+                i += 1
+        return clist
     
         
 """

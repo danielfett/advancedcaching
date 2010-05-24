@@ -26,8 +26,6 @@
 # add "next waypoint" button?
 # add description to displayed images?
 # add translation support?
-
-
  
 ### For the gui :-)
 import math
@@ -133,7 +131,7 @@ class SimpleGui():
         'download_map_path'
     ]
                 
-    def __init__(self, core, pointprovider, userpointprovider, dataroot):
+    def __init__(self, core, dataroot):
     
         gtk.gdk.threads_init()
         self.ts = openstreetmap.TileServer()
@@ -143,8 +141,6 @@ class SimpleGui():
         self.core = core
         self.core.connect('map-changed', self._on_map_changed)
         self.core.connect('cache-changed', self._on_cache_changed)
-        self.pointprovider = pointprovider
-        self.userpointprovider = userpointprovider
         
                 
         self.format = geo.Coordinate.FORMAT_DM
@@ -200,7 +196,7 @@ class SimpleGui():
         self.tile_loaders = []
         
         for name, params in self.core.settings['map_providers']:    
-            tl = openstreetmap.get_tile_loader( ** params)
+            tl = openstreetmap.get_tile_loader(** params)
             tl.noimage_loading = self.noimage_loading
             tl.noimage_cantload = self.noimage_cantload
             tl.base_dir = self.core.settings['download_map_path']
@@ -318,12 +314,12 @@ class SimpleGui():
          ROW_ID,
          ) = range(6)
         columns = (
-                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE, ), False, True),
-                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE, ), False, True),
+                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
+                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
                    ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
                    ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
                    ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
-                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID, ), False, True),
+                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
                    )
         self.cachelist = listview = extListview.ExtListView(columns, sortable=True, useMarkup=True, canShowHideColumns=False)
         self.cachelist_contents = []
@@ -340,7 +336,7 @@ class SimpleGui():
                    ('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
                    ('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
                    ('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
-                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT, ), False, True),
+                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT,), False, True),
                    )
         self.coordlist = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
         self.coordlist.connect('extlistview-button-pressed', self.on_waypoint_clicked)
@@ -362,11 +358,13 @@ class SimpleGui():
 
     def _check_notes_save(self):
         if self.current_cache != None and self.notes_changed:
-            self.core.on_notes_changed(self.current_cache, self.cache_elements['notes'].get_text(self.cache_elements['notes'].get_start_iter(), self.cache_elements['notes'].get_end_iter()))
+            self.current_cache.notes = self.cache_elements['notes'].get_text(self.cache_elements['notes'].get_start_iter(), self.cache_elements['notes'].get_end_iter())
+            self.core.save_cache_attribute(self.current_cache, 'notes')
             self.notes_changed = False
 
         if self.current_cache != None and self.fieldnotes_changed:
-            self.core.on_fieldnotes_changed(self.current_cache, self.cache_elements['fieldnotes'].get_text(self.cache_elements['fieldnotes'].get_start_iter(), self.cache_elements['fieldnotes'].get_end_iter()))
+            self.current_cache.fieldnotes = self.cache_elements['fieldnotes'].get_text(self.cache_elements['fieldnotes'].get_start_iter(), self.cache_elements['fieldnotes'].get_end_iter())
+            self.core.save_cache_attribute(self.current_cache, 'fieldnotes')
             self.fieldnotes_changed = False
                 
     def _configure_event(self, widget, event):
@@ -455,7 +453,7 @@ class SimpleGui():
             else:
                 t = "%.1f" % (r.terrain / 10)
             title = self._format_cache_title(r)
-            rows.append((title, r.type, s, t, d, r.name,))
+            rows.append((title, r.type, s, t, d, r.name, ))
         self.cachelist.replaceContent(rows)
         self.notebook_search.set_current_page(1)
         self.redraw_marks()
@@ -656,7 +654,7 @@ class SimpleGui():
                 found = False
             else:
                 found = None
-            cache = self.pointprovider.get_nearest_point_filter(c, c1, c2, found)
+            cache = self.core.pointprovider.get_nearest_point_filter(c, c1, c2, found)
             self.core.on_cache_selected(cache)
         else:
             self.button_track.set_active(False)
@@ -858,7 +856,7 @@ class SimpleGui():
                 found = False
             else:
                 found = None
-            coords = self.pointprovider.get_points_filter(self.get_visible_area(), found, self.MAX_NUM_RESULTS_SHOW)
+            coords = self.core.pointprovider.get_points_filter(self.get_visible_area(), found, self.MAX_NUM_RESULTS_SHOW)
             if len(coords) >= self.MAX_NUM_RESULTS_SHOW:
                 self._draw_marks_message('Too many geocaches to display.')
             else:
@@ -1055,13 +1053,8 @@ class SimpleGui():
 
     def _update_mark(self, cache, status):
         cache.marked = status
-        if status:
-            s = 1
-        else:
-            s = 0
-        self.pointprovider.update_field(cache, 'marked', s)
+        self.core.save_cache_attribute(cache, 'marked')
         self.redraw_marks()
-
                 
     def on_download_cache_clicked(self, something):
         self.core.on_download_cache(self.current_cache)
@@ -1098,7 +1091,7 @@ class SimpleGui():
                 n, o = self.map_width / 2, self.map_height / 2
                 dist_from_center = (x - n) ** 2 + (y - o) ** 2
                 if dist_from_center > self.REDRAW_DISTANCE_TRACKING ** 2:
-                    self.set_center(self.gps_data.position, reset_track = False)
+                    self.set_center(self.gps_data.position, reset_track=False)
                     # update last position, as it is now drawed
                     # self.gps_last_screen_position = (x, y)
                     return
@@ -1145,7 +1138,7 @@ class SimpleGui():
         if (widget == None):
             widget = self.label_fieldnotes
         self._check_notes_save()
-        l = self.pointprovider.get_new_fieldnotes_count()
+        l = self.core.get_new_fieldnotes_count()
         if l > 0:
             widget.set_text("you have created %d fieldnotes" % l)
         else:
@@ -1163,7 +1156,7 @@ class SimpleGui():
         self.update_gps_display()
         self._draw_arrow()
 
-    def on_notes_changed(self, something, somethingelse = None):
+    def on_notes_changed(self, something, somethingelse=None):
         self.notes_changed = True
         
     def on_fieldnotes_changed(self, something, somethingelse):
@@ -1174,20 +1167,20 @@ class SimpleGui():
         from time import strftime
         if self.current_cache == None:
             return
-        log = geocaching.GeocacheCoordinate.LOG_NO_LOG
         if self.cache_elements['log_found'].get_active():
             log = geocaching.GeocacheCoordinate.LOG_AS_FOUND
-            self.pointprovider.update_field(self.current_cache, 'found', '1')
         elif self.cache_elements['log_notfound'].get_active():
             log = geocaching.GeocacheCoordinate.LOG_AS_NOTFOUND
-            self.pointprovider.update_field(self.current_cache, 'found', '0')
         elif self.cache_elements['log_note'].get_active():
             log = geocaching.GeocacheCoordinate.LOG_AS_NOTE
+        else:
+            log = geocaching.GeocacheCoordinate.LOG_NO_LOG
+
         logdate = strftime('%Y-%m-%d', gmtime())
         self.cache_elements['log_date'].set_text('fieldnote date: %s' % logdate)
-        self.pointprovider.update_field(self.current_cache, 'logas', log)
-        self.pointprovider.update_field(self.current_cache, 'logdate', logdate)
-
+        self.current_cache.logas = log
+        self.current_cache.logdate = logdate
+        self.core.save_fieldnote()
 
     def on_save_config(self, something):
         if not self.block_changes:
@@ -1319,7 +1312,7 @@ class SimpleGui():
                 
     def on_track_toggled(self, something, data=None):
         if self.button_track.get_active() and self.gps_data != None and self.gps_data.position != None:
-            self.set_center(self.gps_data.position)
+            self.set_center(self.gps_data.position, reset_track=False)
 
     def on_upload_fieldnotes(self, something):
         self.core.on_upload_fieldnotes()
@@ -1345,7 +1338,7 @@ class SimpleGui():
         self.zoom()
                 
     def on_zoomin_clicked(self, widget, data=None):
-        self.zoom( + 1)
+        self.zoom(+ 1)
                 
     def on_zoomout_clicked(self, widget, data=None):
         self.zoom(-1)
@@ -1443,10 +1436,10 @@ class SimpleGui():
         if event.direction == gtk.gdk.SCROLL_DOWN:
             self.zoom(-1)
         else:
-            self.zoom( + 1)
+            self.zoom(+ 1)
         
                 
-    def set_center(self, coord, noupdate=False, reset_track = False):
+    def set_center(self, coord, noupdate=False, reset_track=True):
         #xml.get_widget("notebook_all").set_current_page(0)
         self.map_center_x, self.map_center_y = self.ts.deg2num(coord)
         self.draw_at_x = 0
@@ -1655,13 +1648,7 @@ class SimpleGui():
 
     @staticmethod 
     def _strip_html(text):
-        text = text.replace("\n", " ")
-        text = re.sub(r"""(?i)<img[^>]+alt=["']?([^'"> ]+)[^>]+>""", SimpleGui.replace_image_tag, text)
-        text = re.sub(r'(?i)<(br|p)[^>]*?>', "\n", text)
-        text = re.sub(r'<[^>]*?>', '', text)
-        text = HTMLManipulations._decode_htmlentities(text)
-        text = re.sub(r'[\n\r]+\s*[\n\r]+', '\n', text)
-        return text.strip()
+        return HTMLManipulations.strip_html_visual(text, SimpleGui.replace_image_tag)
                 
                         
     def update_gps_display(self):
@@ -1750,7 +1737,7 @@ class SimpleGui():
         else:
             newzoom = self.ts.get_zoom() + direction
         self.ts.set_zoom(newzoom)
-        self.set_center(center)
+        self.set_center(center, reset_track=False)
                 
 
     @staticmethod

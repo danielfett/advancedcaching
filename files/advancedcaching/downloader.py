@@ -20,7 +20,7 @@
 from socket import setdefaulttimeout
 from cookielib import LWPCookieJar
 from urllib import urlencode
-import urllib2
+from urllib2 import build_opener, install_opener, HTTPCookieProcessor, Request, urlopen
 setdefaulttimeout(30)
 class FileDownloader():
     USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; U; Linux i686; de; rv:1.9.0.12) Gecko/2009070811  Windows NT Firefox/3.1'
@@ -49,8 +49,8 @@ class FileDownloader():
             raise Exception("Please configure your username/password and restart the application")
         print "+ Checking Login status"
         cj = LWPCookieJar(self.cookiefile)
-        opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-        urllib2.install_opener(opener)
+        opener = build_opener(HTTPCookieProcessor(cj))
+        install_opener(opener)
 
         try:
             cj.load()
@@ -97,24 +97,24 @@ class FileDownloader():
             self.login()
 
         if values == None and data == None:
-            req = urllib2.Request(url)
+            req = Request(url)
             self.add_headers(req)
-            return urllib2.urlopen(req)
+            return urlopen(req)
 
         elif data == None:
             if (isinstance(values, dict)):
                 values = urlencode( values)
-            req = urllib2.Request(url, values)
+            req = Request(url, values)
             self.add_headers(req)
-            return urllib2.urlopen(req)
+            return urlopen(req)
         elif values == None:
             content_type, body = data
-            req = urllib2.Request(url)
+            req = Request(url)
             req.add_header('Content-Type', content_type)
             req.add_header('Content-Length', len(str(body)))
             self.add_headers(req)
             req.add_data(body)
-            return urllib2.urlopen(req)
+            return urlopen(req)
 
     def encode_multipart_formdata(self, fields, files):
         """

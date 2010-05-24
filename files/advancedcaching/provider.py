@@ -274,10 +274,11 @@ class PointProvider():
             return None
         return coord
                 
-    def update_field(self, coordinate, field, newvalue):
+    def update_field(self, coordinate, field, newvalue, save = True):
         query = 'UPDATE %s SET %s = ? WHERE name = ?' % (self.cache_table, field)
         self.conn.execute(query, (newvalue, coordinate.name))
-        self.save()
+        if save:
+            self.save()
 
     def get_by_name(self, gcname):
         query = 'SELECT * FROM %s WHERE name LIKE ? LIMIT 2' % self.cache_table

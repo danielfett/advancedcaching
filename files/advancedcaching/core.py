@@ -268,10 +268,10 @@ class Core(gobject.GObject):
         #pointprovider = PointProvider(':memory:', self.downloader)
         #reader = GpxReader(pointprovider)
         #reader.read_file('../../file.loc')
-        self.gui = guitype(self, self.pointprovider, self.userpointprovider, dataroot)
+        self.gui = guitype(self, dataroot)
         self.gui.write_settings(self.settings)
 
-
+ 
 
         if '--sim' in argv:
             self.gps_thread = gpsreader.FakeGpsReader(self)
@@ -521,7 +521,7 @@ class Core(gobject.GObject):
             gobject.idle_add(self.on_download_progress, arg1, arg2, arg3, arg4)
             return False
 
-        cd.connect('progress', self.on_download_progress)
+        cd.connect('progress', same_thread_progress)
         cd.connect('finished-multiple', same_thread)
 
         t = Thread(target=cd.update_coordinates, args=[caches])
@@ -552,33 +552,20 @@ class Core(gobject.GObject):
         self.downloader.update_userdata(self.settings['options_username'], self.settings['options_password'])
         self.__write_config()
 
-
-    def on_notes_changed(self, cache, new_notes):
-        self.pointprovider.update_field(cache, 'notes', new_notes)
-
-    def on_fieldnotes_changed(self, cache, new_notes):
-        self.pointprovider.update_field(cache, 'fieldnotes', new_notes)
-
     def set_alternative_position(self, cache, ap):
         cache.set_alternative_position(ap)
-        self.pointprovider.update_field(cache, 'alter_lat', cache.alter_lat)
-        self.pointprovider.update_field(cache, 'alter_lon', cache.alter_lon)
+        self.save_cache_attribute(cache, ('alter_lat', 'alter_lon'))
         self.emit('map-changed')
 
-    def write_fieldnote(self, cache, logas, logdate, fieldnotes):
-        self.pointprovider.update_field(cache, 'logas', logas)
-        self.pointprovider.update_field(cache, 'logdate', logdate)
-        self.pointprovider.update_field(cache, 'fieldnotes', fieldnotes)
-        self.emit('fieldnotes-changed')
-        
-        if logas == geocaching.GeocacheCoordinate.LOG_AS_FOUND:
-            self.pointprovider.update_field(cache, 'found', '1')
+    def save_fieldnote(self, cache):
+        if cache.logas == geocaching.GeocacheCoordinate.LOG_AS_FOUND:
             cache.found = 1
 
-        elif logas == geocaching.GeocacheCoordinate.LOG_AS_NOTFOUND:
-            self.pointprovider.update_field(cache, 'found', '0')
+        elif cache.logas == geocaching.GeocacheCoordinate.LOG_AS_NOTFOUND:
             cache.found = 0
-        
+
+        self.save_cache_attribute(cache, ('logas', 'logdate', 'fieldnotes'))
+        self.emit('fieldnotes-changed')        
 
     def on_upload_fieldnotes(self):
         self.gui.set_download_progress(0.5, "Uploading Fieldnotes...")
@@ -601,15 +588,21 @@ class Core(gobject.GObject):
         
     def on_upload_fieldnotes_finished(self, widget, caches):
         for c in caches:
-            self.pointprovider.update_field(c, 'logas', geocaching.GeocacheCoordinate.LOG_NO_LOG)
+            c.logas = geocaching.GeocacheCoordinate.LOG_NO_LOG
+            self.save_cache_attribute(c, 'logas')
         self.gui.hide_progress()
         self.emit('fieldnotes-changed')
 
     def get_new_fieldnotes_count(self):
         return self.pointprovider.get_new_fieldnotes_count()
 
-    def set_cache_calc_vars(self, cache, vars):
-        self.pointprovider.update_field(cache, 'vars', vars)
+    def save_cache_attribute(self, cache, attribute):
+        if type(attribute) == tuple:
+            for a in attribute:
+                self.pointprovider.update_field(cache, a, cache.serialize_one(a), save = False)
+            self.pointprovider.save()
+        else:
+            self.pointprovider.update_field(cache, attribute, cache.serialize_one(attribute))
 
     def get_geocache_by_name(self, name):
         return self.pointprovider.get_by_name(name)
