@@ -47,7 +47,6 @@ from os import path
 from os import system
 import re
 
-from advancedcaching.openstreetmap import gobject
 from astral import Astral
 import geo
 import geocaching
@@ -55,6 +54,7 @@ import gtk
 import hildon
 import openstreetmap
 import pango
+import gobject
 from portrait import FremantleRotation
 from simplegui import SimpleGui
 from simplegui import UpdownRows
