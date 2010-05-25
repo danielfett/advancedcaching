@@ -32,12 +32,11 @@
 # - add parsing of calculations from notes
 # 'show on map' for waypoints
 # changes in menu:
-# - map filters -> selection button
 # - new "tools" button:
 #   - download map
 #   - upload fieldnotes
-# find location by name
-# add 'download map around geocaches' feature
+#   - find location by name
+# add 'download map around geocaches' option
  
 ### For the gui :-)
 
@@ -189,10 +188,9 @@ class HildonGui(SimpleGui):
         else:
             return startd
 
-    def set_tile_loader(self, widget, loader):
-        if widget.get_active():
-            self.tile_loader = loader
-            self._draw_map()
+    def set_tile_loader(self, loader):
+        self.tile_loader = loader
+        self._draw_map()
 
 
     def _on_key_press(self, window, event):
@@ -430,14 +428,15 @@ class HildonGui(SimpleGui):
         button.connect("clicked", self._on_show_options, None)
         menu.append(button)
 
-        button = None
+        sel_tiles = hildon.TouchSelector(text=True)
         for name, loader in self.tile_loaders:
-            button = hildon.GtkRadioButton(gtk.HILDON_SIZE_AUTO, button)
-            button.set_label(name)
-            button.connect("clicked", self.set_tile_loader, loader)
-            menu.add_filter(button)
-            button.set_mode(False)
-    
+            sel_tiles.append_text(name)
+        pick_tiles = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        pick_tiles.set_selector(sel_tiles)
+        pick_tiles.set_title("Map Style")
+        pick_tiles.set_active(0)
+        pick_tiles.connect('value-changed', lambda widget: self.set_tile_loader(self.tile_loaders[widget.get_active()][1]))
+        menu.append(pick_tiles)
         menu.show_all()
         return menu
 
