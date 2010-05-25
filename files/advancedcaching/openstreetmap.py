@@ -31,7 +31,7 @@ from urllib import urlretrieve
 from socket import setdefaulttimeout
 setdefaulttimeout(30)
 
-def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, file_type = 'png'):
+def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, file_type = 'png', size = 256):
 
     class TileLoader(Thread):
         downloading = {}
@@ -40,12 +40,12 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
         noimage_loading = None
         base_dir = ''
         gui = None
-        size = 0
 
         PREFIX = prefix
         MAX_ZOOM = max_zoom
         FILE_TYPE = file_type
         REMOTE_URL = remote_url
+        TILE_SIZE = size
 
         TPL_LOCAL_PATH = path.join("%s", PREFIX, "%d", "%d")
         TPL_LOCAL_FILENAME = path.join("%s", "%%d%s%s" % (extsep, FILE_TYPE))
@@ -119,7 +119,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             return default
             if self.my_noimage != None:
                 return self.my_noimage
-            size, tile = self.size, self.tile
+            size, tile = self.TILE_SIZE, self.tile
             # we have no image available. so what do now?
             # first, check if we've the "supertile" available (zoomed out)
             supertile_zoom = self.download_zoom - 1
@@ -145,7 +145,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             if self.stop:
                 return True
             try:
-                size, tile = self.size, self.tile
+                size, tile = self.TILE_SIZE, self.tile
                 if self.undersample:
                     # don't load the tile directly, but load the supertile instead
                     supertile_x = int(tile[0]/2)
@@ -180,7 +180,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             return self.load(1)
 
         def draw(self, pbuf):
-            size, x, y = self.size, self.x, self.y
+            size, x, y = self.TILE_SIZE, self.x, self.y
             if not self.stop:
                 if pbuf != None:
                     self.gui.pixmap.draw_pixbuf(self.gui.xgc, pbuf, 0, 0, x, y, size, size)
@@ -211,21 +211,23 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 
 class TileServer():
 
-    def __init__(self):
+    def __init__(self, tile_loader):
         self.zoom = 14
-        self.max_zoom = 18
+        self.tile_loader = tile_loader
                 
     def get_zoom(self):
         return self.zoom
                 
     def set_zoom(self, zoom):
-        if zoom < 1 or zoom > self.max_zoom:
+        if zoom < 1 or zoom > self.tile_loader.MAX_ZOOM:
             return
         self.zoom = zoom
 
-    @staticmethod
-    def tile_size():
-        return 256
+    def set_tile_loader(self, tile_loader):
+        self.tile_loader = tile_loader
+
+    def tile_size(self):
+        return self.tile_loader.TILE_SIZE
                 
     def deg2tilenum(self, lat_deg, lon_deg):
         lat_rad = math.radians(lat_deg)

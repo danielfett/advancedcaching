@@ -46,7 +46,7 @@ from os import path
 import re
 from cachedownloader import HTMLManipulations
 
-class SimpleGui():
+class SimpleGui(object):
     USES = ['gpsprovider']
     XMLFILE = "freerunner.glade"
 
@@ -201,7 +201,6 @@ class SimpleGui():
             tl.noimage_cantload = self.noimage_cantload
             tl.base_dir = self.core.settings['download_map_path']
             tl.gui = self
-            tl.size = self.ts.tile_size()
             self.tile_loaders.append((name, tl))
         self.tile_loader = self.tile_loaders[0][1]
         
@@ -409,7 +408,7 @@ class SimpleGui():
                 
     def _coord2point(self, coord):
         point = self.ts.deg2num(coord)
-        size = self.ts.tile_size()
+        size = self.tile_loader.TILE_SIZE
                 
         p_x = int(point[0] * size - self.map_center_x * size + self.map_width / 2)
         p_y = int(point[1] * size - self.map_center_y * size + self.map_height / 2)
@@ -640,8 +639,8 @@ class SimpleGui():
         self.dragging = False
         offset_x = self.drag_offset_x #(self.drag_start_x - event.x)
         offset_y = self.drag_offset_y #(self.drag_start_y - event.y)
-        self.map_center_x += (offset_x / self.ts.tile_size())
-        self.map_center_y += (offset_y / self.ts.tile_size())
+        self.map_center_x += (offset_x / self.tile_loader.TILE_SIZE)
+        self.map_center_y += (offset_y / self.tile_loader.TILE_SIZE)
         self.map_center_x, self.map_center_y = self.ts.check_bounds(self.map_center_x, self.map_center_y)
         if offset_x ** 2 + offset_y ** 2 < self.CLICK_RADIUS ** 2:
             self.draw_at_x -= offset_x
@@ -704,7 +703,7 @@ class SimpleGui():
         for x in self.active_tile_loaders:
             x.halt()
 
-        size = self.ts.tile_size()
+        size = self.tile_loader.TILE_SIZE
         xi = int(self.map_center_x)
         yi = int(self.map_center_y)
         span_x = int(math.ceil(float(self.map_width) / (size * 2.0)))
@@ -1377,7 +1376,7 @@ class SimpleGui():
                         
                 
     def pixmappoint2coord(self, point):
-        size = self.ts.tile_size()
+        size = self.tile_loader.TILE_SIZE
         coord = self.ts.num2deg(\
                                 (point[0] + self.map_center_x * size - self.map_width / 2) / size, \
                                 (point[1] + self.map_center_y * size - self.map_height / 2) / size \
@@ -1425,7 +1424,7 @@ class SimpleGui():
             return ' [Image] '
                         
     def screenpoint2coord(self, point):
-        size = self.ts.tile_size()
+        size = self.tile_loader.TILE_SIZE
         coord = self.ts.num2deg(\
                                 ((point[0] - self.draw_root_x - self.draw_at_x) + self.map_center_x * size - self.map_width / 2) / size, \
                                 ((point[1] - self.draw_root_y - self.draw_at_y) + self.map_center_y * size - self.map_height / 2) / size \
@@ -1729,8 +1728,7 @@ class SimpleGui():
         self.build_tile_loaders()
                 
     def zoom(self, direction=None):
-        size = self.ts.tile_size()
-        center = self.ts.num2deg(self.map_center_x - float(self.draw_at_x) / size, self.map_center_y - float(self.draw_at_y) / size)
+        center = self.ts.num2deg(self.map_center_x, self.map_center_y)
         if direction == None:
             #newzoom = self.zoom_adjustment.get_value()
             print "not"

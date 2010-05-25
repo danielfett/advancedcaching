@@ -57,7 +57,10 @@ import gobject
 from portrait import FremantleRotation
 from simplegui import SimpleGui
 from simplegui import UpdownRows
-class HildonGui(SimpleGui):
+
+from hildon_plugins import HildonSearchPlace, HildonFieldnotes
+
+class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
 
     USES = ['locationgpsprovider']
 
@@ -98,15 +101,13 @@ class HildonGui(SimpleGui):
     def __init__(self, core, dataroot):
         gtk.gdk.threads_init()
         self._prepare_images(dataroot)
-        self.ts = openstreetmap.TileServer()
-
         
         self.core = core
         self.core.connect('map-changed', self._on_map_changed)
         self.core.connect('cache-changed', self._on_cache_changed)
-        self.core.connect('fieldnotes-changed', self._on_fieldnotes_changed)
 
         self.build_tile_loaders()
+        self.ts = openstreetmap.TileServer(self.tile_loader)
                 
         self.format = geo.Coordinate.FORMAT_DM
 
@@ -143,13 +144,20 @@ class HildonGui(SimpleGui):
         self.window.connect("delete_event", self.on_window_destroy, None)
         self.window.add(self._create_main_view())
         self.window.set_app_menu(self._create_main_menu())
-        self.update_fieldnotes_display()
 
         gtk.link_button_set_uri_hook(self._open_browser)
         #self.show_coordinate_input(geo.Coordinate(49.344, 6.584))
         self.rotation_manager = FremantleRotation('advancedcaching')
 
         self.astral = Astral()
+        
+        self.plugin_init()
+
+    def plugin_init(self):
+        try:
+            super(HildonGui, self).plugin_init()
+        except:
+            pass
 
     def on_window_destroy(self, target, more=None, data=None):
         hildon.hildon_gtk_window_take_screenshot(self.window, True)
@@ -415,12 +423,7 @@ class HildonGui(SimpleGui):
         button.connect("clicked", self.on_download_details_map_clicked)
         menu.append(button)
 
-        button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        button.set_title("Upload Fieldnote(s)")
-        button.set_value("You have not created any fieldnotes.")
-        button.connect("clicked", self._on_upload_fieldnotes, None)
-        menu.append(button)
-        self.button_fieldnotes = button
+        menu.append(self._get_fieldnotes_button())
     
     
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
@@ -437,6 +440,9 @@ class HildonGui(SimpleGui):
         pick_tiles.set_active(0)
         pick_tiles.connect('value-changed', lambda widget: self.set_tile_loader(self.tile_loaders[widget.get_active()][1]))
         menu.append(pick_tiles)
+
+        menu.append(self._get_search_place_button())
+
         menu.show_all()
         return menu
 
@@ -457,7 +463,7 @@ class HildonGui(SimpleGui):
     def _on_show_search(self, widget, data):
         RESPONSE_SHOW_LIST = 0
         RESPONSE_RESET = 1
-        dialog = gtk.Dialog("set filter", None, gtk.DIALOG_DESTROY_WITH_PARENT, ("show on map", gtk.RESPONSE_ACCEPT))
+        dialog = gtk.Dialog("Search", None, gtk.DIALOG_DESTROY_WITH_PARENT, ("show on map", gtk.RESPONSE_ACCEPT))
         dialog.add_button("show list", RESPONSE_SHOW_LIST)
         dialog.add_button("reset", RESPONSE_RESET)
         sel_size = hildon.TouchSelector(text=True)
@@ -769,20 +775,21 @@ class HildonGui(SimpleGui):
         dialog.show_all()
         result = dialog.run()
         dialog.hide()
-        if result == gtk.RESPONSE_ACCEPT:
-            rotate = rotate_settings[rotate_selector.get_selected_rows(0)[0][0]][0]
-            if self.settings['options_show_html_description'] != check_show_html_description.get_active():
-                self.old_cache_window = None
-            self.rotation_manager.set_mode(rotate)
-            self.settings['options_username'] = username.get_text()
-            self.settings['options_password'] = password.get_text()
-            self.settings['download_noimages'] = check_dl_images.get_active()
-            self.settings['options_show_name'] = check_show_cache_id.get_active()
-            self.settings['options_map_double_size'] = check_map_double_size.get_active()
-            self.settings['options_hide_found'] = check_hide_found.get_active()
-            self.settings['options_show_html_description'] = check_show_html_description.get_active()
-            self.settings['options_rotate_screen'] = rotate
-            self.core.on_userdata_changed(self.settings['options_username'], self.settings['options_password'])
+        if result != gtk.RESPONSE_ACCEPT:
+            return
+        rotate = rotate_settings[rotate_selector.get_selected_rows(0)[0][0]][0]
+        if self.settings['options_show_html_description'] != check_show_html_description.get_active():
+            self.old_cache_window = None
+        self.rotation_manager.set_mode(rotate)
+        self.settings['options_username'] = username.get_text()
+        self.settings['options_password'] = password.get_text()
+        self.settings['download_noimages'] = check_dl_images.get_active()
+        self.settings['options_show_name'] = check_show_cache_id.get_active()
+        self.settings['options_map_double_size'] = check_map_double_size.get_active()
+        self.settings['options_hide_found'] = check_hide_found.get_active()
+        self.settings['options_show_html_description'] = check_show_html_description.get_active()
+        self.settings['options_rotate_screen'] = rotate
+        self.core.on_userdata_changed(self.settings['options_username'], self.settings['options_password'])
 
     def _on_show_dialog_change_target(self, widget, data):
         if self.current_target != None:
@@ -1090,10 +1097,8 @@ class HildonGui(SimpleGui):
         button.connect("clicked", self._on_show_on_map, cache)
         menu.append(button)
     
-        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
-        button.set_label("Write Fieldnote")
-        button.connect("clicked", self._on_show_log_fieldnote_dialog, None)
-        menu.append(button)
+        
+        menu.append(self._get_write_fieldnote_button())
         menu.show_all()
         
         win.set_app_menu(menu)        
@@ -1358,6 +1363,13 @@ class HildonGui(SimpleGui):
         widget.get_selected(0, iter)
         return tm[tm.get_path(iter)[0]]
 
+    @staticmethod
+    def _get_selected_index(widget):
+        tm = widget.get_model(0)
+        iter = tm.get_iter(0)
+        widget.get_selected(0, iter)
+        return tm.get_path(iter)[0]
+
 
 
         ##############################################
@@ -1386,84 +1398,6 @@ class HildonGui(SimpleGui):
         #
         # /Signal Handling from Core
         #
-        ##############################################
-
-        ##############################################
-        #
-        # Fieldnotes
-        #
-        ##############################################
-
-
-    def _on_show_log_fieldnote_dialog(self, widget, data):
-        if self.current_cache == None:
-            return
-        
-        statuses = [
-            ("Don't upload a fieldnote", geocaching.GeocacheCoordinate.LOG_NO_LOG),
-            ("Found it", geocaching.GeocacheCoordinate.LOG_AS_FOUND),
-            ("Did not find it", geocaching.GeocacheCoordinate.LOG_AS_NOTFOUND),
-            ("Post a note", geocaching.GeocacheCoordinate.LOG_AS_NOTE)
-        ]
-        
-        cache = self.current_cache
-        dialog = gtk.Dialog("create fieldnote", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-
-        fieldnotes = hildon.TextView()
-        fieldnotes.set_placeholder("Your fieldnote text...")
-        fieldnotes.get_buffer().set_text(cache.fieldnotes)
-
-        fieldnotes_log_as_selector = hildon.TouchSelector(text=True)
-        
-        for text, status in statuses:
-            fieldnotes_log_as_selector.append_text(text)
-        i = 0
-        for text, status in statuses:
-            if cache.logas == status:
-                fieldnotes_log_as_selector.select_iter(0, fieldnotes_log_as_selector.get_model(0).get_iter(i), False)
-            i += 1
-        fieldnotes_log_as = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
-        fieldnotes_log_as.set_title('Log Type')
-        fieldnotes_log_as.set_selector(fieldnotes_log_as_selector)
-
-        dialog.vbox.pack_start(fieldnotes_log_as, False)
-        dialog.vbox.pack_start(fieldnotes, True)
-        dialog.show_all()
-        result = dialog.run()
-        dialog.hide()
-        if result != gtk.RESPONSE_ACCEPT:
-            print 'Not logging this fieldnote'
-            return
-        from time import gmtime
-        from time import strftime
-
-        cache.logas = statuses[fieldnotes_log_as_selector.get_selected_rows(0)[0][0]][1]
-        cache.logdate = strftime('%Y-%m-%d', gmtime())
-        cache.fieldnotes = fieldnotes.get_buffer().get_text(fieldnotes.get_buffer().get_start_iter(), fieldnotes.get_buffer().get_end_iter())
-        self.core.save_fieldnote(cache)
-        
-        
-    def _on_upload_fieldnotes(self, some, thing):
-        self.core.on_upload_fieldnotes()
-
-    #emitted by core
-    def _on_fieldnotes_changed(self, core):
-        self.update_fieldnotes_display()
-        
-    def update_fieldnotes_display(self):
-        count = self.core.get_new_fieldnotes_count()
-        w = self.button_fieldnotes
-        if count == 0:
-            w.set_value("Nothing to upload.")
-            w.set_sensitive(False)
-        else:
-            w.set_value("You have %d fieldnotes." % count)
-            w.set_sensitive(True)
-
-        ##############################################
-        #   
-        # /Fieldnotes
-        # 
         ##############################################
 
 
@@ -1529,8 +1463,7 @@ class HildonGui(SimpleGui):
         self.zoom()
 
     def zoom(self, direction=None):
-        size = self.ts.tile_size()
-        center = self.ts.num2deg(self.map_center_x - float(self.draw_at_x) / size, self.map_center_y - float(self.draw_at_y) / size)
+        center = self.ts.num2deg(self.map_center_x, self.map_center_y)
         if direction == None:
             return
         else:
@@ -1719,4 +1652,4 @@ class HildonGui(SimpleGui):
         # /Reading & Writing Settings
         #
         ##############################################
-        
+

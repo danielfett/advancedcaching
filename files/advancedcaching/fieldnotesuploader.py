@@ -38,21 +38,21 @@ class FieldnotesUploader(gobject.GObject):
         self.notes = []
 
     def add_fieldnote(self, geocache):
-        if geocache.log_date == '':
+        if geocache.logdate == '':
             raise Exception("Illegal Date.")
 
-        if geocache.log_as == geocaching.GeocacheCoordinate.LOG_AS_FOUND:
+        if geocache.logas == geocaching.GeocacheCoordinate.LOG_AS_FOUND:
             log = "Found it"
-        elif geocache.log_as == geocaching.GeocacheCoordinate.LOG_AS_NOTFOUND:
+        elif geocache.logas == geocaching.GeocacheCoordinate.LOG_AS_NOTFOUND:
             log = "Didn't find it"
-        elif geocache.log_as == geocaching.GeocacheCoordinate.LOG_AS_NOTE:
+        elif geocache.logas == geocaching.GeocacheCoordinate.LOG_AS_NOTE:
             log = "Write note"
         else:
-            raise Exception("Illegal status: %s" % self.log_as)
+            raise Exception("Illegal status: %s" % geocache.logas)
 
         text = geocache.fieldnotes.replace('"', "'")
 
-        self.notes.append('%s,%sT10:00Z,%s,"%s"' % (geocache.name, geocache.log_date, log, text))
+        self.notes.append('%s,%sT10:00Z,%s,"%s"' % (geocache.name, geocache.logdate, log, text))
 
     def upload(self):
         try:

@@ -672,6 +672,12 @@ class Core(gobject.GObject):
         f = file(filename, 'w')
         f.write(dumps(self.settings, sort_keys=True, indent=4))
 
+    def search_place(self, search):
+        from geonames import Geonames
+        a = Geonames(self.downloader)
+        return a.search_all(search)
+    
+
 
 def determine_path ():
     """Borrowed from wxglade.py"""

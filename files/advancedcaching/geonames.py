@@ -18,8 +18,9 @@
 #    Author: Daniel Fett advancedcaching@fragcom.de
 #
 
+from urllib import quote
+
 import geo
-import urllib
 try:
     import json
     json.dumps
@@ -28,7 +29,7 @@ except (ImportError, AttributeError):
 
 
 class Geonames():
-    URL = 'http://ws.geonames.org/searchJSON?formatted=true&q=%s&maxRows=1&style=short'
+    URL = '''http://ws.geonames.org/searchJSON?formatted=true&q=%(query)s&maxRows=%(max_rows)d&style=short'''
     URL_STREETS = 'http://ws.geonames.org/findNearestIntersectionOSMJSON?formatted=true&lat=%f&lng=%f&style=short'
 
     ORS_URL = 'http://data.giub.uni-bonn.de/openrouteservice/php/OpenLSRS_DetermineRoute.php'
@@ -40,9 +41,9 @@ class Geonames():
     def __init__(self, downloader):
         self.downloader = downloader
 
-    def search(self, search, nearest_street = False):
+    def search(self, search, nearest_street=False):
         print "* Trying to search geonames for %s" % search
-        page = self.downloader.get_reader(url = self.URL % urllib.quote(search)).read()
+        page = self.downloader.get_reader(url=self.URL % {'query': quote(search), 'max_rows': 1}, login=False).read()
         values = json.loads(page)
         if int(values['totalResultsCount']) == 0:
             raise Exception('No Record found for query "%s"' % search)
@@ -53,10 +54,16 @@ class Geonames():
         print "* Using %s for query '%s'" % (c, search)
         return c
 
+    def search_all(self, search, max_results=15, name_string="%(name)s, %(countryCode)s"):
+        print "* Trying to search geonames for %s" % search
+        page = self.downloader.get_reader(url=self.URL % {'query': quote(search), 'max_rows': max_results}, login=False).read()
+        values = json.loads(page)
+        return [geo.Coordinate(float(res['lat']), float(res['lng']), name_string % res) for res in values['geonames']]
+
     def find_nearest_intersection(self, c):
         print "* trying to find nearest street..."
         url = self.URL_STREETS % (c.lat, c.lon)
-        page= self.downloader.get_reader(url).read()
+        page = self.downloader.get_reader(url, login=False).read()
         values = json.loads(page)
         if (len(values) == 0):
             print "* Could NOT find nearest intersection to %s, using this" % c
@@ -68,7 +75,7 @@ class Geonames():
 
 
     def find_route(self, c1, c2, min_distance):
-        page = self.downloader.get_reader(url = self.ORS_URL, values = self.ORS_DATA % (c1.lon, c1.lat, c2.lon, c2.lat)).read()
+        page = self.downloader.get_reader(url=self.ORS_URL, values=self.ORS_DATA % (c1.lon, c1.lat, c2.lon, c2.lat), login=False).read()
         import xml.dom.minidom
         from xml.dom.minidom import Node
         doc = xml.dom.minidom.parseString(page)
@@ -82,7 +89,7 @@ class Geonames():
         route_points = []
 
         # min_distance is in km, we need m
-        mdist = (min_distance * 1000.0)/self.DIST_FACTOR
+        mdist = (min_distance * 1000.0) / self.DIST_FACTOR
 
         for s in segments:
             for p in s.childNodes:
