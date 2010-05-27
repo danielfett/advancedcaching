@@ -36,6 +36,7 @@
 #   - download map
 #   - upload fieldnotes
 #   - find location by name
+#   - export waypoints
 # add 'download map around geocaches' option
  
 ### For the gui :-)

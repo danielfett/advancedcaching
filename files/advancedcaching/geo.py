@@ -21,10 +21,6 @@
 import math
 import re
 
-try:
-    import location
-except (ImportError):
-    pass
 
 
 def try_parse_coordinate(text):
@@ -136,8 +132,7 @@ class Coordinate(object):
         self.lon = lon
         self.name = name
         try:
-            location
-            self.distance_to = self.distance_to_liblocation
+            self.distance_to = self.build_distance_to_liblocation
         except Exception:
             self.distance_to = self.distance_to_manual
             
@@ -249,9 +244,11 @@ class Coordinate(object):
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a));
         return self.RADIUS_EARTH * c;
 
-    def distance_to_liblocation(self, target):
-        return location.distance_between(self.lat, self.lon, target.lat, target.lon) * 1000
-
+    def build_distance_to_liblocation(self):
+        from location import distance_between
+        def distance_to_liblocation(self, target):
+            return distance_between(self.lat, self.lon, target.lat, target.lon) * 1000
+        return distance_to_liblocation
 
     def __str__(self):
         return self.get_latlon()

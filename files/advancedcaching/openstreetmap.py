@@ -87,7 +87,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                     TileLoader.create_recursive(head)
                     try:
                         mkdir(dpath)
-                    except Exception, e:
+                    except Exception:
                         # let others fail here.
                         pass
 

@@ -152,44 +152,8 @@ elif arg == '--hildon':
 else:
     import cli
     gui = cli.Cli
+
     
-
-
-        
-class Standbypreventer():
-    STATUS_NONE = 0
-    STATUS_ALIVE = 1
-    STATUS_SCREEN_ON = 2
-
-    def __init__(self):
-        self.requested_status = self.STATUS_NONE
-                
-    def __del__(self):
-        self.__unrequest_all()
-                
-    def set_status(self, status):
-        if status != self.requested_status:
-            self.__unrequest_all()
-            self.__request(status)
-        
-    def __unrequest_all(self):
-        if self.requested_status == self.STATUS_ALIVE:
-            self.__try_run('dbus-send --system --type=method_call --dest=org.shr.ophonekitd.Usage /org/shr/ophonekitd/Usage org.shr.ophonekitd.Usage.ReleaseResource string:CPU')
-        elif self.requested_status == self.STATUS_SCREEN_ON:
-            self.__try_run('dbus-send --system --type=method_call --dest=org.shr.ophonekitd.Usage /org/shr/ophonekitd/Usage org.shr.ophonekitd.Usage.ReleaseResource string:Display')
-                        
-    def __request(self, status):
-        if status == self.STATUS_ALIVE:
-            self.__try_run('dbus-send --system --type=method_call --dest=org.shr.ophonekitd.Usage /org/shr/ophonekitd/Usage org.shr.ophonekitd.Usage.RequestResource string:CPU')
-        elif status == self.STATUS_SCREEN_ON:
-            self.__try_run('dbus-send --system --type=method_call --dest=org.shr.ophonekitd.Usage /org/shr/ophonekitd/Usage org.shr.ophonekitd.Usage.RequestResource string:Display')
-                        
-    def __try_run(self, command):
-        try:
-            system(command)
-        except Exception, e:
-            print "Could not prevent Standby: %s" % e
-
 class Core(gobject.GObject):
 
     __gsignals__ = {
@@ -262,7 +226,7 @@ class Core(gobject.GObject):
         self.downloader = downloader.FileDownloader(self.settings['options_username'], self.settings['options_password'], self.COOKIE_FILE)
                 
         #pointprovider = LiveCacheProvider()
-        self.pointprovider = provider.PointProvider(self.CACHES_DB, self.downloader, geocaching.GeocacheCoordinate, 'geocaches')
+        self.pointprovider = provider.PointProvider(self.CACHES_DB, geocaching.GeocacheCoordinate, 'geocaches')
         #self.userpointprovider = provider.PointProvider("%s/caches.db" % self.SETTINGS_DIR, self.downloader, geo.Coordinate, 'userpoints')
         self.userpointprovider = None
         #pointprovider = PointProvider(':memory:', self.downloader)
@@ -287,6 +251,9 @@ class Core(gobject.GObject):
         if 'geonames' in self.gui.USES:
             import geonames
             self.geonames = geonames.Geonames(self.downloader)
+
+        if '--startup-only' in argv:
+            return
         self.gui.show()
 
     @staticmethod

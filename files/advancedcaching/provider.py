@@ -8,14 +8,13 @@ from copy import copy
 class PointProvider():
     MAX_RESULTS = 1000
 
-    def __init__(self, filename, downloader, ctype, table):
+    def __init__(self, filename, ctype, table):
 
         self.filterstack = []
         self.conn = connect(filename)
         self.conn.row_factory = Row
         self.conn.text_factory = str
         self.ctype = ctype
-        self.downloader = downloader
         self.cache_table = table
         self.filterstring = []
         self.filterargs = []
@@ -25,7 +24,7 @@ class PointProvider():
         self.conn.executescript(
             'PRAGMA temp_store = MEMORY;' \
             'PRAGMA synchronous=OFF;' \
-            'CREATE TABLE IF NOT EXISTS %s (%s);' % (self.cache_table, ', '.join(' '.join(m) for m in self.ctype.SQLROW.items())))
+            'CREATE TABLE IF NOT EXISTS %s (%s);' % (self.cache_table, ', '.join('%s %s' % m for m in self.ctype.SQLROW.items())))
         self.check_table()
         self.conn.executescript(
             'CREATE INDEX IF NOT EXISTS %(table)s_latlon ON %(table)s (lat ASC, lon ASC);' \

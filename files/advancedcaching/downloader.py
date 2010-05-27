@@ -17,19 +17,19 @@
 #
 #        Author: Daniel Fett advancedcaching@fragcom.de
 #
-from socket import setdefaulttimeout
-from cookielib import LWPCookieJar
-from urllib import urlencode
-from urllib2 import build_opener, install_opener, HTTPCookieProcessor, Request, urlopen
-setdefaulttimeout(30)
+
+
 class FileDownloader():
     USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; U; Linux i686; de; rv:1.9.0.12) Gecko/2009070811  Windows NT Firefox/3.1'
+    opener_installed = False
 
     def __init__(self, username, password, cookiefile):
         self.username = username
         self.password = password
         self.cookiefile = cookiefile
         self.logged_in = False
+        from socket import setdefaulttimeout
+        setdefaulttimeout(30)
 
     def update_userdata(self, username, password):
         from os import path, remove
@@ -48,9 +48,12 @@ class FileDownloader():
         if self.username == '' or self.password == '':
             raise Exception("Please configure your username/password and restart the application")
         print "+ Checking Login status"
-        cj = LWPCookieJar(self.cookiefile)
-        opener = build_opener(HTTPCookieProcessor(cj))
-        install_opener(opener)
+        if not opener_installed:
+            from urllib2 import build_opener, install_opener, HTTPCookieProcessor
+            from cookielib import LWPCookieJar
+            cj = LWPCookieJar(self.cookiefile)
+            opener = build_opener(HTTPCookieProcessor(cj))
+            install_opener(opener)
 
         try:
             cj.load()
@@ -93,6 +96,8 @@ class FileDownloader():
 
 
     def get_reader(self, url, values=None, data=None, login = True):
+        from urllib import urlencode
+        from urllib2 import Request, urlopen
         if login and not self.logged_in:
             self.login()
 
