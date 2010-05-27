@@ -19,17 +19,24 @@ class PointProvider():
         self.cache_table = table
         self.filterstring = []
         self.filterargs = []
-        c = self.conn.cursor()
-        c.execute('PRAGMA temp_store = MEMORY;')
-        # yes, this setting is a bit dangerous for the database, but the 
-        # advantages outbalance unlikely database corruption
-        c.execute('PRAGMA synchronous=OFF')
-        c.execute('CREATE TABLE IF NOT EXISTS %s (%s)' % (self.cache_table, ', '.join(' '.join(m) for m in self.ctype.SQLROW.items())))
+
+        # yes, the synchronous=off setting is a bit dangerous for the database,
+        # but the advantages outbalance unlikely database corruption
+        self.conn.executescript(
+            'PRAGMA temp_store = MEMORY;' \
+            'PRAGMA synchronous=OFF;' \
+            'CREATE TABLE IF NOT EXISTS %s (%s);' % (self.cache_table, ', '.join(' '.join(m) for m in self.ctype.SQLROW.items())))
         self.check_table()
-        c.execute('CREATE INDEX IF NOT EXISTS %s_latlon ON %s (lat ASC, lon ASC)' % (self.cache_table, self.cache_table))
-        c.execute('CREATE INDEX IF NOT EXISTS %s_name ON %s (name ASC)' % (self.cache_table, self.cache_table))
-        c.execute('CREATE INDEX IF NOT EXISTS %s_fieldnote ON %s (logas)' % (self.cache_table, self.cache_table))
-        c.close()
+        self.conn.executescript(
+            'CREATE INDEX IF NOT EXISTS %(table)s_latlon ON %(table)s (lat ASC, lon ASC);' \
+            'CREATE INDEX IF NOT EXISTS %(table)s_name ON %(table)s (name ASC);' \
+            'CREATE INDEX IF NOT EXISTS %(table)s_fieldnote ON %(table)s (logas);' % {'table' : self.cache_table}
+            )
+
+
+        #c.execute('CREATE TABLE IF NOT EXISTS %s (%s)' % (self.cache_table, ', '.join(' '.join(m) for m in self.ctype.SQLROW.items())))
+        #self.check_table()
+        #c.execute('CREATE INDEX IF NOT EXISTS %s_latlon ON %s (lat ASC, lon ASC)' % (self.cache_table, self.cache_table))
 
     def check_table(self):
         c = self.conn.cursor()
