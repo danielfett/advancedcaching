@@ -142,6 +142,10 @@ class SimpleGui(object):
         self.core = core
         self.core.connect('map-marks-changed', self._on_map_changed)
         self.core.connect('cache-changed', self._on_cache_changed)
+        self.core.connect('target-changed', self._on_target_changed)
+        self.core.connect('good-fix', self._on_good_fix)
+        self.core.connect('no-fix', self._on_no_fix)
+        self.core.connect('settings-changed', self._on_settings_changed)
         
                 
         self.format = geo.Coordinate.FORMAT_DM
@@ -511,7 +515,7 @@ class SimpleGui(object):
             target_height = int(round(usable_height * self.gps_data.quality))
             self.pixmap_arrow.draw_rectangle(self.xgc_arrow, True, width - signal_width - 1, usable_height - target_height, signal_width, target_height)
 
-        display_bearing = self.gps_target_bearing
+        display_bearing = self.gps_target_bearing - self.gps_data.bearing
         display_distance = self.gps_target_distance
         display_north = math.radians(self.gps_data.bearing)
         sun_angle = self.astral.get_sun_azimuth_from_fix(self.gps_data)

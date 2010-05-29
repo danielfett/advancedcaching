@@ -51,17 +51,17 @@ import re
 from astral import Astral
 import geo
 import geocaching
+import gobject
 import gtk
 import hildon
+from hildon_plugins import HildonFieldnotes
+from hildon_plugins import HildonSearchPlace
 import openstreetmap
 import pango
-import gobject
-import threadpool
 from portrait import FremantleRotation
 from simplegui import SimpleGui
 from simplegui import UpdownRows
-
-from hildon_plugins import HildonSearchPlace, HildonFieldnotes
+import threadpool
 
 class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
 
@@ -111,6 +111,10 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         self.core.connect('target-changed', self._on_target_changed)
         self.core.connect('good-fix', self._on_good_fix)
         self.core.connect('no-fix', self._on_no_fix)
+        self.core.connect('settings-changed', self._on_settings_changed)
+        self.core.connect('save-settings', self._on_save_settings)
+
+        self.settings = {}
 
         self.build_tile_loaders()
         self.ts = openstreetmap.TileServer(self.tile_loader)
@@ -710,39 +714,47 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
     def _on_show_options(self, widget, data):
         dialog = gtk.Dialog("options", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
         dialog.set_size_request(800, 480)
-        opts = gtk.Table(8, 2)
+
+        p = hildon.PannableArea()
+        list = gtk.VBox()
+        p.add_with_viewport(list)
+        dialog.vbox.pack_start(p, True)
+
+        opts = gtk.Table(2, 2)
         opts.attach(gtk.Label("Username"), 0, 1, 0, 1)
         username = hildon.Entry(gtk.HILDON_SIZE_AUTO)
-        #username.set_property(hildon.HILDON_AUTOCAP, False)
-        opts.attach(username, 1, 2, 0, 1)
         username.set_text(self.settings['options_username'])
+        opts.attach(username, 1, 2, 0, 1)
         
         opts.attach(gtk.Label("Password"), 0, 1, 1, 2)
         password = hildon.Entry(gtk.HILDON_SIZE_AUTO)
         password.set_visibility(False)
-        #password.set_property("autocap", False)
-        opts.attach(password, 1, 2, 1, 2)
         password.set_text(self.settings['options_password'])
-        
-        check_dl_images = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
-        check_dl_images.set_label("Don't Download Images")
-        check_dl_images.set_active(self.settings['download_noimages'])
+        opts.attach(password, 1, 2, 1, 2)
 
+        list.pack_start(opts)
+
+        
+        list.pack_start(gtk.Label('Display'))
         check_show_cache_id = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         check_show_cache_id.set_label("Show Geocache ID on Map")
         check_show_cache_id.set_active(self.settings['options_show_name'])
+        list.pack_start(check_show_cache_id)
 
         check_map_double_size = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         check_map_double_size.set_label("Show Map in double size (ugly)")
         check_map_double_size.set_active(self.settings['options_map_double_size'])
+        list.pack_start(check_map_double_size)
 
         check_hide_found = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         check_hide_found.set_label("Hide Found Geocaches on Map")
         check_hide_found.set_active(self.settings['options_hide_found'])
+        list.pack_start(check_hide_found)
 
         check_show_html_description = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         check_show_html_description.set_label("Show Cache Description with HTML")
         check_show_html_description.set_active(self.settings['options_show_html_description'])
+        list.pack_start(check_show_html_description)
 
         rotate_settings = (
                            (FremantleRotation.AUTOMATIC, 'Automatic'),
@@ -761,22 +773,45 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         rotate_screen = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
         rotate_screen.set_title('Screen Rotation')
         rotate_screen.set_selector(rotate_selector)
+        list.pack_start(rotate_screen)
 
 
-        check_hide_found = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
-        check_hide_found.set_label("Hide Found Geocaches on Map")
-        check_hide_found.set_active(self.settings['options_hide_found'])
-        
-        opts.attach(check_dl_images, 0, 2, 2, 3)
-        opts.attach(check_show_cache_id, 0, 2, 3, 4)
-        opts.attach(check_map_double_size, 0, 2, 4, 5)
-        opts.attach(check_hide_found, 0, 2, 5, 6)
-        opts.attach(check_show_html_description, 0, 2, 6, 7)
-        opts.attach(rotate_screen, 0, 2, 7, 8)
-        p = hildon.PannableArea()
-        p.add_with_viewport(opts)
-        dialog.vbox.pack_start(p, True)
-        
+        list.pack_start(gtk.Label('Text-To-Speech'))
+        tts_settings = (
+                        (0, 'Off'),
+                        (10, '10 Seconds'),
+                        (20, '20 Seconds'),
+                        (30, '30 Seconds'),
+                        (50, '50 Seconds'),
+                        (100, '100 Seconds'),
+                        (180, '3 Minutes'),
+                        (5 * 60, '5 Minutes'),
+                        (10 * 60, '10 Minutes'),
+                        )
+        tts_selector = hildon.TouchSelector(text=True)
+
+        i = 0
+        for seconds, text in tts_settings:
+            tts_selector.append_text(text)
+            if self.settings['tts_interval'] == seconds:
+                tts_selector.select_iter(0, tts_selector.get_model(0).get_iter(i), False)
+            i += 1
+
+        tts_button = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
+        tts_button.set_title('TTS interval')
+        tts_button.set_selector(tts_selector)
+        list.pack_start(tts_button)
+
+
+        list.pack_start(gtk.Label('Other'))
+
+        check_dl_images = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
+        check_dl_images.set_label("Don't Download Images")
+        check_dl_images.set_active(self.settings['download_noimages'])
+        list.pack_start(check_dl_images)
+
+
+
         
         dialog.show_all()
         result = dialog.run()
@@ -784,18 +819,23 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         if result != gtk.RESPONSE_ACCEPT:
             return
         rotate = rotate_settings[rotate_selector.get_selected_rows(0)[0][0]][0]
+        tts_interval = tts_settings[tts_selector.get_selected_rows(0)[0][0]][0]
         if self.settings['options_show_html_description'] != check_show_html_description.get_active():
             self.old_cache_window = None
         self.rotation_manager.set_mode(rotate)
-        self.settings['options_username'] = username.get_text()
-        self.settings['options_password'] = password.get_text()
-        self.settings['download_noimages'] = check_dl_images.get_active()
-        self.settings['options_show_name'] = check_show_cache_id.get_active()
-        self.settings['options_map_double_size'] = check_map_double_size.get_active()
-        self.settings['options_hide_found'] = check_hide_found.get_active()
-        self.settings['options_show_html_description'] = check_show_html_description.get_active()
-        self.settings['options_rotate_screen'] = rotate
-        self.core.on_userdata_changed(self.settings['options_username'], self.settings['options_password'])
+        self.settings.update({
+                             'options_username': username.get_text(),
+                             'options_password': password.get_text(),
+                             'download_noimages': check_dl_images.get_active(),
+                             'options_show_name': check_show_cache_id.get_active(),
+                             'options_map_double_size': check_map_double_size.get_active(),
+                             'options_hide_found': check_hide_found.get_active(),
+                             'options_show_html_description': check_show_html_description.get_active(),
+                             'options_rotate_screen': rotate,
+                             'tts_interval':tts_interval
+                             })
+        self._on_save_settings(None)
+        #self.core.on_userdata_changed(self.settings['options_username'], self.settings['options_password'])
 
     def _on_show_dialog_change_target(self, widget, data):
         self._get_best_coordinate()
@@ -1611,34 +1651,20 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         #
         ##############################################
 
-    def read_settings(self):
-        settings = self.settings
-        c = self.ts.num2deg(self.map_center_x, self.map_center_y)
-        settings['map_position_lat'] = c.lat
-        settings['map_position_lon'] = c.lon
-        settings['map_zoom'] = self.ts.get_zoom()
         
-        if self.core.current_target != None:
-            settings['last_target_lat'] = self.core.current_target.lat
-            settings['last_target_lon'] = self.core.current_target.lon
 
-        if self.current_cache != None:
-            settings['last_selected_geocache'] = self.current_cache.name
+    def _on_settings_changed(self, caller, settings, source):
+        if source == self:
+            return
+        self.settings.update(settings)
 
-        for i in ['options_username', 'options_password', 'download_noimages', 'options_show_name', 'options_hide_found', 'options_show_html_description', 'options_map_double_size', 'options_rotate_screen']:
-            settings[i] = self.settings[i]
-        self.settings = settings
-        return settings
-
-                
-    def write_settings(self, settings):
-        self.settings = settings
         self.block_changes = True
-        self.ts.set_zoom(settings['map_zoom'])
-        self.set_center(geo.Coordinate(settings['map_position_lat'], settings['map_position_lon']))
-        self.rotation_manager.set_mode(settings['options_rotate_screen'])
-
-
+        if 'map_zoom' in settings:
+            self.ts.set_zoom(settings['map_zoom'])
+        if 'map_position_lat' in settings and 'map_position_lon' in settings:
+            self.set_center(geo.Coordinate(settings['map_position_lat'], settings['map_position_lon']))
+        if 'options_rotate_screen' in settings:
+            self.rotation_manager.set_mode(settings['options_rotate_screen'])
         if 'last_target_lat' in settings:
             self.set_target(geo.Coordinate(settings['last_target_lat'], settings['last_target_lon'], settings['last_target_name']))
         if 'last_selected_geocache' in settings and settings['last_selected_geocache'] not in (None, ''):
@@ -1647,6 +1673,22 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
                 self.set_current_cache(cache)
 
         self.block_changes = False
+
+    def _on_save_settings(self, caller):
+        c = self.ts.num2deg(self.map_center_x, self.map_center_y)
+        settings = {}
+        settings['map_position_lat'] = c.lat
+        settings['map_position_lon'] = c.lon
+        settings['map_zoom'] = self.ts.get_zoom()
+
+        if self.current_cache != None:
+            settings['last_selected_geocache'] = self.current_cache.name
+
+        for i in ['options_username', 'options_password', 'download_noimages', 'options_show_name', 'options_hide_found', 'options_show_html_description', 'options_map_double_size', 'options_rotate_screen', 'tts_interval']:
+            settings[i] = self.settings[i]
+        self.core.save_settings(settings, self)
+
+
 
         ##############################################
         #

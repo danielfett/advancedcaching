@@ -65,11 +65,13 @@ class Core(gobject.GObject):
 
     __gsignals__ = {
         'map-marks-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'cache-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, )),
+        'cache-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'fieldnotes-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
         'good-fix': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT)),
         'no-fix': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT)),
-        'target-changed' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT))
+        'target-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT)),
+        'settings-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT,)),
+        'save-settings': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
         }
 
     SETTINGS_DIR = path.expanduser('~/.agtl')
@@ -113,7 +115,8 @@ class Core(gobject.GObject):
 
         ],
         'options_map_double_size': False,
-        'options_rotate_screen': 0
+        'options_rotate_screen': 0,
+        'tts_interval' : 0
     }
             
     def __init__(self, guitype, root):
@@ -125,6 +128,8 @@ class Core(gobject.GObject):
         dataroot = path.join(root, 'data')
 
         self.__read_config()
+        self.connect('settings-changed', self.__on_settings_changed)
+        self.connect('save-settings', self.__on_save_settings)
         self.create_recursive(self.settings['download_output_dir'])
         self.create_recursive(self.settings['download_map_path'])
                 
@@ -137,7 +142,7 @@ class Core(gobject.GObject):
         self.userpointprovider = None
 
         self.gui = guitype(self, dataroot)
-        self.gui.write_settings(self.settings)
+        self.emit('settings-changed', self.settings, self)
 
  
 
@@ -164,6 +169,7 @@ class Core(gobject.GObject):
 
         self.gui.show()
 
+
     @staticmethod
     def create_recursive(dpath):
         if dpath != '/':
@@ -176,10 +182,33 @@ class Core(gobject.GObject):
                     print e
                     pass
 
+    def save_settings(self, settings, source):
+        self.settings.update(settings)
+        self.emit('settings-changed', settings, source)
+
+    def __on_settings_changed(self, caller, settings, source):
+        if source == self:
+            return
+        if 'options_username' in settings and 'options_password' in settings:
+            self.downloader.update_userdata(settings['options_username'], settings['options_password'])
+
+    def __on_save_settings(self, caller):
+        settings = {
+            'last_target_lat': self.core.current_target.lat,
+            'last_target_lon': self.core.current_target.lon
+        }
+        caller.save_settings(settings, self)
                 
     def __del__(self):
-        self.settings = self.gui.read_settings()
+        self.emit('save-settings')
         self.__write_config()
+
+    # called by gui
+    def on_destroy(self):
+        self.emit('save-settings')
+        self.__write_config()
+
+
 
     def set_target(self, coordinate):
         self.current_target = coordinate
@@ -260,12 +289,6 @@ class Core(gobject.GObject):
         truncated = (len(points) >= self.pointprovider.MAX_RESULTS)
         self.pointprovider.pop_filter()
         return (points, truncated)
-
-
-    # called by gui
-    def on_destroy(self):
-        self.settings = self.gui.read_settings()
-        self.__write_config()
 
     # called by gui
     def on_download(self, location, sync=False):
@@ -488,9 +511,6 @@ class Core(gobject.GObject):
     def get_geocache_by_name(self, name):
         return self.pointprovider.get_by_name(name)
 
-    #called by gui
-    def on_userdata_changed(self, username, password):
-        self.downloader.update_userdata(username, password)
 
     def __get_target_distance_bearing(self):
         if self.current_position != None and self.current_target != None:
