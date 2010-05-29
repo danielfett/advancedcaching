@@ -26,16 +26,17 @@ import geo
 import gobject
 import gtk
 from os import path, mkdir, extsep, remove
-from threading import Thread, Semaphore
+from threading import Semaphore
 from urllib import urlretrieve
 from socket import setdefaulttimeout
 setdefaulttimeout(30)
 
-def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, file_type = 'png', size = 256):
+CONCURRENT_THREADS = 16
 
-    class TileLoader(Thread):
+def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, file_type = 'png', size = 256):
+    class TileLoader():
         downloading = {}
-        semaphore = Semaphore(16)
+        semaphore = Semaphore(CONCURRENT_THREADS)
         noimage_cantload = None
         noimage_loading = None
         base_dir = ''
@@ -51,8 +52,6 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
         TPL_LOCAL_FILENAME = path.join("%s", "%%d%s%s" % (extsep, FILE_TYPE))
 
         def __init__(self, tile, zoom, undersample, x, y):
-            Thread.__init__(self)
-            self.daemon = False
             self.undersample = undersample
             self.tile = tile
             self.download_tile = self.gui.ts.check_bounds(*tile)

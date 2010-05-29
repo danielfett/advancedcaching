@@ -216,25 +216,19 @@ class Core(gobject.GObject):
         self.create_recursive(self.SETTINGS_DIR)
 
         dataroot = path.join(root, 'data')
-        
-        #self.standbypreventer = Standbypreventer()
-        # seems to crash dbus/fso/whatever
-                        
+
         self.__read_config()
         self.create_recursive(self.settings['download_output_dir'])
         self.create_recursive(self.settings['download_map_path'])
                 
-        #self.standbypreventer.set_status(Standbypreventer.STATUS_SCREEN_ON)
-                
+
         self.downloader = downloader.FileDownloader(self.settings['options_username'], self.settings['options_password'], self.COOKIE_FILE)
                 
-        #pointprovider = LiveCacheProvider()
+
         self.pointprovider = provider.PointProvider(self.CACHES_DB, geocaching.GeocacheCoordinate, 'geocaches')
-        #self.userpointprovider = provider.PointProvider("%s/caches.db" % self.SETTINGS_DIR, self.downloader, geo.Coordinate, 'userpoints')
+
         self.userpointprovider = None
-        #pointprovider = PointProvider(':memory:', self.downloader)
-        #reader = GpxReader(pointprovider)
-        #reader.read_file('../../file.loc')
+
         self.gui = guitype(self, dataroot)
         self.gui.write_settings(self.settings)
 
@@ -610,19 +604,19 @@ class Core(gobject.GObject):
     def __read_gps_cb_error(self, control, error):
         fix = gpsreader.Fix()
         msg = gpsreader.LocationGpsReader.get_error_from_code(error)
-        self.gui.on_no_fix(fix, msg)
-        self.emit('no-fix', fix)
+        self.emit('no-fix', fix, msg)
         return True
 
     def __read_gps_cb_changed(self, device):
         fix = gpsreader.Fix.from_tuple(device.fix, device)
         # @type fix gpsreader.Fix
+
         if fix.position != None:
-            self.gui.on_good_fix(fix)
-            self.emit('good-fix', fix)
+            self.current_position = fix.position
+            distance, bearing = self.__get_target_distance_bearing()
+            self.emit('good-fix', fix, distance, bearing)
         else:
-            self.gui.on_no_fix(fix, 'No fix')
-            self.emit('no-fix', fix)
+            self.emit('no-fix', fix, 'No Fix')
         return True
                 
     def __read_config(self):

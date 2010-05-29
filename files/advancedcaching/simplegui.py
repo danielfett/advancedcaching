@@ -42,6 +42,7 @@ except (ImportError):
     print "Please install glade if you're NOT on the maemo platform."
 import pango
 import openstreetmap
+import threadpool
 from os import path
 import re
 from cachedownloader import HTMLManipulations
@@ -161,7 +162,7 @@ class SimpleGui(object):
         self.images = []
         self.active_tile_loaders = []
 
-        #self.osd_string = ''
+        self.tile_loader_threadpool = threadpool.ThreadPool(openstreetmap.CONCURRENT_THREADS)
 
         
         self.north_indicator_layout = None
@@ -712,17 +713,23 @@ class SimpleGui(object):
 
         self.active_tile_loaders = []
         undersample = self.settings['options_map_double_size']
+        requests = []
         for i in xrange(-span_x, span_x + 1, 1):
             for j in xrange(-span_y, span_y + 1, 1):
                 tile = (xi + i, yi + j)
 
                 dx = i * size + offset_x
                 dy = j * size + offset_y
-
-                d = self.tile_loader(tile, self.ts.zoom, undersample=undersample, x=dx, y=dy)
-                d.start()
-                self.active_tile_loaders.append(d)
+                requests.append(((tile, self.ts.zoom, undersample, dx, dy),{}))
+        reqs = threadpool.makeRequests(self._run_tile_loader, requests)
+        for r in reqs:
+            self.tile_loader_threadpool.putRequest(r)
         self._draw_marks()
+
+    def _run_tile_loader(self, tile, zoom, undersample, x, y):
+        d = self.tile_loader(tile=tile, zoom=zoom, undersample=undersample, x=x, y=y)
+        self.active_tile_loaders.append(d)
+        d.run()
 
     def _draw_marks_caches(self, coords):
         xgc = self.xgc

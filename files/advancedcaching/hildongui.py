@@ -56,6 +56,7 @@ import hildon
 import openstreetmap
 import pango
 import gobject
+import threadpool
 from portrait import FremantleRotation
 from simplegui import SimpleGui
 from simplegui import UpdownRows
@@ -128,7 +129,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         self.old_cache_window = None
         self.old_search_window = None
         self.cache_calc_vars = {}
-        #self.osd_string = ''
+
+        self.tile_loader_threadpool = threadpool.ThreadPool(openstreetmap.CONCURRENT_THREADS)
                 
         self.dragging = False
         self.block_changes = False
