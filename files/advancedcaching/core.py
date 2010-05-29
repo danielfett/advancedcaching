@@ -18,101 +18,7 @@
 #        Author: Daniel Fett simplecaching@fragcom.de
 #
 
-usage = r'''Here's how to use this app:
 
-If you want to use the gui:
-%(name)s --simple
-    Simple User Interface, for mobile devices such as the Openmoko Freerunner
-%(name)s --desktop
-    Full User Interface, for desktop usage (not implemented yet)
-    
-If you don't like your mouse:
-%(name)s set [options]
-        Change the configuration.
-%(name)s import [importactions] 
-        Fetch geocaches from geocaching.com and write to the internal database.
-%(name)s import [importactions] do [actions]
-        Fetch geocaches from geocaching.com, put them into the internal database and do whatever actions are listed.
-%(name)s filter [filter-options] do [actions]
-        Query the internal database for geocaches and do the desired actions.
-%(name)s import [importactions] filter [filter-options] do [actions]
-        Import geocaches, put them into the internal database, filter the imported geocaches and run the actions. 
-%(name)s sql "SELECT * FROM geocaches WHERE ... ORDER BY ... LIMIT ..." do [actions]
-        Select geocaches from local database and run the actions afterwards. Additional use of the filter is also supported. To get more information, run "%(name)s sql".
-options:
-        --user(name) username
-        --pass(word) password
-                Your geocaching.com login data. 
-importactions:
-        --in coord1 coord2
-                Fetches the index of geocaches between the given coordinates.
-                These are interpreted as the corners of a rectangle. All caches
-                within the rectangle are retrieved. No details are retrieved.
-        --around coord radius-in-km
-                Fetches the index of geocaches at the given coordinate and radius
-                kilometers around it. No details are retrieved.
-        --at-route coord1 coord2 radius-in-km
-                Find caches along the route from coord1 to coord2. Uses OpenRouteService
-                and is not available for routes outside of europe.
-
-filter-options:
-        --in coord1 coord2
-        --around coord1 radius-in-km
-                See import actions.
-        -f|--found
-        -F|--not-found
-                Filter out geocaches which have (not) been found by the user.
-        -w|--was-downloaded
-                caches which have full detail information available
-        
-        -s|--size (min|max) 1..4|micro|small|regular|huge|other
-                Specify a minimum or maximum size. If min/max is not given, show
-                only geocaches with the given size.
-        -d|--difficulty (min|max) 1.0..5.0
-        -t|--terrain (min|max) 1.0..5.0
-                Filter out geocaches by difficulty or terrain.
-        -T|--type type,type,...
-         type: virtual|regular|unknown|multi|event
-                Only show geocaches of the given type(s)
-        -o|--owner owner-search-string
-        -n|--name name-search-string
-        -i|--id id-search-string
-                Search owner, name (title) or id of the geocaches.
-        --new
-                Caches which were downloaded in current session. Useful to
-                get alerted when new caches arrive.
-actions:
-        --print 
-                Default action, prints tab-separated list of geocaches
-        --fetch-details
-                Downloads Descriptions etc. for selected geocaches
-        --export-html folder
-                Dumps HTML pages to given folder
-        --command command
-                Runs command if more than one geocache has survived the filtering.
-                The placeholder %%s is replaced by a shell-escaped list of geocaches.
-
-        Not implemented yet:
-        --export-gpx folder
-                Dumps geocaches into separate GPX files
-        --export-single-gpx file
-                Dumps selected geocaches into a single GPX file
-        --draw-map zoom file
-                Draws one big JPEG file with the positions of the selected geocaches
-        --draw-maps zoom folder [tiles]
-                Draws a small JPEG image for every geocache. 
-        
-Preferred format for coordinates:
-    'N49 44.111 E6 29.123'
-    or
-    'N49.123456 E6.043212'
-
-Instead of a coordinate, you may also query geonames.com for a place name.
-Just start the string with 'q:':
-    q:London
-    'q:Brisbane, Australia'
-
-'''
    
 
 from geo import Coordinate
@@ -135,7 +41,8 @@ from fieldnotesuploader import FieldnotesUploader
 
 
 if len(argv) == 1:
-    print usage % ({'name': argv[0]})
+    import cli
+    print cli.usage % ({'name': argv[0]})
     exit()
         
 
@@ -251,6 +158,10 @@ class Core(gobject.GObject):
 
         if '--startup-only' in argv:
             return
+
+        from actors.tts import TTS
+        t = TTS(self)
+
         self.gui.show()
 
     @staticmethod
