@@ -391,6 +391,18 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
     def _create_main_menu(self):
         menu = hildon.AppMenu()
     
+        sel_tiles = hildon.TouchSelector(text=True)
+        for name, loader in self.tile_loaders:
+            sel_tiles.append_text(name)
+        pick_tiles = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        pick_tiles.set_selector(sel_tiles)
+        pick_tiles.set_title("Map Style")
+        pick_tiles.set_active(0)
+        pick_tiles.connect('value-changed', lambda widget: self.set_tile_loader(self.tile_loaders[widget.get_active()][1]))
+        menu.append(pick_tiles)
+
+        menu.append(self._get_search_place_button())
+
         button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_title("Show current Target")
         button.set_value('')
@@ -441,17 +453,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         button.connect("clicked", self._on_show_options, None)
         menu.append(button)
 
-        sel_tiles = hildon.TouchSelector(text=True)
-        for name, loader in self.tile_loaders:
-            sel_tiles.append_text(name)
-        pick_tiles = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        pick_tiles.set_selector(sel_tiles)
-        pick_tiles.set_title("Map Style")
-        pick_tiles.set_active(0)
-        pick_tiles.connect('value-changed', lambda widget: self.set_tile_loader(self.tile_loaders[widget.get_active()][1]))
-        menu.append(pick_tiles)
 
-        menu.append(self._get_search_place_button())
 
         menu.show_all()
         return menu
@@ -1666,7 +1668,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         if 'options_rotate_screen' in settings:
             self.rotation_manager.set_mode(settings['options_rotate_screen'])
         if 'last_target_lat' in settings:
-            self.set_target(geo.Coordinate(settings['last_target_lat'], settings['last_target_lon'], settings['last_target_name']))
+            self.set_target(geo.Coordinate(settings['last_target_lat'], settings['last_target_lon']))
         if 'last_selected_geocache' in settings and settings['last_selected_geocache'] not in (None, ''):
             cache = self.core.get_geocache_by_name(settings['last_selected_geocache'])
             if cache != None:

@@ -9,11 +9,12 @@ class TTS(gobject.GObject):
 
         self.gps_target_bearing = None
         self.gps_target_distance = None
+        self.proc = None
 
         self.timeout_event_id = None
         core.connect('good-fix', self.__on_good_fix)
         core.connect('no-fix', self.__on_no_fix)
-        
+        core.connect('settings-changed', self.__on_settings_changed)
 
     def __on_settings_changed(self, caller, settings, source):
         if 'tts_interval' in settings:
@@ -48,6 +49,7 @@ class TTS(gobject.GObject):
     def __on_good_fix(self, caller, gps_data, distance, bearing):
         self.gps_target_distance = distance
         self.gps_target_bearing = bearing
+        print ' hier'
 
     def __tell(self):
         if self.gps_target_distance == None:

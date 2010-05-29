@@ -37,7 +37,7 @@ import provider
 from threading import Thread
 from cachedownloader import GeocachingComCacheDownloader
 from fieldnotesuploader import FieldnotesUploader
-
+from actors.tts import TTS
 
 
 if len(argv) == 1:
@@ -136,12 +136,13 @@ class Core(gobject.GObject):
 
         self.downloader = downloader.FileDownloader(self.settings['options_username'], self.settings['options_password'], self.COOKIE_FILE)
                 
-
         self.pointprovider = provider.PointProvider(self.CACHES_DB, geocaching.GeocacheCoordinate, 'geocaches')
 
-        self.userpointprovider = None
-
         self.gui = guitype(self, dataroot)
+
+        
+        actor_tts = TTS(self)
+
         self.emit('settings-changed', self.settings, self)
 
  
@@ -164,8 +165,6 @@ class Core(gobject.GObject):
         if '--startup-only' in argv:
             return
 
-        from actors.tts import TTS
-        t = TTS(self)
 
         self.gui.show()
 
@@ -194,8 +193,8 @@ class Core(gobject.GObject):
 
     def __on_save_settings(self, caller):
         settings = {
-            'last_target_lat': self.core.current_target.lat,
-            'last_target_lon': self.core.current_target.lon
+            'last_target_lat': self.current_target.lat,
+            'last_target_lon': self.current_target.lon
         }
         caller.save_settings(settings, self)
                 
