@@ -157,11 +157,12 @@ else:
 class Core(gobject.GObject):
 
     __gsignals__ = {
-        'map-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'cache-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'map-marks-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'cache-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, )),
         'fieldnotes-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'good-fix': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        'no-fix': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'good-fix': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT)),
+        'no-fix': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT)),
+        'target-changed' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT))
         }
 
     SETTINGS_DIR = path.expanduser('~/.agtl')
@@ -193,7 +194,7 @@ class Core(gobject.GObject):
         'last_target_lat': 50,
         'last_target_lon': 10,
         'last_target_name': 'default',
-        'last_selected_geocache' : '',
+        'last_selected_geocache': '',
         'download_noimages': False,
         'download_map_path': DATA_DIR + MAPS_DIR,
         'options_hide_found': False,
@@ -204,12 +205,14 @@ class Core(gobject.GObject):
             ('OpenCycleMaps', {'remote_url': 'http://andy.sandbox.cloudmade.com/tiles/cycle/%(zoom)d/%(x)d/%(y)d.png', 'prefix': 'OpenCycleMap'})
 
         ],
-        'options_map_double_size' : False,
-        'options_rotate_screen' : 0
+        'options_map_double_size': False,
+        'options_rotate_screen': 0
     }
             
     def __init__(self, guitype, root):
         gobject.GObject.__init__(self)
+        self.current_target = None
+        self.current_position = None
         self.create_recursive(self.SETTINGS_DIR)
 
         dataroot = path.join(root, 'data')
@@ -240,7 +243,7 @@ class Core(gobject.GObject):
         if '--sim' in argv:
             self.gps_thread = gpsreader.FakeGpsReader(self)
             gobject.timeout_add(1000, self.__read_gps)
-            self.gui.set_target(gpsreader.FakeGpsReader.get_target())
+            self.set_target(gpsreader.FakeGpsReader.get_target())
         elif 'gpsprovider' in self.gui.USES:
             self.gps_thread = gpsreader.GpsReader()
             #self.gps_thread = gpsreader.FakeGpsReader(self)
@@ -272,6 +275,12 @@ class Core(gobject.GObject):
     def __del__(self):
         self.settings = self.gui.read_settings()
         self.__write_config()
+
+    def set_target(self, coordinate):
+        self.current_target = coordinate
+        distance, bearing = self.__get_target_distance_bearing()
+        self.emit('target-changed', coordinate, distance, bearing)
+        self.emit('map-marks-changed')
                                 
     def get_coord_by_name(self, query):
         return self.geonames.search(query)
@@ -326,12 +335,12 @@ class Core(gobject.GObject):
     # called by gui
     def set_filter(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location=None, marked=None):
         self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked=marked)
-        self.emit('map-changed')
+        self.emit('map-marks-changed')
                 
     # called by gui
     def reset_filter(self):
         self.pointprovider.set_filter()
-        self.emit('map-changed')
+        self.emit('map-marks-changed')
 
     # called by gui
     def on_start_search_advanced(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location=None, marked=None):
@@ -381,7 +390,7 @@ class Core(gobject.GObject):
                 new_caches.append(c)
         self.pointprovider.save()
         self.gui.hide_progress()
-        self.emit('map-changed')
+        self.emit('map-marks-changed')
         if sync:
             return (caches, new_caches)
         else:
@@ -504,7 +513,7 @@ class Core(gobject.GObject):
         self.gui.hide_progress()
         for c in caches:
             self.emit('cache-changed', c)
-        self.emit('map-changed')
+        self.emit('map-marks-changed')
         return False
 
 
@@ -522,7 +531,7 @@ class Core(gobject.GObject):
     def set_alternative_position(self, cache, ap):
         cache.set_alternative_position(ap)
         self.save_cache_attribute(cache, ('alter_lat', 'alter_lon'))
-        self.emit('map-changed')
+        self.emit('map-marks-changed')
 
     def save_fieldnote(self, cache):
         if cache.logas == geocaching.GeocacheCoordinate.LOG_AS_FOUND:
@@ -566,7 +575,7 @@ class Core(gobject.GObject):
     def save_cache_attribute(self, cache, attribute):
         if type(attribute) == tuple:
             for a in attribute:
-                self.pointprovider.update_field(cache, a, cache.serialize_one(a), save = False)
+                self.pointprovider.update_field(cache, a, cache.serialize_one(a), save=False)
             self.pointprovider.save()
         else:
             self.pointprovider.update_field(cache, attribute, cache.serialize_one(attribute))
@@ -577,15 +586,25 @@ class Core(gobject.GObject):
     #called by gui
     def on_userdata_changed(self, username, password):
         self.downloader.update_userdata(username, password)
+
+    def __get_target_distance_bearing(self):
+        if self.current_position != None and self.current_target != None:
+            distance = self.current_position.distance_to(self.current_target)
+            bearing = self.current_position.bearing_to(self.current_target)
+        else:
+            distance = None
+            bearing = None
+        return distance, bearing
                 
     def __read_gps(self):
         fix = self.gps_thread.get_data()
+
         if fix.position != None:
-            self.gui.on_good_fix(fix)
-            self.emit('good-fix', fix)
+            self.current_position = fix.position
+            distance, bearing = self.__get_target_distance_bearing()
+            self.emit('good-fix', fix, distance, bearing)
         else:
-            self.gui.on_no_fix(fix, self.gps_thread.status)
-            self.emit('no-fix', fix)
+            self.emit('no-fix', fix, self.gps_thread.status)
         return True
 
     def __read_gps_cb_error(self, control, error):
@@ -676,12 +695,12 @@ def start_profile(what):
             return 0
         else:
             return -1
-    stats.sort(cmp = c)
+    stats.sort(cmp=c)
     for line in stats[:100]:
         print "%d %4f %s" % (line.callcount, line.totaltime, line.code)
         if line.calls == None:
             continue
-        line.calls.sort(cmp = c)
+        line.calls.sort(cmp=c)
         for line in line.calls[:10]:
             print "-- %d %4f %s" % (line.callcount, line.totaltime, line.code)
 
@@ -694,12 +713,12 @@ def start_profile(what):
             return 0
         else:
             return -1
-    stats.sort(cmp = c)
+    stats.sort(cmp=c)
     for line in stats[:30]:
         print "%d %4f %s" % (line.callcount, line.totaltime, line.code)
         if line.calls == None:
             continue
-        line.calls.sort(cmp = c)
+        line.calls.sort(cmp=c)
         for line in line.calls[:10]:
             print "-- %d %4f %s" % (line.callcount, line.totaltime, line.code)
 

@@ -20,6 +20,7 @@
 
  
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
+# auto update feature
 # download map data
 # direction indicator in map view
 # edit waypoints
@@ -104,8 +105,11 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         self._prepare_images(dataroot)
         
         self.core = core
-        self.core.connect('map-changed', self._on_map_changed)
+        self.core.connect('map-marks-changed', self._on_map_changed)
         self.core.connect('cache-changed', self._on_cache_changed)
+        self.core.connect('target-changed', self._on_target_changed)
+        self.core.connect('good-fix', self._on_good_fix)
+        self.core.connect('no-fix', self._on_no_fix)
 
         self.build_tile_loaders()
         self.ts = openstreetmap.TileServer(self.tile_loader)
@@ -116,7 +120,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         self.current_cache = None
         self.current_cache_window_open = False
                 
-        self.current_target = None
         self.gps_data = None
         self.gps_has_fix = False
         self.gps_last_good_fix = None
@@ -147,7 +150,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         self.window.set_app_menu(self._create_main_menu())
 
         gtk.link_button_set_uri_hook(self._open_browser)
-        #self.show_coordinate_input(geo.Coordinate(49.344, 6.584))
+        
         self.rotation_manager = FremantleRotation('advancedcaching')
 
         self.astral = Astral()
@@ -793,12 +796,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         self.core.on_userdata_changed(self.settings['options_username'], self.settings['options_password'])
 
     def _on_show_dialog_change_target(self, widget, data):
-        if self.current_target != None:
-            c = self.current_target
-        elif self.gps_data != None and self.gps_data.position != None:
-            c = self.gps_data.position
-        else:
-            c = geo.Coordinate(0, 0)
+        self._get_best_coordinate()
 
         dialog = gtk.Dialog("change target", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 
@@ -1270,16 +1268,19 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
     def _on_add_waypoint_clicked (self, widget):
         self._add_waypoint_to_notes(None)
 
-    def _add_waypoint_to_notes(self, start=None):
+    def _get_best_coordinate(self, start=None):
         if start != None:
             c = start
         elif self.gps_data != None and self.gps_data.position != None:
             c = self.gps_data.position
-        elif self.current_target != None:
-            c = self.current_target
+        elif self.core.current_target != None:
+            c = self.core.current_target
         else:
             c = geo.Coordinate(0, 0)
-        res = self.show_coordinate_input(c)
+        return c
+
+    def _add_waypoint_to_notes(self, start=None):
+        res = self.show_coordinate_input(self._get_best_coordinate(start))
         text = "\n%s\n" % res.get_latlon(self.format)
         self.cache_notes.get_buffer().insert(self.cache_notes.get_buffer().get_end_iter(), text)
 
@@ -1420,13 +1421,17 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         self.button_show_details_small.set_sensitive(True)
         gobject.idle_add(self.redraw_marks)
 
-    def _on_set_target_clicked(self, some, cache):
+    def _on_set_target_clicked(self, some, cache): 
         self.set_target(cache)
         self.hide_cache_view()
         self.set_active_page(True)
 
     def set_target(self, cache):
-        self.current_target = cache
+        self.core.set_target(cache)
+
+    def _on_target_changed(self, caller, cache, distance, bearing):
+        self.gps_target_distance = distance
+        self.gps_target_bearing = bearing
         coord = cache.get_latlon(self.format)
         self.label_target.set_value(coord)
         self.button_goto_target.set_value(coord)
@@ -1555,27 +1560,20 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
             text = "%d/%d sats, error: ±%3.1fm" % (self.gps_data.sats, self.gps_data.sats_known, self.gps_data.error)
         self.label_quality.set_markup("Accuracy\n<small>%s</small>" % text)
         if self.gps_data.altitude == None or self.gps_data.bearing == None:
-            #self.osd_string = "<span gravity='west' size='xx-large'>No Fix </span>"
             return
 
         self.label_altitude.set_markup("Altitude\n<small>%d m</small>" % self.gps_data.altitude)
         self.label_bearing.set_markup("Bearing\n<small>%d°</small>" % self.gps_data.bearing)
         self.label_latlon.set_markup("Current Position\n<small>%s</small>" % self.gps_data.position.get_latlon(self.format))
 
-        if self.current_target == None:
-            #self.osd_string = ""
-            return
 
-        target_distance = self.gps_data.position.distance_to(self.current_target)
-        td_string = self.__format_distance(target_distance)
-        if self.gps_has_fix:
+        if self.gps_has_fix and self.gps_target_distance != None:
+            td_string = self.__format_distance(self.gps_target_distance)
             self.label_dist.set_markup("<span size='xx-large'>%s</span>" % td_string)
-
-            #self.osd_string = "<span gravity='west' size='xx-large'>%s </span>" % td_string
+        elif self.gps_target_distance == None:
+            self.label_dist.set_markup("<span size='x-large'>No Target</span>")
         else:
             self.label_dist.set_markup("<span size='xx-large'>No Fix</span>")
-
-            #self.osd_string = "<span gravity='west' size='xx-large'>No Fix </span>"
 
     def __format_distance(self, distance):
         if distance == None:
@@ -1589,7 +1587,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
 
 
 
-    def on_no_fix(self, gps_data, status):
+    def _on_no_fix(self, caller, gps_data, status):
         self.gps_data = gps_data
         self.label_bearing.set_text("No Fix")
         self.label_latlon.set_text(status)
@@ -1618,9 +1616,9 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         settings['map_position_lon'] = c.lon
         settings['map_zoom'] = self.ts.get_zoom()
         
-        if self.current_target != None:
-            settings['last_target_lat'] = self.current_target.lat
-            settings['last_target_lon'] = self.current_target.lon
+        if self.core.current_target != None:
+            settings['last_target_lat'] = self.core.current_target.lat
+            settings['last_target_lon'] = self.core.current_target.lon
 
         if self.current_cache != None:
             settings['last_selected_geocache'] = self.current_cache.name

@@ -132,7 +132,7 @@ class Coordinate(object):
         self.lon = lon
         self.name = name
         try:
-            self.distance_to = self.build_distance_to_liblocation
+            self.distance_to = self.build_distance_to_liblocation()
         except Exception:
             self.distance_to = self.distance_to_manual
             
@@ -246,7 +246,7 @@ class Coordinate(object):
 
     def build_distance_to_liblocation(self):
         from location import distance_between
-        def distance_to_liblocation(self, target):
+        def distance_to_liblocation(target):
             return distance_between(self.lat, self.lon, target.lat, target.lon) * 1000
         return distance_to_liblocation
 

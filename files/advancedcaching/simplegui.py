@@ -139,7 +139,7 @@ class SimpleGui(object):
         self.noimage_loading = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-loading.png'))
         self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(path.join(dataroot, 'noimage-cantload.png'))
         self.core = core
-        self.core.connect('map-changed', self._on_map_changed)
+        self.core.connect('map-marks-changed', self._on_map_changed)
         self.core.connect('cache-changed', self._on_cache_changed)
         
                 
@@ -148,7 +148,6 @@ class SimpleGui(object):
         # @type self.current_cache geocaching.GeocacheCoordinate
         self.current_cache = None
                 
-        self.current_target = None
         self.gps_data = None
         self.gps_has_fix = False
         self.gps_last_good_fix = None
@@ -487,7 +486,7 @@ class SimpleGui(object):
         widget = self.drawing_area_arrow
         x, y, width, height = widget.get_allocation()
                         
-        disabled = not (self.gps_has_fix and self.current_target != None and self.gps_data != None and self.gps_data.position != None)
+        disabled = not (self.gps_has_fix and self.gps_target_bearing != None and self.gps_target_distance != None)
                         
         self.pixmap_arrow.draw_rectangle(widget.get_style().bg_gc[gtk.STATE_NORMAL],
                                          True, 0, 0, width, height)
@@ -511,8 +510,8 @@ class SimpleGui(object):
             target_height = int(round(usable_height * self.gps_data.quality))
             self.pixmap_arrow.draw_rectangle(self.xgc_arrow, True, width - signal_width - 1, usable_height - target_height, signal_width, target_height)
 
-        display_bearing = self.gps_data.position.bearing_to(self.current_target) - self.gps_data.bearing
-        display_distance = self.gps_data.position.distance_to(self.current_target)
+        display_bearing = self.gps_target_bearing
+        display_distance = self.gps_target_distance
         display_north = math.radians(self.gps_data.bearing)
         sun_angle = self.astral.get_sun_azimuth_from_fix(self.gps_data)
         if sun_angle != None:
@@ -561,7 +560,7 @@ class SimpleGui(object):
                 
         self.xgc_arrow.set_rgb_fg_color(color)
 
-        if display_distance > self.DISTANCE_DISABLE_ARROW:
+        if display_distance != None and display_distance > self.DISTANCE_DISABLE_ARROW:
             arrow_transformed = self._get_arrow_transformed(x, y, width, height, display_bearing)
             #self.xgc_arrow.line_style = gtk.gdk.LINE_SOLID
             self.pixmap_arrow.draw_polygon(self.xgc_arrow, True, arrow_transformed)
@@ -654,7 +653,7 @@ class SimpleGui(object):
             else:
                 found = None
             cache = self.core.pointprovider.get_nearest_point_filter(c, c1, c2, found)
-            self.core.on_cache_selected(cache)
+            self.show_cache(cache)
         else:
             self.button_track.set_active(False)
         self.draw_at_x = self.draw_at_y = 0
@@ -873,8 +872,8 @@ class SimpleGui(object):
 
                 
         # if we have a target, draw it
-        if self.current_target != None:
-            t = self._coord2point(self.current_target)
+        if self.core.current_target != None:
+            t = self._coord2point(self.core.current_target)
             if t != False and self.point_in_screen(t):
                         
         
@@ -951,13 +950,13 @@ class SimpleGui(object):
             if self.point_in_screen(t) and self.point_in_screen(p):
                 self.pixmap_marks.draw_line(xgc, p[0], p[1], t[0], t[1])
             elif self.point_in_screen(p):
-                direction = math.radians(self.current_target.bearing_to(self.gps_data.position))
+                direction = math.radians(self.gps_target_bearing)
                 # correct max length: sqrt(width**2 + height**2)
                 length = self.map_width
                 self.pixmap_marks.draw_line(xgc, p[0], p[1], int(p[0] - math.sin(direction) * length), int(p[1] + math.cos(direction) * length))
 
             elif self.point_in_screen(t):
-                direction = math.radians(self.gps_data.position.bearing_to(self.current_target))
+                direction = math.radians(self.gps_target_bearing)
                 length = self.map_width + self.map_height
                 self.pixmap_marks.draw_line(xgc, t[0], t[1], int(t[0] - math.sin(direction) * length), int(t[1] + math.cos(direction) * length))
 
@@ -1033,7 +1032,7 @@ class SimpleGui(object):
         self._update_mark(self.current_cache, widget.get_active())
 
     def on_change_coord_clicked(self, something):
-        self.set_target(self.show_coordinate_input(self.current_target))
+        self.set_target(self.show_coordinate_input(self.core.current_target))
 
     def _get_search_selected_cache(self):
         index = self.cachelist.getFirstSelectedRowIndex()
@@ -1064,10 +1063,12 @@ class SimpleGui(object):
             return
         self.core.on_export_cache(self.current_cache, self.input_export_path.get_value())
         
-    def on_good_fix(self, gps_data):
+    def _on_good_fix(self, core, gps_data, distance, bearing):
         self.gps_data = gps_data
         self.gps_last_good_fix = gps_data
         self.gps_has_fix = True
+        self.gps_target_distance = distance
+        self.gps_target_bearing = bearing
         self._draw_arrow()
         #self.do_events()
         self.update_gps_display()
@@ -1147,7 +1148,7 @@ class SimpleGui(object):
         self.core.on_start_search_advanced(marked=True)
 
 
-    def on_no_fix(self, gps_data, status):
+    def _on_no_fix(self, caller, gps_data, status):
         self.gps_data = gps_data
         self.label_bearing.set_text("No Fix")
         self.label_latlon.set_text(status)
@@ -1282,7 +1283,7 @@ class SimpleGui(object):
             return
 
         if event.type == gtk.gdk._2BUTTON_PRESS:
-            self.core.on_cache_selected(cache)
+            self.show_cache(cache)
             self.set_center(cache)
         else:
             self.check_result_marked.set_active(cache.marked)
@@ -1304,10 +1305,10 @@ class SimpleGui(object):
         self.set_target(self.ts.num2deg(self.map_center_x, self.map_center_y))
 
     def on_show_target_clicked(self, some=None, data=None):
-        if self.current_target == None:
+        if self.core.current_target == None:
             return
         else:
-            self.set_center(self.current_target)
+            self.set_center(self.core.current_target)
                 
     def on_track_toggled(self, something, data=None):
         if self.button_track.get_active() and self.gps_data != None and self.gps_data.position != None:
@@ -1393,10 +1394,10 @@ class SimpleGui(object):
             'map_position_lon': c.lon, \
             'map_zoom': self.ts.get_zoom() \
         }
-        if self.current_target != None:
-            settings['last_target_lat'] = self.current_target.lat
-            settings['last_target_lon'] = self.current_target.lon
-            settings['last_target_name'] = self.current_target.name
+        if self.core.current_target != None:
+            settings['last_target_lat'] = self.core.current_target.lat
+            settings['last_target_lon'] = self.core.current_target.lon
+            settings['last_target_name'] = self.core.current_target.name
                         
         for x in self.SETTINGS_CHECKBOXES:
             w = xml.get_widget('check_%s' % x)
@@ -1456,6 +1457,7 @@ class SimpleGui(object):
         #self.do_events()
                 
     def set_target(self, cache):
+        raise Exception("FIXME")
         self.current_target = cache
         self.label_target.set_text("<span size='large'>%s\n%s</span>" % (cache.get_lat(self.format), cache.get_lon(self.format)))
         self.label_target.set_use_markup(True)
@@ -1669,11 +1671,13 @@ class SimpleGui(object):
         self.label_latlon.set_text("<span size='large'>%s\n%s</span>" % (self.gps_data.position.get_lat(self.format), self.gps_data.position.get_lon(self.format)))
         self.label_latlon.set_use_markup(True)
                 
-        if self.current_target == None:
+        if self.core.current_target == None:
             return
                         
         if self.gps_has_fix:
-            target_distance = self.gps_data.position.distance_to(self.current_target)
+            target_distance = self.gps_target_distance
+            if target_distance == None:
+                label = "No Target"
             if target_distance >= 1000:
                 label = "%3dkm" % round(target_distance / 1000)
             elif target_distance >= 100:
