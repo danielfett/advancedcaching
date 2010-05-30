@@ -378,6 +378,7 @@ class SimpleGui(object):
                         
         self.pixmap_marks = gtk.gdk.Pixmap(widget.window, self.map_width, self.map_height)
         self.xgc = widget.window.new_gc()
+        widget.window.set_background(gtk.gdk.color_parse("white"))
         self.drawing_area_configured = True
         self.draw_at_x = 0
         self.draw_at_y = 0
@@ -391,7 +392,6 @@ class SimpleGui(object):
         x, y, width, height = widget.get_allocation()
         self.pixmap_arrow = gtk.gdk.Pixmap(widget.window, width, height)
         self.xgc_arrow = widget.window.new_gc()
-
         if self.north_indicator_layout == None:
             # prepare font
             self.north_indicator_layout = widget.create_pango_layout("N")
@@ -632,17 +632,16 @@ class SimpleGui(object):
     def _drag(self, widget, event):
         if not self.dragging:
             return True
-        self.drag_offset_x = self.drag_start_x - event.x
-        self.drag_offset_y = self.drag_start_y - event.y
+        self.drag_offset_x = self.drag_start_x - int(event.x)
+        self.drag_offset_y = self.drag_start_y - int(event.y)
         return True
                 
     def _drag_end(self, widget, event):
         if not self.dragging:
             return
-        #print "drag end with: ", self.drag_offset_x, self.drag_offset_y
         self.dragging = False
-        offset_x = self.drag_offset_x #(self.drag_start_x - event.x)
-        offset_y = self.drag_offset_y #(self.drag_start_y - event.y)
+        offset_x = float(self.drag_offset_x) #(self.drag_start_x - event.x)
+        offset_y = float(self.drag_offset_y) #(self.drag_start_y - event.y)
         self.map_center_x += (offset_x / self.tile_loader.TILE_SIZE)
         self.map_center_y += (offset_y / self.tile_loader.TILE_SIZE)
         self.map_center_x, self.map_center_y = self.ts.check_bounds(self.map_center_x, self.map_center_y)
@@ -679,16 +678,38 @@ class SimpleGui(object):
 
         x, y, width, height = self.drawing_area.get_allocation()
         #gc = widget.get_style().fg_gc[gtk.STATE_NORMAL]
-        self.drawing_area.window.draw_drawable(self.xgc,
-                                               self.pixmap, -self.draw_at_x + self.drag_offset_x - self.draw_root_x, -self.draw_at_y + self.drag_offset_y - self.draw_root_y, 0, 0, width, height)
+        self.drawing_area.window.clear()
+        self.drawing_area.window.draw_drawable(gc=self.xgc,
+                                               src=self.pixmap,
+                                               xsrc=0,
+                                               ysrc=0,
+                                               xdest=self.draw_at_x - self.drag_offset_x,
+                                               ydest=self.draw_at_y - self.drag_offset_y,
+                                               width=width,
+                                               height=height)
+
+        self.xgc.set_function(gtk.gdk.AND)
+
+
+        self.drawing_area.window.draw_drawable(gc=self.xgc,
+                                               src=self.pixmap_marks,
+                                               xsrc=0,
+                                               ysrc=0,
+                                               xdest=self.draw_at_x - self.drag_offset_x,
+                                               ydest=self.draw_at_y - self.drag_offset_y,
+                                               width=width,
+                                               height=height)
+        
+        self.xgc.set_function(gtk.gdk.COPY)
+
         return True
         
                 
     def _drag_start(self, widget, event):
         for x in self.active_tile_loaders:
             x.halt()
-        self.drag_start_x = event.x
-        self.drag_start_y = event.y
+        self.drag_start_x = int(event.x)
+        self.drag_start_y = int(event.y)
         self.drag_offset_x = 0
         self.drag_offset_y = 0
         self.last_drag_offset_x = 0
@@ -724,7 +745,7 @@ class SimpleGui(object):
 
                 dx = i * size + offset_x
                 dy = j * size + offset_y
-                requests.append(((tile, self.ts.zoom, undersample, dx, dy),{}))
+                requests.append(((tile, self.ts.zoom, undersample, dx, dy), {}))
         reqs = threadpool.makeRequests(self._run_tile_loader, requests)
         for r in reqs:
             self.tile_loader_threadpool.putRequest(r)
