@@ -49,7 +49,6 @@ class TTS(gobject.GObject):
     def __on_good_fix(self, caller, gps_data, distance, bearing):
         self.gps_target_distance = distance
         self.gps_target_bearing_abs = bearing - gps_data.bearing
-        print ' hier'
 
     def __tell(self):
         if self.gps_target_distance == None:

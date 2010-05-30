@@ -660,7 +660,7 @@ class SimpleGui(object):
             cache = self.core.pointprovider.get_nearest_point_filter(c, c1, c2, found)
             self.show_cache(cache)
         else:
-            self.button_track.set_active(False)
+            self._set_track_mode(False)
         self.draw_at_x = self.draw_at_y = 0
         if offset_x != 0 or offset_y != 0:
             gobject.idle_add(self._draw_map)
@@ -1098,7 +1098,7 @@ class SimpleGui(object):
             dist_from_last = (x - l) ** 2 + (y - m) ** 2
 
             # if we are tracking the user, redraw if far enough from center:
-            if self.button_track.get_active():
+            if self._get_track_mode():
                 n, o = self.map_width / 2, self.map_height / 2
                 dist_from_center = (x - n) ** 2 + (y - o) ** 2
                 if dist_from_center > self.REDRAW_DISTANCE_TRACKING ** 2:
@@ -1321,8 +1321,9 @@ class SimpleGui(object):
         else:
             self.set_center(self.core.current_target)
                 
-    def on_track_toggled(self, something, data=None):
-        if self.button_track.get_active() and self.gps_data != None and self.gps_data.position != None:
+    def on_track_toggled(self, widget, data=None):
+        self.track_enabled = widget.get_active()
+        if widget.get_active() and self.gps_data != None and self.gps_data.position != None:
             self.set_center(self.gps_data.position, reset_track=False)
 
     def on_upload_fieldnotes(self, something):
@@ -1458,7 +1459,17 @@ class SimpleGui(object):
         if not noupdate:
             self._draw_map()
         if reset_track:
-            self.button_track.set_active(False)
+            self._set_track_mode(False)
+
+    def _set_track_mode(self, mode):
+        self.track_enabled = mode
+        try:
+            self.button_track.set_active(mode)
+        except:
+            pass
+
+    def _get_track_mode(self):
+        return self.track_enabled
                 
     #called by core
     def set_download_progress(self, fraction, text):

@@ -83,7 +83,7 @@ class HildonFieldnotes(object):
             pass
 
     def _get_fieldnotes_button(self):
-        button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_title("Upload Fieldnote(s)")
         button.set_value("You have not created any fieldnotes.")
         button.connect("clicked", self._on_upload_fieldnotes, None)
@@ -91,7 +91,7 @@ class HildonFieldnotes(object):
         return button
 
     def _get_write_fieldnote_button(self):
-        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
+        button = hildon.Button(gtk.HILDON_SIZE_AUTO)
         button.set_label("Write Fieldnote")
         button.connect("clicked", self._on_show_log_fieldnote_dialog, None)
         return button

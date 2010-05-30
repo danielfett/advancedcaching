@@ -101,6 +101,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         geocaching.GeocacheCoordinate.LOG_TYPE_UPDATE: 'asterisk_yellow',
     }
 
+    ICONPATH='/usr/share/icons/hicolor/%(size)dx%(size)d/hildon/%(name)s.png'
+
     def __init__(self, core, dataroot):
         gtk.gdk.threads_init()
         self._prepare_images(dataroot)
@@ -124,6 +126,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         # @type self.current_cache geocaching.GeocacheCoordinate
         self.current_cache = None
         self.current_cache_window_open = False
+        self.track_enabled = False
                 
         self.gps_data = None
         self.gps_has_fix = False
@@ -157,7 +160,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
 
         gtk.link_button_set_uri_hook(self._open_browser)
         
-        self.rotation_manager = FremantleRotation('advancedcaching')
+        self.rotation_manager = FremantleRotation('advancedcaching', main_window = self.window)
 
         self.astral = Astral()
         
@@ -182,6 +185,13 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         for key, name in self.ICONS.items():
             out[key] = gtk.gdk.pixbuf_new_from_file(p % (name, 'png'))
         self.icon_pixbufs = out
+
+        self.image_icon_add = gtk.image_new_from_file(self.ICONPATH % {'size' : 64, 'name':'general_add'})
+        self.image_zoom_in = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'pdf_zoomin'})
+        self.image_zoom_out = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'pdf_zoomout'})
+        self.image_action = gtk.image_new_from_file(self.ICONPATH % {'size' : 64, 'name':'keyboard_menu'})
+        self.image_preferences = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'camera_camera_setting'})
+        print self.ICONPATH % {'size' : 64, 'name':'general_add'}
 
     def _open_browser(self, widget, link):
         system("browser --url='%s' &" % link)
@@ -316,33 +326,31 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
 
         buttons = gtk.HBox()
 
-        button = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
-        button.set_label("track")
-        button.connect("clicked", self.on_track_toggled, None)
-        self.button_track = button
-        buttons.pack_start(button, True, True)
-        def reorder_map(widget, event):
-            portrait = (event.width < event.height)
-            if portrait: 
-                text = ''
-            else:
-                text = 'track'
-            self.button_track.set_label(text)
 
-        self.window.connect('configure-event', reorder_map)
+
+        #icon = gtk.image_new_from_stock(gtk.STOCK_ZOOM_OUT, gtk.ICON_SIZE_BUTTON)
+        button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
+        button.set_image(self.image_action)
+        button.connect("clicked", self._on_show_actions_clicked, None)
+        buttons.pack_start(button, True, True)
+
+        #icon = gtk.image_new_from_stock(gtk.STOCK_ZOOM_IN, gtk.ICON_SIZE_BUTTON)
+        button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
+        button.set_image(self.image_preferences)
+        button.connect("clicked", self._on_show_preferences, None)
+        buttons.pack_start(button, True, True)
+
 
 
         #icon = gtk.image_new_from_stock(gtk.STOCK_ZOOM_IN, gtk.ICON_SIZE_BUTTON)
         button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
-        button.set_label("+")
-        #button.set_image(icon)
+        button.set_image(self.image_zoom_in)
         button.connect("clicked", self.on_zoomin_clicked, None)
         buttons.pack_start(button, True, True)
 
         #icon = gtk.image_new_from_stock(gtk.STOCK_ZOOM_OUT, gtk.ICON_SIZE_BUTTON)
         button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
-        button.set_label("-")
-        #button.set_image(icon)
+        button.set_image(self.image_zoom_out)
         button.connect("clicked", self.on_zoomout_clicked, None)
         buttons.pack_start(button, True, True)
 
@@ -402,23 +410,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         menu.append(pick_tiles)
 
         menu.append(self._get_search_place_button())
-
-        button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        button.set_title("Show current Target")
-        button.set_value('')
-        button.connect("clicked", self.on_show_target_clicked, None)
-        menu.append(button)
-        self.button_goto_target = button
-        
-        
-        button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        button.set_title("Use Center as Target")
-        button.set_value('')
-        button.connect("clicked", self.on_set_target_center, None)
-        menu.append(button)
-        self.button_center_as_target = button
-        
-        
         
         
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
@@ -433,24 +424,12 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         self.reopen_last_search_button = button
         menu.append(button)
 
-        button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        button.set_title("Download Overview")
-        button.set_value("for the visible area")
-        button.connect("clicked", self.on_download_clicked)
-        menu.append(button)
-    
-        button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        button.set_title("Download Details")
-        button.set_value("for all visible caches")
-        button.connect("clicked", self.on_download_details_map_clicked)
-        menu.append(button)
 
-        menu.append(self._get_fieldnotes_button())
     
     
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
-        button.set_label("Options")
-        button.connect("clicked", self._on_show_options, None)
+        button.set_label("Settings")
+        button.connect("clicked", self._on_show_settings_dialog, None)
         menu.append(button)
 
 
@@ -458,6 +437,136 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         menu.show_all()
         return menu
 
+    def _on_show_actions_clicked(self, caller, event):
+        dialog = gtk.Dialog("Actions Menu", None, gtk.DIALOG_MODAL, ())
+
+        table = gtk.Table(3, 2, True)
+        i = 0
+
+        if self.core.current_position != None:
+            button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+            button.set_title("Go to my Position")
+            button.set_value(self.core.current_position.get_latlon(self.format))
+            button.connect("clicked", lambda caller: self.set_center(self.core.current_position))
+            button.connect("clicked", lambda caller: dialog.hide())
+        else:
+            button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+            button.set_title("Go to my Position")
+            button.set_value('Not available')
+            button.set_sensitive(False)
+        table.attach(button, 0, 1, i, i+1)
+
+        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_title("Go to Target")
+        button.set_value(self.core.current_target.get_latlon(self.format))
+        button.connect("clicked", self.on_show_target_clicked, None)
+        button.connect("clicked", lambda caller: dialog.hide())
+        table.attach(button, 1, 2, i, i+1)
+        i += 1
+
+        c = self.ts.num2deg(self.map_center_x, self.map_center_y)
+        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_title("Use Center as Target")
+        button.set_value(c.get_latlon(self.format))
+        button.connect("clicked", self.on_set_target_center, None)
+        button.connect("clicked", lambda caller: dialog.hide())
+        table.attach(button, 0, 1, i, i+1)
+        self.button_center_as_target = button
+
+        button = self._get_fieldnotes_button()
+        button.connect("clicked", lambda caller: dialog.hide())
+        table.attach(button, 1, 2, i, i+1)
+        i += 1
+
+        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_title("Download Overview")
+        button.set_value("for the visible area")
+        button.connect("clicked", self.on_download_clicked)
+        button.connect("clicked", lambda caller: dialog.hide())
+        table.attach(button, 0, 1, i, i+1)
+
+        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_title("Download Details")
+        button.set_value("for all visible caches")
+        button.connect("clicked", self.on_download_details_map_clicked)
+        button.connect("clicked", lambda caller: dialog.hide())
+        table.attach(button, 1, 2, i, i+1)
+        i += 1
+        dialog.vbox.pack_start(table)
+        dialog.show_all()
+        dialog.run()
+        dialog.hide()
+
+    def _on_show_preferences(self, caller, event):
+        dialog = gtk.Dialog("Quick Settings", None, gtk.DIALOG_MODAL, ())
+
+        table = gtk.Table(2, 2, True)
+        i = 0
+        
+        button = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
+        button.set_label("Follow Position")
+        button.set_active(self.track_enabled)
+        #button.connect("clicked", self.on_track_toggled, None)
+        button_track = button
+        table.attach(button, 0, 1, i, i+1)
+
+        tts_settings = (
+                        (0, 'Off'),
+                        (10, '10 Seconds'),
+                        (20, '20 Seconds'),
+                        (30, '30 Seconds'),
+                        (50, '50 Seconds'),
+                        (100, '100 Seconds'),
+                        (180, '3 Minutes'),
+                        (5 * 60, '5 Minutes'),
+                        (10 * 60, '10 Minutes'),
+                        )
+        tts_selector = hildon.TouchSelector(text=True)
+
+        j = 0
+        for seconds, text in tts_settings:
+            tts_selector.append_text(text)
+            if self.settings['tts_interval'] == seconds:
+                tts_selector.select_iter(0, tts_selector.get_model(0).get_iter(j), False)
+            j += 1
+
+        tts_button = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
+        tts_button.set_title('Text-To-Speech')
+        tts_button.set_selector(tts_selector)
+        table.attach(tts_button, 1, 2, i, i+1)
+        i += 1
+
+
+        check_map_double_size = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
+        check_map_double_size.set_label("Show Map in double size")
+        check_map_double_size.set_active(self.settings['options_map_double_size'])
+        table.attach(check_map_double_size, 0, 1, i, i+1)
+
+
+        check_hide_found = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
+        check_hide_found.set_label("Hide Found Geocaches")
+        check_hide_found.set_active(self.settings['options_hide_found'])
+        table.attach(check_hide_found, 1, 2, i, i+1)
+        i += 1
+
+        
+        dialog.vbox.pack_start(table)
+        dialog.show_all()
+        dialog.run()
+        dialog.hide()
+
+        #rotate = rotate_settings[rotate_selector.get_selected_rows(0)[0][0]][0]
+        tts_interval = tts_settings[tts_selector.get_selected_rows(0)[0][0]][0]
+
+        self._set_track_mode(button_track.get_active())
+
+        self.settings.update({
+                             #'options_rotate_screen': rotate,
+                             'tts_interval':tts_interval,
+                             'options_map_double_size': check_map_double_size.get_active(),
+                             'options_hide_found': check_hide_found.get_active(),
+                             })
+        self._on_save_settings(None)
 
     def show(self):
         self.window.show_all()
@@ -713,8 +822,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         ##############################################
         
         
-    def _on_show_options(self, widget, data):
-        dialog = gtk.Dialog("options", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+    def _on_show_settings_dialog(self, widget, data):
+        dialog = gtk.Dialog("Settings", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
         dialog.set_size_request(800, 480)
 
         p = hildon.PannableArea()
@@ -744,7 +853,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         list.pack_start(check_show_cache_id)
 
         check_map_double_size = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
-        check_map_double_size.set_label("Show Map in double size (ugly)")
+        check_map_double_size.set_label("Show Map in double size")
         check_map_double_size.set_active(self.settings['options_map_double_size'])
         list.pack_start(check_map_double_size)
 
@@ -777,8 +886,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         rotate_screen.set_selector(rotate_selector)
         list.pack_start(rotate_screen)
 
-
-        list.pack_start(gtk.Label('Text-To-Speech'))
+        list.pack_start(gtk.Label('TTS Settings'))
         tts_settings = (
                         (0, 'Off'),
                         (10, '10 Seconds'),
@@ -804,7 +912,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         tts_button.set_selector(tts_selector)
         list.pack_start(tts_button)
 
-
         list.pack_start(gtk.Label('Other'))
 
         check_dl_images = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
@@ -824,7 +931,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         tts_interval = tts_settings[tts_selector.get_selected_rows(0)[0][0]][0]
         if self.settings['options_show_html_description'] != check_show_html_description.get_active():
             self.old_cache_window = None
-        self.rotation_manager.set_mode(rotate)
+            
         self.settings.update({
                              'options_username': username.get_text(),
                              'options_password': password.get_text(),
@@ -834,7 +941,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
                              'options_hide_found': check_hide_found.get_active(),
                              'options_show_html_description': check_show_html_description.get_active(),
                              'options_rotate_screen': rotate,
-                             'tts_interval':tts_interval
+                             'tts_interval':tts_interval,
                              })
         self._on_save_settings(None)
         #self.core.on_userdata_changed(self.settings['options_username'], self.settings['options_password'])
@@ -1076,6 +1183,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
 
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
         button.set_label("Add Waypoint")
+        button.set_image(self.image_icon_add)
         button.connect("clicked", self._on_add_waypoint_clicked)
 
         p = gtk.VBox()
@@ -1453,9 +1561,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         #
         ##############################################
 
-    def set_center(self, coord, noupdate=False, reset_track=True):
-        SimpleGui.set_center(self, coord, noupdate, reset_track)
-        self.button_center_as_target.set_value(coord.get_latlon(self.format))
+    #def set_center(self, coord, noupdate=False, reset_track=True):
+    #    SimpleGui.set_center(self, coord, noupdate, reset_track)
 
 
     def set_current_cache(self, cache):
@@ -1478,7 +1585,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         self.gps_target_bearing = bearing
         coord = cache.get_latlon(self.format)
         self.label_target.set_value(coord)
-        self.button_goto_target.set_value(coord)
         
         ##############################################
         #
@@ -1504,10 +1610,9 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
             self.set_active_page(True)
             self.hide_cache_view()
 
-    def _drag_end(self, widget, event):
-        SimpleGui._drag_end(self, widget, event)
-        c = self.ts.num2deg(self.map_center_x, self.map_center_y)
-        self.button_center_as_target.set_value(c.get_latlon(self.format))
+    #def _drag_end(self, widget, event):
+    #    SimpleGui._drag_end(self, widget, event)
+        
 
     def on_zoom_changed(self, blub):
         self.zoom()
@@ -1656,15 +1761,15 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         
 
     def _on_settings_changed(self, caller, settings, source):
-        if source == self:
-            return
+        #if source == self:
+        #    return
         self.settings.update(settings)
 
         self.block_changes = True
         if 'map_zoom' in settings:
             self.ts.set_zoom(settings['map_zoom'])
         if 'map_position_lat' in settings and 'map_position_lon' in settings:
-            self.set_center(geo.Coordinate(settings['map_position_lat'], settings['map_position_lon']))
+            self.set_center(geo.Coordinate(settings['map_position_lat'], settings['map_position_lon']), reset_track = False)
         if 'options_rotate_screen' in settings:
             self.rotation_manager.set_mode(settings['options_rotate_screen'])
         if 'last_target_lat' in settings:
