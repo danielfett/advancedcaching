@@ -7,7 +7,7 @@ class TTS(gobject.GObject):
     def __init__(self, core):
         gobject.GObject.__init__(self)
 
-        self.gps_target_bearing = None
+        self.gps_target_bearing_abs = None
         self.gps_target_distance = None
         self.proc = None
 
@@ -48,20 +48,20 @@ class TTS(gobject.GObject):
 
     def __on_good_fix(self, caller, gps_data, distance, bearing):
         self.gps_target_distance = distance
-        self.gps_target_bearing = bearing
+        self.gps_target_bearing_abs = bearing - gps_data.bearing
         print ' hier'
 
     def __tell(self):
         if self.gps_target_distance == None:
             output = "No Fix.\n"
         else:
-            output = "%d meters, %d o'clock.\n" % (self.gps_target_distance, self.__degree_to_hour(self.gps_target_bearing))
+            output = "%d meters, %d o'clock.\n" % (self.gps_target_distance, self.__degree_to_hour(self.gps_target_bearing_abs))
         self.proc.stdin.write(output)
         return True
 
     def __on_no_fix(self, caller, fix, msg):
         self.gps_target_distance = None
-        self.gps_target_bearing = None
+        self.gps_target_bearing_abs = None
 
     @staticmethod
     def __degree_to_hour(degree):

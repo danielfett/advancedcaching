@@ -30,6 +30,7 @@ class FileDownloader():
         self.logged_in = False
         from socket import setdefaulttimeout
         setdefaulttimeout(30)
+        self.opener_installed = False
 
     def update_userdata(self, username, password):
         from os import path, remove
@@ -48,12 +49,13 @@ class FileDownloader():
         if self.username == '' or self.password == '':
             raise Exception("Please configure your username/password and restart the application")
         print "+ Checking Login status"
-        if not opener_installed:
+        if not self.opener_installed:
             from urllib2 import build_opener, install_opener, HTTPCookieProcessor
             from cookielib import LWPCookieJar
             cj = LWPCookieJar(self.cookiefile)
             opener = build_opener(HTTPCookieProcessor(cj))
             install_opener(opener)
+            self.opener_installed = True
 
         try:
             cj.load()
