@@ -39,7 +39,7 @@ class HildonSearchPlace(object):
         return button
 
     def _on_show_search_place(self, widget):
-        dialog = gtk.Dialog("Search Place", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        dialog = gtk.Dialog("Search Place", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
         search = hildon.Entry(gtk.HILDON_SIZE_AUTO)
         search.set_text(self.last_searched_text)
         dialog.vbox.pack_start(search)
@@ -108,7 +108,7 @@ class HildonFieldnotes(object):
         ]
 
         cache = self.current_cache
-        dialog = gtk.Dialog("create fieldnote", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        dialog = gtk.Dialog("create fieldnote", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 
         fieldnotes = hildon.TextView()
         fieldnotes.set_placeholder("Your fieldnote text...")
@@ -173,7 +173,8 @@ class HildonSearchGeocaches(object):
 
     def _get_search_buttons(self):
         button1 = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
-        button1.set_label("Search Geocaches")
+        button1.set_title("Search Geocaches")
+        button1.set_value("in local database")
         button1.connect("clicked", self._on_show_search, None)
 
         button2 = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
@@ -188,9 +189,11 @@ class HildonSearchGeocaches(object):
     def _on_show_search(self, widget, data):
         RESPONSE_SHOW_LIST = 0
         RESPONSE_RESET = 1
-        dialog = gtk.Dialog("Search", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ("show on map", gtk.RESPONSE_ACCEPT))
-        dialog.add_button("show list", RESPONSE_SHOW_LIST)
-        dialog.add_button("reset", RESPONSE_RESET)
+
+        # a new selector for distance to...
+        # current position
+        # current screen
+
         sel_size = hildon.TouchSelector(text=True)
         sel_size.append_text('micro')
         sel_size.append_text('small')
@@ -205,10 +208,10 @@ class HildonSearchGeocaches(object):
             sel_size.select_iter(0, sel_size.get_model(0).get_iter(i), False)
 
         sel_type = hildon.TouchSelector(text=True)
-        sel_type.append_text('tradit.')
-        sel_type.append_text('multi')
-        sel_type.append_text('virt.')
-        #sel_type.append_text('earth')
+        sel_type.append_text('traditional')
+        sel_type.append_text('multi-stage')
+        sel_type.append_text('virtual')
+        sel_type.append_text('earth')
         sel_type.append_text('event')
         sel_type.append_text('mystery')
         sel_type.append_text('all')
@@ -257,19 +260,39 @@ class HildonSearchGeocaches(object):
         name = hildon.Entry(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
         name.set_placeholder("search for name...")
 
-        t = gtk.Table(4, 3, False)
-        t.attach(name, 0, 1, 1, 2)
-        t.attach(gtk.Label("All Geocaches:"), 0, 1, 0, 1)
-        t.attach(pick_type, 0, 1, 2, 3)
-        t.attach(pick_status, 0, 1, 3, 4)
-        t.attach(gtk.VSeparator(), 1, 2, 0, 4)
-        t.attach(gtk.Label("If Details available:"), 2, 3, 0, 1)
-        t.attach(pick_size, 2, 3, 1, 2)
-        t.attach(pick_diff, 2, 3, 2, 3)
-        t.attach(pick_terr, 2, 3, 3, 4)
-        #t.attach(check_visible, 0, 1, 3, 4)
 
-        dialog.vbox.pack_start(t)
+        dialog = gtk.Dialog("Search", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ("show on map", gtk.RESPONSE_ACCEPT))
+        dialog.add_button("show list", RESPONSE_SHOW_LIST)
+        dialog.add_button("reset", RESPONSE_RESET)
+        dialog.set_size_request(800,800)
+        pan = hildon.PannableArea()
+        options = gtk.VBox()
+        pan.add_with_viewport(options)
+        dialog.vbox.pack_start(pan)
+
+        frame_all = gtk.Frame("Search Geocaches")
+        vbox_all = gtk.VBox()
+        frame_all.add(vbox_all)
+        options.pack_start(frame_all)
+
+
+        frame_details = gtk.Frame("Details...")
+        vbox_details = gtk.VBox()
+        frame_details.add(vbox_details)
+        options.pack_start(frame_details)
+        
+
+        vbox_all.pack_start(name)
+        vbox_all.pack_start(pick_type)
+        vbox_all.pack_start(pick_status)
+
+        w = gtk.Label("if you select something here, only geocaches for which details were downloaded will be shown in the result")
+        vbox_details.pack_start(w)
+        w.set_line_wrap(True)
+        w.set_alignment(0, 0.5)
+        vbox_details.pack_start(pick_size)
+        vbox_details.pack_start(pick_diff)
+        vbox_details.pack_start(pick_terr)
 
         dialog.show_all()
         response = dialog.run()
@@ -288,7 +311,7 @@ class HildonSearchGeocaches(object):
             geocaching.GeocacheCoordinate.TYPE_REGULAR,
             geocaching.GeocacheCoordinate.TYPE_MULTI,
             geocaching.GeocacheCoordinate.TYPE_VIRTUAL,
-            #geocaching.GeocacheCoordinate.TYPE_EARTH,
+            geocaching.GeocacheCoordinate.TYPE_EARTH,
             geocaching.GeocacheCoordinate.TYPE_EVENT,
             geocaching.GeocacheCoordinate.TYPE_MYSTERY,
             geocaching.GeocacheCoordinate.TYPE_UNKNOWN
