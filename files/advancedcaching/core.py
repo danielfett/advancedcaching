@@ -38,6 +38,8 @@ from threading import Thread
 from cachedownloader import GeocachingComCacheDownloader
 from fieldnotesuploader import FieldnotesUploader
 from actors.tts import TTS
+from actors.notify import Notify
+
 
 
 if len(argv) == 1:
@@ -142,6 +144,7 @@ class Core(gobject.GObject):
 
         
         actor_tts = TTS(self)
+        actor_notify = Notify(self)
 
         self.emit('settings-changed', self.settings, self)
 

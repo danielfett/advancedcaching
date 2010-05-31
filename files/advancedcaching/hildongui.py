@@ -56,6 +56,7 @@ import gtk
 import hildon
 from hildon_plugins import HildonFieldnotes
 from hildon_plugins import HildonSearchPlace
+from hildon_plugins import HildonSearchGeocaches
 import openstreetmap
 import pango
 from portrait import FremantleRotation
@@ -63,7 +64,7 @@ from simplegui import SimpleGui
 from simplegui import UpdownRows
 import threadpool
 
-class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
+class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, SimpleGui):
 
     USES = ['locationgpsprovider']
 
@@ -191,6 +192,9 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         self.image_zoom_out = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'pdf_zoomout'})
         self.image_action = gtk.image_new_from_file(self.ICONPATH % {'size' : 64, 'name':'keyboard_menu'})
         self.image_preferences = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'camera_camera_setting'})
+        self.image_info = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'general_information'})
+        self.image_left = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'general_back'})
+        self.image_right = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'general_forward'})
         print self.ICONPATH % {'size' : 64, 'name':'general_add'}
 
     def _open_browser(self, widget, link):
@@ -198,7 +202,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
 
     def show_coordinate_input(self, start, none_on_cancel=False):
         udr = UpdownRows(self.format, start, True)
-        dialog = gtk.Dialog("Edit Target", None, gtk.DIALOG_MODAL, ("OK", gtk.RESPONSE_ACCEPT))
+        dialog = gtk.Dialog("Edit Target", self.window, gtk.DIALOG_MODAL, ("OK", gtk.RESPONSE_ACCEPT))
         dialog.set_size_request(-1, 480)
         dialog.vbox.pack_start(udr.table_lat)
                 
@@ -317,7 +321,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
                 landscape_hbox.show()
 
         self.window.connect('configure-event', reorder_gps)
-        self.main_gpspage.add_events(gtk.gdk.STRUCTURE_MASK)
+        #self.main_gpspage.add_events(gtk.gdk.STRUCTURE_MASK)
 
         self.main_gpspage.pack_start(self.main_gpspage_table, False, True)
         
@@ -362,6 +366,23 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         button.connect("clicked", self._on_show_cache_details, None)
         buttons.pack_start(button, True, True)
         self.button_show_details = button
+
+        button_replace = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button_replace.set_image(self.image_info)
+        button_replace.connect("clicked", self._on_show_cache_details, None)
+        buttons.pack_start(button_replace, True, True)
+
+        def reorder_main(widget, event):
+            portrait = (event.width < event.height)
+            if not portrait:
+                button_replace.hide()
+                self.button_show_details.show()
+                buttons.set_homogeneous(False)
+            else:
+                button_replace.show()
+                self.button_show_details.hide()
+                buttons.set_homogeneous(True)
+        self.window.connect('configure-event', reorder_main)
 
 
         button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
@@ -412,20 +433,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         menu.append(self._get_search_place_button())
         
         
-        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
-        button.set_label("Search Geocaches")
-        button.connect("clicked", self._on_show_search, None)
-        menu.append(button)
+        [menu.append(x) for x in self._get_search_buttons()]
 
-        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
-        button.set_label("Last Search Results")
-        button.connect("clicked", self._on_reopen_search_clicked, None)
-        button.set_sensitive(False)
-        self.reopen_last_search_button = button
-        menu.append(button)
-
-
-    
     
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
         button.set_label("Settings")
@@ -438,7 +447,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         return menu
 
     def _on_show_actions_clicked(self, caller, event):
-        dialog = gtk.Dialog("Actions Menu", None, gtk.DIALOG_MODAL, ())
+        dialog = gtk.Dialog("Actions Menu", self.window, gtk.DIALOG_MODAL, ())
 
         table = gtk.Table(3, 2, True)
         i = 0
@@ -498,7 +507,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         dialog.hide()
 
     def _on_show_preferences(self, caller, event):
-        dialog = gtk.Dialog("Quick Settings", None, gtk.DIALOG_MODAL, ())
+        dialog = gtk.Dialog("Quick Settings", self.window, gtk.DIALOG_MODAL, ())
 
         table = gtk.Table(2, 2, True)
         i = 0
@@ -510,29 +519,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         button_track = button
         table.attach(button, 0, 1, i, i+1)
 
-        tts_settings = (
-                        (0, 'Off'),
-                        (10, '10 Seconds'),
-                        (20, '20 Seconds'),
-                        (30, '30 Seconds'),
-                        (50, '50 Seconds'),
-                        (100, '100 Seconds'),
-                        (180, '3 Minutes'),
-                        (5 * 60, '5 Minutes'),
-                        (10 * 60, '10 Minutes'),
-                        )
-        tts_selector = hildon.TouchSelector(text=True)
-
-        j = 0
-        for seconds, text in tts_settings:
-            tts_selector.append_text(text)
-            if self.settings['tts_interval'] == seconds:
-                tts_selector.select_iter(0, tts_selector.get_model(0).get_iter(j), False)
-            j += 1
-
-        tts_button = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
-        tts_button.set_title('Text-To-Speech')
-        tts_button.set_selector(tts_selector)
+        tts_button, tts_selector, tts_settings = self._get_tts_settings()
         table.attach(tts_button, 1, 2, i, i+1)
         i += 1
 
@@ -573,257 +560,9 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         self.set_active_page(False)
         gtk.main()
 
-
-
-        ##############################################
-        #
-        # Search
-        #
-        ##############################################
-        
-    def _on_show_search(self, widget, data):
-        RESPONSE_SHOW_LIST = 0
-        RESPONSE_RESET = 1
-        dialog = gtk.Dialog("Search", None, gtk.DIALOG_DESTROY_WITH_PARENT, ("show on map", gtk.RESPONSE_ACCEPT))
-        dialog.add_button("show list", RESPONSE_SHOW_LIST)
-        dialog.add_button("reset", RESPONSE_RESET)
-        sel_size = hildon.TouchSelector(text=True)
-        sel_size.append_text('micro')
-        sel_size.append_text('small')
-        sel_size.append_text('regular')
-        sel_size.append_text('huge')
-        sel_size.append_text('other')
-        sel_size.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_MULTIPLE)
-        pick_size = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        pick_size.set_selector(sel_size)
-        pick_size.set_title("Select Size(s)")
-        for i in xrange(5):
-            sel_size.select_iter(0, sel_size.get_model(0).get_iter(i), False)
-        
-        sel_type = hildon.TouchSelector(text=True)
-        sel_type.append_text('tradit.')
-        sel_type.append_text('multi')
-        sel_type.append_text('virt.')
-        #sel_type.append_text('earth')
-        sel_type.append_text('event')
-        sel_type.append_text('mystery')
-        sel_type.append_text('all')
-        sel_type.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_MULTIPLE)
-        pick_type = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        pick_type.set_selector(sel_type)
-        pick_type.set_title("Select Type(s)")
-        sel_type.unselect_all(0)
-        sel_type.select_iter(0, sel_type.get_model(0).get_iter(5), False)
-
-        sel_status = hildon.TouchSelector(text=True)
-        sel_status.append_text('all')
-        sel_status.append_text('not found')
-        sel_status.append_text('found')
-        sel_status.append_text('marked')
-        sel_status.append_text('not found & marked')
-        pick_status = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        pick_status.set_selector(sel_status)
-        pick_status.set_title("Select Status")
-        
-        sel_status.unselect_all(0)
-        sel_status.select_iter(0, sel_status.get_model(0).get_iter(0), False)
-                        
-        sel_diff = hildon.TouchSelector(text=True)
-        sel_diff.append_text('1..2.5')
-        sel_diff.append_text('3..4')
-        sel_diff.append_text('4.5..5')
-        sel_diff.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_MULTIPLE)
-        pick_diff = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        pick_diff.set_selector(sel_diff)
-        pick_diff.set_title("Select Difficulty")
-        for i in xrange(3):
-            sel_diff.select_iter(0, sel_diff.get_model(0).get_iter(i), False)
-                        
-        sel_terr = hildon.TouchSelector(text=True)
-        sel_terr.append_text('1..2.5')
-        sel_terr.append_text('3..4')
-        sel_terr.append_text('4.5..5')
-        sel_terr.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_MULTIPLE)
-        pick_terr = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        pick_terr.set_selector(sel_terr)
-        pick_terr.set_title("Select Terrain")
-        for i in xrange(3):
-            sel_terr.select_iter(0, sel_terr.get_model(0).get_iter(i), False)
-        
-        name = hildon.Entry(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
-        name.set_placeholder("search for name...")
-        
-        t = gtk.Table(4, 3, False)
-        t.attach(name, 0, 1, 1, 2)
-        t.attach(gtk.Label("All Geocaches:"), 0, 1, 0, 1)
-        t.attach(pick_type, 0, 1, 2, 3)
-        t.attach(pick_status, 0, 1, 3, 4)
-        t.attach(gtk.VSeparator(), 1, 2, 0, 4)
-        t.attach(gtk.Label("If Details available:"), 2, 3, 0, 1)
-        t.attach(pick_size, 2, 3, 1, 2)
-        t.attach(pick_diff, 2, 3, 2, 3)
-        t.attach(pick_terr, 2, 3, 3, 4)
-        #t.attach(check_visible, 0, 1, 3, 4)
-        
-        dialog.vbox.pack_start(t)
-        
-        dialog.show_all()
-        response = dialog.run()
-        dialog.hide()
-
-        if response == RESPONSE_RESET:
-            self.core.reset_filter()
-
-        name_search = name.get_text()
-
-        sizes = [x + 1 for x, in sel_size.get_selected_rows(0)]
-        if sizes == [1, 2, 3, 4, 5]:
-            sizes = None
-
-        typelist = [
-            geocaching.GeocacheCoordinate.TYPE_REGULAR,
-            geocaching.GeocacheCoordinate.TYPE_MULTI,
-            geocaching.GeocacheCoordinate.TYPE_VIRTUAL,
-            #geocaching.GeocacheCoordinate.TYPE_EARTH,
-            geocaching.GeocacheCoordinate.TYPE_EVENT,
-            geocaching.GeocacheCoordinate.TYPE_MYSTERY,
-            geocaching.GeocacheCoordinate.TYPE_UNKNOWN
-        ]
-
-        types = [typelist[x] for x, in sel_type.get_selected_rows(0)]
-        if geocaching.GeocacheCoordinate.TYPE_UNKNOWN in types:
-            types = None
-
-        # found, marked
-        statuslist = [
-            (None, None),
-            (False, None),
-            (True, None),
-            (None, True),
-            (False, True),
-        ]
-        found, marked = statuslist[sel_status.get_selected_rows(0)[0][0]]
-
-        numberlist = [
-            [1, 1.5, 2, 2.5],
-            [3, 3.5, 4],
-            [4.5, 5]
-        ]
-
-        difficulties = []
-        count = 0
-        for x, in sel_diff.get_selected_rows(0):
-            difficulties += numberlist[x]
-            count += 1
-        if count == len(numberlist):
-            difficulties = None
-
-
-        terrains = []
-        count = 0
-        for x, in sel_terr.get_selected_rows(0):
-            terrains += numberlist[x]
-            count += 1
-        if count == len(numberlist):
-            terrains = None
-
-        if response == RESPONSE_SHOW_LIST:
-            points, truncated = self.core.get_points_filter(found=found, name_search=name_search, size=sizes, terrain=terrains, diff=difficulties, ctype=types, marked=marked)
-            self._display_results(points, truncated)
-        elif response == gtk.RESPONSE_ACCEPT:
-            self.core.set_filter(found=found, name_search=name_search, size=sizes, terrain=terrains, diff=difficulties, ctype=types, marked=marked)
-
-
-    def _display_results(self, caches, truncated):
-        sortfuncs = [
-            ('Dist', lambda x, y: cmp(x.prox, y.prox)),
-            ('Name', lambda x, y: cmp(x.title, y.title)),
-            ('Diff', lambda x, y: cmp(x.difficulty if x.difficulty > 0 else 100, y.difficulty if y.difficulty > 0 else 100)),
-            ('Terr', lambda x, y: cmp(x.terrain if x.terrain > 0 else 100, y.terrain if y.terrain > 0 else 100)),
-            ('Size', lambda x, y: cmp(x.size if x.size > 0 else 100, y.size if y.size > 0 else 100)),
-            ('Type', lambda x, y: cmp(x.type, y.type)),
-        ]
-
-        if self.gps_data != None and self.gps_data.position != None:
-            for c in caches:
-                c.prox = c.distance_to(self.gps_data.position)
-        else:
-            for c in caches:
-                c.prox = None
-
-        win = hildon.StackableWindow()
-        win.set_title("Search results")
-        ls = gtk.ListStore(str, str, str, str, object)
-        
-        tv = hildon.TouchSelector()
-        col1 = tv.append_column(ls, gtk.CellRendererText())
-        
-        c1cr = gtk.CellRendererText()
-        c1cr.ellipsize = pango.ELLIPSIZE_MIDDLE
-        c2cr = gtk.CellRendererText()
-        c3cr = gtk.CellRendererText()
-        c4cr = gtk.CellRendererText()
-        
-        col1.pack_start(c1cr, True)
-        col1.pack_end(c2cr, False)
-        col1.pack_start(c3cr, False)
-        col1.pack_end(c4cr, False)
-
-        col1.set_attributes(c1cr, text=0)
-        col1.set_attributes(c2cr, text=1)
-        col1.set_attributes(c3cr, text=2)
-        col1.set_attributes(c4cr, text=3)
-
-        def select_cache(widget, data, more):
-            self.show_cache(self._get_selected(tv)[4])
-        
-        tv.connect("changed", select_cache, None)
-
-
-        def on_change_sort(widget, sortfunc):
-            tv.handler_block_by_func(select_cache)
-            ls.clear()
-            caches.sort(cmp=sortfunc)
-            for c in caches:
-                ls.append([self.shorten_name(c.title, 40), " " + c.get_size_string(), ' D%s T%s' % (c.get_difficulty(), c.get_terrain()), " " + self.__format_distance(c.prox), c])
-            tv.handler_unblock_by_func(select_cache)
-
-
-        menu = hildon.AppMenu()
-        button = None
-        for name, function in sortfuncs:
-            button = hildon.GtkRadioButton(gtk.HILDON_SIZE_AUTO, button)
-            button.set_label(name)
-            button.connect("clicked", on_change_sort, function)
-            menu.add_filter(button)
-            button.set_mode(False)
-        menu.show_all()
-        win.set_app_menu(menu)
-        win.add(tv)
-
-        on_change_sort(None, sortfuncs[0][1])
-
-        win.show_all()
-        if truncated:
-            hildon.hildon_banner_show_information_with_markup(win, "hu", "Showing only the first %d results." % len(caches))
-        self.old_search_window = win
-        self.reopen_last_search_button.set_sensitive(True)
-
-    def _on_reopen_search_clicked(self, widget, data):
-        if self.old_search_window == None:
-            return
-        hildon.WindowStack.get_default().push_1(self.old_search_window)
-
-
-        ##############################################
-        #
-        # /Search
-        #
-        ##############################################
-        
         
     def _on_show_settings_dialog(self, widget, data):
-        dialog = gtk.Dialog("Settings", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        dialog = gtk.Dialog("Settings", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
         dialog.set_size_request(800, 480)
 
         p = hildon.PannableArea()
@@ -887,29 +626,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         list.pack_start(rotate_screen)
 
         list.pack_start(gtk.Label('TTS Settings'))
-        tts_settings = (
-                        (0, 'Off'),
-                        (10, '10 Seconds'),
-                        (20, '20 Seconds'),
-                        (30, '30 Seconds'),
-                        (50, '50 Seconds'),
-                        (100, '100 Seconds'),
-                        (180, '3 Minutes'),
-                        (5 * 60, '5 Minutes'),
-                        (10 * 60, '10 Minutes'),
-                        )
-        tts_selector = hildon.TouchSelector(text=True)
-
-        i = 0
-        for seconds, text in tts_settings:
-            tts_selector.append_text(text)
-            if self.settings['tts_interval'] == seconds:
-                tts_selector.select_iter(0, tts_selector.get_model(0).get_iter(i), False)
-            i += 1
-
-        tts_button = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
-        tts_button.set_title('TTS interval')
-        tts_button.set_selector(tts_selector)
+        tts_button, tts_selector, tts_settings = self._get_tts_settings()
         list.pack_start(tts_button)
 
         list.pack_start(gtk.Label('Other'))
@@ -946,10 +663,37 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         self._on_save_settings(None)
         #self.core.on_userdata_changed(self.settings['options_username'], self.settings['options_password'])
 
+    def _get_tts_settings(self):
+        tts_settings = (
+                        (0, 'Off'),
+                        (-1, 'Automatic'),
+                        (10, '10 Seconds'),
+                        (20, '20 Seconds'),
+                        (30, '30 Seconds'),
+                        (50, '50 Seconds'),
+                        (100, '100 Seconds'),
+                        (180, '3 Minutes'),
+                        (5 * 60, '5 Minutes'),
+                        (10 * 60, '10 Minutes'),
+                        )
+        tts_selector = hildon.TouchSelector(text=True)
+
+        i = 0
+        for seconds, text in tts_settings:
+            tts_selector.append_text(text)
+            if self.settings['tts_interval'] == seconds:
+                tts_selector.select_iter(0, tts_selector.get_model(0).get_iter(i), False)
+            i += 1
+
+        tts_button = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
+        tts_button.set_title('TTS interval')
+        tts_button.set_selector(tts_selector)
+        return tts_button, tts_selector, tts_settings
+
     def _on_show_dialog_change_target(self, widget, data):
         self._get_best_coordinate()
 
-        dialog = gtk.Dialog("change target", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        dialog = gtk.Dialog("change target", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 
         bar_label = gtk.Label("Lat/Lon: ")
         bar_entry = hildon.Entry(gtk.HILDON_SIZE_AUTO)
@@ -1200,9 +944,9 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
                 notebook.next_page()
             else:
                 notebook.prev_page()
-        for label, fwd in (('<-', False), ('->', True)):
+        for label, fwd in ((self.image_left, False), (self.image_right, True)):
             nb = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
-            nb.set_label(label)
+            nb.set_image(label)
             nb.connect('clicked', switch_nb, fwd)
             notebook_switcher.pack_start(nb)
         details = gtk.VBox()
@@ -1287,7 +1031,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
             name = c.display_text
         except AttributeError:
             name = "Coordinate Details" if (c.name == "") else c.name
-        dialog = gtk.Dialog(name, None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        dialog = gtk.Dialog(name, self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
         if c.lat != None:
             dialog.add_button("as Target", RESPONSE_AS_TARGET)
             dialog.add_button("as Main Coord.", RESPONSE_AS_MAIN)
@@ -1728,7 +1472,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, SimpleGui):
         if distance == None:
             return '?'
         if distance >= 1000:
-            return "%d km" % round(distance / 1000)
+            return "%d km" % round(distance / 1000.0)
         elif distance >= 100:
             return "%d m" % round(distance)
         else:
