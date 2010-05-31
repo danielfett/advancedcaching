@@ -18,7 +18,18 @@ if __name__ == "__main__":
      pass
  print
  p=py2deb.Py2deb("advancedcaching")   #This is the package name and MUST be in lowercase! (using e.g. "advancedcaching" fails miserably...)
- p.description="Paperless (offline) geocaching.\n AGTL downloads cache locations in the area visible on the map including their description, hints, difficulty levels and images. Searching for caches in your local db is a matter of seconds. The currently selected cache is shown on the map (and also all the others if you want) and there's a traditional compass-like view that show the direction to the cache."
+ p.description='''AGTL, the all-in-one solution for on- and offline geocaching, makes geocaching paperless! It downloads geocaches including their description, hints, difficulty levels and images. No premium account needed. Searching for caches in your local db is a matter of seconds. 
+
+* Map view - supporting Open Street Maps and Open Cycle Maps by default, configurable for other map types, including google maps.
+* GPS view - shows the distance and direction to the selected geocache.
+* Cache details - all necessary details are available even in offline mode. 
+* Paperless geocaching features - take notes for a geocache on the go, see the hints and spoiler images, check the latest logs.
+* Fieldnotes support - Ever came home after a long tour and wondered which of those geocaches you found? Never again: Log your find in the field and upload notes and log text when you're at home. Review them on the geocaching website and post the logs.
+* Multicache calculation help - Let your phone do the math for you. Working for the most multi-stage geocaches, AGTL finds the coordinate calculations and let you enter the missing variables. 
+* Advanced waypoint handling - AGTL finds waypoints in the geocache descriptions, in the list of waypoints and even in your notes. For your convenience, they're displayed on the map as well - see where you have to go next.
+* Sun compass – Compensates the lack of a magnetic compass
+
+AGTL is Open Source and in active development.'''
  p.author="Daniel Fett"
  p.mail="advancedcaching@fragcom.de"
  p.depends = "python2.5, python-gtk2, python-simplejson, python-location, python-hildon (>= 0.9.0-1maemo15)"
