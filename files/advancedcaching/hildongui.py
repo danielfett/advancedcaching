@@ -135,7 +135,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
         self.gps_last_screen_position = (0, 0)
         self.banner = None
         self.old_cache_window = None
-        self.old_search_window = None
         self.cache_calc_vars = {}
 
         self.tile_loader_threadpool = threadpool.ThreadPool(openstreetmap.CONCURRENT_THREADS)

@@ -4,9 +4,9 @@ import gobject
 
 class TTS(gobject.GObject):
 
-    MIN_DISTANCE = 5
+    MIN_DISTANCE = 20
     MAX_INTERVAL_DISTANCE = 1000
-    MIN_INTERVAL = 7
+    MIN_INTERVAL = 5
     MAX_INTERVAL = 50
     DEFAULT_INTERVAL = 20
 
@@ -36,12 +36,13 @@ class TTS(gobject.GObject):
             print "Setting interval to %d" % interval
         else:
             self.automatic_interval = False
+            
         if self.timeout_event_id != None:
             gobject.source_remove(self.timeout_event_id)
             self.timeout_event_id = None
 
         if interval > 0:
-            gobject.timeout_add_seconds(interval, self.__tell)
+            self.timeout_event_id = gobject.timeout_add_seconds(interval, self.__tell)
             self.__connect()
         else:
             self.__disconnect()
