@@ -26,10 +26,7 @@ class HildonSearchPlace(object):
     
     def plugin_init(self):
         self.last_searched_text = ''
-        try:
-            super(HildonSearchPlace, self).plugin_init()
-        except:
-            pass
+        print "+ Using Search Place plugin"
 
 
     def _get_search_place_button(self):
@@ -76,12 +73,9 @@ class HildonSearchPlace(object):
         
 class HildonFieldnotes(object):
     def plugin_init(self):
-        self.update_fieldnotes_display()
+        #self.update_fieldnotes_display()
         self.core.connect('fieldnotes-changed', self._on_fieldnotes_changed)
-        try:
-            super(HildonFieldnotes, self).plugin_init()
-        except:
-            pass
+        print "+ Using Fieldnotes plugin"
 
     def _get_fieldnotes_button(self):
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
@@ -89,6 +83,7 @@ class HildonFieldnotes(object):
         button.set_value("You have not created any fieldnotes.")
         button.connect("clicked", self._on_upload_fieldnotes, None)
         self.button_fieldnotes = button
+        self.update_fieldnotes_display()
         return button
 
     def _get_write_fieldnote_button(self):
@@ -166,30 +161,19 @@ class HildonSearchGeocaches(object):
 
     def plugin_init(self):
         self.old_search_window = None
-        try:
-            super(HildonSearchGeocaches, self).plugin_init()
-        except:
-            pass
+        self.map_filter_active = False
+        print "+ Using Search plugin"
 
 
-    def _get_search_buttons(self):
+    def _get_search_button(self):
         button1 = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button1.set_title("Search Geocaches")
         button1.set_value("in local database")
         button1.connect("clicked", self._on_show_search, None)
-
-        button2 = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        button2.set_label("Last Search Results")
-        button2.connect("clicked", self._on_reopen_search_clicked, None)
-        button2.set_sensitive(False)
-        self.reopen_last_search_button = button2
-        return button1, button2
-        menu.append(button)
+        return button1
 
 
     def _on_show_search(self, widget, data):
-        RESPONSE_SHOW_LIST = 0
-        RESPONSE_RESET = 1
 
 
         name = hildon.Entry(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
@@ -243,7 +227,7 @@ class HildonSearchGeocaches(object):
         pick_type.set_selector(sel_type)
         pick_type.set_title("Select Type(s)")
         sel_type.unselect_all(0)
-        sel_type.select_iter(0, sel_type.get_model(0).get_iter(5), False)
+        sel_type.select_iter(0, sel_type.get_model(0).get_iter(6), False)
 
         sel_status = hildon.TouchSelector(text=True)
         sel_status.append_text('any')
@@ -282,9 +266,14 @@ class HildonSearchGeocaches(object):
 
 
 
-        dialog = gtk.Dialog("Search", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ("show on map", gtk.RESPONSE_ACCEPT))
-        dialog.add_button("show list", RESPONSE_SHOW_LIST)
-        dialog.add_button("reset", RESPONSE_RESET)
+        RESPONSE_SHOW_LIST, RESPONSE_RESET, RESPONSE_LAST_RESULTS = range(3)
+        dialog = gtk.Dialog("Search", self.window, gtk.DIALOG_DESTROY_WITH_PARENT,
+            ("OK", RESPONSE_SHOW_LIST))
+        dialog.add_button("Filter Map", gtk.RESPONSE_ACCEPT)
+        if self.map_filter_active:
+            dialog.add_button("Reset Filter", RESPONSE_RESET)
+        if self.old_search_window != None:
+            dialog.add_button("Last Results", RESPONSE_LAST_RESULTS)
         dialog.set_size_request(800,800)
         pan = hildon.PannableArea()
         options = gtk.VBox()
@@ -308,13 +297,15 @@ class HildonSearchGeocaches(object):
         vbox_all.pack_start(pick_type)
         vbox_all.pack_start(pick_status)
 
-        w = gtk.Label("if you select something here, only geocaches for which details were downloaded will be shown in the result")
+        w = gtk.Label("If you select something here, only geocaches for which details were downloaded will be shown in the result.")
         vbox_details.pack_start(w)
         w.set_line_wrap(True)
         w.set_alignment(0, 0.5)
         vbox_details.pack_start(pick_size)
         vbox_details.pack_start(pick_diff)
         vbox_details.pack_start(pick_terr)
+
+        
 
         while True:
             dialog.show_all()
@@ -323,9 +314,17 @@ class HildonSearchGeocaches(object):
 
             if response == RESPONSE_RESET:
                 self.core.reset_filter()
-                break
-
-            name_search = name.get_text()
+                self.map_filter_active = False
+                self.show_success("Showing all geocaches.")
+                return
+            elif response == RESPONSE_LAST_RESULTS:
+                if self.old_search_window == None:
+                    return
+                print self.old_search_window.get_allocation()
+                hildon.WindowStack.get_default().push_1(self.old_search_window)
+                return
+            
+            name_search = name.get_text().strip().lower()
 
             sizes = [x + 1 for x, in sel_size.get_selected_rows(0)]
             if sizes == [1, 2, 3, 4, 5]:
@@ -384,15 +383,17 @@ class HildonSearchGeocaches(object):
                 try:
                     center = self.gps_last_good_fix.position
                 except AttributeError:
+                    print "No current Fix."
                     pass
             elif dist_type == 2:
                 center = self.ts.num2deg(self.map_center_x, self.map_center_y)
             if center != None:
-                radius = list_dist_radius[sel_dist_type.get_selected_rows(0)[0][0]]
+                radius = list_dist_radius[sel_dist_radius.get_selected_rows(0)[0][0]]
                 sqrt_2 = 1.41421356
                 c1 = center.transform(-45, radius * 1000 * sqrt_2)
                 c2 = center.transform(-45 + 180, radius * 1000 * sqrt_2)
                 location = (c1, c2)
+                print "Using: ", c1, c2
             else:
                 location = None
 
@@ -407,6 +408,7 @@ class HildonSearchGeocaches(object):
             elif response == gtk.RESPONSE_ACCEPT:
                 self.core.set_filter(found=found, name_search=name_search, size=sizes, terrain=terrains, diff=difficulties, ctype=types, marked=marked)
                 self.show_success("Filter for map activated.")
+                self.map_filter_active = True
                 break
             else:
                 break
@@ -483,11 +485,8 @@ class HildonSearchGeocaches(object):
         win.show_all()
         if truncated:
             hildon.hildon_banner_show_information_with_markup(win, "hu", "Showing only the first %d results." % len(caches))
-        self.old_search_window = win
-        self.reopen_last_search_button.set_sensitive(True)
 
-    def _on_reopen_search_clicked(self, widget, data):
-        if self.old_search_window == None:
-            return
-        hildon.WindowStack.get_default().push_1(self.old_search_window)
+        win.connect('delete_event', self.hide_search_view)
 
+    def hide_search_view(self, widget, data):
+        self.old_search_window = hildon.WindowStack.get_default().pop_1()

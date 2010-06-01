@@ -167,10 +167,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
         self.plugin_init()
 
     def plugin_init(self):
-        try:
-            super(HildonGui, self).plugin_init()
-        except:
-            pass
+        for x in (HildonSearchGeocaches, HildonSearchPlace, HildonFieldnotes):
+            x.plugin_init(self)
 
     def on_window_destroy(self, target, more=None, data=None):
         hildon.hildon_gtk_window_take_screenshot(self.window, True)
@@ -432,7 +430,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
         menu.append(self._get_search_place_button())
         
         
-        [menu.append(x) for x in self._get_search_buttons()]
+        menu.append(self._get_search_button())
 
     
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
