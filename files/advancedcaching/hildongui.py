@@ -1046,7 +1046,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
         if resp == RESPONSE_AS_TARGET:
             self.set_current_cache(cache)
             self.set_target(c)
-            self.hide_cache_view()
+            self.hide_cache_view(go_to_map = True)
         elif resp == RESPONSE_AS_MAIN:
             self.core.set_alternative_position(cache, c)
         elif resp == RESPONSE_COPY_EDIT:
@@ -1249,7 +1249,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
 
     def _on_show_on_map(self, widget, data):
         self.set_center(data)
-        self.hide_cache_view(None, None)
+        self.hide_cache_view(go_to_map = True)
 
 
 
@@ -1317,7 +1317,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
 
     def _on_set_target_clicked(self, some, cache): 
         self.set_target(cache)
-        self.hide_cache_view()
+        self.hide_cache_view(go_to_map = True)
         self.set_active_page(True)
 
     def set_target(self, cache):
@@ -1335,26 +1335,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
         #
         ##############################################
 
-        
-    def on_waypoint_clicked(self, listview, event, element):
-        if event.type != gtk.gdk._2BUTTON_PRESS or element == None:
-            return
-        if self.current_cache == None:
-            return
-        if element[0] == 0:
-            self.set_target(self.current_cache)
-            self.set_active_page(True)
-            self.hide_cache_view()
-        else:
-            wpt = self.current_cache.get_waypoints()[element[0]-1]
-            if wpt['lat'] == -1 or wpt['lon'] == -1:
-                return
-            self.set_target(geo.Coordinate(wpt['lat'], wpt['lon'], wpt['id']))
-            self.set_active_page(True)
-            self.hide_cache_view()
-
-    #def _drag_end(self, widget, event):
-    #    SimpleGui._drag_end(self, widget, event)
         
 
     def on_zoom_changed(self, blub):
@@ -1388,7 +1368,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
             self.banner = None
 
 
-    def hide_cache_view(self, widget=None, data=None):
+    def hide_cache_view(self, widget=None, data=None, go_to_map = False):
         if self.current_cache.calc != None:
             self.core.save_cache_attribute(self.current_cache, 'vars')
         self.current_cache_window_open = False
@@ -1396,8 +1376,10 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
             self.current_cache.notes = self.get_cache_notes()
             self.core.save_cache_attribute(self.current_cache, 'notes')
             self.notes_changed = False
-        self.old_cache_window = hildon.WindowStack.get_default().peek()
-        hildon.WindowStack.get_default().pop(hildon.WindowStack.get_default().size()-1)
+        self.old_cache_window = hildon.WindowStack.get_default().pop_1()
+        while go_to_map and hildon.WindowStack.get_default().size() > 1:
+            hildon.WindowStack.get_default().pop_1()
+
         return True
 
     def get_cache_notes(self):
