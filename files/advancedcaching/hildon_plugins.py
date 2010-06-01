@@ -20,6 +20,7 @@
 import gtk
 import hildon
 import geocaching
+import pango
 
 class HildonSearchPlace(object):
     
@@ -172,12 +173,12 @@ class HildonSearchGeocaches(object):
 
 
     def _get_search_buttons(self):
-        button1 = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
+        button1 = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button1.set_title("Search Geocaches")
         button1.set_value("in local database")
         button1.connect("clicked", self._on_show_search, None)
 
-        button2 = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
+        button2 = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button2.set_label("Last Search Results")
         button2.connect("clicked", self._on_reopen_search_clicked, None)
         button2.set_sensitive(False)
@@ -190,9 +191,31 @@ class HildonSearchGeocaches(object):
         RESPONSE_SHOW_LIST = 0
         RESPONSE_RESET = 1
 
-        # a new selector for distance to...
-        # current position
-        # current screen
+
+        name = hildon.Entry(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
+        name.set_placeholder("search for name...")
+        name_hbox = gtk.HBox()
+        name_hbox.pack_start(gtk.Label("Name: "), False, False)
+        name_hbox.pack_start(name, True, True)
+
+        sel_dist_type = hildon.TouchSelector(text=True)
+        sel_dist_type.append_text('anywhere')
+        sel_dist_type.append_text('around my position')
+        sel_dist_type.append_text('around the current center')
+        pick_dist_type = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
+        pick_dist_type.set_selector(sel_dist_type)
+        pick_dist_type.set_title("Search")
+        sel_dist_type.select_iter(0, sel_dist_type.get_model(0).get_iter(1), False)
+
+        list_dist_radius = (1, 5, 10, 20, 50, 100, 200)
+        sel_dist_radius = hildon.TouchSelector(text=True)
+        for x in list_dist_radius:
+            sel_dist_radius.append_text('%d km' % x)
+        pick_dist_radius = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
+        pick_dist_radius.set_selector(sel_dist_radius)
+        pick_dist_radius.set_title("Radius")
+        pick_dist_type.connect('value-changed', lambda caller: pick_dist_radius.set_sensitive(sel_dist_type.get_selected_rows(0)[0][0] != 0))
+        sel_dist_radius.select_iter(0, sel_dist_radius.get_model(0).get_iter(1), False)
 
         sel_size = hildon.TouchSelector(text=True)
         sel_size.append_text('micro')
@@ -201,7 +224,7 @@ class HildonSearchGeocaches(object):
         sel_size.append_text('huge')
         sel_size.append_text('other')
         sel_size.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_MULTIPLE)
-        pick_size = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        pick_size = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
         pick_size.set_selector(sel_size)
         pick_size.set_title("Select Size(s)")
         for i in xrange(5):
@@ -216,19 +239,19 @@ class HildonSearchGeocaches(object):
         sel_type.append_text('mystery')
         sel_type.append_text('all')
         sel_type.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_MULTIPLE)
-        pick_type = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        pick_type = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
         pick_type.set_selector(sel_type)
         pick_type.set_title("Select Type(s)")
         sel_type.unselect_all(0)
         sel_type.select_iter(0, sel_type.get_model(0).get_iter(5), False)
 
         sel_status = hildon.TouchSelector(text=True)
-        sel_status.append_text('all')
-        sel_status.append_text('not found')
-        sel_status.append_text('found')
-        sel_status.append_text('marked')
-        sel_status.append_text('not found & marked')
-        pick_status = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        sel_status.append_text('any')
+        sel_status.append_text("Geocaches I haven't found")
+        sel_status.append_text("Geocaches I have found")
+        sel_status.append_text("Marked Geocaches")
+        sel_status.append_text("Marked Geocaches I haven't found")
+        pick_status = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
         pick_status.set_selector(sel_status)
         pick_status.set_title("Select Status")
 
@@ -240,7 +263,7 @@ class HildonSearchGeocaches(object):
         sel_diff.append_text('3..4')
         sel_diff.append_text('4.5..5')
         sel_diff.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_MULTIPLE)
-        pick_diff = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        pick_diff = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
         pick_diff.set_selector(sel_diff)
         pick_diff.set_title("Select Difficulty")
         for i in xrange(3):
@@ -251,14 +274,12 @@ class HildonSearchGeocaches(object):
         sel_terr.append_text('3..4')
         sel_terr.append_text('4.5..5')
         sel_terr.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_MULTIPLE)
-        pick_terr = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        pick_terr = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
         pick_terr.set_selector(sel_terr)
         pick_terr.set_title("Select Terrain")
         for i in xrange(3):
             sel_terr.select_iter(0, sel_terr.get_model(0).get_iter(i), False)
 
-        name = hildon.Entry(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
-        name.set_placeholder("search for name...")
 
 
         dialog = gtk.Dialog("Search", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ("show on map", gtk.RESPONSE_ACCEPT))
@@ -280,9 +301,10 @@ class HildonSearchGeocaches(object):
         vbox_details = gtk.VBox()
         frame_details.add(vbox_details)
         options.pack_start(frame_details)
-        
 
-        vbox_all.pack_start(name)
+        vbox_all.pack_start(name_hbox)
+        vbox_all.pack_start(pick_dist_type)
+        vbox_all.pack_start(pick_dist_radius)
         vbox_all.pack_start(pick_type)
         vbox_all.pack_start(pick_status)
 
@@ -294,72 +316,100 @@ class HildonSearchGeocaches(object):
         vbox_details.pack_start(pick_diff)
         vbox_details.pack_start(pick_terr)
 
-        dialog.show_all()
-        response = dialog.run()
-        dialog.hide()
+        while True:
+            dialog.show_all()
+            response = dialog.run()
+            dialog.hide()
 
-        if response == RESPONSE_RESET:
-            self.core.reset_filter()
+            if response == RESPONSE_RESET:
+                self.core.reset_filter()
+                break
 
-        name_search = name.get_text()
+            name_search = name.get_text()
 
-        sizes = [x + 1 for x, in sel_size.get_selected_rows(0)]
-        if sizes == [1, 2, 3, 4, 5]:
-            sizes = None
+            sizes = [x + 1 for x, in sel_size.get_selected_rows(0)]
+            if sizes == [1, 2, 3, 4, 5]:
+                sizes = None
 
-        typelist = [
-            geocaching.GeocacheCoordinate.TYPE_REGULAR,
-            geocaching.GeocacheCoordinate.TYPE_MULTI,
-            geocaching.GeocacheCoordinate.TYPE_VIRTUAL,
-            geocaching.GeocacheCoordinate.TYPE_EARTH,
-            geocaching.GeocacheCoordinate.TYPE_EVENT,
-            geocaching.GeocacheCoordinate.TYPE_MYSTERY,
-            geocaching.GeocacheCoordinate.TYPE_UNKNOWN
-        ]
+            typelist = [
+                geocaching.GeocacheCoordinate.TYPE_REGULAR,
+                geocaching.GeocacheCoordinate.TYPE_MULTI,
+                geocaching.GeocacheCoordinate.TYPE_VIRTUAL,
+                geocaching.GeocacheCoordinate.TYPE_EARTH,
+                geocaching.GeocacheCoordinate.TYPE_EVENT,
+                geocaching.GeocacheCoordinate.TYPE_MYSTERY,
+                geocaching.GeocacheCoordinate.TYPE_UNKNOWN
+            ]
 
-        types = [typelist[x] for x, in sel_type.get_selected_rows(0)]
-        if geocaching.GeocacheCoordinate.TYPE_UNKNOWN in types:
-            types = None
+            types = [typelist[x] for x, in sel_type.get_selected_rows(0)]
+            if geocaching.GeocacheCoordinate.TYPE_UNKNOWN in types:
+                types = None
 
-        # found, marked
-        statuslist = [
-            (None, None),
-            (False, None),
-            (True, None),
-            (None, True),
-            (False, True),
-        ]
-        found, marked = statuslist[sel_status.get_selected_rows(0)[0][0]]
+            # found, marked
+            statuslist = [
+                (None, None),
+                (False, None),
+                (True, None),
+                (None, True),
+                (False, True),
+            ]
+            found, marked = statuslist[sel_status.get_selected_rows(0)[0][0]]
 
-        numberlist = [
-            [1, 1.5, 2, 2.5],
-            [3, 3.5, 4],
-            [4.5, 5]
-        ]
+            numberlist = [
+                [1, 1.5, 2, 2.5],
+                [3, 3.5, 4],
+                [4.5, 5]
+            ]
 
-        difficulties = []
-        count = 0
-        for x, in sel_diff.get_selected_rows(0):
-            difficulties += numberlist[x]
-            count += 1
-        if count == len(numberlist):
-            difficulties = None
+            difficulties = []
+            count = 0
+            for x, in sel_diff.get_selected_rows(0):
+                difficulties += numberlist[x]
+                count += 1
+            if count == len(numberlist):
+                difficulties = None
 
 
-        terrains = []
-        count = 0
-        for x, in sel_terr.get_selected_rows(0):
-            terrains += numberlist[x]
-            count += 1
-        if count == len(numberlist):
-            terrains = None
+            terrains = []
+            count = 0
+            for x, in sel_terr.get_selected_rows(0):
+                terrains += numberlist[x]
+                count += 1
+            if count == len(numberlist):
+                terrains = None
 
-        if response == RESPONSE_SHOW_LIST:
-            points, truncated = self.core.get_points_filter(found=found, name_search=name_search, size=sizes, terrain=terrains, diff=difficulties, ctype=types, marked=marked)
-            self._display_results(points, truncated)
-        elif response == gtk.RESPONSE_ACCEPT:
-            self.core.set_filter(found=found, name_search=name_search, size=sizes, terrain=terrains, diff=difficulties, ctype=types, marked=marked)
+            center = None
+            dist_type = sel_dist_type.get_selected_rows(0)[0][0]
+            if dist_type == 1:
+                try:
+                    center = self.gps_last_good_fix.position
+                except AttributeError:
+                    pass
+            elif dist_type == 2:
+                center = self.ts.num2deg(self.map_center_x, self.map_center_y)
+            if center != None:
+                radius = list_dist_radius[sel_dist_type.get_selected_rows(0)[0][0]]
+                sqrt_2 = 1.41421356
+                c1 = center.transform(-45, radius * 1000 * sqrt_2)
+                c2 = center.transform(-45 + 180, radius * 1000 * sqrt_2)
+                location = (c1, c2)
+            else:
+                location = None
 
+            if response == RESPONSE_SHOW_LIST:
+                points, truncated = self.core.get_points_filter(found=found, name_search=name_search, size=sizes, terrain=terrains, diff=difficulties, ctype=types, marked=marked, location=location)
+                if len(points) > 0:
+                    self._display_results(points, truncated)
+                    break
+                else:
+                    self.show_error("Search returned no geocaches.")
+
+            elif response == gtk.RESPONSE_ACCEPT:
+                self.core.set_filter(found=found, name_search=name_search, size=sizes, terrain=terrains, diff=difficulties, ctype=types, marked=marked)
+                self.show_success("Filter for map activated.")
+                break
+            else:
+                break
 
     def _display_results(self, caches, truncated):
         sortfuncs = [
@@ -412,7 +462,7 @@ class HildonSearchGeocaches(object):
             ls.clear()
             caches.sort(cmp=sortfunc)
             for c in caches:
-                ls.append([self.shorten_name(c.title, 40), " " + c.get_size_string(), ' D%s T%s' % (c.get_difficulty(), c.get_terrain()), " " + self.__format_distance(c.prox), c])
+                ls.append([self.shorten_name(c.title, 40), " " + c.get_size_string(), ' D%s T%s' % (c.get_difficulty(), c.get_terrain()), " " + self._format_distance(c.prox), c])
             tv.handler_unblock_by_func(select_cache)
 
 

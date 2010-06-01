@@ -1460,14 +1460,14 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
 
 
         if self.gps_has_fix and self.gps_target_distance != None:
-            td_string = self.__format_distance(self.gps_target_distance)
+            td_string = self._format_distance(self.gps_target_distance)
             self.label_dist.set_markup("<span size='xx-large'>%s</span>" % td_string)
         elif self.gps_target_distance == None:
             self.label_dist.set_markup("<span size='x-large'>No Target</span>")
         else:
             self.label_dist.set_markup("<span size='xx-large'>No Fix</span>")
 
-    def __format_distance(self, distance):
+    def _format_distance(self, distance):
         if distance == None:
             return '?'
         if distance >= 1000:

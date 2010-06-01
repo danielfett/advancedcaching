@@ -20,8 +20,19 @@
 
 import math
 import re
-
-
+try:
+    from location import distance_between
+    def distance_to_liblocation(src, target):
+        return distance_between(src.lat, src.lon, target.lat, target.lon) * 1000
+    distance_to = distance_to_liblocation
+except Exception:
+    def distance_to_manual (src, target):
+        dlat = math.pow(math.sin(math.radians(target.lat-src.lat) / 2), 2)
+        dlon = math.pow(math.sin(math.radians(target.lon-src.lon) / 2), 2)
+        a = dlat + math.cos(math.radians(src.lat)) * math.cos(math.radians(target.lat)) * dlon;
+        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a));
+        return self.RADIUS_EARTH * c;
+    distance_to = distance_to_manual
 
 def try_parse_coordinate(text):
     
@@ -131,10 +142,7 @@ class Coordinate(object):
         self.lat = lat
         self.lon = lon
         self.name = name
-        try:
-            self.distance_to = self.build_distance_to_liblocation()
-        except Exception:
-            self.distance_to = self.distance_to_manual
+        
             
     def from_d(self, lat, lon):
         self.lat = lat
@@ -237,19 +245,6 @@ class Coordinate(object):
     def get_latlon(self, format = 1): # that is FORMAT_DM
         return "%s %s" % (self.get_lat(format), self.get_lon(format))
 
-    def distance_to_manual (self, target):
-        dlat = math.pow(math.sin(math.radians(target.lat-self.lat) / 2), 2)
-        dlon = math.pow(math.sin(math.radians(target.lon-self.lon) / 2), 2)
-        a = dlat + math.cos(math.radians(self.lat)) * math.cos(math.radians(target.lat)) * dlon;
-        c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a));
-        return self.RADIUS_EARTH * c;
-
-    def build_distance_to_liblocation(self):
-        from location import distance_between
-        def distance_to_liblocation(target):
-            return distance_between(self.lat, self.lon, target.lat, target.lon) * 1000
-        return distance_to_liblocation
-
     def __str__(self):
         return self.get_latlon()
         
@@ -262,3 +257,5 @@ class Coordinate(object):
         self.lon = data['lon']
         self.name = data['name']
         
+    def distance_to(self, target):
+        return distance_to(self, target)
