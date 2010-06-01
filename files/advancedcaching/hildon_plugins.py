@@ -402,7 +402,7 @@ class HildonSearchGeocaches(object):
                     self._display_results(points, truncated)
                     break
                 else:
-                    self.show_error("Search returned no geocaches.")
+                    self.show_error("Search returned no geocaches. Please remember that search works only within the downloaded geocaches.")
 
             elif response == gtk.RESPONSE_ACCEPT:
                 self.core.set_filter(found=found, name_search=name_search, size=sizes, terrain=terrains, diff=difficulties, ctype=types, marked=marked)
