@@ -795,7 +795,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
         if not cache.was_downloaded():
             p.attach(gtk.Label("Please download full details to see the description."), 0, 2, 9, 10)
         
-        notebook.append_page(p, gtk.Label("info"))
+        notebook.append_page(p, gtk.Label("Info"))
         if cache.was_downloaded():
         
             # Description
@@ -845,7 +845,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
             p = hildon.PannableArea()
             widget_hints = gtk.VBox()
             p.add_with_viewport(widget_hints)
-            notebook.append_page(p, gtk.Label("logs & hints"))
+            notebook.append_page(p, gtk.Label("Logs & Hints"))
 
             logs = cache.get_logs()
             
@@ -906,7 +906,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
         p = gtk.VBox()
         self.cache_coord_page = p
         x = notebook.get_n_pages()
-        notebook.append_page(p, gtk.Label("coords"))
+        notebook.append_page(p, gtk.Label("Coords"))
         def switchpage(caller, page, pageno):
             if pageno != x:
                 return
@@ -930,7 +930,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
         p = gtk.VBox()
         p.pack_start(button, False)
         p.pack_start(pan, True)
-        notebook.append_page(p, gtk.Label("notes"))
+        notebook.append_page(p, gtk.Label("Notes"))
 
 
         # portrait mode notebook switcher
@@ -1130,7 +1130,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
         p.pack_start(a, True)
         self.cache_calc_viewport = vp
         self.show_cache_calc_results(cache)
-        notebook.append_page(p, gtk.Label("calc"))
+        notebook.append_page(p, gtk.Label("Calc"))
 
     def show_cache_calc_results(self, cache):
         p = gtk.VBox()

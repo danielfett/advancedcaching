@@ -320,7 +320,6 @@ class HildonSearchGeocaches(object):
             elif response == RESPONSE_LAST_RESULTS:
                 if self.old_search_window == None:
                     return
-                print self.old_search_window.get_allocation()
                 hildon.WindowStack.get_default().push_1(self.old_search_window)
                 
                 return
