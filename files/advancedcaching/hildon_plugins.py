@@ -322,6 +322,7 @@ class HildonSearchGeocaches(object):
                     return
                 print self.old_search_window.get_allocation()
                 hildon.WindowStack.get_default().push_1(self.old_search_window)
+                
                 return
             
             name_search = name.get_text().strip().lower()
@@ -490,3 +491,4 @@ class HildonSearchGeocaches(object):
 
     def hide_search_view(self, widget, data):
         self.old_search_window = hildon.WindowStack.get_default().pop_1()
+        return True
