@@ -393,7 +393,6 @@ class HildonSearchGeocaches(object):
                 c1 = center.transform(-45, radius * 1000 * sqrt_2)
                 c2 = center.transform(-45 + 180, radius * 1000 * sqrt_2)
                 location = (c1, c2)
-                print "Using: ", c1, c2
             else:
                 location = None
 
@@ -407,7 +406,7 @@ class HildonSearchGeocaches(object):
 
             elif response == gtk.RESPONSE_ACCEPT:
                 self.core.set_filter(found=found, name_search=name_search, size=sizes, terrain=terrains, diff=difficulties, ctype=types, marked=marked)
-                self.show_success("Filter for map activated.")
+                self.show_success("Filter for map activated, ignoring distance restrictions.")
                 self.map_filter_active = True
                 break
             else:

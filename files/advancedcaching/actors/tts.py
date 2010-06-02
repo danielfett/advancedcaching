@@ -8,8 +8,7 @@ class TTS(gobject.GObject):
     MAX_INTERVAL_DISTANCE = 1000
     MIN_INTERVAL = 5
     MAX_INTERVAL = 50
-    DEFAULT_INTERVAL = 20
-
+    DEFAULT_INTERVAL = 10
 
     def __init__(self, core):
         gobject.GObject.__init__(self)
