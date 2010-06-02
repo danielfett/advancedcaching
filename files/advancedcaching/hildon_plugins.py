@@ -475,6 +475,18 @@ class HildonSearchGeocaches(object):
             button.connect("clicked", on_change_sort, function)
             menu.add_filter(button)
             button.set_mode(False)
+
+        def download_geocaches(widget):
+            self.core.update_coordinates(caches)
+
+
+
+        button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_title("Download Details")
+        button.set_value("for all Geocaches")
+        button.connect("clicked", download_geocaches)
+        menu.append(button)
+
         menu.show_all()
         win.set_app_menu(menu)
         win.add(tv)

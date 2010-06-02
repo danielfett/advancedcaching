@@ -171,6 +171,11 @@ class Core(gobject.GObject):
 
         self.gui.show()
 
+    ##############################################
+    #
+    # Misc
+    #
+    ##############################################
 
     @staticmethod
     def create_recursive(dpath):
@@ -183,6 +188,14 @@ class Core(gobject.GObject):
                 except Exception, e:
                     print e
                     pass
+
+
+
+    ##############################################
+    #
+    # Settings
+    #
+    ##############################################
 
     def save_settings(self, settings, source):
         self.settings.update(settings)
@@ -210,6 +223,44 @@ class Core(gobject.GObject):
         self.emit('save-settings')
         self.__write_config()
 
+    # called by gui
+    def on_config_changed(self, new_settings):
+        self.settings = new_settings
+        self.downloader.update_userdata(self.settings['options_username'], self.settings['options_password'])
+        self.__write_config()
+
+
+
+    def __read_config(self):
+        filename = path.join(self.SETTINGS_DIR, 'config')
+        if not path.exists(filename):
+            self.settings = self.DEFAULT_SETTINGS
+            return
+        f = file(filename, 'r')
+        string = f.read()
+        self.settings = {}
+        if string != '':
+            tmp_settings = loads(string)
+            for k, v in self.DEFAULT_SETTINGS.items():
+                if k in tmp_settings != None:
+                    self.settings[k] = tmp_settings[k]
+                else:
+                    self.settings[k] = v
+        else:
+            self.settings = self.DEFAULT_SETTINGS
+
+
+    def __write_config(self):
+        filename = path.join(self.SETTINGS_DIR, 'config')
+        f = file(filename, 'w')
+        f.write(dumps(self.settings, sort_keys=True, indent=4))
+
+
+    ##############################################
+    #
+    # Target & GPS
+    #
+    ##############################################
 
 
     def set_target(self, coordinate):
@@ -217,9 +268,60 @@ class Core(gobject.GObject):
         distance, bearing = self.__get_target_distance_bearing()
         self.emit('target-changed', coordinate, distance, bearing)
         self.emit('map-marks-changed')
+
+
+    def __get_target_distance_bearing(self):
+        if self.current_position != None and self.current_target != None:
+            distance = self.current_position.distance_to(self.current_target)
+            bearing = self.current_position.bearing_to(self.current_target)
+        else:
+            distance = None
+            bearing = None
+        return distance, bearing
+
+    def __read_gps(self):
+        fix = self.gps_thread.get_data()
+
+        if fix.position != None:
+            self.current_position = fix.position
+            distance, bearing = self.__get_target_distance_bearing()
+            self.emit('good-fix', fix, distance, bearing)
+        else:
+            self.emit('no-fix', fix, self.gps_thread.status)
+        return True
+
+    def __read_gps_cb_error(self, control, error):
+        fix = gpsreader.Fix()
+        msg = gpsreader.LocationGpsReader.get_error_from_code(error)
+        self.emit('no-fix', fix, msg)
+        return True
+
+    def __read_gps_cb_changed(self, device):
+        fix = gpsreader.Fix.from_tuple(device.fix, device)
+        # @type fix gpsreader.Fix
+
+        if fix.position != None:
+            self.current_position = fix.position
+            distance, bearing = self.__get_target_distance_bearing()
+            self.emit('good-fix', fix, distance, bearing)
+        else:
+            self.emit('no-fix', fix, 'No Fix')
+        return True
+
+
+    ##############################################
+    #
+    # Geonames & Routing
+    #
+    ##############################################
                                 
     def get_coord_by_name(self, query):
         return self.geonames.search(query)
+
+
+
+    def search_place(self, search):
+        return self.geonames.search_all(search)
 
     def get_route(self, c1, c2, r):
         c1 = self.geonames.find_nearest_intersection(c1)
@@ -258,9 +360,21 @@ class Core(gobject.GObject):
         print "* Needing %d unique queries" % len(out)
         return out
 
+    ##############################################
+    #
+    # Deprecated
+    #
+    ##############################################
+
     # called by gui
     def on_cache_selected(self, cache):
         self.gui.show_cache(cache)
+
+    ##############################################
+    #
+    # Filters, Searching & Pointprovider
+    #
+    ##############################################
                 
     # called by gui
     def on_start_search_simple(self, text):
@@ -291,6 +405,24 @@ class Core(gobject.GObject):
         truncated = (len(points) >= self.pointprovider.MAX_RESULTS)
         self.pointprovider.pop_filter()
         return (points, truncated)
+
+
+    def get_geocache_by_name(self, name):
+        return self.pointprovider.get_by_name(name)
+
+    def __try_show_cache_by_search(self, idstring):
+        cache = self.pointprovider.find_by_string(idstring)
+        if cache != None:
+            self.gui.show_cache(cache)
+            self.gui.set_center(cache)
+            return True
+        return False
+
+    ##############################################
+    #
+    # Downloading
+    #
+    ##############################################
 
     # called by gui
     def on_download(self, location, sync=False):
@@ -368,48 +500,29 @@ class Core(gobject.GObject):
         self.gui.hide_progress()
         self.emit('cache-changed', cache)
         return False
-                
-    def on_export_cache(self, cache, format, folder):
-        from exporter import GpxExporter
-        if (format == 'gpx'):
-            exporter = GpxExporter()
-        else:
-            raise Exception("Format currently not supported: %s" % format)
 
-        self.gui.set_download_progress(0.5, "Exporting %s..." % cache.name)
-        try:
-            exporter.export(cache, folder)
-        except Exception, e:
-            self.gui.show_error(e)
-        finally:
-            self.gui.hide_progress()
-        
-                
-                
-                
+
+
     # called by gui
     def on_download_descriptions(self, location, visibleonly=False):
-        cd = GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
-        cd.connect("download-error", self.on_download_error)
-        cd.connect("already-downloading-error", self.on_already_downloading_error)
-        
+
         #exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
-                
+
         self.pointprovider.push_filter()
-                        
+
         if self.settings['download_notfound'] or visibleonly:
             found = False
         else:
             found = None
-                        
+
         if self.settings['download_new'] or visibleonly:
             has_details = False
         elif self.settings['download_nothing']:
             has_details = True
         else:
             has_details = None
-                
-                
+
+
         if self.settings['download_visible'] or visibleonly:
             self.pointprovider.set_filter(found=found, has_details=has_details, adapt_filter=True)
             caches = self.pointprovider.get_points_filter(location)
@@ -418,11 +531,19 @@ class Core(gobject.GObject):
             caches = self.pointprovider.get_points_filter()
 
         self.pointprovider.pop_filter()
+        self.update_coordinates(caches)
+
+
+    def update_coordinates(self, caches):
+        cd = GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd.connect("download-error", self.on_download_error)
+        cd.connect("already-downloading-error", self.on_already_downloading_error)
+
 
         def same_thread(arg1, arg2):
             gobject.idle_add(self.on_download_descriptions_complete, arg1, arg2)
             return False
-        
+
         def same_thread_progress (arg1, arg2, arg3, arg4):
             gobject.idle_add(self.on_download_progress, arg1, arg2, arg3, arg4)
             return False
@@ -451,17 +572,36 @@ class Core(gobject.GObject):
     def on_download_progress(self, something, cache_name, i, max_i):
         self.gui.set_download_progress(float(i) / float(max_i), "Downloading %s (%d of %d)..." % (cache_name, i, max_i))
         return False
-    
-    # called by gui
-    def on_config_changed(self, new_settings):
-        self.settings = new_settings
-        self.downloader.update_userdata(self.settings['options_username'], self.settings['options_password'])
-        self.__write_config()
 
-    def set_alternative_position(self, cache, ap):
-        cache.set_alternative_position(ap)
-        self.save_cache_attribute(cache, ('alter_lat', 'alter_lon'))
-        self.emit('map-marks-changed')
+    ##############################################
+    #
+    # Exporting
+    #
+    ##############################################
+                
+    def on_export_cache(self, cache, format, folder):
+        from exporter import GpxExporter
+        if (format == 'gpx'):
+            exporter = GpxExporter()
+        else:
+            raise Exception("Format currently not supported: %s" % format)
+
+        self.gui.set_download_progress(0.5, "Exporting %s..." % cache.name)
+        try:
+            exporter.export(cache, folder)
+        except Exception, e:
+            self.gui.show_error(e)
+        finally:
+            self.gui.hide_progress()
+        
+                
+
+    ##############################################
+    #
+    # Fieldnotes
+    #
+    ##############################################
+
 
     def save_fieldnote(self, cache):
         if cache.logas == geocaching.GeocacheCoordinate.LOG_AS_FOUND:
@@ -502,6 +642,13 @@ class Core(gobject.GObject):
     def get_new_fieldnotes_count(self):
         return self.pointprovider.get_new_fieldnotes_count()
 
+
+    ##############################################
+    #
+    # Geocache Handling
+    #
+    ##############################################
+
     def save_cache_attribute(self, cache, attribute):
         if type(attribute) == tuple:
             for a in attribute:
@@ -510,85 +657,14 @@ class Core(gobject.GObject):
         else:
             self.pointprovider.update_field(cache, attribute, cache.serialize_one(attribute))
 
-    def get_geocache_by_name(self, name):
-        return self.pointprovider.get_by_name(name)
+
+    def set_alternative_position(self, cache, ap):
+        cache.set_alternative_position(ap)
+        self.save_cache_attribute(cache, ('alter_lat', 'alter_lon'))
+        self.emit('map-marks-changed')
 
 
-    def __get_target_distance_bearing(self):
-        if self.current_position != None and self.current_target != None:
-            distance = self.current_position.distance_to(self.current_target)
-            bearing = self.current_position.bearing_to(self.current_target)
-        else:
-            distance = None
-            bearing = None
-        return distance, bearing
                 
-    def __read_gps(self):
-        fix = self.gps_thread.get_data()
-
-        if fix.position != None:
-            self.current_position = fix.position
-            distance, bearing = self.__get_target_distance_bearing()
-            self.emit('good-fix', fix, distance, bearing)
-        else:
-            self.emit('no-fix', fix, self.gps_thread.status)
-        return True
-
-    def __read_gps_cb_error(self, control, error):
-        fix = gpsreader.Fix()
-        msg = gpsreader.LocationGpsReader.get_error_from_code(error)
-        self.emit('no-fix', fix, msg)
-        return True
-
-    def __read_gps_cb_changed(self, device):
-        fix = gpsreader.Fix.from_tuple(device.fix, device)
-        # @type fix gpsreader.Fix
-
-        if fix.position != None:
-            self.current_position = fix.position
-            distance, bearing = self.__get_target_distance_bearing()
-            self.emit('good-fix', fix, distance, bearing)
-        else:
-            self.emit('no-fix', fix, 'No Fix')
-        return True
-                
-    def __read_config(self):
-        filename = path.join(self.SETTINGS_DIR, 'config')
-        if not path.exists(filename):
-            self.settings = self.DEFAULT_SETTINGS
-            return
-        f = file(filename, 'r')
-        string = f.read()
-        self.settings = {}
-        if string != '':
-            tmp_settings = loads(string)
-            for k, v in self.DEFAULT_SETTINGS.items():
-                if k in tmp_settings != None:
-                    self.settings[k] = tmp_settings[k]
-                else:
-                    self.settings[k] = v
-        else:
-            self.settings = self.DEFAULT_SETTINGS
-                
-                
-                
-    def __try_show_cache_by_search(self, idstring):
-        cache = self.pointprovider.find_by_string(idstring)
-        if cache != None:
-            self.gui.show_cache(cache)
-            self.gui.set_center(cache)
-            return True
-        return False
-                
-    def __write_config(self):
-        filename = path.join(self.SETTINGS_DIR, 'config')
-        f = file(filename, 'w')
-        f.write(dumps(self.settings, sort_keys=True, indent=4))
-
-    def search_place(self, search):
-        from geonames import Geonames
-        a = Geonames(self.downloader)
-        return a.search_all(search)
     
 
 

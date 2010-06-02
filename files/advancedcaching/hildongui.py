@@ -66,7 +66,7 @@ import threadpool
 
 class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, SimpleGui):
 
-    USES = ['locationgpsprovider']
+    USES = ['locationgpsprovider', 'geonames']
 
     MIN_DRAG_REDRAW_DISTANCE = 2
     DRAG_RECHECK_SPEED = 40
