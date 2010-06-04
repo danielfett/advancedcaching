@@ -168,14 +168,14 @@ class CacheDownloader(gobject.GObject):
         self._init_images()
         coordinate = coordinate.clone()
         self.current_cache = coordinate
-        try:
-            print "* Downloading %s..." % (coordinate.name)
-            response = self._get_cache_page(coordinate.name)
-            u = self._parse_cache_page(response, coordinate)
-        except Exception, e:
-            CacheDownloader.lock.release()
-            self.emit('download-error', e)
-            return self.current_cache
+        #try:
+        print "* Downloading %s..." % (coordinate.name)
+        response = self._get_cache_page(coordinate.name)
+        u = self._parse_cache_page(response, coordinate)
+        #except Exception, e:
+        #    CacheDownloader.lock.release()
+        #    self.emit('download-error', e)
+        #    return self.current_cache
         CacheDownloader.lock.release()
         self.emit('finished-single', u)
         return u
@@ -277,95 +277,51 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
                 
     def _parse_cache_page(self, cache_page, coordinate):
-        indesc = inshortdesc = inwaypoints = inhints = False
-        inhead = True
-        shortdesc = desc = hints = waypoints = images = logs = owner = ''
+        section = ''
+        shortdesc = desc = hints = waypoints = images = logs = owner = head = ''
+        print "Start parsing"
         for line in cache_page:
             line = line.strip()
-            #line = unicode(line, errors='replace')
-        
-            if line.startswith('<span id="ctl00_ContentBody_ShortDescription">'):
-                inhead = False
-                inshortdesc = True
-            elif line.startswith('<span id="ctl00_ContentBody_LongDescription">'):
-                inhead = False
-                inshortdesc = False
-                indesc = True
-            elif line.startswith('<div class="CacheDetailNavigationWidget">'):
-                inhead = False
-                inshortdesc = False
-                indesc = False
-            elif line.startswith('<div id="div_hint" class="HalfLeft">'):
-                inhead = False
-                inshortdesc = False
-                indesc = False
-                inhints = True
-            elif inhints and line.startswith('</div>'):
-                inhints = False
-            elif line.startswith('<div id="ctl00_ContentBody_uxlrgMap" class="fr"> '):
-                inhead = False
-                inshortdesc = False
-                indesc = False
-            elif line.startswith('<p><p><strong>Additional Waypoints</strong>'):
-                inhead = False
-                inshortdesc = False
-                indesc = False
-                inwaypoints = True
-            elif line.startswith('</table>') and inwaypoints:
-                inwaypoints = False
-            elif line.startswith('<p><span id="ctl00_ContentBody_Images">'):
-                images = line
-            elif line.startswith('<span id="ctl00_ContentBody_LatLon" style="font-weight:bold;">'):
-                coords = re.compile('lat=([0-9.-]+)&amp;lon=([0-9.-]+)&amp;').search(line)
-            elif line.startswith('<p><span id="ctl00_ContentBody_CacheLogs">'):
+            
+            if section == '' and line.startswith('<div id="doc3" class="yui-t1">'):
+                section = 'head'
+            elif section == 'head' and line.startswith('<span id="ctl00_ContentBody_ShortDescription">'):
+                section = 'shortdesc'
+            elif (section == 'head' or section == 'shortdesc') and line.startswith('<span id="ctl00_ContentBody_LongDescription">'):
+                section = 'desc'
+            elif (section == 'desc' or section == 'shortdesc') and line.startswith('<div class="CacheDetailNavigationWidget">'):
+                section = 'after-desc'
+            elif section == 'after-desc' and line.startswith('<div id="div_hint" class="HalfLeft">'):
+                section = 'hints'
+            elif section == 'hints' and line.startswith('</div>'):
+                section = 'after-hints'
+            elif (section == 'after-hints' or section == 'after-desc') and line.startswith('<div id="ctl00_ContentBody_uxlrgMap" class="fr">'):
+                section = 'pre-waypoints'
+            elif (section == 'after-hints' or section == 'pre-waypoints') and line.startswith('<span id="ctl00_ContentBody_WaypointsInfo"'):
+                section = 'waypoints'
+            elif section == 'waypoints' and line.startswith('</tbody> </table>'):
+                section = 'after-waypoints'
+            elif (section == 'pre-waypoints' or section == 'after-waypoints') and line.startswith('<span id="ctl00_ContentBody_Images">'):
+                section = 'images'
+            elif section == 'images' and line.startswith('<h3>'):
+                section = 'after-images'
+            elif section == 'after-images' and line.startswith('<table class="LogsTable Table">'):
                 logs = line
-            if inhead:
-                if line.startswith('<p><strong>A cache') or line.startswith('<p><strong>An Event'):
-                    owner = re.compile("by <[^>]+>([^<]+)</a>").search(line).group(1)
-                elif line.startswith('<p class="NoSpacing"><strong>Size:</strong>'):
-                    size = re.compile("container/([^\\.]+)\\.").search(line).group(1)
-                    difficulty = re.compile('<span id="ctl00_ContentBody_Difficulty"><[^>]+alt="([0-9\\.]+) out of').search(line).group(1)
-                    terrain = re.compile('<span id="ctl00_ContentBody_Terrain"><[^>]+alt="([0-9\\.]+) out of').search(line).group(1)
-#                elif line.startswith('<a id="lnkPrintFriendly" class="lnk" href="cdpf.aspx?guid'):
-#                    guid = re.compile('.*cdpf\\.aspx\?guid=([a-z0-9-]+)"').match(line).group(1)
-            if inshortdesc:
-                shortdesc += "%s\n" % line
-                
-            if indesc:
-                desc += "%s\n" % line
-                
-            if inhints:
-                hints += line + " "
-                
-            if inwaypoints:
-                waypoints += "%s  " % line
-    
-        if owner == '':
-            print "\n\n|||||||||||||||||||||||||||||||||||||||||||||||||||\n\n"
-            for line in cache_page:
-                print line
-            print "\n\n|||||||||||||||||||||||||||||||||||||||||||||||||||\n\n"
-            raise Exception("Could not parse Cache page. Maybe the format changed. Please update to latest version or contact author.")
 
-        coordinate.owner = HTMLManipulations._decode_htmlentities(owner)
-        if size == 'micro':
-            coordinate.size = 1
-        elif size == 'small':
-            coordinate.size = 2
-        elif size == 'regular':
-            coordinate.size = 3
-        elif size == 'large' or size == 'big':
-            coordinate.size = 4
-        elif size == 'not_chosen':
-            coordinate.size = 5
-        else:
-            print "Size not known: %s" % size
-            coordinate.size = 5
-
-        coordinate.lat = float(coords.group(1))
-        coordinate.lon = float(coords.group(2))
-        coordinate.difficulty = 10 * float(difficulty)
-        coordinate.terrain = 10 * float(terrain)
+            if section == 'head':
+                head = "%s%s\n" % (head, line)
+            elif section == 'shortdesc':
+                shortdesc = "%s%s\n" % (shortdesc, line)
+            elif section == 'desc':
+                desc = "%s%s\n" % (desc, line)
+            elif section == 'hints':
+                hints = "%s%s " % (hints, line)
+            elif section == 'waypoints':
+                waypoints = "%s%s  " % (waypoints, line)
+            elif section == 'images':
+                images = "%s%s " % (images, line)
+        print 'finished parsing'
+        coordinate.size, coordinate.difficulty, coordinate.terrain, coordinate.owner, coordinate.lat, coordinate.lon = self.__parse_head(head)
         coordinate.shortdesc = self.__treat_shortdesc(shortdesc)
         coordinate.desc = self.__treat_desc(desc)
         coordinate.hints = self.__treat_hints(hints)
@@ -376,6 +332,31 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 
         return coordinate
                 
+    def __parse_head(self, head):
+        sizestring = re.compile('<img src="/images/icons/container/([a-z_]+)\\.gif" alt="Size:').search(head).group(1)
+        if sizestring == 'micro':
+            size = 1
+        elif sizestring == 'small':
+            size = 2
+        elif sizestring == 'regular':
+            size = 3
+        elif sizestring == 'large' or sizestring == 'big':
+            size = 4
+        elif sizestring == 'not_chosen' or sizestring == 'other':
+            size = 5
+        else:
+            print "Size not known: %s" % size
+            size = 5
+        diff = float(re.compile('(?s)Difficulty:</strong>.*?<img src="http://www.geocaching.com/images/stars/stars[0-9_]+\\.gif" alt="([0-9.]+) out').search(head).group(1))*10
+        terr = float(re.compile('(?s)Terrain:</strong>.*?<img src="http://www.geocaching.com/images/stars/stars[0-9_]+\\.gif" alt="([0-9.]+) out').search(head).group(1))*10
+        owner = HTMLManipulations._decode_htmlentities(re.compile("\\sby <[^>]+>([^<]+)</a>", re.MULTILINE).search(head).group(1))
+        coords = re.compile('lat=([0-9.-]+)&amp;lon=([0-9.-]+)&amp;').search(head)
+        lat = float(coords.group(1))
+        lon = float(coords.group(2))
+        print size, diff, terr, owner, lat, lon
+        return size, diff, terr, owner, lat, lon
+        
+        
     
     def __treat_hints(self, hints):
         hints = HTMLManipulations._strip_html(HTMLManipulations._replace_br(hints)).strip()
@@ -410,27 +391,24 @@ class GeocachingComCacheDownloader(CacheDownloader):
         return (float(decimal) + (float(minutes) / 60.0)) * sign
 
     def __treat_waypoints(self, data):
-        
+        data.replace('</td>', '')
+        data.replace('</tr>', '')
+        lines = data.split('<tr')
         waypoints = []
-        finder = re.finditer(r'<tr class="[^"]+">\s+<td><img [^>]+></td>\s*' +
-                             r'<td><img [^>]+></td>\s*' +
-                             r'<td>(?P<id_prefix>[^<]+)</td>\s*' +
-                             r'<td>(?P<id>[^<]+)</td>\s*' +
-                             r'<td><a href=[^>]+>(?P<name>[^<]+)</a>[^<]+</td>\s*' +
-                             r'<td>(\?\?\?|(?P<lat_sign>N|S) (?P<lat_d>\d+)° (?P<lat_m>[0-9\.]+) (?P<lon_sign>E|W) (?P<lon_d>\d+)° (?P<lon_m>[0-9\.]+))</td>\s*' +
-                             r'<td>.+?</td>\s+</tr>\s*<tr>\s+<td>Note:</td>' +
-                             r'\s*<td colspan="4">(?P<comment>.*?)</td>\s*<td>&nbsp;</td>\s*</tr> ', data, re.DOTALL)
-        for m in finder:
-            if m.group(1) == None:
+        for line in lines:
+            tds = re.split('<td[^>]*>', line)
+            if len(tds) <= 1:
                 continue
-            waypoints.append({
-                             'lat': self.__from_dm(m.group('lat_sign'), m.group('lat_d'), m.group('lat_m')),
-                             'lon': self.__from_dm(m.group('lon_sign'), m.group('lon_d'), m.group('lon_m')),
-                             'id': "%s%s" % m.group('id_prefix', 'id'),
-                             'name': HTMLManipulations._decode_htmlentities(m.group('name')),
-                             'comment': HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(m.group('comment')), True))
-                             })
-
+            elif len(tds) > 3:
+                id = ''.join(HTMLManipulations._strip_html(x).strip() for x in tds[3:5])
+                name = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(tds[5])).strip()
+                m = re.compile(r'''(\?\?\?|(?P<lat_sign>N|S) (?P<lat_d>\d+)° (?P<lat_m>[0-9\.]+) (?P<lon_sign>E|W) (?P<lon_d>\d+)° (?P<lon_m>[0-9\.]+))''').search(tds[6])
+                lat = self.__from_dm(m.group('lat_sign'), m.group('lat_d'), m.group('lat_m'))
+                lon = self.__from_dm(m.group('lon_sign'), m.group('lon_d'), m.group('lon_m'))
+            else:
+                comment = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(tds[2]))).strip()
+                waypoints.append({'lat':lat, 'lon':lon, 'id':id, 'name':name, 'comment':comment})
+        
         return waypoints
 
     def __treat_images(self, data):
@@ -492,26 +470,36 @@ class GeocachingComCacheDownloader(CacheDownloader):
         print "Unknown month: " + text
         return 0
 
-def test(name, password):
+if __name__ == '__main__':
+    import sys
+    name, password = sys.argv[1:3]
     import downloader
 
-    def pcache(c):
-        print "--------------------\nName: '%s'\nTitle: '%s'\nType: %s" % (c.name, c.title, c.type)
-    
     a = GeocachingComCacheDownloader(downloader.FileDownloader(name, password, '/tmp/cookies'), '/tmp/', True)
-    coords = a.get_geocaches((geo.Coordinate(49.3513,6.583), geo.Coordinate(49.352,6.584)))
-    print "# Found %d coordinates" % len(coords)
-    for x in coords:
-        pcache(x)
-        if x.name == 'GC1N8G6':
-            if x.type != GeocacheCoordinate.TYPE_REGULAR or x.title != 'Druidenpfad':
-                print "# Wrong type or title"
-                return False
-            m = x
-            break
-        
+    if len(sys.argv) < 3:
+        inp = open(sys.argv[1])
+        m = GeocacheCoordinate(0, 0, 'bla')
+        res = a._parse_cache_page(a, m)
     else:
-        print "# Didn't find my own geocache :-("
+        
+        print "Using Username %s" % name
+
+        def pcache(c):
+            print "--------------------\nName: '%s'\nTitle: '%s'\nType: %s" % (c.name, c.title, c.type)
+        
+        coords = a.get_geocaches((geo.Coordinate(49.3513,6.583), geo.Coordinate(49.352,6.584)))
+        print "# Found %d coordinates" % len(coords)
+        for x in coords:
+            pcache(x)
+            if x.name == 'GC1N8G6':
+                if x.type != GeocacheCoordinate.TYPE_REGULAR or x.title != 'Druidenpfad':
+                    print "# Wrong type or title"
+                    sys.exit()
+                m = x
+                break
+            
+        else:
+            print "# Didn't find my own geocache :-("
     res = a.update_coordinates([m])
     print res
     c = res[0]
@@ -520,7 +508,7 @@ def test(name, password):
     if c.title != 'Druidenpfad':
         print "Title doesn't match ('%s', expected 'Druidenpfad')" % c.title
     if c.get_terrain() != '3.0':
-        print "Terrain doesn't match (%s, expected %s) " % c.get_terrain()
+        print "Terrain doesn't match (%s, expected 3.0) " % c.get_terrain()
     if c.get_difficulty() != '2.0':
         print "Diff. doesn't match (%s, expected 2.0)" % c.get_difficulty()
     if len(c.desc) != 1980:
@@ -528,10 +516,13 @@ def test(name, password):
     if len(c.shortdesc) != 238:
         print "Length of short description doesn't match (%d, expected %d" % (len(c.shortdesc), 238)
     if len(c.get_waypoints()) != 4:
-        print "Expected 4 waypoints, got %d" % c.get_waypoints()
+        print "Expected 4 waypoints, got %d" % len(c.get_waypoints())
     if len(c.hints) != 83:
         print "Expected 83 characters of hints, got %d" % len(c.hints)
     
     if len(c.get_logs()) < 2:
         print "Expected at least 2 logs, got %d" % len(c.get_logs())
+    print "Owner:%s\nTitle:%s\nTerrain:%s\nDifficulty:%s\nDescription:%s\nShortdesc:%s\nHints:%s" % (c.owner, c.title, c.get_terrain(), c.get_difficulty(), c.desc, c.shortdesc, c.hints)
+    print c.get_waypoints()
+    print c.get_logs()
 

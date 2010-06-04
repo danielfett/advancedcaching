@@ -131,7 +131,6 @@ import provider
 from threading import Thread
 from cachedownloader import GeocachingComCacheDownloader
 from fieldnotesuploader import FieldnotesUploader
-
 #import cProfile
 #import pstats
 
@@ -269,7 +268,6 @@ class Core(gobject.GObject):
         #reader.read_file('../../file.loc')
         self.gui = guitype(self, self.pointprovider, self.userpointprovider, dataroot)
         self.gui.write_settings(self.settings)
-
 
 
         if '--sim' in argv:
