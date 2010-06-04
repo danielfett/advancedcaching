@@ -249,7 +249,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             return None
         return match.group(1)
 
-    def _parse_overview(self, content, location):
+    def _parse_overview(self, content, location, rec_depth = 0):
         c1, c2 = location
         text = content.replace("\\'", "'")
         a = json.loads(text.replace('\t', ' '))
