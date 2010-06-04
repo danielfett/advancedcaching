@@ -267,6 +267,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 CacheDownloader.lock.release()
                 points += self.get_geocaches((nc1, mc1), rec_depth + 1)
                 points += self.get_geocaches((mc2, nc2), rec_depth + 1)
+                CacheDownloader.lock.acquire(False)
             return points
         for b in a['cs']['cc']:
             c = GeocacheCoordinate(b['lat'], b['lon'], b['gc'])
