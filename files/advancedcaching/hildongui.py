@@ -607,7 +607,7 @@ class HildonGui(SimpleGui):
         
     def _on_show_options(self, widget, data):
         dialog = gtk.Dialog("options", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-        
+        dialog.set_size_request(800, 480)
         opts = gtk.Table(6, 2)
         opts.attach(gtk.Label("Username"), 0, 1, 0, 1)
         username = hildon.Entry(gtk.HILDON_SIZE_AUTO)
@@ -643,8 +643,11 @@ class HildonGui(SimpleGui):
         opts.attach(check_map_double_size, 0, 2, 4, 5)
         opts.attach(check_hide_found, 0, 2, 5, 6)
         
-        dialog.vbox.pack_start(opts)
-        
+        p = hildon.PannableArea()
+        vp = gtk.Viewport()
+        p.add(vp)
+        vp.add(opts)
+        dialog.vbox.pack_start(p, True)
         
         dialog.show_all()
         result = dialog.run()
