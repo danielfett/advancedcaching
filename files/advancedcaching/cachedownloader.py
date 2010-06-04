@@ -195,7 +195,7 @@ class CacheDownloader(gobject.GObject):
         content = self._get_overview(location)
         if content == None:
             return []
-        points = self._parse_overview(content)
+        points = self._parse_overview(content, location)
 
         self.emit('finished-overview', points)
         CacheDownloader.lock.release()
@@ -239,7 +239,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
             return None
         return match.group(1)
 
-    def _parse_overview(self, content):
+    def _parse_overview(self, content, location):
+        c1, c2 = location
         text = content.replace("\\'", "'")
         a = json.loads(text.replace('\t', ' '))
         points = []
