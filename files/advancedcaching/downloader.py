@@ -79,7 +79,7 @@ class FileDownloader():
         url = 'http://www.geocaching.com/Default.aspx'
         values = {'ctl00$MiniProfile$loginUsername':self.username,
             'ctl00$MiniProfile$loginPassword':self.password,
-            'ctl00$MiniProfile$loginRemember': 'on',
+            'ctl00$MiniProfile$uxRememberMe': 'on',
             'ctl00$MiniProfile$LoginBtn': 'Go',
             '__EVENTTARGET': '',
             '__EVENTARGUMENT': ''
