@@ -195,7 +195,7 @@ class CacheDownloader(gobject.GObject):
         content = self._get_overview(location)
         if content == None:
             return []
-        points = self._parse_overview(content, location, rec_depth = 0)
+        points = self._parse_overview(content, location, rec_depth)
 
         self.emit('finished-overview', points)
         CacheDownloader.lock.release()
