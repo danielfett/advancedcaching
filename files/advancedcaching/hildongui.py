@@ -688,7 +688,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
         return tts_button, tts_selector, tts_settings
 
     def _on_show_dialog_change_target(self, widget, data):
-        self._get_best_coordinate()
+        c = self._get_best_coordinate(self.core.current_target)
 
         dialog = gtk.Dialog("change target", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 
