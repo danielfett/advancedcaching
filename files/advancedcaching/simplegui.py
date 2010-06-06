@@ -982,7 +982,7 @@ class SimpleGui(object):
             if self.point_in_screen(t) and self.point_in_screen(p):
                 self.pixmap_marks.draw_line(xgc, p[0], p[1], t[0], t[1])
             elif self.point_in_screen(p):
-                direction = math.radians(self.gps_target_bearing)
+                direction = math.radians(self.gps_target_bearing - 180)
                 # correct max length: sqrt(width**2 + height**2)
                 length = self.map_width
                 self.pixmap_marks.draw_line(xgc, p[0], p[1], int(p[0] - math.sin(direction) * length), int(p[1] + math.cos(direction) * length))
