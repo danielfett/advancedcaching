@@ -800,7 +800,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
         
             # Description
             p = hildon.PannableArea()
-            notebook.append_page(p, gtk.Label("description"))
+            notebook.append_page(p, gtk.Label("Description"))
             text_longdesc = re.sub(r'(?i)<img[^>]+?>', ' [to get all images, re-download description] ', re.sub(r'\[\[img:([^\]]+)\]\]', lambda a: self._replace_image_callback(a, cache), cache.desc))
             if not self.settings['options_show_html_description']:
                 
@@ -1088,7 +1088,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
 
         selector.connect("changed", on_imagelist_clicked)
 
-        notebook.append_page(selector, gtk.Label("images"))
+        notebook.append_page(selector, gtk.Label("Images"))
 
     def build_cache_calc(self, cache, notebook):
 
