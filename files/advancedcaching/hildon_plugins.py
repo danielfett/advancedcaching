@@ -104,7 +104,7 @@ class HildonFieldnotes(object):
         ]
 
         cache = self.current_cache
-        dialog = gtk.Dialog("create fieldnote", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        dialog = gtk.Dialog("Write Fieldnote", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 
         fieldnotes = hildon.TextView()
         fieldnotes.set_placeholder("Your fieldnote text...")
