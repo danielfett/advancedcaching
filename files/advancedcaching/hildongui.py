@@ -743,6 +743,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
             hildon.WindowStack.get_default().push_1(self.old_cache_window)
             self.current_cache_window_open = True
             return
+        if self.old_cache_window != None:
+            self.old_cache_window.destroy()
         
         if select:
             self.set_current_cache(cache)
@@ -750,6 +752,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
         
         win = hildon.StackableWindow()
         win.set_title(cache.title)
+        events = []
 
         
         notebook = gtk.Notebook()
@@ -823,7 +826,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
                     showdesc = text_longdesc
                 showdesc = showdesc.replace('&', '&amp;')
                 widget_description.set_markup(showdesc)
-                self.window.connect('configure-event', self._on_configure_label, widget_description)
+                events.append(self.window.connect('configure-event', self._on_configure_label, widget_description))
                 
             else:
                 import gtkhtml2
@@ -865,7 +868,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
                 w_text.set_line_wrap(True)
                 w_text.set_alignment(0, 0)
                 w_text.set_size_request(self.window.size_request()[0] - 10, -1)
-                self.window.connect('configure-event', self._on_configure_label, w_text, True)
+                events.append(self.window.connect('configure-event', self._on_configure_label, w_text, True))
                 w_first = gtk.HBox()
                 w_first.pack_start(w_type, False, False)
                 w_first.pack_start(w_name)
@@ -881,7 +884,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
                 label_hints = gtk.Label()
                 label_hints.set_line_wrap(True)
                 label_hints.set_alignment(0, 0)
-                self.window.connect('configure-event', self._on_configure_label, label_hints)
+                events.append(self.window.connect('configure-event', self._on_configure_label, label_hints))
                 label_hints.set_size_request(self.window.size_request()[0] - 10, -1)
                 def show_hints(widget):
                     label_hints.set_text(hints)
@@ -958,7 +961,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
                 notebook_switcher.show_all()
             else:
                 notebook_switcher.hide()
-        self.window.connect('configure-event', reorder_details)
+        events.append(self.window.connect('configure-event', reorder_details))
         
 
         win.add(details)
@@ -997,7 +1000,11 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
         win.show_all()
         notebook_switcher.set_no_show_all(False)
         reorder_details(None, win.get_allocation())
+        def delete_events(widget):
+            for x in events:
+                self.window.disconnect(x)
         win.connect('delete_event', self.hide_cache_view)
+        win.connect('unrealize', delete_events)
         self.current_cache_window_open = True
 
 

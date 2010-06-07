@@ -663,8 +663,17 @@ class SimpleGui(object):
         self.draw_at_x = self.draw_at_y = 0
         if offset_x != 0 or offset_y != 0:
             gobject.idle_add(self._draw_map)
-                
-                        
+        '''
+        print "Start test"
+        area = self.get_visible_area()
+        self.core.pointprovider.push_filter()
+        caches = self.core.pointprovider.get_points_filter(area)
+
+        print "Showing %d caches" % len(caches)
+        for x in caches:
+            self.show_cache(x)
+            self.hide_cache_view()
+        '''
     def _drag_draw(self):
         if not self.dragging:
             return False
