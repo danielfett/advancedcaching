@@ -171,7 +171,7 @@ class CacheDownloader(gobject.GObject):
         self.emit("finished-multiple", c)
         return c
                 
-    def update_coordinate(self, coordinate):
+    def update_coordinate(self, coordinate, outfile = None):
         if not CacheDownloader.lock.acquire(False):
             self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
             return
@@ -181,6 +181,11 @@ class CacheDownloader(gobject.GObject):
         #try:
         print "* Downloading %s..." % (coordinate.name)
         response = self._get_cache_page(coordinate.name)
+        if outfile != None:
+            f = open(outfile, 'w')
+            f.write(response.read())
+            f.close()
+            response = open(outfile)
         u = self._parse_cache_page(response, coordinate)
         #except Exception, e:
         #    CacheDownloader.lock.release()
@@ -319,6 +324,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 section = 'after-images'
             elif section == 'after-images' and line.startswith('<table class="LogsTable Table">'):
                 logs = line
+                break
 
             if section == 'head':
                 head = "%s%s\n" % (head, line)
@@ -503,16 +509,18 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
 if __name__ == '__main__':
     import sys
-    name, password = sys.argv[1:3]
     import downloader
 
-    a = GeocachingComCacheDownloader(downloader.FileDownloader(name, password, '/tmp/cookies'), '/tmp/', True)
-    if len(sys.argv) < 3:
+    outfile = None
+    if len(sys.argv) == 2: # cachedownloder.py filename
+        print "Reading from file %s" % sys.argv[1]
         inp = open(sys.argv[1])
-        m = GeocacheCoordinate(0, 0, 'bla')
-        res = a._parse_cache_page(a, m)
-    else:
-        
+        m = GeocacheCoordinate(0, 0, 'GC1N8G6')
+        a = GeocachingComCacheDownloader(downloader.FileDownloader('dummy', 'dummy', '/tmp/cookies'), '/tmp/', True)
+    else: # cachedownloader.py username password
+        name, password = sys.argv[1:3]
+        a = GeocachingComCacheDownloader(downloader.FileDownloader(name, password, '/tmp/cookies'), '/tmp/', True)
+
         print "Using Username %s" % name
 
         def pcache(c):
@@ -531,9 +539,12 @@ if __name__ == '__main__':
             
         else:
             print "# Didn't find my own geocache :-("
-    res = a.update_coordinates([m])
+        if len(sys.argv) == 4:
+            print "Writing to File %s" % sys.argv[3]
+            outfile = sys.argv[3]
+    res = a.update_coordinate(m, outfile)
     print res
-    c = res[0]
+    c = res
     if c.owner != 'webhamster':
         print "Owner doesn't match ('%s', expected webhamster)" % c.owner
     if c.title != 'Druidenpfad':
