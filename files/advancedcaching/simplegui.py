@@ -715,8 +715,14 @@ class SimpleGui(object):
         
                 
     def _drag_start(self, widget, event):
-        for x in self.active_tile_loaders:
-            x.halt()
+
+        try:
+            while True:
+                x = self.active_tile_loaders.pop()
+                x.halt()
+        except IndexError:
+            pass
+
         self.drag_start_x = int(event.x)
         self.drag_start_y = int(event.y)
         self.drag_offset_x = 0
@@ -734,8 +740,12 @@ class SimpleGui(object):
         if self.map_width == 0 or self.map_height == 0:
             return
 
-        for x in self.active_tile_loaders:
-            x.halt()
+        try:
+            while True:
+                x = self.active_tile_loaders.pop()
+                x.halt()
+        except IndexError:
+            pass
 
         size = self.tile_loader.TILE_SIZE
         xi = int(self.map_center_x)
@@ -745,7 +755,6 @@ class SimpleGui(object):
         offset_x = int(self.map_width / 2 - (self.map_center_x - int(self.map_center_x)) * size)
         offset_y = int(self.map_height / 2 -(self.map_center_y - int(self.map_center_y)) * size)
 
-        self.active_tile_loaders = []
         undersample = self.settings['options_map_double_size']
         requests = []
         for i in xrange(-span_x, span_x + 1, 1):
