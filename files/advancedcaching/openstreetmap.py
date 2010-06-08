@@ -210,6 +210,8 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 
 class TileServer():
 
+    RADIUS_EARTH = 6371000.0
+
     def __init__(self, tile_loader):
         self.zoom = 14
         self.tile_loader = tile_loader
@@ -227,6 +229,9 @@ class TileServer():
 
     def tile_size(self):
         return self.tile_loader.TILE_SIZE
+
+    def get_meters_per_pixel(self, lat):
+        return math.cos(lat * math.pi / 180.0) * 2.0 * math.pi * self.RADIUS_EARTH / (256 * 2**self.zoom)
                 
     def deg2tilenum(self, lat_deg, lon_deg):
         lat_rad = math.radians(lat_deg)

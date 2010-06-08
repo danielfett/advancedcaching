@@ -1358,7 +1358,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
             newzoom = self.ts.get_zoom() + direction
         self.ts.set_zoom(newzoom)
         self.set_center(center, reset_track=False)
-
         ##############################################
         #
         # /Map

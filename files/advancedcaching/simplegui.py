@@ -790,6 +790,13 @@ class SimpleGui(object):
         default_radius = self.CACHE_DRAW_SIZE
         found, regular, multi, default = self.COLOR_FOUND, self.COLOR_REGULAR, self.COLOR_MULTI, self.COLOR_DEFAULT
 
+        center = self.ts.num2deg(self.map_center_x, self.map_center_y)
+        mpp = self.ts.get_meters_per_pixel(center.lat)
+        linelength = (1.0/mpp)*100.0
+        cr.move_to(50, 50)
+        cr.line_to(50+linelength, 50)
+        cr.stroke()
+
         for c in coords: # for each geocache
             radius = default_radius
             if c.found:
@@ -816,7 +823,7 @@ class SimpleGui(object):
                 radius = radius / 2.0
 
             if c.marked:
-                cr.set_source_color(self.COLOR_MARKED)
+                cr.set_source_rgba(1, 1, 0, 0.5)
                 cr.rectangle(p[0] - radius, p[1] - radius, radius * 2, radius * 2)
                 cr.fill()
 
@@ -1856,7 +1863,6 @@ class SimpleGui(object):
             newzoom = self.ts.get_zoom() + direction
         self.ts.set_zoom(newzoom)
         self.set_center(center, reset_track=False)
-                
 
     @staticmethod
     def shorten_name(s, chars):
