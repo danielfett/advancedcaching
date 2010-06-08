@@ -84,9 +84,9 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
 
     CLICK_RADIUS = 25
 
-    TOO_MUCH_POINTS = 100
+    TOO_MANY_POINTS = 80
+    MAX_NUM_RESULTS_SHOW = 80
     CACHES_ZOOM_LOWER_BOUND = 8
-    CACHE_DRAW_FONT = pango.FontDescription("Sans 10")
     MESSAGE_DRAW_FONT = pango.FontDescription("Sans 12")
 
     ICONS = {
@@ -103,6 +103,11 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
     }
 
     ICONPATH='/usr/share/icons/hicolor/%(size)dx%(size)d/hildon/%(name)s.png'
+
+
+    CACHE_DRAW_SIZE = 13
+    CACHE_DRAW_FONT = pango.FontDescription("Nokia Sans Maps 10")
+    MESSAGE_DRAW_FONT = pango.FontDescription("Nokia Sans Maps 13")
 
     def __init__(self, core, dataroot):
         gtk.gdk.threads_init()

@@ -31,6 +31,7 @@
 import math
 
 from astral import Astral
+import cairo
 import geo
 import geocaching
 import gobject
@@ -54,7 +55,7 @@ class SimpleGui(object):
     MAP_FACTOR = 0
     CACHE_SIZE = 20
     CLICK_RADIUS = 20
-    TOO_MUCH_POINTS = 30
+    TOO_MANY_POINTS = 30
     CACHES_ZOOM_LOWER_BOUND = 9
     CACHE_DRAW_SIZE = 10
     CACHE_DRAW_FONT = pango.FontDescription("Sans 4")
@@ -200,7 +201,7 @@ class SimpleGui(object):
         self.tile_loaders = []
         
         for name, params in self.core.settings['map_providers']:    
-            tl = openstreetmap.get_tile_loader(** params)
+            tl = openstreetmap.get_tile_loader( ** params)
             tl.noimage_loading = self.noimage_loading
             tl.noimage_cantload = self.noimage_cantload
             tl.base_dir = self.core.settings['download_map_path']
@@ -237,7 +238,7 @@ class SimpleGui(object):
         
         self.input_export_path = xml.get_widget('input_export_path')
                 
-        self.drawing_area.set_double_buffered(False)
+        self.drawing_area.set_double_buffered(True)
         self.drawing_area.connect("expose_event", self._expose_event)
         self.drawing_area.connect("configure_event", self._configure_event)
         self.drawing_area.connect("button_press_event", self._drag_start)
@@ -317,12 +318,12 @@ class SimpleGui(object):
          ROW_ID,
          ) = range(6)
         columns = (
-                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
-                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
+                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE, ), False, True),
+                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE, ), False, True),
                    ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
                    ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
                    ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
-                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
+                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID, ), False, True),
                    )
         self.cachelist = listview = extListview.ExtListView(columns, sortable=True, useMarkup=True, canShowHideColumns=False)
         self.cachelist_contents = []
@@ -339,7 +340,7 @@ class SimpleGui(object):
                    ('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
                    ('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
                    ('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
-                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT,), False, True),
+                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT, ), False, True),
                    )
         self.coordlist = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
         self.coordlist.connect('extlistview-button-pressed', self.on_waypoint_clicked)
@@ -377,6 +378,11 @@ class SimpleGui(object):
         self.pixmap = gtk.gdk.Pixmap(widget.window, self.map_width, self.map_height)
                         
         self.pixmap_marks = gtk.gdk.Pixmap(widget.window, self.map_width, self.map_height)
+
+        self.cr_marks = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map_width, self.map_height)
+        #self.cr_marks_context = gtk.gdk.CairoContext(cairo.Context(self.cr_marks))
+        
+
         self.xgc = widget.window.new_gc()
         widget.window.set_background(gtk.gdk.color_parse("white"))
         self.drawing_area_configured = True
@@ -430,9 +436,9 @@ class SimpleGui(object):
     # called by core
     def display_results_advanced(self, caches):
         label = xml.get_widget('label_too_much_results')
-        too_much = len(caches) > self.MAX_NUM_RESULTS
-        if too_much:
-            text = 'Too much results. Only showing first %d.' % self.MAX_NUM_RESULTS
+        too_many = len(caches) > self.MAX_NUM_RESULTS
+        if too_many:
+            text = 'Too many results. Only showing first %d.' % self.MAX_NUM_RESULTS
             label.set_text(text)
             label.show()
             caches = caches[:self.MAX_NUM_RESULTS]
@@ -456,7 +462,7 @@ class SimpleGui(object):
             else:
                 t = "%.1f" % (r.terrain / 10)
             title = self._format_cache_title(r)
-            rows.append((title, r.type, s, t, d, r.name, ))
+            rows.append((title, r.type, s, t, d, r.name,))
         self.cachelist.replaceContent(rows)
         self.notebook_search.set_current_page(1)
         self.redraw_marks()
@@ -688,6 +694,8 @@ class SimpleGui(object):
         x, y, width, height = self.drawing_area.get_allocation()
         #gc = widget.get_style().fg_gc[gtk.STATE_NORMAL]
         self.drawing_area.window.clear()
+        cr = self.drawing_area.window.cairo_create()
+        cr.set_source_surface(self.cr_marks, self.draw_at_x - self.drag_offset_x, self.draw_at_y - self.drag_offset_y)
         self.drawing_area.window.draw_drawable(gc=self.xgc,
                                                src=self.pixmap,
                                                xsrc=0,
@@ -696,7 +704,8 @@ class SimpleGui(object):
                                                ydest=self.draw_at_y - self.drag_offset_y,
                                                width=width,
                                                height=height)
-
+        cr.paint()
+        '''
         self.xgc.set_function(gtk.gdk.AND)
 
 
@@ -710,7 +719,7 @@ class SimpleGui(object):
                                                height=height)
         
         self.xgc.set_function(gtk.gdk.COPY)
-
+        '''
         return True
         
                 
@@ -774,9 +783,9 @@ class SimpleGui(object):
         self.active_tile_loaders.append(d)
         d.run()
 
-    def _draw_marks_caches(self, coords):
-        xgc = self.xgc
-        draw_short = (len(coords) > self.TOO_MUCH_POINTS)
+    def _draw_marks_caches(self, coords, cr):
+        print 'drawing %d caches' % len(coords)
+        draw_short = (len(coords) > self.TOO_MANY_POINTS)
 
         default_radius = self.CACHE_DRAW_SIZE
         found, regular, multi, default = self.COLOR_FOUND, self.COLOR_REGULAR, self.COLOR_MULTI, self.COLOR_DEFAULT
@@ -791,28 +800,31 @@ class SimpleGui(object):
                 color = multi
             else:
                 color = default
+            cr.set_source_color(color)
 
-            xgc.set_rgb_fg_color(color)
 
             p = self._coord2point(c)
 
             if c.alter_lat != None and (c.alter_lat != 0 and c.alter_lon != 0):
                 x = self._coord2point(geo.Coordinate(c.alter_lat, c.alter_lon))
                 if x != p:
-                    self.pixmap_marks.draw_line(xgc, p[0], p[1], x[0], x[1])
-
+                    cr.move_to(p[0], p[1])
+                    cr.line_to(x[0], x[1])
+                    cr.stroke()
 
             if draw_short:
                 radius = radius / 2.0
 
             if c.marked:
-                xgc.set_rgb_fg_color(self.COLOR_MARKED)
-                self.pixmap_marks.draw_rectangle(xgc, True, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
+                cr.set_source_color(self.COLOR_MARKED)
+                cr.rectangle(p[0] - radius, p[1] - radius, radius * 2, radius * 2)
+                cr.fill()
 
 
-            xgc.set_rgb_fg_color(color)
-            xgc.line_width = 3
-            self.pixmap_marks.draw_rectangle(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
+            cr.set_source_color(color)
+            cr.set_line_width(4)
+            cr.rectangle(p[0] - radius, p[1] - radius, radius * 2, radius * 2)
+            cr.stroke()
 
             if draw_short:
                 continue
@@ -822,7 +834,12 @@ class SimpleGui(object):
             if self.settings['options_show_name']:
                 layout = self.drawing_area.create_pango_layout(self.shorten_name(c.title, 20))
                 layout.set_font_description(self.CACHE_DRAW_FONT)
-                self.pixmap_marks.draw_layout(xgc, p[0] + 3 + radius, p[1] - 3 - radius, layout)
+
+                cr.move_to(p[0] + 3 + radius, p[1] - 3 - radius)
+                #cr.set_line_width(1)
+                cr.set_source_color(color)
+                cr.show_layout(layout)
+                
 
             # if we have a description for this cache...
             if c.was_downloaded():
@@ -832,72 +849,95 @@ class SimpleGui(object):
                 # ----
                 # besides the icon
                 width = 6
-                dist = 2
+                dist = 3
+                count = 3
                 pos_x = p[0] + radius + 3 + 1
-                pos_y = p[1] + 2
-                xgc.line_width = 1
-                for i in xrange(0, 3):
-                    self.pixmap_marks.draw_line(xgc, pos_x, pos_y + dist * i, pos_x + width, pos_y + dist * i)
+                pos_y = p[1] + radius - (dist * count)
+                cr.set_line_width(1)
+                for i in xrange(count):
+                    cr.move_to(pos_x, pos_y + dist * i)
+                    cr.line_to(pos_x + width, pos_y + dist * i)
+                    cr.set_line_width(2)
+                cr.stroke()
 
             # if this cache is the active cache
             if self.current_cache != None and c.name == self.current_cache.name:
-                xgc.line_width = 3
-                xgc.set_rgb_fg_color(self.COLOR_CURRENT_CACHE)
-                radius = 7
-                self.pixmap_marks.draw_rectangle(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2)
+                cr.set_line_width(1)
+                cr.set_source_color(self.COLOR_CURRENT_CACHE)
+                #radius = 7
+                radius += 3
+                cr.rectangle(p[0] - radius, p[1] - radius, radius * 2, radius * 2)
+                cr.stroke()
 
             # if this cache is disabled
             if c.status == geocaching.GeocacheCoordinate.STATUS_DISABLED:
-                xgc.line_width = 3
-                xgc.set_rgb_fg_color(self.COLOR_CURRENT_CACHE)
+                cr.set_line_width(3)
+                cr.set_source_color(self.COLOR_CURRENT_CACHE)
                 radius = 7
-                self.pixmap_marks.draw_line(xgc, p[0]-radius, p[1]-radius, p[0] + radius, p[1] + radius)
+                cr.move_to(p[0]-radius, p[1]-radius)
+                cr.line_to(p[0] + radius, p[1] + radius)
+                cr.stroke()
 
-            xgc.set_rgb_fg_color(self.COLOR_CACHE_CENTER)
-            xgc.line_width = 1
-            self.pixmap_marks.draw_line(xgc, p[0], p[1] - 2, p[0], p[1] + 3) #  |
-            self.pixmap_marks.draw_line(xgc, p[0] - 2, p[1], p[0] + 3, p[1]) # ---
+            cr.set_source_color(self.COLOR_CACHE_CENTER)
+            cr.set_line_width(1)
+            cr.move_to(p[0], p[1] - 3)
+            cr.line_to(p[0], p[1] + 3) # |
+            cr.move_to(p[0] - 3, p[1], )
+            cr.line_to(p[0] + 3, p[1]) # ---
+            cr.stroke()
 
         # draw additional waypoints
         # --> print description!
         if self.current_cache != None and self.current_cache.get_waypoints() != None:
-            xgc.set_function(gtk.gdk.AND)
-            xgc.set_rgb_fg_color(self.COLOR_WAYPOINTS)
-            xgc.line_width = 1
-            radius = 4
+            cr.set_source_color(self.COLOR_WAYPOINTS)
+            cr.set_line_width(1)
+            radius = 5
             num = 0
             for w in self.current_cache.get_waypoints():
                 if w['lat'] != -1 and w['lon'] != -1:
                     num = num + 1
                     p = self._coord2point(geo.Coordinate(w['lat'], w['lon']))
-                    self.pixmap_marks.draw_line(xgc, p[0], p[1] - 3, p[0], p[1] + 4) #  |
-                    self.pixmap_marks.draw_line(xgc, p[0] - 3, p[1], p[0] + 4, p[1]) # ---
-                    self.pixmap_marks.draw_arc(xgc, False, p[0] - radius, p[1] - radius, radius * 2, radius * 2, 0, 360 * 64)
+                    if not self.point_in_screen(p):
+                        continue
+                    cr.move_to(p[0], p[1] - radius)
+                    cr.line_to(p[0], p[1] + radius) #  |
+                    #cr.stroke()
+                    cr.move_to(p[0] - radius, p[1])
+                    cr.line_to(p[0] + radius, p[1]) # ---
+                    #cr.stroke()
+                    cr.arc(p[0], p[1], radius, 0, math.pi * 2)
                     layout = self.drawing_area.create_pango_layout('')
                     layout.set_markup('<i>%s</i>' % (w['id']))
                     layout.set_font_description(self.CACHE_DRAW_FONT)
-                    self.pixmap_marks.draw_layout(xgc, p[0] + 3 + radius, p[1] - 3 - radius, layout)
 
-    def _draw_marks_message(self, message):
-        xgc = self.xgc
-        xgc.set_rgb_fg_color(self.MESSAGE_DRAW_COLOR)
+                    cr.move_to(p[0] + 3 + radius, p[1] - 3 - radius)
+                    #cr.set_line_width(1)
+                    cr.set_source_color(self.COLOR_WAYPOINTS)
+                    cr.show_layout(layout)
+            cr.stroke()
+
+                    
+    def _draw_marks_message(self, message, cr):
+        cr.set_source_color(self.MESSAGE_DRAW_COLOR)
         layout = self.drawing_area.create_pango_layout(message)
         layout.set_font_description(self.MESSAGE_DRAW_FONT)
-        self.pixmap_marks.draw_layout(xgc, 20, 20, layout)
+        cr.move_to(20, 20)
+        cr.show_layout(layout)
 
     def _draw_marks(self):
-            
-        xgc = self.xgc
-        xgc.set_function(gtk.gdk.COPY)
-        self.xgc.set_rgb_fg_color(gtk.gdk.color_parse('white'))
-        self.pixmap_marks.draw_rectangle(self.xgc, True, 0, 0, self.map_width, self.map_height)
-                
+        self.cr_marks = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map_width, self.map_height)
+        cr = gtk.gdk.CairoContext(cairo.Context(self.cr_marks))
+        #cr.set_source_rgba(0, 0, 0, 0)
+        #cr.paint()
+        #self.xgc.set_function(gtk.gdk.COPY)
+        #self.xgc.set_rgb_fg_color(gtk.gdk.color_parse('white'))
+        #self.pixmap_marks.draw_rectangle(self.xgc, True, 0, 0, self.map_width, self.map_height)
         #
         # draw geocaches
         #
 
         if self.ts.get_zoom() < self.CACHES_ZOOM_LOWER_BOUND:
-            self._draw_marks_message('Zoom in to see geocaches.')
+            self._draw_marks_message('Zoom in to see geocaches.', cr)
         else:
 
             if self.settings['options_hide_found']:
@@ -906,39 +946,37 @@ class SimpleGui(object):
                 found = None
             coords = self.core.pointprovider.get_points_filter(self.get_visible_area(), found, self.MAX_NUM_RESULTS_SHOW)
             if len(coords) >= self.MAX_NUM_RESULTS_SHOW:
-                self._draw_marks_message('Too many geocaches to display.')
+                self._draw_marks_message('Too many geocaches to display.', cr)
             else:
-                self._draw_marks_caches(coords)
-            
+                self._draw_marks_caches(coords, cr)
+
         #
         # and now for our current data!
         #
-                
-        
-        #layout = self.drawing_area.create_pango_layout("")
-        #layout.set_markup(self.osd_string)
-        #layout.set_font_description(self.MESSAGE_DRAW_FONT)
-        #self.pixmap_marks.draw_layout(xgc, self.map_width - layout.get_size()[0]/pango.SCALE, 20, layout)
 
-                
+
         # if we have a target, draw it
         if self.core.current_target != None:
             t = self._coord2point(self.core.current_target)
             if t != False and self.point_in_screen(t):
-                        
-        
-                xgc.line_width = 2
+
+
+                cr.set_line_width(2)
                 radius_o = 10
                 radius_i = 3
-                xgc.set_function(gtk.gdk.INVERT)
-                xgc.set_rgb_fg_color(self.COLOR_TARGET)
-                self.pixmap_marks.draw_line(xgc, t[0] - radius_o, t[1], t[0] - radius_i, t[1])
-                self.pixmap_marks.draw_line(xgc, t[0] + radius_o, t[1], t[0] + radius_i, t[1])
-                self.pixmap_marks.draw_line(xgc, t[0], t[1] + radius_o, t[0], t[1] + radius_i)
-                self.pixmap_marks.draw_line(xgc, t[0], t[1] - radius_o, t[0], t[1] - radius_i)
+                cr.set_source_color(self.COLOR_TARGET)
+                cr.move_to(t[0] - radius_o, t[1])
+                cr.line_to(t[0] - radius_i, t[1])
+                cr.move_to(t[0] + radius_o, t[1])
+                cr.line_to(t[0] + radius_i, t[1])
+                cr.move_to(t[0], t[1] + radius_o)
+                cr.line_to(t[0], t[1] + radius_i)
+                cr.move_to(t[0], t[1] - radius_o)
+                cr.line_to(t[0], t[1] - radius_i)
+                cr.stroke()
         else:
             t = False
-                
+
         if self.gps_last_good_fix != None and self.gps_last_good_fix.position != None:
             p = self._coord2point(self.gps_last_good_fix.position)
             if p != False:
@@ -947,7 +985,7 @@ class SimpleGui(object):
         p = self.gps_last_screen_position
         if self.point_in_screen(p):
 
-            xgc.line_width = 2
+            cr.set_line_width(2)
 
             if self.gps_has_fix:
                 radius = self.gps_data.error
@@ -967,74 +1005,91 @@ class SimpleGui(object):
 
             if radius_i < 2:
                 radius_i = 2
-            xgc.set_function(gtk.gdk.COPY)
             if self.gps_has_fix:
-                xgc.set_rgb_fg_color(self.COLOR_CURRENT_POSITION)
+                cr.set_source_color(self.COLOR_CURRENT_POSITION)
             else:
-                xgc.set_rgb_fg_color(self.COLOR_CURRENT_POSITION_NO_FIX)
+                cr.set_source_color(self.COLOR_CURRENT_POSITION_NO_FIX)
 
             # \  /
             #
             # /  \
 
-            self.pixmap_marks.draw_line(xgc, p[0] - radius_o, p[1] - radius_o, p[0] - radius_i, p[1] - radius_i)
-            self.pixmap_marks.draw_line(xgc, p[0] + radius_o, p[1] + radius_o, p[0] + radius_i, p[1] + radius_i)
-            self.pixmap_marks.draw_line(xgc, p[0] + radius_o, p[1] - radius_o, p[0] + radius_i, p[1] - radius_i)
-            self.pixmap_marks.draw_line(xgc, p[0] - radius_o, p[1] + radius_o, p[0] - radius_i, p[1] + radius_i)
-
-            self.pixmap_marks.draw_arc(xgc, True, p[0] - self.SIZE_CURRENT_POSITION, p[1] - self.SIZE_CURRENT_POSITION, 2 * self.SIZE_CURRENT_POSITION, 2 * self.SIZE_CURRENT_POSITION, 0, 360 * 64)
+            cr.move_to(p[0] - radius_o, p[1] - radius_o)
+            cr.line_to(p[0] - radius_i, p[1] - radius_i)
+            cr.move_to(p[0] + radius_o, p[1] + radius_o)
+            cr.line_to(p[0] + radius_i, p[1] + radius_i)
+            cr.move_to(p[0] + radius_o, p[1] - radius_o)
+            cr.line_to(p[0] + radius_i, p[1] - radius_i)
+            cr.move_to(p[0] - radius_o, p[1] + radius_o)
+            cr.line_to(p[0] - radius_i, p[1] + radius_i)
+            cr.stroke()
+            cr.arc(p[0], p[1], self.SIZE_CURRENT_POSITION, 0, math.pi * 2)
+            cr.fill()
             if self.gps_has_fix:
-                xgc.set_function(gtk.gdk.INVERT)
-                xgc.line_width = 1
-                xgc.set_rgb_fg_color(gtk.gdk.color_parse('blue'))
+                cr.set_line_width(1)
+                cr.set_source_color(gtk.gdk.color_parse('blue'))
+                cr.new_sub_path()
+                cr.arc(p[0], p[1], radius_pixels, 0, math.pi * 2)
+                cr.stroke()
 
-                self.pixmap_marks.draw_arc(xgc, False, p[0] - radius_pixels, p[1] - radius_pixels, radius_pixels * 2, radius_pixels * 2, 0, 360 * 64)
 
 
 
         # and a line between target and position if we have both
         if self.gps_has_fix and t != False:
-            xgc.line_width = 5
-            xgc.set_function(gtk.gdk.AND_INVERT)
-            xgc.set_rgb_fg_color(self.COLOR_LINE_INVERT)
+            cr.set_line_width(5)
+            cr.set_source_rgba(1, 1, 0, 0.5)
             if self.point_in_screen(t) and self.point_in_screen(p):
-                self.pixmap_marks.draw_line(xgc, p[0], p[1], t[0], t[1])
+                cr.move_to(p[0], p[1])
+                cr.line_to(t[0], t[1])
+                cr.stroke()
             elif self.point_in_screen(p):
                 direction = math.radians(self.gps_target_bearing - 180)
                 # correct max length: sqrt(width**2 + height**2)
                 length = self.map_width
-                self.pixmap_marks.draw_line(xgc, p[0], p[1], int(p[0] - math.sin(direction) * length), int(p[1] + math.cos(direction) * length))
+                cr.move_to(p[0], p[1])
+                cr.line_to(int(p[0] - math.sin(direction) * length), int(p[1] + math.cos(direction) * length))
+                cr.stroke()
 
             elif self.point_in_screen(t):
                 direction = math.radians(self.gps_target_bearing)
                 length = self.map_width + self.map_height
-                self.pixmap_marks.draw_line(xgc, t[0], t[1], int(t[0] - math.sin(direction) * length), int(t[1] + math.cos(direction) * length))
+                cr.move_to(t[0], t[1])
+                cr.line_to(int(t[0] - math.sin(direction) * length), int(t[1] + math.cos(direction) * length))
+                cr.stroke()
 
 
 
         # draw cross across the screen
-        xgc.line_width = 1
+        '''
+        cr.set_line_width(1
         xgc.set_function(gtk.gdk.XOR)
-        xgc.set_rgb_fg_color(self.COLOR_CROSSHAIR)
+        cr.set_source_color(self.COLOR_CROSSHAIR)
 
         radius_inner = 30
         self.pixmap_marks.draw_line(xgc, self.map_width / 2, 0, self.map_width / 2, self.map_height / 2 - radius_inner)
         self.pixmap_marks.draw_line(xgc, self.map_width / 2, self.map_height / 2 + radius_inner, self.map_width / 2, self.map_height)
         self.pixmap_marks.draw_line(xgc, 0, self.map_height / 2, self.map_width / 2 - radius_inner, self.map_height / 2)
         self.pixmap_marks.draw_line(xgc, self.map_width / 2 + radius_inner, self.map_height / 2, self.map_width, self.map_height / 2)
-                
+
         xgc.set_function(gtk.gdk.COPY)
+        return False
+        '''
         return False
         
     def _expose_event(self, widget, event):
         if self.dragging:
             return
         x, y, width, height = event.area
-
-        widget.window.draw_drawable(self.xgc, self.pixmap, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
-        self.xgc.set_function(gtk.gdk.AND)
-        widget.window.draw_drawable(self.xgc, self.pixmap_marks, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
         self.xgc.set_function(gtk.gdk.COPY)
+        widget.window.draw_drawable(self.xgc, self.pixmap, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
+        #self.xgc.set_function(gtk.gdk.AND)
+        #widget.window.draw_drawable(self.xgc, self.pixmap_marks, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
+        #self.xgc.set_function(gtk.gdk.COPY)
+        cr = widget.window.cairo_create()
+        cr.set_source_surface(self.cr_marks, 0, 0)
+        cr.paint()
+
                 
         return False
                 
@@ -1389,7 +1444,7 @@ class SimpleGui(object):
         self.zoom()
                 
     def on_zoomin_clicked(self, widget, data=None):
-        self.zoom(+ 1)
+        self.zoom( + 1)
                 
     def on_zoomout_clicked(self, widget, data=None):
         self.zoom(-1)
@@ -1487,7 +1542,7 @@ class SimpleGui(object):
         if event.direction == gtk.gdk.SCROLL_DOWN:
             self.zoom(-1)
         else:
-            self.zoom(+ 1)
+            self.zoom( + 1)
         
                 
     def set_center(self, coord, noupdate=False, reset_track=True):
