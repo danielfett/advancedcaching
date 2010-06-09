@@ -745,7 +745,6 @@ class SimpleGui(object):
     def _draw_map(self):
         if not self.drawing_area_configured:
             return False
-                
         if self.map_width == 0 or self.map_height == 0:
             return
 
@@ -772,14 +771,25 @@ class SimpleGui(object):
 
                 dx = i * size + offset_x
                 dy = j * size + offset_y
-                requests.append(((tile, self.ts.zoom, undersample, dx, dy), {}))
+                requests.append(((tile, self.ts.zoom, undersample, dx, dy, self._draw_tile), {}))
         reqs = threadpool.makeRequests(self._run_tile_loader, requests)
         for r in reqs:
             self.tile_loader_threadpool.putRequest(r)
         self._draw_marks()
 
-    def _run_tile_loader(self, tile, zoom, undersample, x, y):
-        d = self.tile_loader(tile=tile, zoom=zoom, undersample=undersample, x=x, y=y)
+    def _draw_tile(self, pbuf, x, y):
+        size = self.tile_loader.TILE_SIZE
+        if pbuf != None:
+            self.pixmap.draw_pixbuf(self.xgc, pbuf, 0, 0, x, y, size, size)
+        else:
+            self.pixmap.draw_pixbuf(self.xgc, self.tile_loader.noimage_cantload, 0, 0, x, y, size, size)
+
+        self.drawing_area.queue_draw_area(max(x, 0), max(y, 0), size, size)
+        
+        return False
+
+    def _run_tile_loader(self, tile, zoom, undersample, x, y, callback_draw):
+        d = self.tile_loader(tile=tile, zoom=zoom, undersample=undersample, x=x, y=y, callback_draw=callback_draw)
         self.active_tile_loaders.append(d)
         d.run()
 

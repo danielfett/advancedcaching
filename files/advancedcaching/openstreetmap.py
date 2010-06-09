@@ -51,7 +51,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
         TPL_LOCAL_PATH = path.join("%s", PREFIX, "%d", "%d")
         TPL_LOCAL_FILENAME = path.join("%s", "%%d%s%s" % (extsep, FILE_TYPE))
 
-        def __init__(self, tile, zoom, undersample, x, y):
+        def __init__(self, tile, zoom, undersample, x, y, callback_draw):
             self.undersample = undersample
             self.tile = tile
             self.download_tile = self.gui.ts.check_bounds(*tile)
@@ -63,6 +63,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 self.display_zoom = zoom
                 self.download_tile = (int(self.download_tile[0]/2), int(self.download_tile[1]/2))
             self.pbuf = None
+            self.callback_draw = callback_draw
 
             self.my_noimage = None
             self.stop = False
@@ -179,15 +180,10 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             return self.load(1)
 
         def draw(self, pbuf):
-            size, x, y = self.TILE_SIZE, self.x, self.y
             if not self.stop:
-                if pbuf != None:
-                    self.gui.pixmap.draw_pixbuf(self.gui.xgc, pbuf, 0, 0, x, y, size, size)
-                else:
-                    self.gui.pixmap.draw_pixbuf(self.gui.xgc, self.noimage_cantload, 0, 0, x, y, size, size)
-                
-                self.gui.drawing_area.queue_draw_area(max(x, 0), max(y, 0), size, size)
+                return self.callback_draw(pbuf, self.x, self.y)
             return False
+
 
         def download(self, remote, local):
             if path.exists(local):
