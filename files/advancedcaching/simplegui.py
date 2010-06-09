@@ -377,7 +377,7 @@ class SimpleGui(object):
         self.map_height = int(height + 2 * height * self.MAP_FACTOR)
         self.pixmap = gtk.gdk.Pixmap(widget.window, self.map_width, self.map_height)
                         
-        self.pixmap_marks = gtk.gdk.Pixmap(widget.window, self.map_width, self.map_height)
+        #self.pixmap_marks = gtk.gdk.Pixmap(widget.window, self.map_width, self.map_height)
 
         self.cr_marks = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map_width, self.map_height)
         #self.cr_marks_context = gtk.gdk.CairoContext(cairo.Context(self.cr_marks))
