@@ -297,7 +297,7 @@ class Core(gobject.GObject):
         return True
 
     def __read_gps_cb_changed(self, device):
-        fix = gpsreader.Fix.from_tuple(device.fix, device)
+        fix = self.gps_thread.fix_from_tuple(device.fix, device)
         # @type fix gpsreader.Fix
 
         if fix.position != None:

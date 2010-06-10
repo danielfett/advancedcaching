@@ -62,48 +62,7 @@ class Fix():
         else:
             self.timestamp = timestamp
 
-    @staticmethod
-    def from_tuple(f, device):
-        a = Fix()
-        # check if this is an actual fix
-        if (not f[1] & (location.GPS_DEVICE_LATLONG_SET | location.GPS_DEVICE_ALTITUDE_SET | location.GPS_DEVICE_TRACK_SET)):
-            return a
-            
-        # location independent data
-        a.sats = device.satellites_in_use
-        a.sats_known = device.satellites_in_view
-        a.dgps = False
-        a.quality = 0
 
-        
-
-        # if this fix is too old, discard it
-        if f[2] == f[2]: # is not NaN
-            a.timestamp = datetime.utcfromtimestamp(f[2])
-        else:
-            a.timestamp = datetime.utcfromtimestamp(0)
-
-        Fix.min_timediff = min(Fix.min_timediff, datetime.utcnow() - a.timestamp)
-        # if this fix is too old, discard it
-        if ((datetime.utcnow() - a.timestamp) - Fix.min_timediff).seconds > LocationGpsReader.TIMEOUT:
-            print "Discarding fix: Timestamp diff is %d, should not be > %d" % (((datetime.utcnow() - a.timestamp) - Fix.min_timediff).seconds, LocationGpsReader.TIMEOUT)
-            return a
-
-        # now on for location dependent data
-        #if f[10] > Fix.BEARING_HOLD_EPD:
-        #    a.bearing = Fix.last_bearing
-        #else:
-        a.altitude = f[7]
-
-        a.bearing = f[9]
-        #    Fix.last_bearing = a.bearing
-        a.position = geo.Coordinate(f[4], f[5])
-
-        a.speed = f[11]
-        a.error = f[6]/100.0
-        a.error_bearing = f[10]
-
-        return a
 
 class GpsReader():
 
@@ -245,6 +204,7 @@ class GpsReader():
 
 class LocationGpsReader():
     TIMEOUT = 5
+    BEARING_HOLD_SPEED = 2.5 # km/h
 
     def __init__(self, cb_error, cb_changed):
         print "+ Using liblocation GPS device"
@@ -254,6 +214,7 @@ class LocationGpsReader():
         control.set_properties(preferred_method = location.METHOD_CWP | location.METHOD_ACWP | location.METHOD_GNSS | location.METHOD_AGNSS, preferred_interval=location.INTERVAL_1S)
         control.connect("error-verbose", cb_error)
         device.connect("changed", cb_changed)
+        self.last_gps_bearing = 0
         self.control = control
         self.device = device
 
@@ -275,6 +236,51 @@ class LocationGpsReader():
         elif error == location.ERROR_SYSTEM:
             return "System error"
 
+    def fix_from_tuple(self, f, device):
+        a = Fix()
+        # check if this is an actual fix
+        if (not f[1] & (location.GPS_DEVICE_LATLONG_SET | location.GPS_DEVICE_ALTITUDE_SET | location.GPS_DEVICE_TRACK_SET)):
+            return a
+
+        # location independent data
+        a.sats = device.satellites_in_use
+        a.sats_known = device.satellites_in_view
+        a.dgps = False
+        a.quality = 0
+
+
+
+        # if this fix is too old, discard it
+        if f[2] == f[2]: # is not NaN
+            a.timestamp = datetime.utcfromtimestamp(f[2])
+        else:
+            a.timestamp = datetime.utcfromtimestamp(0)
+
+        Fix.min_timediff = min(Fix.min_timediff, datetime.utcnow() - a.timestamp)
+        # if this fix is too old, discard it
+        if ((datetime.utcnow() - a.timestamp) - Fix.min_timediff).seconds > LocationGpsReader.TIMEOUT:
+            print "Discarding fix: Timestamp diff is %d, should not be > %d" % (((datetime.utcnow() - a.timestamp) - Fix.min_timediff).seconds, LocationGpsReader.TIMEOUT)
+            return a
+
+        # now on for location dependent data
+        #if f[10] > Fix.BEARING_HOLD_EPD:
+        #    a.bearing = Fix.last_bearing
+        #else:
+        a.altitude = f[7]
+        a.speed = f[11]
+        if a.speed > self.BEARING_HOLD_SPEED:
+            a.bearing = f[9]
+            self.last_gps_bearing = a.bearing
+        else:
+            a.bearing = self.last_gps_bearing
+
+        #    Fix.last_bearing = a.bearing
+        a.position = geo.Coordinate(f[4], f[5])
+
+        a.error = f[6]/100.0
+        a.error_bearing = f[10]
+
+        return a
 
 class FakeGpsReader():
 
