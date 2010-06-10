@@ -52,7 +52,8 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
         TPL_LOCAL_PATH = path.join("%s", PREFIX, "%d", "%d")
         TPL_LOCAL_FILENAME = path.join("%s", "%%d%s%s" % (extsep, FILE_TYPE))
 
-        def __init__(self, tile, zoom, undersample, x, y, callback_draw):
+        def __init__(self, id_string, tile, zoom, undersample, x, y, callback_draw):
+            self.id_string = id_string
             self.undersample = undersample
             self.tile = tile
             self.download_tile = self.gui.ts.check_bounds(*tile)
@@ -184,7 +185,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
 
         def draw(self, pbuf):
             if not self.stop:
-                return self.callback_draw(pbuf[0], self.x, self.y, pbuf[1])
+                return self.callback_draw(self.id_string, pbuf[0], self.x, self.y, pbuf[1])
             return False
 
 
@@ -204,6 +205,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 except Exception, e:
                     print "Download Error", e
                     return False
+
     return TileLoader
 
                 

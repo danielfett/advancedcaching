@@ -166,6 +166,7 @@ class SimpleGui(object):
         self.image_no = 0
         self.images = []
         self.active_tile_loaders = []
+        self.surface_buffer = {}
 
         self.tile_loader_threadpool = threadpool.ThreadPool(openstreetmap.CONCURRENT_THREADS)
 
@@ -393,7 +394,7 @@ class SimpleGui(object):
         self.draw_root_x = int(-width * self.MAP_FACTOR)
         self.draw_root_y = int(-height * self.MAP_FACTOR)
 
-        #gobject.idle_add(self._draw_map)
+        gobject.idle_add(self._draw_map)
                 
                 
     def _configure_event_arrow(self, widget, event):
@@ -671,17 +672,7 @@ class SimpleGui(object):
         self.draw_at_x = self.draw_at_y = 0
         if offset_x != 0 or offset_y != 0:
             gobject.idle_add(self._draw_map)
-        '''
-        print "Start test"
-        area = self.get_visible_area()
-        self.core.pointprovider.push_filter()
-        caches = self.core.pointprovider.get_points_filter(area)
 
-        print "Showing %d caches" % len(caches)
-        for x in caches:
-            self.show_cache(x)
-            self.hide_cache_view()
-        '''
     def _drag_draw(self):
         if not self.dragging:
             return False
@@ -694,15 +685,6 @@ class SimpleGui(object):
         self.last_drag_offset_y = self.drag_offset_y
 
         x, y, width, height = self.drawing_area.get_allocation()
-        #gc = widget.get_style().fg_gc[gtk.STATE_NORMAL]
-        #self.drawing_area.window.clear()
-        cr = self.cr_drawing_area#self.drawing_area.window.cairo_create()
-        #cr.set_source_surface(self.cr_map, self.draw_at_x - self.drag_offset_x, self.draw_at_y - self.drag_offset_y)
-        #cr.paint()
-        #cr.set_source_surface(self.cr_marks, self.draw_at_x - self.drag_offset_x, self.draw_at_y - self.drag_offset_y)
-        #cr.paint()
-        #self._draw_tiles(off_x  = -self.drag_offset_x, off_y = -self.drag_offset_y)
-        #self.drawing_area.window.draw_drawable(self.xgc, self.pixmap, 0, 0, 0, 0, width, height)
         self.drawing_area.window.clear()
         self.drawing_area.window.draw_drawable(gc=self.xgc,
                                                src=self.pixmap,
@@ -713,21 +695,6 @@ class SimpleGui(object):
                                                width=width,
                                                height=height)
         
-        '''
-        self.xgc.set_function(gtk.gdk.AND)
-
-
-        self.drawing_area.window.draw_drawable(gc=self.xgc,
-                                               src=self.pixmap_marks,
-                                               xsrc=0,
-                                               ysrc=0,
-                                               xdest=self.draw_at_x - self.drag_offset_x,
-                                               ydest=self.draw_at_y - self.drag_offset_y,
-                                               width=width,
-                                               height=height)
-        
-        self.xgc.set_function(gtk.gdk.COPY)
-        '''
         return True
         
                 
@@ -762,10 +729,8 @@ class SimpleGui(object):
                 x.halt()
         except IndexError:
             pass
-        #self.cr_map = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map_width, self.map_height)
-        #self.cr_map_context = gtk.gdk.CairoContext(cairo.Context(self.cr_map))
-        self.tiles_drawing = 0
-        self.surface_buffer = []
+        
+        zoom = self.ts.zoom
         size = self.tile_loader.TILE_SIZE
         xi = int(self.map_center_x)
         yi = int(self.map_center_y)
@@ -776,32 +741,47 @@ class SimpleGui(object):
 
         undersample = self.settings['options_map_double_size']
         requests = []
+        new_surface_buffer = {}
+        old_surface_buffer = self.surface_buffer
         for i in xrange(-span_x, span_x + 1, 1):
             for j in xrange(-span_y, span_y + 1, 1):
                 tile = (xi + i, yi + j)
 
                 dx = i * size + offset_x
                 dy = j * size + offset_y
-                requests.append(((tile, self.ts.zoom, undersample, dx, dy, self._add_to_buffer), {}))
+                id_string = self.get_id_string(tile, zoom, undersample)
+                if id_string in old_surface_buffer and old_surface_buffer[id_string][0] != self.tile_loader.noimage_cantload and old_surface_buffer[id_string][0] != self.tile_loader.noimage_loading:
+                    new_surface_buffer[id_string] = old_surface_buffer[id_string]
+                    new_surface_buffer[id_string][1:3] = dx, dy
+                else:
+                    requests.append(((id_string, tile, zoom, undersample, dx, dy, self._add_to_buffer), {}))
+        self.surface_buffer = new_surface_buffer
+        #print "Making %d Requests, preserving %d" % (len(requests), len(new_surface_buffer))
         reqs = threadpool.makeRequests(self._run_tile_loader, requests)
         for r in reqs:
             self.tile_loader_threadpool.putRequest(r)
         self._draw_marks()
+        print "Calling draw_tiles"
+        self._draw_tiles()
 
-    def _add_to_buffer(self, surface, x, y, scale_source = None):
-        self.surface_buffer.append((surface, x, y, scale_source))
-        self._draw_tiles(which = (surface, x, y, scale_source))
-        self.drawing_area.queue_draw_area(x, y, 256, 256)
+
+    def get_id_string(self, tile, display_zoom, undersample):
+        return "%s|%d|%d|%d|%d" % (self.tile_loader.PREFIX, tile[0], tile[1], display_zoom, 1 if undersample else 0)
+
+
+    def _add_to_buffer(self, id_string, surface, x, y, scale_source = None):
+        self.surface_buffer[id_string] = [surface, x, y, scale_source]
+        self._draw_tiles(which = ([surface, x, y, scale_source],))
         return False
 
 
     def _draw_tiles(self, which = None, off_x = 0, off_y = 0):
+        print "Drawing tiles"
         cr = self.cr_drawing_area
         if which == None:
-            w = self.surface_buffer
-        else:
-            w = (which,)
-        for surface, x, y, scale_source in w:
+            which = self.surface_buffer.values()
+            print "Drawing old ones (%d) " % len(which)
+        for surface, x, y, scale_source in which:
             #cr = self.cr_map_context
             if surface == None:
                 print "pbuf was none!"
@@ -826,10 +806,11 @@ class SimpleGui(object):
             cr.set_source_surface(self.cr_marks, off_x,off_y)
             cr.rectangle(x + off_x, y + off_y, size, size)
             cr.fill()
+            self.drawing_area.queue_draw_area(x + off_x, y + off_y, size, size)
         return False
 
-    def _run_tile_loader(self, tile, zoom, undersample, x, y, callback_draw):
-        d = self.tile_loader(tile=tile, zoom=zoom, undersample=undersample, x=x, y=y, callback_draw=callback_draw)
+    def _run_tile_loader(self, id_string, tile, zoom, undersample, x, y, callback_draw):
+        d = self.tile_loader(id_string = id_string, tile=tile, zoom=zoom, undersample=undersample, x=x, y=y, callback_draw=callback_draw)
         self.active_tile_loaders.append(d)
         d.run()
 
@@ -984,13 +965,6 @@ class SimpleGui(object):
     def _draw_marks(self):
         self.cr_marks = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map_width, self.map_height)
         cr = gtk.gdk.CairoContext(cairo.Context(self.cr_marks))
-        print 'draw marks'
-        #self.xgc.set_function(gtk.gdk.COPY)
-        #self.xgc.set_rgb_fg_color(gtk.gdk.color_parse('white'))
-        #self.pixmap_marks.draw_rectangle(self.xgc, True, 0, 0, self.map_width, self.map_height)
-        #
-        # draw geocaches
-        #
 
         if self.ts.get_zoom() < self.CACHES_ZOOM_LOWER_BOUND:
             self._draw_marks_message('Zoom in to see geocaches.', cr)
@@ -1139,27 +1113,6 @@ class SimpleGui(object):
             return True
 
         x, y, width, height = event.area
-        #print "Exposing (%d, %d) width/height (%d, %d)" % (x, y, width, height)
-        #self.xgc.set_function(gtk.gdk.COPY)
-        #widget.window.draw_drawable(self.xgc, self.pixmap, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
-        #self.xgc.set_function(gtk.gdk.AND)
-        #widget.window.draw_drawable(self.xgc, self.pixmap_marks, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
-        #self.xgc.set_function(gtk.gdk.COPY)
-        #cr = widget.window.cairo_create()
-        #cr = self.cr_drawing_area
-        #cr.rectangle(x, y, width, height)
-        #cr.clip()
-        #cr.set_source_surface(self.cr_map, 0, 0)
-        #cr.paint()
-        #for surface, x, y, scale_source in self.surface_buffer:
-        #    print 'drawing tile',surface, 'to %d %d' % (x, y)
-        #    self._draw_tile(cr, surface, x, y, scale_source)
-        #self._draw_tile
-        #cr.set_source_surface(self.cr_marks, 0, 0)
-        #cr.paint()
-        #cr.reset_clip()
-        #import pdb; pdb.set_trace()
-        #widget.window.draw_drawable(self.xgc, self.pixmap, x, y, self.draw_root_x + self.draw_at_x  + x, self.draw_root_y + self.draw_at_y + y, width, height)
         widget.window.draw_drawable(self.xgc, self.pixmap, x, y, x, y, width, height)
         return False
                 
