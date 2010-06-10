@@ -25,6 +25,7 @@ import math
 import geo
 import gobject
 import gtk
+import cairo
 from os import path, mkdir, extsep, remove
 from threading import Semaphore
 from urllib import urlretrieve
@@ -96,7 +97,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             answer = True
             if not path.isfile(self.local_filename):
                 self.create_recursive(self.local_path)
-                gobject.idle_add(lambda: self.draw(self.get_no_image(self.noimage_loading)))
+                gobject.idle_add(lambda: self.draw((self.get_no_image(self.noimage_loading), None)))
                 answer = self.download(self.remote_filename, self.local_filename)
 
             # now the file hopefully exists
@@ -131,10 +132,11 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             if not self.undersample and path.exists(supertile_name):
                 off_x = (tile[0]/2.0 - supertile_x) * size
                 off_y = (tile[1]/2.0 - supertile_y) * size
-                pbuf = gtk.gdk.pixbuf_new_from_file(supertile_name)
-                dest = gtk.gdk.Pixbuf(pbuf.get_colorspace(), pbuf.get_has_alpha(), pbuf.get_bits_per_sample(), size, size)
-                pbuf.scale(dest, 0, 0, 256, 256, -off_x*2, -off_y*2, 2, 2, gtk.gdk.INTERP_BILINEAR)
-                self.my_noimage = dest
+                #pbuf = gtk.gdk.pixbuf_new_from_file(supertile_name)
+                #dest = gtk.gdk.Pixbuf(pbuf.get_colorspace(), pbuf.get_has_alpha(), pbuf.get_bits_per_sample(), size, size)
+                #pbuf.scale(dest, 0, 0, 256, 256, -off_x*2, -off_y*2, 2, 2, gtk.gdk.INTERP_BILINEAR)
+                self.pbuf = (surface, (off_x, off_y))
+                self.my_noimage = surface
                 return dest
             else:
                 self.my_noimage = default
@@ -152,23 +154,24 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                     supertile_y = int(tile[1]/2)
                     off_x = (tile[0]/2.0 - supertile_x) * size
                     off_y = (tile[1]/2.0 - supertile_y) * size
-                    pbuf = gtk.gdk.pixbuf_new_from_file(self.local_filename)
-                    if pbuf.get_width() < size or pbuf.get_height() < size:
+                    surface = cairo.ImageSurface.create_from_png(self.local_filename)
+                    if surface.get_width() < size or surface.get_height() < size:
                         raise Exception("Image too small, probably corrupted file")
-                    dest = gtk.gdk.Pixbuf(pbuf.get_colorspace(), pbuf.get_has_alpha(), pbuf.get_bits_per_sample(), size, size)
-                    pbuf.scale(dest, 0, 0, size, size, -off_x*2, -off_y*2, 2, 2, gtk.gdk.INTERP_HYPER)
-                    self.pbuf = dest
+                    #dest = gtk.gdk.Pixbuf(pbuf.get_colorspace(), pbuf.get_has_alpha(), pbuf.get_bits_per_sample(), size, size)
+                    #pbuf.scale(dest, 0, 0, size, size, -off_x*2, -off_y*2, 2, 2, gtk.gdk.INTERP_HYPER)
+                    self.pbuf = (surface, (off_x, off_y))
                 else:
-                    self.pbuf = gtk.gdk.pixbuf_new_from_file(self.local_filename)
-                    if self.pbuf.get_width() < size or self.pbuf.get_height() < size:
+                    surface = cairo.ImageSurface.create_from_png(self.local_filename)
+                    if surface.get_width() < size or surface.get_height() < size:
                         raise Exception("Image too small, probably corrupted file")
+                    self.pbuf = (surface, None)
                 return True
             except Exception, e:
                 if tryno == 0:
                     return self.recover()
                 else:
                     print e
-                    self.pbuf = self.noimage_cantload
+                    self.pbuf = (self.noimage_cantload, None)
                     return True
 
         def recover(self):
@@ -181,7 +184,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
 
         def draw(self, pbuf):
             if not self.stop:
-                return self.callback_draw(pbuf, self.x, self.y)
+                return self.callback_draw(pbuf[0], self.x, self.y, pbuf[1])
             return False
 
 

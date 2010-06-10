@@ -54,6 +54,7 @@ import geocaching
 import gobject
 import gtk
 import hildon
+import cairo
 from hildon_plugins import HildonFieldnotes
 from hildon_plugins import HildonSearchPlace
 from hildon_plugins import HildonSearchGeocaches
@@ -181,8 +182,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
 
     def _prepare_images(self, dataroot):
         p = "%s%s%%s" % (path.join(dataroot, '%s'), extsep)
-        self.noimage_cantload = gtk.gdk.pixbuf_new_from_file(p % ('noimage-cantload', 'png'))
-        self.noimage_loading = gtk.gdk.pixbuf_new_from_file(p % ('noimage-loading', 'png'))
+        self.noimage_cantload = cairo.ImageSurface.create_from_png(p % ('noimage-cantload', 'png'))
+        self.noimage_loading = cairo.ImageSurface.create_from_png(p % ('noimage-loading', 'png'))
         out = {}
 
         for key, name in self.ICONS.items():
