@@ -202,7 +202,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
         print self.ICONPATH % {'size' : 64, 'name':'general_add'}
 
     def _open_browser(self, widget, link):
-        system("browser --url='%s' &" % link)
+        system("dbus-send --print-reply --dest=com.nokia.osso_browser /com/nokia/osso_browser/request com.nokia.osso_browser.open_new_window 'string:%s' &" % link)
 
     def show_coordinate_input(self, start, none_on_cancel=False):
         udr = UpdownRows(self.format, start, True)
