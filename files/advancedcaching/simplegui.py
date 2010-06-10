@@ -92,6 +92,9 @@ class SimpleGui(object):
     COLOR_TARGET = gtk.gdk.color_parse('black')
     COLOR_CROSSHAIR = gtk.gdk.color_parse("black")
     COLOR_LINE_INVERT = gtk.gdk.color_parse("blue")
+
+    COLOR_OSD_SECONDARY = gtk.gdk.color_parse("white")
+    COLOR_OSD_MAIN = gtk.gdk.color_parse("black")
     SIZE_CURRENT_POSITION = 3
 
     # arrow colors and sizes
@@ -204,7 +207,7 @@ class SimpleGui(object):
         self.tile_loaders = []
         
         for name, params in self.core.settings['map_providers']:    
-            tl = openstreetmap.get_tile_loader( ** params)
+            tl = openstreetmap.get_tile_loader(** params)
             tl.noimage_loading = self.noimage_loading
             tl.noimage_cantload = self.noimage_cantload
             tl.base_dir = self.core.settings['download_map_path']
@@ -321,12 +324,12 @@ class SimpleGui(object):
          ROW_ID,
          ) = range(6)
         columns = (
-                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE, ), False, True),
-                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE, ), False, True),
+                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
+                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
                    ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
                    ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
                    ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
-                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID, ), False, True),
+                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
                    )
         self.cachelist = listview = extListview.ExtListView(columns, sortable=True, useMarkup=True, canShowHideColumns=False)
         self.cachelist_contents = []
@@ -343,7 +346,7 @@ class SimpleGui(object):
                    ('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
                    ('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
                    ('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
-                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT, ), False, True),
+                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT,), False, True),
                    )
         self.coordlist = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
         self.coordlist.connect('extlistview-button-pressed', self.on_waypoint_clicked)
@@ -380,10 +383,9 @@ class SimpleGui(object):
         self.map_height = int(height + 2 * height * self.MAP_FACTOR)
         self.pixmap = gtk.gdk.Pixmap(widget.window, self.map_width, self.map_height)
         
-        #self.pixmap_marks = gtk.gdk.Pixmap(widget.window, self.map_width, self.map_height)
-        #self.cr_map = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map_width, self.map_height)
         self.cr_marks = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map_width, self.map_height)
-        #self.cr_marks_context = gtk.gdk.CairoContext(cairo.Context(self.cr_marks))
+        self.cr_osd = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map_width, self.map_height)
+        self.cr_drawing_area_map = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map_width, self.map_height)
         self.cr_drawing_area = self.pixmap.cairo_create()#widget.window.cairo_create()
 
         self.xgc = widget.window.new_gc()
@@ -465,7 +467,7 @@ class SimpleGui(object):
             else:
                 t = "%.1f" % (r.terrain / 10)
             title = self._format_cache_title(r)
-            rows.append((title, r.type, s, t, d, r.name,))
+            rows.append((title, r.type, s, t, d, r.name, ))
         self.cachelist.replaceContent(rows)
         self.notebook_search.set_current_page(1)
         self.redraw_marks()
@@ -627,6 +629,7 @@ class SimpleGui(object):
         self.drawing_area_arrow.queue_draw()
         return False
 
+
     def _get_arrow_transformed(self, x, y, width, height, angle):
         multiply = height / (2 * (2-self.ARROW_OFFSET))
         offset_x = width / 2
@@ -666,7 +669,10 @@ class SimpleGui(object):
             else:
                 found = None
             cache = self.core.pointprovider.get_nearest_point_filter(c, c1, c2, found)
-            self.show_cache(cache)
+            if cache != None:
+                self.show_cache(cache)
+            else:
+                self.refresh()
         else:
             self._set_track_mode(False)
         self.draw_at_x = self.draw_at_y = 0
@@ -706,6 +712,13 @@ class SimpleGui(object):
                 x.halt()
         except IndexError:
             pass
+
+        cr = self.cr_drawing_area
+        cr.set_source_surface(self.cr_drawing_area_map)
+        cr.paint()
+        cr.set_source_surface(self.cr_marks)
+        cr.paint()
+        self.drawing_area.window.draw_drawable(self.xgc, self.pixmap, 0, 0, 0, 0, -1, -1)
 
         self.drag_start_x = int(event.x)
         self.drag_start_y = int(event.y)
@@ -761,7 +774,6 @@ class SimpleGui(object):
         for r in reqs:
             self.tile_loader_threadpool.putRequest(r)
         self._draw_marks()
-        print "Calling draw_tiles"
         self._draw_tiles()
 
 
@@ -769,18 +781,16 @@ class SimpleGui(object):
         return "%s|%d|%d|%d|%d" % (self.tile_loader.PREFIX, tile[0], tile[1], display_zoom, 1 if undersample else 0)
 
 
-    def _add_to_buffer(self, id_string, surface, x, y, scale_source = None):
+    def _add_to_buffer(self, id_string, surface, x, y, scale_source=None):
         self.surface_buffer[id_string] = [surface, x, y, scale_source]
-        self._draw_tiles(which = ([surface, x, y, scale_source],))
+        self._draw_tiles(which=([surface, x, y, scale_source], ))
         return False
 
 
-    def _draw_tiles(self, which = None, off_x = 0, off_y = 0):
-        print "Drawing tiles"
-        cr = self.cr_drawing_area
+    def _draw_tiles(self, which=None, off_x=0, off_y=0):
+        cr = gtk.gdk.CairoContext(cairo.Context(self.cr_drawing_area_map))
         if which == None:
             which = self.surface_buffer.values()
-            print "Drawing old ones (%d) " % len(which)
         for surface, x, y, scale_source in which:
             #cr = self.cr_map_context
             if surface == None:
@@ -790,43 +800,32 @@ class SimpleGui(object):
             if scale_source == None:
                 cr.set_source_surface(surface, x + off_x, y + off_y)
             else:
-                print "not implemented"
-                pass
                 xs, ys = scale_source
                 imgpat = cairo.SurfacePattern(surface)
                 imgpat.set_filter(cairo.FILTER_BEST)
                 scale = cairo.Matrix()
-                scale.translate(-xs, -ys)
+                scale.translate(xs, ys)
                 scale.scale(0.5, 0.5)
-                scale.translate(x + off_x, y + off_y)
+                scale.translate(-x + off_x, -y + off_y)
                 imgpat.set_matrix(scale)
                 cr.set_source(imgpat)
             cr.rectangle(max(0, x + off_x), max(0, y + off_y), min(size, self.map_width - x + size), min(size, self.map_height - y + size))
-            cr.fill()
-            cr.set_source_surface(self.cr_marks, off_x,off_y)
-            cr.rectangle(x + off_x, y + off_y, size, size)
             cr.fill()
             self.drawing_area.queue_draw_area(x + off_x, y + off_y, size, size)
         return False
 
     def _run_tile_loader(self, id_string, tile, zoom, undersample, x, y, callback_draw):
-        d = self.tile_loader(id_string = id_string, tile=tile, zoom=zoom, undersample=undersample, x=x, y=y, callback_draw=callback_draw)
+        d = self.tile_loader(id_string=id_string, tile=tile, zoom=zoom, undersample=undersample, x=x, y=y, callback_draw=callback_draw)
         self.active_tile_loaders.append(d)
         d.run()
 
     def _draw_marks_caches(self, coords, cr):
-        print 'drawing %d caches' % len(coords)
         draw_short = (len(coords) > self.TOO_MANY_POINTS)
 
         default_radius = self.CACHE_DRAW_SIZE
         found, regular, multi, default = self.COLOR_FOUND, self.COLOR_REGULAR, self.COLOR_MULTI, self.COLOR_DEFAULT
 
-        center = self.ts.num2deg(self.map_center_x, self.map_center_y)
-        mpp = self.ts.get_meters_per_pixel(center.lat)
-        linelength = (1.0/mpp)*100.0
-        cr.move_to(50, 50)
-        cr.line_to(50+linelength, 50)
-        cr.stroke()
+        
 
         for c in coords: # for each geocache
             radius = default_radius
@@ -920,7 +919,7 @@ class SimpleGui(object):
             cr.set_line_width(1)
             cr.move_to(p[0], p[1] - 3)
             cr.line_to(p[0], p[1] + 3) # |
-            cr.move_to(p[0] - 3, p[1], )
+            cr.move_to(p[0] - 3, p[1],)
             cr.line_to(p[0] + 3, p[1]) # ---
             cr.stroke()
 
@@ -955,19 +954,13 @@ class SimpleGui(object):
             cr.stroke()
 
                     
-    def _draw_marks_message(self, message, cr):
-        cr.set_source_color(self.MESSAGE_DRAW_COLOR)
-        layout = self.drawing_area.create_pango_layout(message)
-        layout.set_font_description(self.MESSAGE_DRAW_FONT)
-        cr.move_to(20, 20)
-        cr.show_layout(layout)
-
     def _draw_marks(self):
         self.cr_marks = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map_width, self.map_height)
         cr = gtk.gdk.CairoContext(cairo.Context(self.cr_marks))
 
+        message = None
         if self.ts.get_zoom() < self.CACHES_ZOOM_LOWER_BOUND:
-            self._draw_marks_message('Zoom in to see geocaches.', cr)
+            message = 'Too many geocaches to display.'
         else:
 
             if self.settings['options_hide_found']:
@@ -976,10 +969,10 @@ class SimpleGui(object):
                 found = None
             coords = self.core.pointprovider.get_points_filter(self.get_visible_area(), found, self.MAX_NUM_RESULTS_SHOW)
             if len(coords) >= self.MAX_NUM_RESULTS_SHOW:
-                self._draw_marks_message('Too many geocaches to display.', cr)
+                message = 'Too many geocaches to display.'
             else:
                 self._draw_marks_caches(coords, cr)
-
+        self._draw_osd(message)
         #
         # and now for our current data!
         #
@@ -1107,12 +1100,82 @@ class SimpleGui(object):
         '''
         #self.cr_marks = cr_new
         return False
+
+    def _draw_osd(self, message = None):
+
+        self.cr_osd = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map_width, self.map_height)
+        cr = gtk.gdk.CairoContext(cairo.Context(self.cr_osd))
+
+        # message
+
+        cr.set_line_width(2)
+        if message != None:
+            cr.set_source_color(self.MESSAGE_DRAW_COLOR)
+            layout = self.drawing_area.create_pango_layout(message)
+            layout.set_font_description(self.MESSAGE_DRAW_FONT)
+            cr.move_to(20, 20)
+            cr.show_layout(layout)
+
+        # scale bar
+
+        position = (20, self.map_height - 28)
+
+        center = self.ts.num2deg(self.map_center_x, self.map_center_y)
+        mpp = self.ts.get_meters_per_pixel(center.lat)
+        avglength = self.map_width / 5
+        first_length_meters = mpp * avglength
+        final_length_meters = round(first_length_meters, int(-math.floor(math.log(first_length_meters, 10) + 0.00001)))
+        final_length_pixels = final_length_meters / mpp
+        cr.move_to(position[0], position[1] + 10)
+        cr.line_to(position[0] + final_length_pixels, position[1] + 10)
+        cr.set_line_width(5)
+        cr.set_source_color(self.COLOR_OSD_SECONDARY)
+        cr.stroke_preserve()
+        cr.set_line_width(3)
+        cr.set_source_color(self.COLOR_OSD_MAIN)
+        cr.stroke_preserve()
+
+        cr.set_source_color(self.MESSAGE_DRAW_COLOR)
+        if final_length_meters < 10000:
+            msg = "%d m" % final_length_meters
+        else:
+            msg = "%d km" % (final_length_meters/1000)
+        layout = self.drawing_area.create_pango_layout(msg)
+        layout.set_font_description(self.MESSAGE_DRAW_FONT)
+        cr.move_to(position[0], position[1] - 15)
+        cr.show_layout(layout)
+
+        # draw moving direction, if we're moving
+        position = (self.map_width - 50, self.map_height - 50)
+        if self.gps_data != None and self.gps_data.speed > 2.5: # km/h
+            arrow = self._get_arrow_transformed(0, 0, 30, 30, self.gps_data.bearing)
+
+            cr.move_to(* (arrow[0][x] + position[x] for x in (0, 1)))
+            for x, y in arrow:
+                cr.line_to(x + position[0], y + position[1])
+            cr.line_to(* (arrow[0][x] + position[x] for x in (0, 1)))
+            cr.stroke()
+
         
     def _expose_event(self, widget, event):
         if self.dragging:
             return True
 
         x, y, width, height = event.area
+
+        cr = self.cr_drawing_area
+        cr.rectangle(x, y, width, height)
+        cr.clip()
+        cr.set_source_surface(self.cr_drawing_area_map)
+        cr.rectangle(x, y, width, height)
+        cr.fill()
+        cr.set_source_surface(self.cr_marks)
+        cr.rectangle(x, y, width, height)
+        cr.fill()
+        cr.set_source_surface(self.cr_osd)
+        cr.rectangle(x, y, width, height)
+        cr.fill()
+        cr.reset_clip()
         widget.window.draw_drawable(self.xgc, self.pixmap, x, y, x, y, width, height)
         return False
                 
@@ -1203,7 +1266,8 @@ class SimpleGui(object):
                 
         if self.dragging:
             return
-                
+
+
         # redraw marks if we need to
         if not self.drawing_area_configured:
             return False
@@ -1236,6 +1300,7 @@ class SimpleGui(object):
                         self.redraw_marks()
                 # update last position, as it is now drawed
                 # self.gps_last_screen_position = (x, y)
+            self.redraw_osd()
             return
         else:
             self.redraw_marks()
@@ -1243,6 +1308,12 @@ class SimpleGui(object):
             #self.gps_last_screen_position = (x, y)
                 
                 
+    def redraw_osd(self):
+        if self.dragging:
+            return
+        self._draw_osd(None)
+        self.refresh()
+
     def redraw_marks(self):
         if self.dragging:
             return
@@ -1467,7 +1538,7 @@ class SimpleGui(object):
         self.zoom()
                 
     def on_zoomin_clicked(self, widget, data=None):
-        self.zoom( + 1)
+        self.zoom(+ 1)
                 
     def on_zoomout_clicked(self, widget, data=None):
         self.zoom(-1)
@@ -1544,7 +1615,7 @@ class SimpleGui(object):
                         
                 
     def refresh(self):
-        #self.drawing_area.queue_draw()
+        self.drawing_area.queue_draw()
         pass
                        
     @staticmethod 
@@ -1566,7 +1637,7 @@ class SimpleGui(object):
         if event.direction == gtk.gdk.SCROLL_DOWN:
             self.zoom(-1)
         else:
-            self.zoom( + 1)
+            self.zoom(+ 1)
         
                 
     def set_center(self, coord, noupdate=False, reset_track=True):

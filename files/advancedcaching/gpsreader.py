@@ -308,7 +308,7 @@ class FakeGpsReader():
             position = pos,
             altitude = 5,
             bearing = bearing,
-            speed = 2,
+            speed = 4,
             sats = 12,
             sats_known = 6,
             dgps = True,
