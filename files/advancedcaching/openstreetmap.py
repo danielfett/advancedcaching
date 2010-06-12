@@ -98,7 +98,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             answer = True
             if not path.isfile(self.local_filename):
                 self.create_recursive(self.local_path)
-                gobject.idle_add(lambda: self.draw((self.get_no_image(self.noimage_loading), None)))
+                gobject.idle_add(lambda: self.draw(self.get_no_image(self.noimage_loading)))
                 answer = self.download(self.remote_filename, self.local_filename)
 
             # now the file hopefully exists
@@ -118,7 +118,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             return False
 
         def get_no_image(self, default):
-            return default
+            return (default, None)
             if self.my_noimage != None:
                 return self.my_noimage
             size, tile = self.TILE_SIZE, self.tile
@@ -162,6 +162,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                     #pbuf.scale(dest, 0, 0, size, size, -off_x*2, -off_y*2, 2, 2, gtk.gdk.INTERP_HYPER)
                     self.pbuf = (surface, (off_x, off_y))
                 else:
+                    print self.local_filename
                     surface = cairo.ImageSurface.create_from_png(self.local_filename)
                     if surface.get_width() < size or surface.get_height() < size:
                         raise Exception("Image too small, probably corrupted file")
@@ -171,7 +172,11 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 if tryno == 0:
                     return self.recover()
                 else:
-                    print e
+                    print "Exception while loading map tile: ", e
+                    import traceback
+                    traceback.print_exc()
+                    traceback.print_stack()
+                    print "Exception while loading tile:", e
                     self.pbuf = (self.noimage_cantload, None)
                     return True
 

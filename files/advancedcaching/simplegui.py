@@ -1944,10 +1944,7 @@ class SimpleGui(object):
                 
     def zoom(self, direction=None):
         center = self.ts.num2deg(self.map_center_x, self.map_center_y)
-        if direction == None:
-            #newzoom = self.zoom_adjustment.get_value()
-            print "not"
-        else:
+        if direction != None:
             newzoom = self.ts.get_zoom() + direction
         self.ts.set_zoom(newzoom)
         self.set_center(center, reset_track=False)
