@@ -23,7 +23,7 @@ class FileDownloader():
     USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; U; Linux i686; de; rv:1.9.0.12) Gecko/2009070811  Windows NT Firefox/3.1'
     opener_installed = False
 
-    def __init__(self, username, password, cookiefile):
+    def __init__(self, username, password, cookiefile, login_callback):
         self.username = username
         self.password = password
         self.cookiefile = cookiefile
@@ -31,6 +31,7 @@ class FileDownloader():
         from socket import setdefaulttimeout
         setdefaulttimeout(30)
         self.opener_installed = False
+        self.login_callback = login_callback
 
     def update_userdata(self, username, password):
         from os import path, remove
@@ -76,14 +77,7 @@ class FileDownloader():
                     break
         
         print "+ Logging in"
-        url = 'http://www.geocaching.com/Default.aspx'
-        values = {'ctl00$MiniProfile$loginUsername':self.username,
-            'ctl00$MiniProfile$loginPassword':self.password,
-            'ctl00$MiniProfile$uxRememberMe': 'on',
-            'ctl00$MiniProfile$LoginBtn': 'Go',
-            '__EVENTTARGET': '',
-            '__EVENTARGUMENT': ''
-        }
+        url, values = self.login_callback(self.username, self.password)
 
         page = self.get_reader(url, values, login = False).read()
 

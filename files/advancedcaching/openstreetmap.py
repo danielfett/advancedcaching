@@ -162,7 +162,6 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                     #pbuf.scale(dest, 0, 0, size, size, -off_x*2, -off_y*2, 2, 2, gtk.gdk.INTERP_HYPER)
                     self.pbuf = (surface, (off_x, off_y))
                 else:
-                    print self.local_filename
                     surface = cairo.ImageSurface.create_from_png(self.local_filename)
                     if surface.get_width() < size or surface.get_height() < size:
                         raise Exception("Image too small, probably corrupted file")

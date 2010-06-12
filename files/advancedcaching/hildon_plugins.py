@@ -502,3 +502,85 @@ class HildonSearchGeocaches(object):
     def hide_search_view(self, widget, data):
         self.old_search_window = hildon.WindowStack.get_default().pop_1()
         return True
+
+
+class HildonAboutDialog(object):
+
+    def plugin_init(self):
+        print "+ Using about dialog"
+
+    def _get_about_button(self):
+        button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_label("About AGTL")
+        button.connect("clicked", self._on_show_about, None)
+        return button
+
+    def _on_show_about(self, widget, data):
+        (RESPONSE_UPDATE,RESPONSE_HOMEPAGE) = range(2)
+        dialog = gtk.Dialog("About AGTL", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ('Update Parser', RESPONSE_UPDATE, 'Website', RESPONSE_HOMEPAGE))
+        dialog.set_size_request(800, 800)
+        copyright = '''Copyright (C) in most parts 2010 Daniel Fett
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see http://www.gnu.org/licenses/.
+
+Author: Daniel Fett advancedcaching@fragcom.de'''
+        additional = '''Neither the author nor the software is affiliated with or endorsed by any geocaching website.'''
+
+        text = "%s\n\n%s\n\n" % (copyright, additional)
+
+        l = gtk.Label('')
+        import core
+        l.set_markup("<b><u>AGTL version %s</u></b>" % core.VERSION)
+        l.set_alignment(0, 0)
+        dialog.vbox.pack_start(l, False)
+
+        l = gtk.Label('')
+        import cachedownloader
+        l.set_markup("website parser version %d (from %s)" % (cachedownloader.VERSION, cachedownloader.VERSION_DATE))
+        l.set_alignment(0, 0)
+        dialog.vbox.pack_start(l, False)
+
+        l = gtk.Label()
+        l.set_line_wrap(True)
+        l.set_alignment(0, 0)
+        l.set_size_request(self.window.size_request()[0] - 10, -1)
+        l.set_markup(text)
+        p = hildon.PannableArea()
+        p.set_property('mov-mode', hildon.MOVEMENT_MODE_BOTH)
+        p.add_with_viewport(l)
+        dialog.vbox.pack_start(p)
+
+        dialog.show_all()
+        result = dialog.run()
+        dialog.hide()
+
+        if result == RESPONSE_HOMEPAGE:
+            self._open_browser(None, 'http://www.danielfett.de/')
+            return
+        elif result == RESPONSE_UPDATE:
+            self._try_parser_update()
+            self._on_show_about(None, None)
+
+
+    def _try_parser_update(self):
+        try:
+            self.set_download_progress(0.5)
+            updates = self.core.try_update()
+        except Exception, e:
+            self.hide_progress()
+            self.show_error(e)
+        else:
+            self.hide_progress()
+            self.show_success("%d modules upgraded. There's no need to restart AGTL." % updates)
+            
+

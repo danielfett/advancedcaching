@@ -15,11 +15,14 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-#        Author: Daniel Fett simplecaching@fragcom.de
+#        Author: Daniel Fett advancedcaching@fragcom.de
 #
 
+from __future__ import with_statement
 
+VERSION = "0.6.2-devel"
    
+
 
 from geo import Coordinate
 try:
@@ -27,15 +30,16 @@ try:
 except (ImportError, AttributeError):
     from simplejson import loads, dumps
 from sys import argv, exit
+from sys import path as sys_path
 
 import downloader
 import geocaching
 import gobject
 import gpsreader
-from os import path, mkdir, system
+from os import path, mkdir, extsep
 import provider
 from threading import Thread
-from cachedownloader import GeocachingComCacheDownloader
+import cachedownloader
 from fieldnotesuploader import FieldnotesUploader
 from actors.tts import TTS
 #from actors.notify import Notify
@@ -79,11 +83,14 @@ class Core(gobject.GObject):
     SETTINGS_DIR = path.expanduser('~/.agtl')
     CACHES_DB = path.join(SETTINGS_DIR, "caches.db")
     COOKIE_FILE = path.join(SETTINGS_DIR, "cookies.lwp")
+    UPDATE_DIR = path.join(SETTINGS_DIR, 'updates')
 
     MAEMO_HOME = path.expanduser("~/MyDocs/.")
     MAPS_DIR = 'Maps/'
 
     DATA_DIR = path.expanduser('~/') if not path.exists(MAEMO_HOME) else MAEMO_HOME
+
+    UPDATE_MODULES = [cachedownloader]
     
     DEFAULT_SETTINGS = {
         'download_visible': True,
@@ -129,6 +136,8 @@ class Core(gobject.GObject):
 
         dataroot = path.join(root, 'data')
 
+        self._install_updates()
+
         self.__read_config()
         self.connect('settings-changed', self.__on_settings_changed)
         self.connect('save-settings', self.__on_save_settings)
@@ -136,7 +145,7 @@ class Core(gobject.GObject):
         self.create_recursive(self.settings['download_map_path'])
                 
 
-        self.downloader = downloader.FileDownloader(self.settings['options_username'], self.settings['options_password'], self.COOKIE_FILE)
+        self.downloader = downloader.FileDownloader(self.settings['options_username'], self.settings['options_password'], self.COOKIE_FILE, cachedownloader.GeocachingComCacheDownloader.login_callback)
                 
         self.pointprovider = provider.PointProvider(self.CACHES_DB, geocaching.GeocacheCoordinate, 'geocaches')
 
@@ -188,6 +197,82 @@ class Core(gobject.GObject):
                 except Exception, e:
                     print e
                     pass
+
+    def _install_updates(self):
+        updated_modules = 0
+        if path.exists(self.UPDATE_DIR):
+            sys_path.insert(0, self.UPDATE_DIR)
+            for m in self.UPDATE_MODULES:
+                modulefile = path.join(self.UPDATE_DIR, "%s%spy" % (m.__name__, extsep))
+                if path.exists(modulefile):
+                    v_dict = {'VERSION': -1}
+                    with open(modulefile) as f:
+                        for line in f:
+                            if line.startswith('VERSION'):
+                                exec line in v_dict
+                                break
+                    if v_dict['VERSION'] > m.VERSION:
+                        print "Reloading Module '%s', current version number: %d, new version number: %d" % (m.__name__, v_dict['VERSION'], m.VERSION)
+                        reload(m)
+                        updated_modules += 1
+                    else:
+                        print "Not reloading Module '%s', current version number: %d, version number of update file: %d" % (m.__name__, v_dict['VERSION'], m.VERSION)
+                else:
+                    print "Skipping nonexistant update from", path.join(self.UPDATE_DIR, "%s%spy" % (m.__name__, extsep))
+        return updated_modules
+
+    def try_update(self):
+        from urllib import urlretrieve
+        import tempfile
+        import hashlib
+        from shutil import copyfile
+        from os import remove
+        self.create_recursive(self.UPDATE_DIR)
+        baseurl = 'http://www.danielfett.de/files/agtl-updates/%s' % VERSION
+        url = "%s/updates" % baseurl
+        try:
+            reader = self.downloader.get_reader(url, login=False)
+        except Exception, e:
+            raise Exception("No updates were found. (Could not download index file.)")
+
+        try:
+            files = []
+            for line in reader:
+                md5, name = line.strip().split('  ')
+                handle, temp = tempfile.mkstemp()
+                files.append((md5, name, temp))
+        except Exception, e:
+            print e
+            raise Exception("No updates were found. (Could not process index file.)")
+
+        if len(files) == 0:
+            raise Exception("There are no updates available.")
+
+        for md5sum, name, temp in files:
+            url = '%s/%s' % (baseurl, name)
+            try:
+                urlretrieve(url, temp)
+            except Exception, e:
+                print e
+                raise Exception("Could not download file '%s'" % name)
+
+            hash = hashlib.md5(open(temp).read()).hexdigest()
+            if hash != md5sum:
+                raise Exception("There was an error downloading the file. (MD5 sum mismatch in  %s)" % name)
+
+        for md5sum, name, temp in files:
+            file = path.join(self.UPDATE_DIR, name)
+            try:
+                copyfile(temp, file)
+            except Exception:
+                raise Exception("The update process was stopped while copying files. AGTL may run or not. If not, delete all *.py files in %s." % self.UPDATE_DIR)
+            finally:
+                try:
+                    remove(tmpfile)
+                except Exception:
+                    pass
+
+        return self._install_updates()
 
 
 
@@ -427,7 +512,7 @@ class Core(gobject.GObject):
     # called by gui
     def on_download(self, location, sync=False):
         self.gui.set_download_progress(0.5, "Downloading...")
-        cd = GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd = cachedownloader.GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
         cd.connect("already-downloading-error", self.on_already_downloading_error)
         if not sync:
@@ -476,7 +561,7 @@ class Core(gobject.GObject):
         #
         self.gui.set_download_progress(0.5, "Downloading %s..." % cache.name)
 
-        cd = GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd = cachedownloader.GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
         cd.connect("already-downloading-error", self.on_already_downloading_error)
         if not sync:
@@ -535,7 +620,7 @@ class Core(gobject.GObject):
 
 
     def update_coordinates(self, caches):
-        cd = GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd = cachedownloader.GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
         cd.connect("already-downloading-error", self.on_already_downloading_error)
 

@@ -58,6 +58,7 @@ import cairo
 from hildon_plugins import HildonFieldnotes
 from hildon_plugins import HildonSearchPlace
 from hildon_plugins import HildonSearchGeocaches
+from hildon_plugins import HildonAboutDialog
 import openstreetmap
 import pango
 from portrait import FremantleRotation
@@ -65,7 +66,7 @@ from simplegui import SimpleGui
 from simplegui import UpdownRows
 import threadpool
 
-class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, SimpleGui):
+class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, HildonAboutDialog, SimpleGui):
 
     USES = ['locationgpsprovider', 'geonames']
 
@@ -436,8 +437,9 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
 
         menu.append(self._get_search_place_button())
         
-        
         menu.append(self._get_search_button())
+
+        menu.append(self._get_about_button())
 
     
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
@@ -567,7 +569,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
         
     def _on_show_settings_dialog(self, widget, data):
         dialog = gtk.Dialog("Settings", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-        dialog.set_size_request(800, 480)
+        dialog.set_size_request(800, 800)
 
         p = hildon.PannableArea()
         list = gtk.VBox()
@@ -1399,7 +1401,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Simp
                 
 
     #called by core
-    def set_download_progress(self, fraction, text):
+    def set_download_progress(self, fraction, text = ''):
         hildon.hildon_gtk_window_set_progress_indicator(self.window, 1)
         if text == '':
             text = 'Please wait...'

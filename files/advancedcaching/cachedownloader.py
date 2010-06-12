@@ -18,6 +18,10 @@
 #        Author: Daniel Fett advancedcaching@fragcom.de
 #
 
+
+VERSION = 0
+VERSION_DATE = '2010-06-05'
+
 try:
     import json
     json.dumps
@@ -217,6 +221,7 @@ class CacheDownloader(gobject.GObject):
         return points
 
 class GeocachingComCacheDownloader(CacheDownloader):
+    
     MAX_REC_DEPTH = 2
 
     MAX_DOWNLOAD_NUM = 20
@@ -231,6 +236,19 @@ class GeocachingComCacheDownloader(CacheDownloader):
         11:GeocacheCoordinate.TYPE_WEBCAM,
         137:GeocacheCoordinate.TYPE_EARTH
     }
+
+    @staticmethod
+    def login_callback(username, password):
+        url = 'http://www.geocaching.com/Default.aspx'
+        values = {'ctl00$MiniProfile$loginUsername': username,
+            'ctl00$MiniProfile$loginPassword': password,
+            'ctl00$MiniProfile$uxRememberMe': 'on',
+            'ctl00$MiniProfile$LoginBtn': 'Go',
+            '__EVENTTARGET': '',
+            '__EVENTARGUMENT': ''
+        }
+        return url, values
+
 
     def _get_overview(self, location):
         c1, c2 = location
