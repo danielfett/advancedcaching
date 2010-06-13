@@ -24,7 +24,6 @@ import math
 
 import geo
 import gobject
-import gtk
 import cairo
 from os import path, mkdir, extsep, remove
 from threading import Semaphore
@@ -32,7 +31,7 @@ from urllib import urlretrieve
 from socket import setdefaulttimeout
 setdefaulttimeout(30)
 
-CONCURRENT_THREADS = 16
+CONCURRENT_THREADS = 10
 
 def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, file_type = 'png', size = 256):
     class TileLoader():
@@ -52,7 +51,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
         TPL_LOCAL_PATH = path.join("%s", PREFIX, "%d", "%d")
         TPL_LOCAL_FILENAME = path.join("%s", "%%d%s%s" % (extsep, FILE_TYPE))
 
-        def __init__(self, id_string, tile, zoom, undersample, x, y, callback_draw):
+        def __init__(self, id_string, tile, zoom, undersample = False, x = 0, y = 0, callback_draw = None):
             self.id_string = id_string
             self.undersample = undersample
             self.tile = tile
@@ -99,7 +98,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             if not path.isfile(self.local_filename):
                 self.create_recursive(self.local_path)
                 gobject.idle_add(lambda: self.draw(self.get_no_image(self.noimage_loading)))
-                answer = self.download(self.remote_filename, self.local_filename)
+                answer = self.__download(self.remote_filename, self.local_filename)
 
             # now the file hopefully exists
             if answer == True:
@@ -119,6 +118,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
 
         def get_no_image(self, default):
             return (default, None)
+            '''
             if self.my_noimage != None:
                 return self.my_noimage
             size, tile = self.TILE_SIZE, self.tile
@@ -141,7 +141,8 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 return dest
             else:
                 self.my_noimage = default
-                return default
+                return default'''
+            '''
 
         def load(self, tryno=0):
             # load the pixbuf to memory
@@ -184,7 +185,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 remove(self.local_filename)
             except:
                 pass
-            self.download(self.remote_filename, self.local_filename)
+            self.__download(self.remote_filename, self.local_filename)
             return self.load(1)
 
         def draw(self, pbuf):
@@ -193,7 +194,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             return False
 
 
-        def download(self, remote, local):
+        def __download(self, remote, local):
             if path.exists(local):
                 return True
 
@@ -209,6 +210,11 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 except Exception, e:
                     print "Download Error", e
                     return False
+
+        def download_tile_only(self):
+            if not path.isfile(self.local_filename):
+                self.create_recursive(self.local_path)
+            return self.__download(self.remote_filename, self.local_filename)
 
     return TileLoader
 

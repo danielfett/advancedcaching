@@ -17,10 +17,12 @@
 #
 #        Author: Daniel Fett advancedcaching@fragcom.de
 #
+import geocaching
 import gtk
 import hildon
-import geocaching
 import pango
+import threadpool
+import openstreetmap
 
 class HildonSearchPlace(object):
     
@@ -268,13 +270,13 @@ class HildonSearchGeocaches(object):
 
         RESPONSE_SHOW_LIST, RESPONSE_RESET, RESPONSE_LAST_RESULTS = range(3)
         dialog = gtk.Dialog("Search", self.window, gtk.DIALOG_DESTROY_WITH_PARENT,
-            ("OK", RESPONSE_SHOW_LIST))
+                            ("OK", RESPONSE_SHOW_LIST))
         dialog.add_button("Filter Map", gtk.RESPONSE_ACCEPT)
         if self.map_filter_active:
             dialog.add_button("Reset Filter", RESPONSE_RESET)
         if self.old_search_window != None:
             dialog.add_button("Last Results", RESPONSE_LAST_RESULTS)
-        dialog.set_size_request(800,800)
+        dialog.set_size_request(800, 800)
         pan = hildon.PannableArea()
         options = gtk.VBox()
         pan.add_with_viewport(options)
@@ -516,7 +518,7 @@ class HildonAboutDialog(object):
         return button
 
     def _on_show_about(self, widget, data):
-        (RESPONSE_UPDATE,RESPONSE_HOMEPAGE) = range(2)
+        (RESPONSE_UPDATE, RESPONSE_HOMEPAGE) = range(2)
         dialog = gtk.Dialog("About AGTL", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ('Update Parser', RESPONSE_UPDATE, 'Website', RESPONSE_HOMEPAGE))
         dialog.set_size_request(800, 800)
         copyright = '''Copyright (C) in most parts 2010 Daniel Fett
@@ -584,3 +586,157 @@ Author: Daniel Fett advancedcaching@fragcom.de'''
             self.show_success("%d modules upgraded. There's no need to restart AGTL." % updates)
             
 
+class HildonDownloadMap(object):
+
+    SIZE_PER_TILE = 1200
+
+    def plugin_init(self):
+        print "+ Using map download dialog"
+
+    def _get_download_map_button(self):
+        button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_title("Download Map")
+        button.set_value("for offline use")
+        button.connect("clicked", self._on_show_download_map, None)
+        return button
+
+    def _show_tile_select_dialog(self, zoom_steps):
+        sel_zoom = hildon.TouchSelector(text=True)
+        current_zoom = self.ts.get_zoom()
+
+        for zoom, size, count in zoom_steps:
+            sel_zoom.append_text('Zoom %d (Current+%d) ~%.2f MB' % (zoom, zoom - current_zoom, size))
+
+        sel_zoom.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_MULTIPLE)
+        pick_zoom = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
+        pick_zoom.set_selector(sel_zoom)
+        pick_zoom.set_title("Select Zoom Levels")
+        def print_func(widget):
+            size = sum(zoom_steps[x][1] for x, in sel_zoom.get_selected_rows(0))
+            pick_zoom.set_value("~%.2f MB" % size)
+        pick_zoom.connect('value-changed', print_func)
+        pick_zoom.connect('realize', print_func)
+
+        dialog = gtk.Dialog("Download Map Tiles", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        dialog.vbox.pack_start(pick_zoom)
+        dialog.show_all()
+        res = dialog.run()
+        dialog.hide()
+
+        if res != gtk.RESPONSE_ACCEPT:
+            return []
+
+        steps = [zoom_steps[x] for x, in sel_zoom.get_selected_rows(0)]
+        return steps
+
+    def _on_show_download_map(self, widget, data):
+        current_visible_tiles = self.surface_buffer.keys()
+        if len(current_visible_tiles) == 0:
+            return
+
+        current_zoom = self.ts.get_zoom()
+        if current_zoom == self.tile_loader.MAX_ZOOM:
+            self.show_error("Please zoom out to download tiles")
+
+        zoom_steps = []
+        for zoom in xrange(current_zoom + 1, min(self.tile_loader.MAX_ZOOM + 1, current_zoom + 7)):
+            count = len(current_visible_tiles) * (4 ** (zoom-current_zoom))
+            size = (count * HildonDownloadMap.SIZE_PER_TILE) / (1024.0 * 1024.0)
+            zoom_steps.append((zoom, size, count))
+
+        active_zoom_steps = self._show_tile_select_dialog(zoom_steps)
+        for zoom, size, count in active_zoom_steps:
+            print "Requesting zoom %d" % zoom
+
+        if len(active_zoom_steps) == 0:
+            return
+
+        zoom_step_keys = [x[0] for x in active_zoom_steps]
+        max_zoom_step = max(zoom_step_keys)
+
+        todo = sum(x[2] for x in active_zoom_steps)
+        status = {'finished': 0, 'aborted': 0}
+        tile_loader_threadpool = threadpool.ThreadPool(6)
+        requests = []
+
+        dialog = gtk.Dialog("Downloading Map Tiles...", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_CANCEL))
+        hildon.hildon_gtk_window_set_progress_indicator(dialog, 1)
+        pbar = gtk.ProgressBar()
+        dialog.vbox.pack_start(pbar)
+        dialog.show_all()
+
+        stopped = [False]
+        def cancel(widget, data):
+            stopped[0] = True
+
+        dialog.connect('response', cancel)
+        pbar.set_text("Preparing download of %d map tiles..." % todo)
+        while gtk.events_pending():
+            gtk.main_iteration()
+        if stopped[0]:
+                return
+
+        def add_tiles(source, zoom):
+            if zoom in zoom_step_keys:
+                requests.append(((source, zoom), {}))
+
+            if zoom + 1 <= max_zoom_step:
+                for add_x in (0, 1):
+                    for add_y in (0, 1):
+                        tile = (source[0] * 2 + add_x, source[1] * 2 + add_y)
+                        add_tiles(tile, zoom + 1)
+
+        for prefix, tile_x, tile_y, zoom, undersample in current_visible_tiles:
+            add_tiles((tile_x, tile_y), current_zoom)
+
+        if len(requests) != todo:
+            raise Exception("Something went wrong while calculating the amount of tiles. (%d vs. %d)" % (len(requests), todo))
+
+        def download_tile(tile, zoom):
+            tl = self.tile_loader(None, tile = tile, zoom = zoom)
+            res = tl.download_tile_only()
+            if res:
+                status['finished'] += 1
+            else:
+                status['aborted'] += 1
+
+
+        reqs = threadpool.makeRequests(download_tile, requests)
+        i = 0
+        count = len(reqs)
+        for r in reqs:
+            i += 1
+            tile_loader_threadpool.putRequest(r)
+            if i % 100 == 0:
+                pbar.set_text("Starting download...")
+                pbar.set_fraction(i/count)
+                while gtk.events_pending():
+                    gtk.main_iteration()
+                if stopped[0]:
+                    return
+
+
+
+        
+        
+        import time
+        import threading
+        try:
+            while True:
+                time.sleep(0.5)
+                while gtk.events_pending():
+                    gtk.main_iteration()
+                tile_loader_threadpool.poll()
+                pbar.set_fraction(sum(status.values())/float(todo))
+                pbar.set_text("%d of %d downloaded (%d errors)" % (sum(status.values()), todo, status['aborted']))
+                if stopped[0]:
+                    tile_loader_threadpool.dismissWorkers
+                    break
+        except threadpool.NoResultsPending:
+            print "**** No pending results."
+        except Exception,e:
+            print e
+            self.show_error(e)
+        finally:
+            print "breaking"
+            dialog.hide()

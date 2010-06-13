@@ -778,7 +778,7 @@ class SimpleGui(object):
 
 
     def get_id_string(self, tile, display_zoom, undersample):
-        return "%s|%d|%d|%d|%d" % (self.tile_loader.PREFIX, tile[0], tile[1], display_zoom, 1 if undersample else 0)
+        return (self.tile_loader.PREFIX, tile[0], tile[1], display_zoom, 1 if undersample else 0)
 
 
     def _add_to_buffer(self, id_string, surface, x, y, scale_source=None):

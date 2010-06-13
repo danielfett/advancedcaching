@@ -59,6 +59,7 @@ from hildon_plugins import HildonFieldnotes
 from hildon_plugins import HildonSearchPlace
 from hildon_plugins import HildonSearchGeocaches
 from hildon_plugins import HildonAboutDialog
+from hildon_plugins import HildonDownloadMap
 import openstreetmap
 import pango
 from portrait import FremantleRotation
@@ -66,7 +67,7 @@ from simplegui import SimpleGui
 from simplegui import UpdownRows
 import threadpool
 
-class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, HildonAboutDialog, SimpleGui):
+class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, HildonAboutDialog, HildonDownloadMap, SimpleGui):
 
     USES = ['locationgpsprovider', 'geonames']
 
@@ -440,6 +441,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         menu.append(self._get_search_button())
 
         menu.append(self._get_about_button())
+
+        menu.append(self._get_download_map_button())
 
     
         button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
