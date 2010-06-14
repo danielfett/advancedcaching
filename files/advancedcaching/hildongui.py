@@ -447,10 +447,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         menu.append(self._get_download_map_button())
 
     
-        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO)
-        button.set_label("Settings")
-        button.connect("clicked", self._on_show_settings_dialog, None)
-        menu.append(button)
+        
 
 
 
@@ -547,6 +544,11 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         table.attach(check_hide_found, 1, 2, i, i+1)
         i += 1
 
+        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_label("more Settings")
+        button.connect("clicked", self._on_show_settings_dialog, None)
+        button.connect("clicked", lambda caller: dialog.hide())
+        table.attach(button, 0, 1, i, i+1)
         
         dialog.vbox.pack_start(table)
         dialog.show_all()
