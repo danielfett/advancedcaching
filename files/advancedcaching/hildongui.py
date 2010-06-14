@@ -457,8 +457,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
     def _on_show_actions_clicked(self, caller, event):
         dialog = gtk.Dialog("Actions Menu", self.window, gtk.DIALOG_MODAL, ())
 
-        table = gtk.Table(3, 2, True)
-        i = 0
+        buttons = []
 
         if self.core.current_position != None:
             button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
@@ -471,15 +470,14 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             button.set_title("Go to my Position")
             button.set_value('Not available')
             button.set_sensitive(False)
-        table.attach(button, 0, 1, i, i+1)
+        buttons.append(button)
 
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_title("Go to Target")
         button.set_value(self.core.current_target.get_latlon(self.format))
         button.connect("clicked", self.on_show_target_clicked, None)
         button.connect("clicked", lambda caller: dialog.hide())
-        table.attach(button, 1, 2, i, i+1)
-        i += 1
+        buttons.append(button)
 
         c = self.ts.num2deg(self.map_center_x, self.map_center_y)
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
@@ -487,86 +485,113 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         button.set_value(c.get_latlon(self.format))
         button.connect("clicked", self.on_set_target_center, None)
         button.connect("clicked", lambda caller: dialog.hide())
-        table.attach(button, 0, 1, i, i+1)
+        buttons.append(button)
         self.button_center_as_target = button
 
         button = self._get_fieldnotes_button()
         button.connect("clicked", lambda caller: dialog.hide())
-        table.attach(button, 1, 2, i, i+1)
-        i += 1
+        buttons.append(button)
 
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_title("Download Overview")
         button.set_value("for the visible area")
         button.connect("clicked", self.on_download_clicked)
         button.connect("clicked", lambda caller: dialog.hide())
-        table.attach(button, 0, 1, i, i+1)
+        buttons.append(button)
 
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_title("Download Details")
         button.set_value("for all visible caches")
         button.connect("clicked", self.on_download_details_map_clicked)
         button.connect("clicked", lambda caller: dialog.hide())
-        table.attach(button, 1, 2, i, i+1)
-        i += 1
-        dialog.vbox.pack_start(table)
+        buttons.append(button)
+
+
+        self.make_rearranging_table(buttons, dialog)
         dialog.show_all()
         dialog.run()
         dialog.hide()
 
+
     def _on_show_preferences(self, caller, event):
         dialog = gtk.Dialog("Quick Settings", self.window, gtk.DIALOG_MODAL, ())
 
-        table = gtk.Table(2, 2, True)
-        i = 0
+        buttons = []
         
         button = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         button.set_label("Follow Position")
         button.set_active(self.track_enabled)
         #button.connect("clicked", self.on_track_toggled, None)
         button_track = button
-        table.attach(button, 0, 1, i, i+1)
-
-        tts_button, tts_selector, tts_settings = self._get_tts_settings()
-        table.attach(tts_button, 1, 2, i, i+1)
-        i += 1
-
+        buttons.append(button)
 
         check_map_double_size = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         check_map_double_size.set_label("Show Map in double size")
         check_map_double_size.set_active(self.settings['options_map_double_size'])
-        table.attach(check_map_double_size, 0, 1, i, i+1)
+        buttons.append(check_map_double_size)
+
+        tts_button, tts_get_result = self._get_tts_settings()
+        buttons.append(tts_button)
+
+        rotate_button, rotate_get_result = self._get_rotate_settings()
+        buttons.append(rotate_button)
+
 
 
         check_hide_found = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         check_hide_found.set_label("Hide Found Geocaches")
         check_hide_found.set_active(self.settings['options_hide_found'])
-        table.attach(check_hide_found, 1, 2, i, i+1)
-        i += 1
+        buttons.append(check_hide_found)
 
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_label("more Settings")
         button.connect("clicked", self._on_show_settings_dialog, None)
         button.connect("clicked", lambda caller: dialog.hide())
-        table.attach(button, 0, 1, i, i+1)
-        
-        dialog.vbox.pack_start(table)
+        buttons.append(button)
+
+        self.make_rearranging_table(buttons, dialog)
         dialog.show_all()
         dialog.run()
         dialog.hide()
 
-        #rotate = rotate_settings[rotate_selector.get_selected_rows(0)[0][0]][0]
-        tts_interval = tts_settings[tts_selector.get_selected_rows(0)[0][0]][0]
 
         self._set_track_mode(button_track.get_active())
 
         self.settings.update({
                              #'options_rotate_screen': rotate,
-                             'tts_interval':tts_interval,
+                             'tts_interval': tts_get_result(),
+                             'options_rotate_screen': rotate_get_result(),
                              'options_map_double_size': check_map_double_size.get_active(),
                              'options_hide_found': check_hide_found.get_active(),
                              })
         self._on_save_settings(None)
+ 
+    def make_rearranging_table(self, elements, dialog, columns = 2):
+        count = len(elements)
+        container = gtk.VBox()
+
+        def reorder_table(widget, event):
+            portrait = (event.width < event.height)
+            if portrait:
+                real_cols = 1
+            else:
+                real_cols = columns
+            for table in container.get_children():
+                for x in table.get_children():
+                    table.remove(x)
+                container.remove(table)
+            table = gtk.Table(int(ceil(count/float(real_cols))), real_cols, True)
+            i = 0
+            for x in elements:
+                table.attach(x, i % real_cols, i % real_cols + 1, i//real_cols, i//real_cols + 1)
+                i += 1
+            container.pack_start(table, False)
+            container.show_all()
+        id = self.window.connect('configure-event', reorder_table)
+
+        dialog.connect('hide', lambda widget: self.window.disconnect(id))
+        dialog.vbox.pack_start(container)
+        reorder_table(None, self.window.get_allocation())
 
     def show(self):
         self.window.show_all()
@@ -619,27 +644,11 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         check_show_html_description.set_active(self.settings['options_show_html_description'])
         list.pack_start(check_show_html_description)
 
-        rotate_settings = (
-                           (FremantleRotation.AUTOMATIC, 'Automatic'),
-                           (FremantleRotation.NEVER, 'Landscape'),
-                           (FremantleRotation.ALWAYS, 'Portrait')
-                           )
-        rotate_selector = hildon.TouchSelector(text=True)
-        
-        i = 0
-        for status, text in rotate_settings:
-            rotate_selector.append_text(text)
-            if self.settings['options_rotate_screen'] == status:
-                rotate_selector.select_iter(0, rotate_selector.get_model(0).get_iter(i), False)
-            i += 1
-
-        rotate_screen = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
-        rotate_screen.set_title('Screen Rotation')
-        rotate_screen.set_selector(rotate_selector)
-        list.pack_start(rotate_screen)
+        rotate_button, rotate_get_result = self._get_rotate_settings()
+        list.pack_start(rotate_button)
 
         list.pack_start(gtk.Label('TTS Settings'))
-        tts_button, tts_selector, tts_settings = self._get_tts_settings()
+        tts_button, tts_get_result = self._get_tts_settings()
         list.pack_start(tts_button)
 
         list.pack_start(gtk.Label('Other'))
@@ -657,8 +666,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         dialog.hide()
         if result != gtk.RESPONSE_ACCEPT:
             return
-        rotate = rotate_settings[rotate_selector.get_selected_rows(0)[0][0]][0]
-        tts_interval = tts_settings[tts_selector.get_selected_rows(0)[0][0]][0]
         if self.settings['options_show_html_description'] != check_show_html_description.get_active():
             self.old_cache_window = None
             
@@ -670,8 +677,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
                              'options_map_double_size': check_map_double_size.get_active(),
                              'options_hide_found': check_hide_found.get_active(),
                              'options_show_html_description': check_show_html_description.get_active(),
-                             'options_rotate_screen': rotate,
-                             'tts_interval':tts_interval,
+                             'options_rotate_screen': rotate_get_result(),
+                             'tts_interval':tts_get_result(),
                              })
         self._on_save_settings(None)
         #self.core.on_userdata_changed(self.settings['options_username'], self.settings['options_password'])
@@ -701,7 +708,29 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         tts_button = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
         tts_button.set_title('TTS interval')
         tts_button.set_selector(tts_selector)
-        return tts_button, tts_selector, tts_settings
+        tts_get_result = lambda: tts_settings[tts_selector.get_selected_rows(0)[0][0]][0]
+        return tts_button, tts_get_result
+
+    def _get_rotate_settings(self):
+        rotate_settings = (
+                           (FremantleRotation.AUTOMATIC, 'Automatic'),
+                           (FremantleRotation.NEVER, 'Landscape'),
+                           (FremantleRotation.ALWAYS, 'Portrait')
+                           )
+        rotate_selector = hildon.TouchSelector(text=True)
+
+        i = 0
+        for status, text in rotate_settings:
+            rotate_selector.append_text(text)
+            if self.settings['options_rotate_screen'] == status:
+                rotate_selector.select_iter(0, rotate_selector.get_model(0).get_iter(i), False)
+            i += 1
+
+        rotate_screen = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
+        rotate_screen.set_title('Screen Rotation')
+        rotate_screen.set_selector(rotate_selector)
+        rotate_get_result = lambda: rotate_settings[rotate_selector.get_selected_rows(0)[0][0]][0]
+        return rotate_screen, rotate_get_result
 
     def _on_show_dialog_change_target(self, widget, data):
         c = self._get_best_coordinate(self.core.current_target)
