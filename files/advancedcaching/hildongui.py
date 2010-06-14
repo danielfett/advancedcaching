@@ -55,6 +55,7 @@ import gobject
 import gtk
 import hildon
 import cairo
+from cachedownloader import HTMLManipulations
 from hildon_plugins import HildonFieldnotes
 from hildon_plugins import HildonSearchPlace
 from hildon_plugins import HildonSearchGeocaches
@@ -66,6 +67,7 @@ from portrait import FremantleRotation
 from simplegui import SimpleGui
 from simplegui import UpdownRows
 import threadpool
+from xml.sax.saxutils import escape as my_gtk_label_escape
 
 class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, HildonAboutDialog, HildonDownloadMap, SimpleGui):
 
@@ -833,10 +835,9 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
                 if text_longdesc == '':
                     text_longdesc = '<i>(no Description available)</i>'
                 if not text_shortdesc == '':
-                    showdesc = "<b>%s</b>\n\n%s" % (text_shortdesc, text_longdesc)
+                    showdesc = "<b>%s</b>\n\n%s" % (my_gtk_label_escape(text_shortdesc), my_gtk_label_escape(text_longdesc))
                 else:
-                    showdesc = text_longdesc
-                showdesc = showdesc.replace('&', '&amp;')
+                    showdesc = my_gtk_label_escape(text_longdesc)
                 widget_description.set_markup(showdesc)
                 events.append(self.window.connect('configure-event', self._on_configure_label, widget_description))
                 
@@ -871,7 +872,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
                     w_type = gtk.Label(l['type'].upper())
                     w_type.set_alignment(0, 0)
                 w_name = gtk.Label()
-                w_name.set_markup(" <b>%s</b>" % l['finder'].replace('&', '&amp;'))
+                w_name.set_markup(" <b>%s</b>" % my_gtk_label_escape(HTMLManipulations._decode_htmlentities(l['finder'])))
                 w_name.set_alignment(0, 0)
                 w_date = gtk.Label()
                 w_date.set_markup("<b>%4d-%02d-%02d</b>" % (int(l['year']), int(l['month']), int(l['day'])))
