@@ -141,7 +141,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 return dest
             else:
                 self.my_noimage = default
-                return default'''
+                return default
             '''
 
         def load(self, tryno=0):
