@@ -827,26 +827,39 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
                 widget_description.set_size_request(self.window.size_request()[0] - 10, -1)
                 p.add_with_viewport(widget_description)
 
-                text_shortdesc = self._strip_html(cache.shortdesc)
+                text_shortdesc = self._strip_html(cache.shortdesc).strip()
                 if cache.status == geocaching.GeocacheCoordinate.STATUS_DISABLED:
                     text_shortdesc = '<u>This Cache is not available!</u>\n%s' % text_shortdesc
-                text_longdesc = self._strip_html(text_longdesc)
+                text_longdesc = self._strip_html(text_longdesc).strip()
 
-                if text_longdesc == '':
-                    text_longdesc = '<i>(no Description available)</i>'
-                if not text_shortdesc == '':
+                if text_longdesc != '' and text_shortdesc != '':
                     showdesc = "<b>%s</b>\n\n%s" % (my_gtk_label_escape(text_shortdesc), my_gtk_label_escape(text_longdesc))
+                elif text_longdesc == '' and text_shortdesc == '':
+                    showdesc = "<i>No description available</i>"
+                elif text_longdesc == '':
+                    showdesc = my_gtk_label_escape(text_shortdesc)
                 else:
                     showdesc = my_gtk_label_escape(text_longdesc)
+                    
                 widget_description.set_markup(showdesc)
                 events.append(self.window.connect('configure-event', self._on_configure_label, widget_description))
                 
             else:
+                text_shortdesc = cache.shortdesc
+                if text_longdesc != '' and text_shortdesc != '':
+                    showdesc = "<b>%s</b><br />%s" % (text_shortdesc, text_longdesc)
+                elif text_longdesc == '' and text_shortdesc == '':
+                    showdesc = "<i>No description available</i>"
+                elif text_longdesc == '':
+                    showdesc = text_shortdesc
+                else:
+                    showdesc = text_longdesc
+
                 import gtkhtml2
                 description = gtkhtml2.Document()
                 description.clear()
                 description.open_stream('text/html')
-                description.write_stream('<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body>%s<hr>%s</body></html>' % (cache.shortdesc, text_longdesc))
+                description.write_stream('<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"></head><body>%s</body></html>' % showdesc)
                 description.close_stream()
                 description.connect('link-clicked', self._open_browser)
 
