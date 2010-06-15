@@ -1160,22 +1160,26 @@ class SimpleGui(object):
     def _expose_event(self, widget, event):
         if self.dragging:
             return True
-
         x, y, width, height = event.area
 
         cr = self.cr_drawing_area
+        #cr.clip()
+        #import time
+        #start = time.time()
+        #for i in xrange(50):
         cr.rectangle(x, y, width, height)
         cr.clip()
         cr.set_source_surface(self.cr_drawing_area_map)
-        cr.rectangle(x, y, width, height)
-        cr.fill()
+        cr.paint()
         cr.set_source_surface(self.cr_marks)
-        cr.rectangle(x, y, width, height)
-        cr.fill()
+        cr.paint()
         cr.set_source_surface(self.cr_osd)
-        cr.rectangle(x, y, width, height)
-        cr.fill()
+        cr.paint()
         cr.reset_clip()
+        #end = time.time()
+        #print end - start
+        #import sys
+        #sys.exit(0)
         widget.window.draw_drawable(self.xgc, self.pixmap, x, y, x, y, width, height)
         return False
                 

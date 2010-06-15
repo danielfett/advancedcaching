@@ -230,7 +230,9 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
     def set_tile_loader(self, loader):
         self.tile_loader = loader
-        self._draw_map()
+        self.ts.set_tile_loader(loader)
+        self._update_zoom_buttons()
+        self.zoom(0)
 
 
     def _on_key_press(self, window, event):
@@ -340,13 +342,11 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
 
 
-        #icon = gtk.image_new_from_stock(gtk.STOCK_ZOOM_OUT, gtk.ICON_SIZE_BUTTON)
         button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         button.set_image(self.image_action)
         button.connect("clicked", self._on_show_actions_clicked, None)
         buttons.pack_start(button, True, True)
 
-        #icon = gtk.image_new_from_stock(gtk.STOCK_ZOOM_IN, gtk.ICON_SIZE_BUTTON)
         button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         button.set_image(self.image_preferences)
         button.connect("clicked", self._on_show_preferences, None)
@@ -354,16 +354,16 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
 
 
-        #icon = gtk.image_new_from_stock(gtk.STOCK_ZOOM_IN, gtk.ICON_SIZE_BUTTON)
         button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         button.set_image(self.image_zoom_in)
         button.connect("clicked", self.on_zoomin_clicked, None)
+        self.button_zoom_in = button
         buttons.pack_start(button, True, True)
 
-        #icon = gtk.image_new_from_stock(gtk.STOCK_ZOOM_OUT, gtk.ICON_SIZE_BUTTON)
         button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         button.set_image(self.image_zoom_out)
         button.connect("clicked", self.on_zoomout_clicked, None)
+        self.button_zoom_out = button
         buttons.pack_start(button, True, True)
 
 
@@ -1355,13 +1355,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
         ##############################################
         #
-        # /Signal Handling from Core
-        #
-        ##############################################
-
-
-        ##############################################
-        #
         # Current Cache / Current Target / Setting Center
         #
         ##############################################
@@ -1410,11 +1403,18 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             newzoom = self.ts.get_zoom() + direction
         self.ts.set_zoom(newzoom)
         self.set_center(center, reset_track=False)
-        ##############################################
-        #
-        # /Map
-        #
-        ##############################################
+        self._update_zoom_buttons()
+
+    def _update_zoom_buttons(self):
+        if self.ts.get_zoom() == 1:
+            self.button_zoom_out.set_sensitive(False)
+        else:
+            self.button_zoom_out.set_sensitive(True)
+            
+        if self.ts.get_zoom() == self.tile_loader.MAX_ZOOM:
+            self.button_zoom_in.set_sensitive(False)
+        else:
+            self.button_zoom_in.set_sensitive(True)
 
         ##############################################
         #
@@ -1470,11 +1470,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
     def show_success(self, message):
         hildon.hildon_banner_show_information(self.window, "", message)
 
-        ##############################################
-        #
-        # /Displaying Messages and Window Handling
-        #
-        ##############################################
 
 
 
@@ -1531,16 +1526,9 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self._draw_arrow()
         self.redraw_marks()
 
-               
         ##############################################
         #
-        # /GPS Display
-        #
-        ##############################################
-
-        ##############################################
-        #
-        # Reading & Writing Settings
+        # Settings
         #
         ##############################################
 
@@ -1580,12 +1568,4 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         for i in ['options_username', 'options_password', 'download_noimages', 'options_show_name', 'options_hide_found', 'options_show_html_description', 'options_map_double_size', 'options_rotate_screen', 'tts_interval']:
             settings[i] = self.settings[i]
         self.core.save_settings(settings, self)
-
-
-
-        ##############################################
-        #
-        # /Reading & Writing Settings
-        #
-        ##############################################
 
