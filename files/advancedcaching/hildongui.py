@@ -965,13 +965,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         # coords
         p = gtk.VBox()
         self.cache_coord_page = p
-        x = notebook.get_n_pages()
+        coord_page_number = notebook.get_n_pages()
         notebook.append_page(p, gtk.Label("Coords"))
-        def switchpage(caller, page, pageno):
-            if pageno != x:
-                return
-            self.update_coords()
-        notebook.connect("switch-page", switchpage)
 
         # notes
         pan = hildon.PannableArea()
@@ -1009,6 +1004,15 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         details = gtk.VBox()
         details.pack_start(notebook)
         details.pack_start(notebook_switcher, False)
+
+
+        def on_switch_page(caller, page, pageno):
+            if pageno == coord_page_number:
+                self.update_coords()
+            notebook_switcher.get_children()[0].set_sensitive(pageno != 0)
+            notebook_switcher.get_children()[1].set_sensitive(pageno != notebook.get_n_pages() - 1)
+
+        notebook.connect("switch-page", on_switch_page)
 
         def reorder_details(widget, event=None):
             portrait = (event.width < event.height)
