@@ -1096,7 +1096,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             name = c.display_text
         except AttributeError:
             name = "Coordinate Details" if (c.name == "") else c.name
-        dialog = gtk.Dialog(name, self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        dialog = gtk.Dialog(self.shorten_name(name, 70), self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
         if c.lat != None:
             dialog.add_button("as Target", RESPONSE_AS_TARGET)
             dialog.add_button("as Main Coord.", RESPONSE_AS_MAIN)
