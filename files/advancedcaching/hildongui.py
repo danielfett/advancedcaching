@@ -608,19 +608,17 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         p.add_with_viewport(list)
         dialog.vbox.pack_start(p, True)
 
-        opts = gtk.Table(2, 2)
-        opts.attach(gtk.Label("Username"), 0, 1, 0, 1)
+        c_size = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
         username = hildon.Entry(gtk.HILDON_SIZE_AUTO)
         username.set_text(self.settings['options_username'])
-        opts.attach(username, 1, 2, 0, 1)
+        list.pack_start(hildon.Caption(c_size, "Username", username, None, hildon.CAPTION_MANDATORY))
         
-        opts.attach(gtk.Label("Password"), 0, 1, 1, 2)
         password = hildon.Entry(gtk.HILDON_SIZE_AUTO)
         password.set_visibility(False)
         password.set_text(self.settings['options_password'])
-        opts.attach(password, 1, 2, 1, 2)
+        list.pack_start(hildon.Caption(c_size, "Password", password, None, hildon.CAPTION_MANDATORY))
 
-        list.pack_start(opts)
+        
 
         
         list.pack_start(gtk.Label('Display'))

@@ -108,9 +108,11 @@ class HildonFieldnotes(object):
         cache = self.current_cache
         dialog = gtk.Dialog("Write Fieldnote", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 
+
         fieldnotes = hildon.TextView()
         fieldnotes.set_placeholder("Your fieldnote text...")
         fieldnotes.get_buffer().set_text(cache.fieldnotes)
+
 
         fieldnotes_log_as_selector = hildon.TouchSelector(text=True)
 
@@ -127,6 +129,7 @@ class HildonFieldnotes(object):
 
         dialog.vbox.pack_start(fieldnotes_log_as, False)
         dialog.vbox.pack_start(fieldnotes, True)
+        #dialog.vbox.pack_start(hildon.Caption(None, "Text", fieldnotes, None, hildon.CAPTION_OPTIONAL))
         dialog.show_all()
         result = dialog.run()
         dialog.hide()
@@ -180,9 +183,7 @@ class HildonSearchGeocaches(object):
 
         name = hildon.Entry(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
         name.set_placeholder("search for name...")
-        name_hbox = gtk.HBox()
-        name_hbox.pack_start(gtk.Label("Name: "), False, False)
-        name_hbox.pack_start(name, True, True)
+        name_hbox = hildon.Caption(None, "Name", name, None, hildon.CAPTION_OPTIONAL)
 
         sel_dist_type = hildon.TouchSelector(text=True)
         sel_dist_type.append_text('anywhere')
@@ -282,30 +283,22 @@ class HildonSearchGeocaches(object):
         pan.add_with_viewport(options)
         dialog.vbox.pack_start(pan)
 
-        frame_all = gtk.Frame("Search Geocaches")
-        vbox_all = gtk.VBox()
-        frame_all.add(vbox_all)
-        options.pack_start(frame_all)
+        options.pack_start(gtk.Label("Search Geocaches"))
+        options.pack_start(name_hbox)
+        options.pack_start(pick_dist_type)
+        options.pack_start(pick_dist_radius)
+        options.pack_start(pick_type)
+        options.pack_start(pick_status)
 
-
-        frame_details = gtk.Frame("Details...")
-        vbox_details = gtk.VBox()
-        frame_details.add(vbox_details)
-        options.pack_start(frame_details)
-
-        vbox_all.pack_start(name_hbox)
-        vbox_all.pack_start(pick_dist_type)
-        vbox_all.pack_start(pick_dist_radius)
-        vbox_all.pack_start(pick_type)
-        vbox_all.pack_start(pick_status)
-
+        options.pack_start(gtk.Label("Details..."))
         w = gtk.Label("If you select something here, only geocaches for which details were downloaded will be shown in the result.")
-        vbox_details.pack_start(w)
         w.set_line_wrap(True)
         w.set_alignment(0, 0.5)
-        vbox_details.pack_start(pick_size)
-        vbox_details.pack_start(pick_diff)
-        vbox_details.pack_start(pick_terr)
+        options.pack_start(w)
+
+        options.pack_start(pick_size)
+        options.pack_start(pick_diff)
+        options.pack_start(pick_terr)
 
         
 
