@@ -1314,6 +1314,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
     def _on_show_on_map(self, widget, data):
         self.set_center(data)
         self.hide_cache_view(go_to_map = True)
+        self._on_set_active_page(None, False)
 
 
 
