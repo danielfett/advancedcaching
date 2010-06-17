@@ -197,7 +197,8 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
         def __download(self, remote, local):
             if path.exists(local):
                 return True
-
+            import time
+            #time.sleep(10)
             with TileLoader.semaphore:
                 try:
                     if self.stop:

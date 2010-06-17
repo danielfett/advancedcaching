@@ -1656,6 +1656,8 @@ class SimpleGui(object):
 
     def _set_track_mode(self, mode):
         self.track_enabled = mode
+        if mode and self.gps_data != None and self.gps_data.position != None:
+            self.set_center(self.gps_data.position)
         try:
             self.button_track.set_active(mode)
         except:
