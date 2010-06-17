@@ -756,12 +756,17 @@ class SimpleGui(object):
         requests = []
         new_surface_buffer = {}
         old_surface_buffer = self.surface_buffer
+        tiles = []
+
+        self.i = 0 
         for i in xrange(-span_x, span_x + 1, 1):
             for j in xrange(-span_y, span_y + 1, 1):
                 tile = (xi + i, yi + j)
 
                 dx = i * size + offset_x
                 dy = j * size + offset_y
+                if tile in tiles:
+                    continue
                 id_string = self.get_id_string(tile, zoom, undersample)
                 if id_string in old_surface_buffer and old_surface_buffer[id_string][0] != self.tile_loader.noimage_cantload and old_surface_buffer[id_string][0] != self.tile_loader.noimage_loading:
                     new_surface_buffer[id_string] = old_surface_buffer[id_string]
@@ -771,6 +776,9 @@ class SimpleGui(object):
         self.surface_buffer = new_surface_buffer
         #print "Making %d Requests, preserving %d" % (len(requests), len(new_surface_buffer))
         reqs = threadpool.makeRequests(self._run_tile_loader, requests)
+        cr = gtk.gdk.CairoContext(cairo.Context(self.cr_drawing_area_map))
+        cr.set_source_rgba(0.5, 0.5, 0.5, 1)
+        cr.paint()
         for r in reqs:
             self.tile_loader_threadpool.putRequest(r)
         self._draw_marks()
@@ -784,15 +792,16 @@ class SimpleGui(object):
     def _add_to_buffer(self, id_string, surface, x, y, scale_source=None):
         self.surface_buffer[id_string] = [surface, x, y, scale_source]
         self._draw_tiles(which=([surface, x, y, scale_source], ))
-        return False
-
 
     def _draw_tiles(self, which=None, off_x=0, off_y=0):
         cr = gtk.gdk.CairoContext(cairo.Context(self.cr_drawing_area_map))
         if which == None:
             which = self.surface_buffer.values()
+        #print len(which), which
         for surface, x, y, scale_source in which:
             #cr = self.cr_map_context
+            #self.i += 1
+            #print self.i, surface, x, y, scale_source
             if surface == None:
                 print "pbuf was none!"
                 return
@@ -809,9 +818,16 @@ class SimpleGui(object):
                 scale.translate(-x + off_x, -y + off_y)
                 imgpat.set_matrix(scale)
                 cr.set_source(imgpat)
-            cr.rectangle(max(0, x + off_x), max(0, y + off_y), min(size, self.map_width - x + size), min(size, self.map_height - y + size))
+            cr.rectangle(max(0, x + off_x), max(0, y + off_y), min(size + x, size, self.map_width - x + size), min(size + y, size, self.map_height - y + size))
+            #cr.set_source_rgba(0.5, 0, 0, 0.3)
             cr.fill()
-            self.drawing_area.queue_draw_area(x + off_x, y + off_y, size, size)
+            self.drawing_area.queue_draw_area(max(0, x + off_x), max(0, y + off_y), min(size + x, size, self.map_width - x + size), min(size + y, size, self.map_height - y + size))
+            #layout = self.drawing_area.create_pango_layout("%d" % self.i)
+            #layout.set_font_description(self.CACHE_DRAW_FONT)
+            #cr.set_source_rgba(0, 0, 0, 1)
+
+            #cr.move_to(max(0, x + off_x) + 20*self.i, max(0, y + off_y))
+            #cr.show_layout(layout)
         return False
 
     def _run_tile_loader(self, id_string, tile, zoom, undersample, x, y, callback_draw):
@@ -1006,7 +1022,7 @@ class SimpleGui(object):
                 self.gps_last_screen_position = p
 
         p = self.gps_last_screen_position
-        if self.point_in_screen(p):
+        if p != (0, 0) and self.point_in_screen(p):
 
             cr.set_line_width(2)
 

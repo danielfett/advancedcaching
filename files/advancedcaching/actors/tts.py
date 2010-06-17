@@ -10,6 +10,10 @@ class TTS(gobject.GObject):
     MAX_INTERVAL = 50
     DEFAULT_INTERVAL = 10
 
+    __gsignals__ = {
+                    'error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+                    }
+
     def __init__(self, core):
         gobject.GObject.__init__(self)
 
@@ -66,7 +70,7 @@ class TTS(gobject.GObject):
             self.proc.stdin.write("Espeak ready.\n")
         except:
             self.proc = None
-            raise Exception("Please install the 'espeak'-package.")
+            self.emit('error', Exception("Please install the 'espeak' package from the package manager to get text-to-speech functionality."))
 
     def __disconnect(self):
         print "Stopping espeak..."

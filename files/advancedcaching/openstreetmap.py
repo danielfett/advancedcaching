@@ -97,7 +97,8 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             answer = True
             if not path.isfile(self.local_filename):
                 self.create_recursive(self.local_path)
-                gobject.idle_add(lambda: self.draw(self.get_no_image(self.noimage_loading)))
+                #gobject.idle_add(lambda: self.draw(self.get_no_image(self.noimage_loading)))
+                self.draw(self.get_no_image(self.noimage_loading))
                 answer = self.__download(self.remote_filename, self.local_filename)
 
             # now the file hopefully exists
@@ -197,8 +198,9 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
         def __download(self, remote, local):
             if path.exists(local):
                 return True
-            import time
+            #import time
             #time.sleep(10)
+            #return False
             with TileLoader.semaphore:
                 try:
                     if self.stop:
