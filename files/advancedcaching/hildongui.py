@@ -623,7 +623,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         
         list.pack_start(gtk.Label('Display'))
         check_show_cache_id = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
-        check_show_cache_id.set_label("Show Geocache ID on Map")
+        check_show_cache_id.set_label("Show Geocache Name on Map")
         check_show_cache_id.set_active(self.settings['options_show_name'])
         list.pack_start(check_show_cache_id)
 
