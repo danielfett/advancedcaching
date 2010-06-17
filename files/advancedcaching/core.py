@@ -36,7 +36,7 @@ import downloader
 import geocaching
 import gobject
 import gpsreader
-from os import path, mkdir, extsep
+from os import path, mkdir, extsep, remove, walk
 import provider
 from threading import Thread
 import cachedownloader
@@ -198,6 +198,54 @@ class Core(gobject.GObject):
                     print e
                     pass
 
+    def optimize_data(self):
+        self.pointprovider.push_filter()
+        self.pointprovider.set_filter(found = True)
+        old_geocaches = self.pointprovider.get_points_filter()
+        print old_geocaches
+        self.pointprovider.pop_filter()
+        for x in old_geocaches:
+            images = x.get_images()
+            if len(images) == 0:
+                continue
+            for filename, caption in images.items():
+                fullpath = path.join(self.settings['download_output_dir'], filename)
+                try:
+                    remove(fullpath)
+                except Exception:
+                    print "Could not remove", fullpath
+                    pass
+        self.pointprovider.remove_geocaches(old_geocaches)
+        self.pointprovider.optimize()
+
+    def get_file_sizes(self):
+        folder = self.settings['download_output_dir']
+        folder_size = 0
+        for (p, dirs, files) in walk(folder):
+          for file in files:
+            filename = path.join(p, file)
+            folder_size += path.getsize(filename)
+        sqlite_size = path.getsize(self.CACHES_DB)
+        return {'images' : folder_size, 'sqlite' : sqlite_size}
+
+    @staticmethod
+    def format_file_size(size):
+        if size < 1024:
+            return "%d B" % size
+        elif size < 1024 * 1024:
+            return "%d KiB" % (size / 1024)
+        elif size < 1024 * 1024 * 1024:
+            return "%d MiB" % (size / (1024 * 1024))
+        else:
+            return "%d GiB" % (size / (1024 * 1024 * 1024))
+
+
+    ##############################################
+    #
+    # Handling Updates
+    #
+    ##############################################
+
     def _install_updates(self):
         updated_modules = 0
         if path.exists(self.UPDATE_DIR):
@@ -226,7 +274,6 @@ class Core(gobject.GObject):
         import tempfile
         import hashlib
         from shutil import copyfile
-        from os import remove
         self.create_recursive(self.UPDATE_DIR)
         baseurl = 'http://www.danielfett.de/files/agtl-updates/%s' % VERSION
         url = "%s/updates" % baseurl

@@ -295,4 +295,13 @@ class PointProvider():
             return coord
         else:
             return None
+
+    def remove_geocaches(self, list):
+        names = [x.name for x in list if x.name != '']
+        query = 'DELETE FROM %s WHERE name IN (%s)' % (self.cache_table, (','.join('?' for x in names)))
         
+        self.conn.execute(query, tuple(names))
+        self.save()
+
+    def optimize(self):
+        self.conn.execute('VACUUM')

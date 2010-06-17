@@ -511,8 +511,8 @@ class HildonAboutDialog(object):
         return button
 
     def _on_show_about(self, widget, data):
-        (RESPONSE_UPDATE, RESPONSE_HOMEPAGE) = range(2)
-        dialog = gtk.Dialog("About AGTL", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ('Update Parser', RESPONSE_UPDATE, 'Website', RESPONSE_HOMEPAGE))
+        (RESPONSE_UPDATE, RESPONSE_HOMEPAGE, RESPONSE_OPTIMIZE) = range(3)
+        dialog = gtk.Dialog("About AGTL", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ('Update Parser', RESPONSE_UPDATE, 'Website', RESPONSE_HOMEPAGE, 'Optimize', RESPONSE_OPTIMIZE))
         dialog.set_size_request(800, 800)
         copyright = '''Copyright (C) in most parts 2010 Daniel Fett
 This program is free software: you can redistribute it and/or modify
@@ -541,9 +541,18 @@ Author: Daniel Fett advancedcaching@fragcom.de'''
 
         l = gtk.Label('')
         import cachedownloader
-        l.set_markup("website parser version %d (from %s)" % (cachedownloader.VERSION, cachedownloader.VERSION_DATE))
+        l.set_markup("Website parser version %d (from %s)" % (cachedownloader.VERSION, cachedownloader.VERSION_DATE))
         l.set_alignment(0, 0)
         dialog.vbox.pack_start(l, False)
+
+        sizes = self.core.get_file_sizes()
+        l = gtk.Label('')
+        import cachedownloader
+        l.set_markup("Database Size: %s, Image Folder Size: %s\n(click optimize to purge found geocaches and their images)" % (self.core.format_file_size(sizes['sqlite']), self.core.format_file_size(sizes['images'])))
+        l.set_alignment(0, 0)
+        l.set_line_wrap(True)
+        dialog.vbox.pack_start(l, False)
+        dialog.vbox.pack_start(gtk.HSeparator(), False)
 
         l = gtk.Label()
         l.set_line_wrap(True)
@@ -557,13 +566,20 @@ Author: Daniel Fett advancedcaching@fragcom.de'''
 
         dialog.show_all()
         result = dialog.run()
-        dialog.hide()
 
         if result == RESPONSE_HOMEPAGE:
+            dialog.hide()
             self._open_browser(None, 'http://www.danielfett.de/')
             return
         elif result == RESPONSE_UPDATE:
+            dialog.hide()
             self._try_parser_update()
+            self._on_show_about(None, None)
+        elif result == RESPONSE_OPTIMIZE:
+            hildon.hildon_gtk_window_set_progress_indicator(dialog, 1)
+            self.core.optimize_data()
+            hildon.hildon_gtk_window_set_progress_indicator(dialog, 0)
+            dialog.hide()
             self._on_show_about(None, None)
 
 
@@ -606,7 +622,7 @@ class HildonDownloadMap(object):
         pick_zoom.set_title("Select Zoom Levels")
         def print_func(widget):
             size = sum(zoom_steps[x][1] for x, in sel_zoom.get_selected_rows(0))
-            pick_zoom.set_value("~%.2f MB" % size)
+            pick_zoom.set_value('~' + self.core.format_file_size(size))
         pick_zoom.connect('value-changed', print_func)
         pick_zoom.connect('realize', print_func)
 
