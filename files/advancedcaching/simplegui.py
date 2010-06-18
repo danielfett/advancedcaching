@@ -677,7 +677,7 @@ class SimpleGui(object):
             self._set_track_mode(False)
         self.draw_at_x = self.draw_at_y = 0
         if offset_x != 0 or offset_y != 0:
-            gobject.idle_add(self._draw_map)
+            self._draw_map()
 
     def _drag_draw(self):
         if not self.dragging:
@@ -758,7 +758,7 @@ class SimpleGui(object):
         old_surface_buffer = self.surface_buffer
         tiles = []
 
-        self.i = 0 
+        
         for i in xrange(-span_x, span_x + 1, 1):
             for j in xrange(-span_y, span_y + 1, 1):
                 tile = (xi + i, yi + j)
@@ -777,7 +777,8 @@ class SimpleGui(object):
         #print "Making %d Requests, preserving %d" % (len(requests), len(new_surface_buffer))
         reqs = threadpool.makeRequests(self._run_tile_loader, requests)
         cr = gtk.gdk.CairoContext(cairo.Context(self.cr_drawing_area_map))
-        cr.set_source_rgba(0.5, 0.5, 0.5, 1)
+        cr.set_source_rgba(0, 0, 0, 1)
+        self.delay_expose = True
         cr.paint()
         for r in reqs:
             self.tile_loader_threadpool.putRequest(r)
@@ -794,6 +795,7 @@ class SimpleGui(object):
         self._draw_tiles(which=([surface, x, y, scale_source], ))
 
     def _draw_tiles(self, which=None, off_x=0, off_y=0):
+        self.delay_expose = False
         cr = gtk.gdk.CairoContext(cairo.Context(self.cr_drawing_area_map))
         if which == None:
             which = self.surface_buffer.values()
@@ -971,6 +973,8 @@ class SimpleGui(object):
 
                     
     def _draw_marks(self):
+        if not self.drawing_area_configured:
+            return False
         self.cr_marks = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map_width, self.map_height)
         cr = gtk.gdk.CairoContext(cairo.Context(self.cr_marks))
 
@@ -1174,7 +1178,7 @@ class SimpleGui(object):
 
         
     def _expose_event(self, widget, event):
-        if self.dragging:
+        if self.dragging or self.delay_expose:
             return True
         x, y, width, height = event.area
 
