@@ -170,6 +170,7 @@ class SimpleGui(object):
         self.images = []
         self.active_tile_loaders = []
         self.surface_buffer = {}
+        self.delay_expose = False
 
         self.tile_loader_threadpool = threadpool.ThreadPool(openstreetmap.CONCURRENT_THREADS)
 
