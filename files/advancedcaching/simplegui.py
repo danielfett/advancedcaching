@@ -413,15 +413,6 @@ class SimpleGui(object):
             self.north_indicator_layout.set_alignment(pango.ALIGN_CENTER)
             self.north_indicator_layout.set_font_description(self.FONT_NORTH_INDICATOR)
 
-            '''
-            self.pixmap_north_indicator = gtk.gdk.Pixmap(widget.window, self.NORTH_INDICATOR_SIZE, self.NORTH_INDICATOR_SIZE)
-            self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("white"))
-            self.pixmap_north_indicator.draw_rectangle(self.xgc_arrow, True, 0, 0, self.NORTH_INDICATOR_SIZE, self.NORTH_INDICATOR_SIZE)
-            x, y = north_indicator_layout.get_size()
-            self.xgc_arrow.set_rgb_fg_color(gtk.gdk.color_parse("black"))
-            self.pixmap_north_indicator.draw_layout(self.xgc_arrow, (self.NORTH_INDICATOR_SIZE - x / pango.SCALE) / 2, (self.NORTH_INDICATOR_SIZE - y / pango.SCALE) / 2, north_indicator_layout)
-            '''
-
         self.drawing_area_arrow_configured = True
         gobject.idle_add(self._draw_arrow)
                 

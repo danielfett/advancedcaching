@@ -32,12 +32,14 @@ import datetime
 import geo
 import os
 import threading
+import logging
+logger = logging.getLogger('cachedownloader')
 global Image
 try:
     import Image
 except:
     Image = None
-    print "Not using image resize feature"
+    logger.info("Not using image resize feature")
 import re
 import gobject
 
@@ -132,7 +134,7 @@ class CacheDownloader(gobject.GObject):
         self.images = {}
 
     def _download_image(self, url):
-        print "+ Checking download for %s" % url
+        logger.info("Checking download for %s" % url)
         if url in self.downloaded_images:
             return self.downloaded_images[url]
         
@@ -145,7 +147,7 @@ class CacheDownloader(gobject.GObject):
         if self.download_images:
             try:
                 filename = os.path.join(self.path, id)
-                print "+ Downloading %s to %s" % (url, filename)
+                logger.info("Downloading %s to %s" % (url, filename))
                 f = open(filename, 'wb')
                 f.write(self.downloader.get_reader(url).read())
                 f.close()
@@ -154,7 +156,7 @@ class CacheDownloader(gobject.GObject):
                     im.thumbnail((self.resize, self.resize), Image.ANTIALIAS)
                     im.save(filename)
             except Exception, e:
-                print "could not download %s: %s" % (url, e)
+                logger.exception("Could not download %s: %s" % (url, e))
                 return None
 
         self.downloaded_images[url] = id
@@ -183,7 +185,7 @@ class CacheDownloader(gobject.GObject):
         coordinate = coordinate.clone()
         self.current_cache = coordinate
         #try:
-        print "* Downloading %s..." % (coordinate.name)
+        logger.info("Downloading %s..." % (coordinate.name))
         response = self._get_cache_page(coordinate.name)
         if outfile != None:
             f = open(outfile, 'w')
@@ -203,7 +205,7 @@ class CacheDownloader(gobject.GObject):
     def get_geocaches(self, location, rec_depth = 0):
         if not CacheDownloader.lock.acquire(False):
             self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
-            print "downloading"
+            logger.warning("Download in progress")
             return
         # don't recurse indefinitely
         if rec_depth > self.MAX_REC_DEPTH:
@@ -314,7 +316,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     def _parse_cache_page(self, cache_page, coordinate):
         section = ''
         shortdesc = desc = hints = waypoints = images = logs = owner = head = ''
-        print "Start parsing"
+        logger.debug("Start parsing...")
         for line in cache_page:
             line = line.strip()
             
@@ -356,7 +358,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 waypoints = "%s%s  " % (waypoints, line)
             elif section == 'images':
                 images = "%s%s " % (images, line)
-        print 'finished parsing'
+        logger.debug('finished parsing')
         coordinate.size, coordinate.difficulty, coordinate.terrain, coordinate.owner, coordinate.lat, coordinate.lon = self.__parse_head(head)
         coordinate.shortdesc = self.__treat_shortdesc(shortdesc)
         coordinate.desc = self.__treat_desc(desc)
@@ -381,7 +383,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         elif sizestring == 'not_chosen' or sizestring == 'other':
             size = 5
         else:
-            print "Size not known: %s" % size
+            logger.warning("Size not known: %s" % size)
             size = 5
         diff = float(re.compile('(?s)Difficulty:</strong>.*?<img src="http://www.geocaching.com/images/stars/stars[0-9_]+\\.gif" alt="([0-9.]+) out').search(head).group(1))*10
         terr = float(re.compile('(?s)Terrain:</strong>.*?<img src="http://www.geocaching.com/images/stars/stars[0-9_]+\\.gif" alt="([0-9.]+) out').search(head).group(1))*10
@@ -389,7 +391,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
         coords = re.compile('lat=([0-9.-]+)&amp;lon=([0-9.-]+)&amp;').search(head)
         lat = float(coords.group(1))
         lon = float(coords.group(2))
-        print size, diff, terr, owner, lat, lon
         return size, diff, terr, owner, lat, lon
         
         
@@ -522,7 +523,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
         if text in months:
             return months.index(text) + 1
-        print "Unknown month: " + text
+        logger.warning("Unknown month: " + text)
         return 0
 
 if __name__ == '__main__':

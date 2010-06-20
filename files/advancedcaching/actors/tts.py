@@ -87,7 +87,7 @@ class TTS(gobject.GObject):
 
     def __tell(self):
         output = "%s\n%s\n" % (self.__format_distance(), self.__format_bearing())
-        logger.info("Espeak: %s" % output)
+        logger.info("Espeak: %s" % repr(output.strip()))
         self.proc.stdin.write(output)
         if self.automatic_interval:
             self.__set_enabled(-1)

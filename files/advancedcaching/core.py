@@ -265,13 +265,13 @@ class Core(gobject.GObject):
                                 exec line in v_dict
                                 break
                     if v_dict['VERSION'] > m.VERSION:
-                        logging.info("Reloading Module '%s', current version number: %d, new version number: %d" % (m.__name__, v_dict['VERSION'], m.VERSION))
+                        pass#logging.info("Reloading Module '%s', current version number: %d, new version number: %d" % (m.__name__, v_dict['VERSION'], m.VERSION))
                         reload(m)
                         updated_modules += 1
                     else:
                         logging.info("Not reloading Module '%s', current version number: %d, version number of update file: %d" % (m.__name__, v_dict['VERSION'], m.VERSION))
                 else:
-                    logging.info("Skipping nonexistant update from", path.join(self.UPDATE_DIR, "%s%spy" % (m.__name__, extsep)))
+                    logging.info("Skipping nonexistant update from" + path.join(self.UPDATE_DIR, "%s%spy" % (m.__name__, extsep)))
         return updated_modules
 
     def try_update(self):

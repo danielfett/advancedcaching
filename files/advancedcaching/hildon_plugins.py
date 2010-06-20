@@ -22,13 +22,14 @@ import gtk
 import hildon
 import pango
 import threadpool
-import openstreetmap
+import logging
+logger = logging.getLogger('plugins')
 
 class HildonSearchPlace(object):
     
     def plugin_init(self):
         self.last_searched_text = ''
-        print "+ Using Search Place plugin"
+        logger.info("Using Search Place plugin")
 
 
     def _get_search_place_button(self):
@@ -77,7 +78,7 @@ class HildonFieldnotes(object):
     def plugin_init(self):
         #self.update_fieldnotes_display()
         self.core.connect('fieldnotes-changed', self._on_fieldnotes_changed)
-        print "+ Using Fieldnotes plugin"
+        logger.info("Using Fieldnotes plugin")
 
     def _get_fieldnotes_button(self):
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
@@ -134,7 +135,7 @@ class HildonFieldnotes(object):
         result = dialog.run()
         dialog.hide()
         if result != gtk.RESPONSE_ACCEPT:
-            print 'Not logging this fieldnote'
+            logger.debug('Not logging this fieldnote')
             return
         from time import gmtime
         from time import strftime
@@ -167,7 +168,7 @@ class HildonSearchGeocaches(object):
     def plugin_init(self):
         self.old_search_window = None
         self.map_filter_active = False
-        print "+ Using Search plugin"
+        logger.info("Using Search plugin")
 
 
     def _get_search_button(self):
@@ -378,7 +379,7 @@ class HildonSearchGeocaches(object):
                 try:
                     center = self.gps_last_good_fix.position
                 except AttributeError:
-                    print "No current Fix."
+                    logger.debug("No current Fix.")
                     pass
             elif dist_type == 2:
                 center = self.ts.num2deg(self.map_center_x, self.map_center_y)
@@ -502,7 +503,7 @@ class HildonSearchGeocaches(object):
 class HildonAboutDialog(object):
 
     def plugin_init(self):
-        print "+ Using about dialog"
+        logger.info("Using About Dialog plugin")
 
     def _get_about_button(self):
         button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
@@ -600,7 +601,7 @@ class HildonDownloadMap(object):
     SIZE_PER_TILE = 1200
 
     def plugin_init(self):
-        print "+ Using map download dialog"
+        logger.info("Using Map Download plugin")
 
     def _get_download_map_button(self):
         button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)

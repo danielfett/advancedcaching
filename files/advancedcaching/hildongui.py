@@ -151,6 +151,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.old_cache_window = None
         self.cache_calc_vars = {}
         self.surface_buffer = {}
+        self.delay_expose = False
 
         self.tile_loader_threadpool = threadpool.ThreadPool(openstreetmap.CONCURRENT_THREADS * 2)
                 
@@ -207,7 +208,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.image_info = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'general_information'})
         self.image_left = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'general_back'})
         self.image_right = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'general_forward'})
-        print self.ICONPATH % {'size' : 64, 'name':'general_add'}
 
     def _open_browser(self, widget, link):
         system("dbus-send --print-reply --dest=com.nokia.osso_browser /com/nokia/osso_browser/request com.nokia.osso_browser.open_new_window 'string:%s' &" % link)
@@ -560,9 +560,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
 
         self._set_track_mode(button_track.get_active())
-
+        logger.debug("Setting 'Hide Found Geocaches' to %s" % check_hide_found.get_active())
         self.settings.update({
-                             #'options_rotate_screen': rotate,
                              'tts_interval': tts_get_result(),
                              'options_rotate_screen': rotate_get_result(),
                              'options_map_double_size': check_map_double_size.get_active(),
