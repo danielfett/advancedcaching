@@ -48,6 +48,9 @@ from os import path
 import re
 from cachedownloader import HTMLManipulations
 
+import logging
+logger = logging.getLogger('simplegui')
+
 
 class SimpleGui(object):
     USES = ['gpsprovider']
@@ -1535,6 +1538,7 @@ class SimpleGui(object):
             self.set_center(self.core.current_target)
                 
     def on_track_toggled(self, widget, data=None):
+        logger.info("Track toggled, new state: " + repr(widget.get_active()))
         self.track_enabled = widget.get_active()
         if widget.get_active() and self.gps_data != None and self.gps_data.position != None:
             self.set_center(self.gps_data.position, reset_track=False)
@@ -1667,6 +1671,7 @@ class SimpleGui(object):
                 
     def set_center(self, coord, noupdate=False, reset_track=True):
         #xml.get_widget("notebook_all").set_current_page(0)
+        logger.info("Set Center to %s with reset_track = %s" % (coord, reset_track))
         self.map_center_x, self.map_center_y = self.ts.deg2num(coord)
         self.draw_at_x = 0
         self.draw_at_y = 0
@@ -1677,8 +1682,9 @@ class SimpleGui(object):
 
     def _set_track_mode(self, mode):
         self.track_enabled = mode
+        logger.info("Set track mode = %s" % mode)
         if mode and self.gps_data != None and self.gps_data.position != None:
-            self.set_center(self.gps_data.position)
+            self.set_center(self.gps_data.position, reset_track = False)
         try:
             self.button_track.set_active(mode)
         except:

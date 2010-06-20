@@ -69,6 +69,10 @@ from simplegui import UpdownRows
 import threadpool
 from xml.sax.saxutils import escape as my_gtk_label_escape
 
+
+import logging
+logger = logging.getLogger('simplegui')
+
 class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, HildonAboutDialog, HildonDownloadMap, SimpleGui):
 
     USES = ['locationgpsprovider', 'geonames']

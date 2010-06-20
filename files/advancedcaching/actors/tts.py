@@ -1,6 +1,7 @@
 import subprocess
-
+import logging
 import gobject
+logger = logging.getLogger('tts')
 
 class TTS(gobject.GObject):
 
@@ -36,7 +37,7 @@ class TTS(gobject.GObject):
         if interval == -1:
             interval = self.__calculate_automatic_interval(self.gps_target_distance)
             self.automatic_interval = True
-            print "Setting interval to %d" % interval
+            logger.info("Setting interval to %d" % interval)
         else:
             self.automatic_interval = False
             
@@ -64,7 +65,7 @@ class TTS(gobject.GObject):
     def __connect(self):
         if self.proc != None:
             return
-        print "Starting espeak..."
+        logger.info("Starting espeak...")
         try:
             self.proc = subprocess.Popen("espeak", stdin=subprocess.PIPE)
             self.proc.stdin.write("Espeak ready.\n")
@@ -73,7 +74,7 @@ class TTS(gobject.GObject):
             self.emit('error', Exception("Please install the 'espeak' package from the package manager to get text-to-speech functionality."))
 
     def __disconnect(self):
-        print "Stopping espeak..."
+        logger.info("Stopping espeak...")
         if self.proc != None:
             self.proc.stdin.write("Stopping espeak.\n")
             #self.proc.terminate()
@@ -86,7 +87,7 @@ class TTS(gobject.GObject):
 
     def __tell(self):
         output = "%s\n%s\n" % (self.__format_distance(), self.__format_bearing())
-        print "Espeak: %s" % output
+        logger.info("Espeak: %s" % output)
         self.proc.stdin.write(output)
         if self.automatic_interval:
             self.__set_enabled(-1)
