@@ -43,14 +43,20 @@ import cachedownloader
 from fieldnotesuploader import FieldnotesUploader
 from actors.tts import TTS
 #from actors.notify import Notify
+import logging
 
-
+logging.basicConfig(level=logging.WARNING,
+                    format='%(asctime)s %(levelname)s %(message)s',
+                    )
 
 if len(argv) == 1:
     import cli
     print cli.usage % ({'name': argv[0]})
     exit()
-        
+
+if '-v' in argv:
+    logging.getLogger('').setLevel(logging.DEBUG)
+    logging.debug("Set log level to DEBUG")
 
 arg = argv[1].strip()
 if arg == '--simple':
@@ -196,14 +202,13 @@ class Core(gobject.GObject):
                 try:
                     mkdir(dpath)
                 except Exception, e:
-                    print e
+                    logging.info("Could not create directory; " + e)
                     pass
 
     def optimize_data(self):
         self.pointprovider.push_filter()
         self.pointprovider.set_filter(found = True)
         old_geocaches = self.pointprovider.get_points_filter()
-        print old_geocaches
         self.pointprovider.pop_filter()
         for x in old_geocaches:
             images = x.get_images()
@@ -214,8 +219,7 @@ class Core(gobject.GObject):
                 try:
                     remove(fullpath)
                 except Exception:
-                    print "Could not remove", fullpath
-                    pass
+                    logging.warning("Could not remove " + fullpath)
         self.pointprovider.remove_geocaches(old_geocaches)
         self.pointprovider.optimize()
 
@@ -261,13 +265,13 @@ class Core(gobject.GObject):
                                 exec line in v_dict
                                 break
                     if v_dict['VERSION'] > m.VERSION:
-                        print "Reloading Module '%s', current version number: %d, new version number: %d" % (m.__name__, v_dict['VERSION'], m.VERSION)
+                        logging.info("Reloading Module '%s', current version number: %d, new version number: %d" % (m.__name__, v_dict['VERSION'], m.VERSION))
                         reload(m)
                         updated_modules += 1
                     else:
-                        print "Not reloading Module '%s', current version number: %d, version number of update file: %d" % (m.__name__, v_dict['VERSION'], m.VERSION)
+                        logging.info("Not reloading Module '%s', current version number: %d, version number of update file: %d" % (m.__name__, v_dict['VERSION'], m.VERSION))
                 else:
-                    print "Skipping nonexistant update from", path.join(self.UPDATE_DIR, "%s%spy" % (m.__name__, extsep))
+                    logging.info("Skipping nonexistant update from", path.join(self.UPDATE_DIR, "%s%spy" % (m.__name__, extsep)))
         return updated_modules
 
     def try_update(self):
@@ -281,6 +285,7 @@ class Core(gobject.GObject):
         try:
             reader = self.downloader.get_reader(url, login=False)
         except Exception, e:
+            logging.exception(e)
             raise Exception("No updates were found. (Could not download index file.)")
 
         try:
@@ -290,7 +295,7 @@ class Core(gobject.GObject):
                 handle, temp = tempfile.mkstemp()
                 files.append((md5, name, temp))
         except Exception, e:
-            print e
+            logging.exception(e)
             raise Exception("No updates were found. (Could not process index file.)")
 
         if len(files) == 0:
@@ -301,7 +306,7 @@ class Core(gobject.GObject):
             try:
                 urlretrieve(url, temp)
             except Exception, e:
-                print e
+                logging.exception(e)
                 raise Exception("Could not download file '%s'" % name)
 
             hash = hashlib.md5(open(temp).read()).hexdigest()
@@ -312,7 +317,8 @@ class Core(gobject.GObject):
             file = path.join(self.UPDATE_DIR, name)
             try:
                 copyfile(temp, file)
-            except Exception:
+            except Exception, e:
+                logging.exception(e)
                 raise Exception("The update process was stopped while copying files. AGTL may run or not. If not, delete all *.py files in %s." % self.UPDATE_DIR)
             finally:
                 try:
@@ -490,7 +496,7 @@ class Core(gobject.GObject):
                 new_c2 = c2.transform(-45 + 180, r * 1000 * sqrt(2))
                 out.append((new_c1, new_c2))
                 together = []
-        print "* Needing %d unique queries" % len(out)
+        logging.info("Needing %d unique queries" % len(out))
         return out
 
     ##############################################
@@ -597,7 +603,7 @@ class Core(gobject.GObject):
 
     # called on signal by downloading thread
     def on_download_error(self, something, error):
-        print error
+        logging.exception(error)
         def same_thread(error):
             self.gui.hide_progress()
             self.gui.show_error(error)
@@ -809,8 +815,8 @@ def determine_path ():
             root = path.realpath (root)
         return path.dirname(path.abspath (root))
     except:
-        print "I'm sorry, but something is wrong."
-        print "There is no __file__ variable. Please contact the author."
+        logging.error("I'm sorry, but something is wrong.")
+        logging.error("There is no __file__ variable. Please contact the author.")
         exit()
 
                         

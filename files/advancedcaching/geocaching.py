@@ -268,8 +268,7 @@ class GeocacheCoordinate(geo.Coordinate):
             vars = {}
         else:
             vars = loads(self.vars)
-        text = stripped_desc
-        text += " | ".join(w['comment'] for w in self.get_waypoints())
+        text = "%s | %s" % (stripped_desc, " | ".join(w['comment'] for w in self.get_waypoints()))
         self.calc = CalcCoordinateManager(self, text, vars)
 
     def get_collected_coordinates(self, format, include_unknown = True, htmlcallback = lambda x: x, shorten_callback = lambda x: x):

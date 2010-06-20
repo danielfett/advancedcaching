@@ -40,7 +40,9 @@ HTML = '''
 <p style="font-style: normal; font-weight: normal"><font color=
 "#000000"><font face="Arial, sans-serif"><font size=
 "3"><span style="background: transparent">Es müssen keine Zäune
-oder Mauern überwunden werden.</span></font></font></font></p> 
+oder Mauern überwunden werden.</span></font></font></font></p>
+N 49°
+(B-C+A+0,5*D).(F+D)(F-G)(D-2*B)
 <p><br /> 
 <br /></p></span> 
                 
@@ -50,6 +52,8 @@ oder Mauern überwunden werden.</span></font></font></font></p>
 '''
 import geo
 import re
+import logging
+logger = logging.getLogger('coordfinder')
 
 class CalcCoordinateManager(object):
     def __init__(self, cache, text, vars):
@@ -177,12 +181,14 @@ class CalcCoordinate():
 
     @staticmethod
     def find(text):
+        logger.info('Processing Text: \n ------------------------ \n%s\n ----------------------' % text)
         foundsigs = []
-        text = re.sub(ur'''\s[a-zA-Z]{2,}\s''', ' | ', text)
-        text = re.sub(ur'''\b[a-zA-Z]{4,}\b''', ' | ', text)
+        text = re.sub(ur'''(?u)\s[^\W\d_]{2,}\s''', ' | ', text)
+        text = re.sub(ur'''(?u)\b[^\W\d_]{4,}\b''', ' | ', text)
         text = text.replace('°', '|')
         text = text.replace(unichr(160), ' ')
         text = re.sub(ur''' +''', ' ', text)
+        logger.info('Processed Text: \n ------------------------ \n%s\n ----------------------' % text)
 
         single_calc_part = ur'''((?:\([A-Za-z +*/0-9-.,]+\)|[A-Za-z ()+*/0-9-])+)'''
         matches = re.findall(ur'''(?<![a-zA-Z])([NSns])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s['`\s,/]+([EOWeow])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s[\s'`]*(?![a-zA-Z])''' % {'calc' : single_calc_part}, text)
@@ -194,6 +200,7 @@ class CalcCoordinate():
             if sig in foundsigs:
                 continue
             foundsigs.append(sig)
+            logger.info("Found match: " + repr(match))
             c = CalcCoordinate(*match)
             #if len(c.requires) == 0:
             #    continue
