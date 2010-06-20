@@ -66,6 +66,7 @@ import pango
 from portrait import FremantleRotation
 from simplegui import SimpleGui
 from simplegui import UpdownRows
+from simplegui import Map
 import threadpool
 from xml.sax.saxutils import escape as my_gtk_label_escape
 
@@ -133,9 +134,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
         self.settings = {}
 
-        self.build_tile_loaders()
-        self.ts = openstreetmap.TileServer(self.tile_loader)
-                
         self.format = geo.Coordinate.FORMAT_DM
 
         # @type self.current_cache geocaching.GeocacheCoordinate
@@ -150,21 +148,10 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.banner = None
         self.old_cache_window = None
         self.cache_calc_vars = {}
-        self.surface_buffer = {}
-        self.delay_expose = False
 
-        self.tile_loader_threadpool = threadpool.ThreadPool(openstreetmap.CONCURRENT_THREADS * 2)
-                
-        self.dragging = False
-        self.block_changes = False
                 
         self.north_indicator_layout = None
-        self.drawing_area_configured = self.drawing_area_arrow_configured = False
-        self.drag_offset_x = 0
-        self.drag_offset_y = 0
         self.notes_changed = False
-        self.map_center_x, self.map_center_y = 100, 100
-        self.active_tile_loaders = []
         
         gtk.set_application_name("Geocaching Tool")
         program = hildon.Program.get_instance()
@@ -182,6 +169,17 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         
         self.plugin_init()
 
+    def _on_map_clicked(self, widget, c, c1, c2):
+        if self.settings['options_hide_found']:
+            found = False
+        else:
+            found = None
+        cache = self.core.pointprovider.get_nearest_point_filter(c, c1, c2, found)
+        if cache != None:
+            self.show_cache(cache)
+        else:
+            self.map.refresh()
+
     def plugin_init(self):
         for x in (HildonSearchGeocaches, HildonSearchPlace, HildonFieldnotes):
             x.plugin_init(self)
@@ -192,8 +190,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
     def _prepare_images(self, dataroot):
         p = "%s%s%%s" % (path.join(dataroot, '%s'), extsep)
-        self.noimage_cantload = cairo.ImageSurface.create_from_png(p % ('noimage-cantload', 'png'))
-        self.noimage_loading = cairo.ImageSurface.create_from_png(p % ('noimage-loading', 'png'))
+        self.noimage_cantload = p % ('noimage-cantload', 'png')
+        self.noimage_loading = p % ('noimage-loading', 'png')
         out = {}
 
         for key, name in self.ICONS.items():
@@ -232,21 +230,16 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         else:
             return startd
 
-    def set_tile_loader(self, loader):
-        self.tile_loader = loader
-        self.ts.set_tile_loader(loader)
-        self._update_zoom_buttons()
-        self.zoom(0)
 
 
     def _on_key_press(self, window, event):
         self.rotation_manager.set_mode(FremantleRotation.ALWAYS)
         return
         if event.keyval == gtk.keysyms.F7:
-            self.zoom( + 1)
+            self.map.zoom( + 1)
             return False
         elif event.keyval == gtk.keysyms.F8:
-            self.zoom(-1)
+            self.map.zoom(-1)
             return False
 
 
@@ -340,7 +333,11 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.main_gpspage.pack_start(self.main_gpspage_table, False, True)
         
         self.main_mappage = gtk.VBox()
-        self.drawing_area = gtk.DrawingArea()
+        self.map = Map(self.core.settings['map_providers'], self.core.settings['download_map_path'], self._draw_marks, self.noimage_cantload, self.noimage_loading)
+
+        self.map.connect('point-clicked', self._on_map_clicked)
+        self.map.connect('tile-loader-changed', lambda widget, loader: self._update_zoom_buttons())
+        self.map.connect('map-dragged', lambda widget: self._set_track_mode(False))
 
         buttons = gtk.HBox()
 
@@ -404,7 +401,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         
         #self.main_mappage.pack_start(self.drawing_area, True)
         pan = hildon.PannableArea()
-        pan.add(self.drawing_area)
+        pan.add(self.map)
 
         self.main_mappage.pack_start(pan, True)
         self.main_mappage.pack_start(buttons, False)
@@ -412,14 +409,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         root.pack_start(self.main_mappage, True)
 
 
-        self.drawing_area.connect("expose_event", self._expose_event)
-        self.drawing_area.connect("configure_event", self._configure_event)
-        self.drawing_area.connect("button_press_event", self._drag_start)
-        self.drawing_area.connect("scroll_event", self._scroll)
-        self.drawing_area.connect("button_release_event", self._drag_end)
-        self.drawing_area.connect("motion_notify_event", self._drag)
-        self.drawing_area.set_events(gtk.gdk.EXPOSURE_MASK | gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.BUTTON_RELEASE_MASK | gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.SCROLL)
-        
 
         # arrow drawing area
         
@@ -433,7 +422,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         menu = hildon.AppMenu()
     
         sel_tiles = hildon.TouchSelector(text=True)
-        for name, loader in self.tile_loaders:
+        for name, loader in self.map.tile_loaders:
             sel_tiles.append_text(name)
         pick_tiles = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         pick_tiles.set_selector(sel_tiles)
@@ -483,7 +472,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         button.connect("clicked", lambda caller: dialog.hide())
         buttons.append(button)
 
-        c = self.ts.num2deg(self.map_center_x, self.map_center_y)
+        c = self.map.get_center()
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_title("Use Center as Target")
         button.set_value(c.get_latlon(self.format))
@@ -1374,7 +1363,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.button_show_details.set_value(self.shorten_name(cache.title, 25))
         self.button_show_details.set_sensitive(True)
         self.button_show_details_small.set_sensitive(True)
-        gobject.idle_add(self.redraw_marks)
+        gobject.idle_add(self.map.redraw_marks)
 
     def _on_set_target_clicked(self, some, cache): 
         self.set_target(cache)
@@ -1399,25 +1388,15 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         
 
     def on_zoom_changed(self, blub):
-        self.zoom()
-
-    def zoom(self, direction=None):
-        center = self.ts.num2deg(self.map_center_x, self.map_center_y)
-        if direction == None:
-            return
-        else:
-            newzoom = self.ts.get_zoom() + direction
-        self.ts.set_zoom(newzoom)
-        self.set_center(center, reset_track=False)
-        self._update_zoom_buttons()
+        self.map.zoom()
 
     def _update_zoom_buttons(self):
-        if self.ts.get_zoom() == 1:
+        if self.map.get_zoom() == 1:
             self.button_zoom_out.set_sensitive(False)
         else:
             self.button_zoom_out.set_sensitive(True)
             
-        if self.ts.get_zoom() == self.tile_loader.MAX_ZOOM:
+        if self.map.get_zoom() == self.tile_loader.MAX_ZOOM:
             self.button_zoom_in.set_sensitive(False)
         else:
             self.button_zoom_in.set_sensitive(True)
@@ -1530,7 +1509,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.gps_has_fix = False
         self.update_gps_display()
         self._draw_arrow()
-        self.redraw_marks()
+        self.map.redraw_marks()
 
         ##############################################
         #
@@ -1547,7 +1526,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
         self.block_changes = True
         if 'map_zoom' in settings:
-            self.ts.set_zoom(settings['map_zoom'])
+            self.map.set_zoom(settings['map_zoom'])
         if 'map_position_lat' in settings and 'map_position_lon' in settings:
             self.set_center(geo.Coordinate(settings['map_position_lat'], settings['map_position_lon']), reset_track = False)
         if 'options_rotate_screen' in settings:
@@ -1562,11 +1541,11 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.block_changes = False
 
     def _on_save_settings(self, caller):
-        c = self.ts.num2deg(self.map_center_x, self.map_center_y)
+        c = self.map.get_center()
         settings = {}
         settings['map_position_lat'] = c.lat
         settings['map_position_lon'] = c.lon
-        settings['map_zoom'] = self.ts.get_zoom()
+        settings['map_zoom'] = self.map.get_zoom()
 
         if self.current_cache != None:
             settings['last_selected_geocache'] = self.current_cache.name
