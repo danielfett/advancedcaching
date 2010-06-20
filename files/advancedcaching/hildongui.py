@@ -1210,7 +1210,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             if c.has_requires():
                 text_calc = "= %s\n%s%s" % (c.replaced_result, c.result if c.result != False else '', "".join("\n<b>!</b> <span color='gold'>%s</span>" % warning for warning in c.warnings))
             else:
-                text_calc = "<i>Needs %s</i>\n" % (', '.join(("<s>%s</s>" if r in vars else "<b>%s</b>") % r for r in cache.calc.requires))
+                text_calc = "<i>Needs %s</i>\n" % (', '.join(("<s>%s</s>" if r in vars else "<b>%s</b>") % r for r in c.requires))
 
             label_text = '<b>%s</b>\n%s' % (c.orig, text_calc)
 
