@@ -136,7 +136,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
         self.format = geo.Coordinate.FORMAT_DM
 
-        # @type self.current_cache geocaching.GeocacheCoordinate
+        Map.set_config(self.core.settings['map_providers'], self.core.settings['download_map_path'], self.noimage_cantload, self.noimage_loading)
+
         self.current_cache = None
         self.current_cache_window_open = False
         self.track_enabled = False
@@ -333,11 +334,20 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.main_gpspage.pack_start(self.main_gpspage_table, False, True)
         
         self.main_mappage = gtk.VBox()
-        self.map = Map(self.core.settings['map_providers'], self.core.settings['download_map_path'], self._draw_marks, self.noimage_cantload, self.noimage_loading)
+        try:
+            coord = geo.Coordinate(self.settings['map_position_lat'], self.settings['map_position_lon'])
+            zoom = self.settings['map_zoom']
+        except KeyError:
+            coord = self._get_best_coordinate(geo.Coordinate(50, 10))
+            zoom = 6
+
+        self.map = Map(center = coord, zoom = zoom)
+
 
         self.map.connect('point-clicked', self._on_map_clicked)
         self.map.connect('tile-loader-changed', lambda widget, loader: self._update_zoom_buttons())
         self.map.connect('map-dragged', lambda widget: self._set_track_mode(False))
+        self.map.connect('draw-marks', self._draw_marks)
 
         buttons = gtk.HBox()
 
@@ -1087,6 +1097,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         except AttributeError:
             name = "Coordinate Details" if (c.name == "") else c.name
         dialog = gtk.Dialog(self.shorten_name(name, 70), self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        dialog.set_size_request(800, 800)
         if c.lat != None:
             dialog.add_button("as Target", RESPONSE_AS_TARGET)
             dialog.add_button("as Main Coord.", RESPONSE_AS_MAIN)
@@ -1095,7 +1106,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         lbl.set_markup("<b>%s</b>\n%s" % (c.get_latlon(self.format) if c.lat != None else '???', c.comment))        
         lbl.set_line_wrap(True)
         lbl.set_alignment(0, 0.5)
-        dialog.vbox.pack_start(lbl)
+        dialog.vbox.pack_start(lbl, False)
+        dialog.vbox.pack_start(Map(center = c, zoom = 13, draggable = False), True)
         dialog.show_all()
         resp = dialog.run()
         dialog.hide()

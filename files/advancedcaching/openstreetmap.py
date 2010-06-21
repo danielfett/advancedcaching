@@ -40,8 +40,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
         noimage_cantload = None
         noimage_loading = None
         base_dir = ''
-        gui = None
-
+        
         PREFIX = prefix
         MAX_ZOOM = max_zoom
         FILE_TYPE = file_type
@@ -55,7 +54,8 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             self.id_string = id_string
             self.undersample = undersample
             self.tile = tile
-            self.download_tile = self.gui.ts.check_bounds(*tile)
+            #self.download_tile = self.gui.ts.check_bounds(*tile)
+            self.download_tile = tile
             if not undersample:
                 self.download_zoom = zoom
                 self.display_zoom = zoom
