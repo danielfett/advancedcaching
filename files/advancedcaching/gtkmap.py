@@ -18,13 +18,68 @@
 #        Author: Daniel Fett advancedcaching@fragcom.de
 #
 
-import gobject
-import openstreetmap
-import threadpool
-import gtk
-import pango
-import cairo
 import math
+
+import cairo
+import gobject
+import geo
+import gtk
+import openstreetmap
+import pango
+import threadpool
+import bisect
+
+class MapMarkerType(object):
+    def __init__(self):
+        self.surface = None
+        self.root = (0, 0)
+        self.markers = []
+        self.markers_lat = []
+    
+    def set_from_png(self, filename, x, y):
+        self.surface = cairo.ImageSurface.create_from_png(filename)
+        self.root = (x, y)
+    
+    def set_surface(self, surface, x, y):
+        self.surface = surface
+        self.root = (x, y)
+
+    def set_highlight_from_png(self, filename):
+        self.surface_highlight = cairo.ImageSurface.create_from_png(filename)
+
+    def set_highlight_surface(self, surface):
+        self.surface_highlight = surface
+
+    def add_marker(self, marker):
+        pos = bisect.bisect(self.markers_lat, marker.lat)
+        self.markers_lat.insert(pos, marker.lat)
+        self.markers.insert(pos, marker)
+
+    def del_all_markers(self):
+        self.markers = []
+        self.markers_lat = []
+
+    def get_markers(self, from_lat, to_lat, from_lon, to_lon):
+        start = bisect.bisect_left(self.markers_lat, from_lat)
+        end = bisect.bisect_right(self.markers_lat, to_lat)
+        return [self.markers[x] for x in xrange(start, end + 1) if self.markers[x].lon >= from_lon and self.markers[x].lon <= to_lon]
+
+
+
+class MapMarker(object):
+    def __init__(self, coordinate, text=None, highlight=False):
+        self.set_coordinate(coordinate)
+        self.text = text
+        self.highlight = highlight
+
+    def set_coordinate(self, coordinate):
+        self.lat, self.lon = coordinate.lat, coordinate.lon
+
+    def get_coordinate(self):
+        return geo.Coordinate(self.lat, self.lon, self.text)
+
+    def set_highlight(self, h):
+        self.highlight = h
 
 class Map(gtk.DrawingArea):
 
@@ -46,14 +101,14 @@ class Map(gtk.DrawingArea):
         Map.tile_loaders = []
 
         for name, params in map_providers:
-            tl = openstreetmap.get_tile_loader(** params)
+            tl = openstreetmap.get_tile_loader( ** params)
             tl.noimage_loading = Map.noimage_loading
             tl.noimage_cantload = Map.noimage_cantload
             tl.base_dir = map_path
             #tl.gui = self
             Map.tile_loaders.append((name, tl))
 
-    def __init__(self, center, zoom, tile_loader = None, draggable = True):
+    def __init__(self, center, zoom, tile_loader=None, draggable=True):
         gtk.DrawingArea.__init__(self)
 
         self.connect("expose_event", self.__expose_event)
@@ -66,10 +121,10 @@ class Map(gtk.DrawingArea):
         self.set_events(gtk.gdk.EXPOSURE_MASK | gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.BUTTON_RELEASE_MASK | gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.SCROLL)
 
         try:
-            gobject.signal_new('point-clicked', Map, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,gobject.TYPE_PYOBJECT,gobject.TYPE_PYOBJECT,))
-            gobject.signal_new('tile-loader-changed', Map, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+            gobject.signal_new('point-clicked', Map, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT, ))
+            gobject.signal_new('tile-loader-changed', Map, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, ))
             gobject.signal_new('map-dragged', Map, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
-            gobject.signal_new('draw-marks', Map, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+            gobject.signal_new('draw-marks', Map, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, ))
         except RuntimeError:
             pass
 
@@ -93,7 +148,10 @@ class Map(gtk.DrawingArea):
         self.drag_offset_x = 0
         self.drag_offset_y = 0
         self.ts.zoom = zoom
-        self.set_center(center, False)   
+        self.set_center(center, False)
+        self.markers = []
+        self.markers_lat = []
+        self.marker_types = []
 
 
         ##############################################
@@ -102,7 +160,7 @@ class Map(gtk.DrawingArea):
         #
         ##############################################
 
-    def set_center(self, coord, update = True):
+    def set_center(self, coord, update=True):
         self.map_center_x, self.map_center_y = self.ts.deg2num(coord)
         self.draw_at_x = 0
         self.draw_at_y = 0
@@ -130,6 +188,21 @@ class Map(gtk.DrawingArea):
 
     def set_osd_message(self, message):
         self.osd_message = message
+
+
+        ##############################################
+        #
+        # Marker handling
+        #
+        ##############################################
+
+    def add_marker_type(self, type):
+        self.marker_types.append(type)
+
+    def del_all_markers(self):
+        for x in self.marker_types:
+            x.del_all_markers()
+
 
         ##############################################
         #
@@ -185,22 +258,6 @@ class Map(gtk.DrawingArea):
     def point_in_screen(self, point):
         return (point[0] >= 0 and point[1] >= 0 and point[0] < self.map_width and point[1] < self.map_height)
 
-    def pixmappoint2coord(self, point):
-        size = self.tile_loader.TILE_SIZE
-        coord = self.ts.num2deg(\
-                                (point[0] + self.map_center_x * size - self.map_width / 2) / size, \
-                                (point[1] + self.map_center_y * size - self.map_height / 2) / size \
-                                )
-        return coord
-
-    def coord2point(self, coord):
-        point = self.ts.deg2num(coord)
-        size = self.tile_loader.TILE_SIZE
-
-        p_x = int(point[0] * size - self.map_center_x * size + self.map_width / 2)
-        p_y = int(point[1] * size - self.map_center_y * size + self.map_height / 2)
-        return [p_x, p_y]
-
     def screenpoint2coord(self, point):
         size = self.tile_loader.TILE_SIZE
         coord = self.ts.num2deg(\
@@ -209,8 +266,28 @@ class Map(gtk.DrawingArea):
                                 )
         return coord
 
+    def coord2abspoint(self, coord):
+        point = self.ts.deg2num(coord)
+        size = self.tile_loader.TILE_SIZE
+
+        p_x = int(point[0] * size + self.map_width / 2)
+        p_y = int(point[1] * size + self.map_height / 2)
+        return (p_x, p_y)
+
+    def abspoint2screenpoint(self, abspoint):
+        size = self.tile_loader.TILE_SIZE
+        return (abspoint[0] - self.map_center_x * size, abspoint[1] - self.map_center_y * size)
+
+    def coord2screenpoint(self, coord):
+        point = self.ts.deg2num(coord)
+        size = self.tile_loader.TILE_SIZE
+
+        p_x = int(point[0] * size - self.map_center_x * size + self.map_width / 2)
+        p_y = int(point[1] * size - self.map_center_y * size + self.map_height / 2)
+        return (p_x, p_y)
+
     def get_visible_area(self):
-        return (self.pixmappoint2coord([0, 0]), self.pixmappoint2coord([self.map_width, self.map_height]))
+        return (self.screenpoint2coord((0, 0)), self.screenpoint2coord((self.map_width, self.map_height)))
 
 
         ##############################################
@@ -280,7 +357,7 @@ class Map(gtk.DrawingArea):
         if event.direction == gtk.gdk.SCROLL_DOWN:
             self.map.zoom(-1)
         else:
-            self.map.zoom(+ 1)
+            self.map.zoom( + 1)
 
     def __drag_start(self, widget, event):
 
@@ -329,13 +406,13 @@ class Map(gtk.DrawingArea):
 
         self.window.clear()
         self.window.draw_drawable(gc=self.xgc,
-                                               src=self.pixmap,
-                                               xsrc=0,
-                                               ysrc=0,
-                                               xdest=self.draw_at_x - self.drag_offset_x,
-                                               ydest=self.draw_at_y - self.drag_offset_y,
-                                               width=width,
-                                               height=height)
+                                  src=self.pixmap,
+                                  xsrc=0,
+                                  ysrc=0,
+                                  xdest=self.draw_at_x - self.drag_offset_x,
+                                  ydest=self.draw_at_y - self.drag_offset_y,
+                                  width=width,
+                                  height=height)
 
 
         return True
@@ -437,7 +514,7 @@ class Map(gtk.DrawingArea):
 
     def _add_to_buffer(self, id_string, surface, x, y, scale_source=None):
         self.surface_buffer[id_string] = [surface, x, y, scale_source]
-        self.__draw_tiles(which=([surface, x, y, scale_source], ))
+        self.__draw_tiles(which=([surface, x, y, scale_source],))
 
     def __draw_tiles(self, which=None, off_x=0, off_y=0):
         self.delay_expose = False
@@ -489,7 +566,24 @@ class Map(gtk.DrawingArea):
 
         self.cr_marks = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map_width, self.map_height)
         cr = gtk.gdk.CairoContext(cairo.Context(self.cr_marks))
-        self.emit('draw-marks', cr)
+        #self.emit('draw-marks', cr)
+        lefttop, bottomright = self.get_visible_area()
+        from_lat = min(lefttop.lat, bottomright.lat)
+        to_lat = max(lefttop.lat, bottomright.lat)
+        from_lon = min(lefttop.lon, bottomright.lon)
+        to_lon = max(lefttop.lon, bottomright.lon)
+
+        #markers = self.__get_markers(lefttop.lat, bottomright.lat, lefttop.lon, bottomright.lon)
+        for type in self.marker_types:
+            markers = type.get_markers(from_lat, to_lat, from_lon, to_lon)
+            surface = type.surface
+            width, height = type.surface.get_width(), type.surface.get_height()
+            for m in markers:
+                p = self.coord2screenpoint(m)
+                center = p[0] - type.root[0], p[1] - type.root[1]
+                cr.set_source_surface(surface, center[0], center[1])
+                cr.rectangle(center[0], center[1], width, height)
+                cr.fill()
         self.__draw_osd()
 
 
@@ -531,7 +625,7 @@ class Map(gtk.DrawingArea):
         if final_length_meters < 10000:
             msg = "%d m" % final_length_meters
         else:
-            msg = "%d km" % (final_length_meters/1000)
+            msg = "%d km" % (final_length_meters / 1000)
         layout = self.create_pango_layout(msg)
         layout.set_font_description(self.MESSAGE_DRAW_FONT)
         cr.move_to(position[0], position[1] - 15)
@@ -548,4 +642,3 @@ class Map(gtk.DrawingArea):
             cr.line_to(* (arrow[0][x] + position[x] for x in (0, 1)))
             cr.stroke()
         '''
-

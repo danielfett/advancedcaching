@@ -590,10 +590,10 @@ class SimpleGui(object):
             cr.set_source_color(color)
 
 
-            p = self.map.coord2point(c)
+            p = self.map.coord2screenpoint(c)
 
             if c.alter_lat != None and (c.alter_lat != 0 and c.alter_lon != 0):
-                x = self.map.coord2point(geo.Coordinate(c.alter_lat, c.alter_lon))
+                x = self.map.coord2screenpoint(geo.Coordinate(c.alter_lat, c.alter_lon))
                 if x != p:
                     cr.move_to(p[0], p[1])
                     cr.line_to(x[0], x[1])
@@ -683,7 +683,7 @@ class SimpleGui(object):
             for w in self.current_cache.get_waypoints():
                 if w['lat'] != -1 and w['lon'] != -1:
                     num = num + 1
-                    p = self.map.coord2point(geo.Coordinate(w['lat'], w['lon']))
+                    p = self.map.coord2screenpoint(geo.Coordinate(w['lat'], w['lon']))
                     if not self.map.point_in_screen(p):
                         continue
                     cr.move_to(p[0], p[1] - radius)
@@ -728,7 +728,7 @@ class SimpleGui(object):
 
         # if we have a target, draw it
         if self.core.current_target != None:
-            t = self.map.coord2point(self.core.current_target)
+            t = self.map.coord2screenpoint(self.core.current_target)
             if t != False and self.map.point_in_screen(t):
 
 
@@ -749,7 +749,7 @@ class SimpleGui(object):
             t = False
 
         if self.gps_last_good_fix != None and self.gps_last_good_fix.position != None:
-            p = self.map.coord2point(self.gps_last_good_fix.position)
+            p = self.map.coord2screenpoint(self.gps_last_good_fix.position)
             if p != False:
                 self.gps_last_screen_position = p
 
@@ -762,9 +762,9 @@ class SimpleGui(object):
                 radius = self.gps_data.error
 
                 # determine radius in meters
-                (x, y) = self.map.coord2point(self.gps_data.position.transform(90.0, radius))
+                (x, y) = self.map.coord2screenpoint(self.gps_data.position.transform(90.0, radius))
 
-                (x2, y2) = self.map.coord2point(self.gps_data.position)
+                (x2, y2) = self.map.coord2screenpoint(self.gps_data.position)
                 radius_pixels = (x2 - x)
             else:
                 radius_pixels = 10
@@ -939,7 +939,7 @@ class SimpleGui(object):
         if not self.map.drawing_area_configured:
             return False
                 
-        x, y = self.map.coord2point(self.gps_data.position)
+        x, y = self.map.coord2screenpoint(self.gps_data.position)
         if self.gps_last_screen_position != None:
                                     
             l, m = self.gps_last_screen_position

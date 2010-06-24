@@ -66,7 +66,7 @@ import pango
 from portrait import FremantleRotation
 from simplegui import SimpleGui
 from simplegui import UpdownRows
-from simplegui import Map
+from gtkmap import *
 import threadpool
 from xml.sax.saxutils import escape as my_gtk_label_escape
 
@@ -160,6 +160,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         program.add_window(self.window)
         self.window.connect("delete_event", self.on_window_destroy, None)
         self.window.add(self._create_main_view())
+        self.window.connect('key-press-event', self._on_key_press)
         self.window.set_app_menu(self._create_main_menu())
 
         gtk.link_button_set_uri_hook(self._open_browser)
@@ -234,14 +235,17 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
 
     def _on_key_press(self, window, event):
-        self.rotation_manager.set_mode(FremantleRotation.ALWAYS)
-        return
-        if event.keyval == gtk.keysyms.F7:
-            self.map.zoom( + 1)
-            return False
-        elif event.keyval == gtk.keysyms.F8:
-            self.map.zoom(-1)
-            return False
+        markertype = MapMarkerType()
+        self.map.add_marker_type(markertype)
+        markertype.set_from_png(self.ICONPATH % {'size' : 48, 'name':'pdf_zoomin'}, 0, 0)
+        logger.debug('start adding markers')
+        coords = self.core.pointprovider.get_all()
+        logger.debug('markers retrieved')
+        for x in coords:
+            markertype.add_marker(MapMarker(x, x.name))
+        logger.debug('finished adding')
+        print "markers added %d"  % len(coords)
+        
 
 
     def _create_main_view(self):
@@ -348,7 +352,16 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.map.connect('tile-loader-changed', lambda widget, loader: self._update_zoom_buttons())
         self.map.connect('map-dragged', lambda widget: self._set_track_mode(False))
         self.map.connect('draw-marks', self._draw_marks)
-
+        markertype = MapMarkerType()
+        self.map.add_marker_type(markertype)
+        markertype.set_from_png(self.ICONPATH % {'size' : 48, 'name':'pdf_zoomin'}, 0, 0)
+        logger.debug('start adding markers')
+        coords = self.core.pointprovider.get_all()
+        logger.debug('markers retrieved')
+        for x in coords:
+            markertype.add_marker(MapMarker(x, x.name))
+        logger.debug('finished adding')
+        print "markers added %d"  % len(coords)
         buttons = gtk.HBox()
 
 
