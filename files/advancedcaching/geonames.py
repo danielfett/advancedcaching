@@ -27,6 +27,8 @@ try:
 except (ImportError, AttributeError):
     import simplejson as json
 
+import logging
+logger = logging.getLogger('geonames')
 
 class Geonames():
     URL = '''http://ws.geonames.org/searchJSON?formatted=true&q=%(query)s&maxRows=%(max_rows)d&style=short'''
@@ -42,7 +44,7 @@ class Geonames():
         self.downloader = downloader
 
     def search(self, search, nearest_street=False):
-        print "* Trying to search geonames for %s" % search
+        logger.info("Trying to search geonames for %s" % search)
         page = self.downloader.get_reader(url=self.URL % {'query': quote(search), 'max_rows': 1}, login=False).read()
         values = json.loads(page)
         if int(values['totalResultsCount']) == 0:
@@ -51,26 +53,27 @@ class Geonames():
         c = geo.Coordinate(float(res['lat']), float(res['lng']), search)
 
 
-        print "* Using %s for query '%s'" % (c, search)
+        logger.info("Using %s for query '%s'" % (c, search))
         return c
 
     def search_all(self, search, max_results=15, name_string="%(name)s, %(countryCode)s"):
-        print "* Trying to search geonames for %s" % search
+        logger.info("Trying to search geonames for %s" % search)
         page = self.downloader.get_reader(url=self.URL % {'query': quote(search), 'max_rows': max_results}, login=False).read()
+        logger.debug("Result:\n%s\n" % page)
         values = json.loads(page)
-        return [geo.Coordinate(float(res['lat']), float(res['lng']), name_string % res) for res in values['geonames']]
+        return [geo.Coordinate(float(res['lat']), float(res['lng']), name_string % res) for res in values['geonames'] if 'countryCode' in res]
 
     def find_nearest_intersection(self, c):
-        print "* trying to find nearest street..."
+        logger.info("trying to find nearest street...")
         url = self.URL_STREETS % (c.lat, c.lon)
         page = self.downloader.get_reader(url, login=False).read()
         values = json.loads(page)
         if (len(values) == 0):
-            print "* Could NOT find nearest intersection to %s, using this" % c
+            logger.warning("Could NOT find nearest intersection to %s, using this" % c)
             return c
         intersection = values['intersection']
         c = geo.Coordinate(float(intersection['lat']), float(intersection['lng']))
-        print "* Using nearest intersection at %s" % c
+        logger.info("Using nearest intersection at %s" % c)
         return c
 
 
@@ -107,9 +110,7 @@ class Geonames():
 
                 if len(route_points) > self.MAX_NODES:
                     raise Exception("Too many waypoints! Try a bigger radius.")
-        print "* Using the following Waypoints:"
-        for c in route_points:
-            print c
+        logger.info("Using the following Waypoints:")
         return route_points
 
 
