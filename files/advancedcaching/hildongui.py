@@ -54,21 +54,19 @@ import geocaching
 import gobject
 import gtk
 import hildon
-import cairo
 from cachedownloader import HTMLManipulations
 from hildon_plugins import HildonFieldnotes
 from hildon_plugins import HildonSearchPlace
 from hildon_plugins import HildonSearchGeocaches
 from hildon_plugins import HildonAboutDialog
 from hildon_plugins import HildonDownloadMap
-import openstreetmap
 import pango
 from portrait import FremantleRotation
 from simplegui import SimpleGui
 from simplegui import UpdownRows
-from simplegui import Map
-import threadpool
+from simplegui import GeocacheLayer
 from xml.sax.saxutils import escape as my_gtk_label_escape
+from gtkmap import Map, OsdLayer
 
 
 import logging
@@ -97,7 +95,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
     TOO_MANY_POINTS = 80
     MAX_NUM_RESULTS_SHOW = 80
     CACHES_ZOOM_LOWER_BOUND = 8
-    MESSAGE_DRAW_FONT = pango.FontDescription("Sans 12")
 
     ICONS = {
         geocaching.GeocacheCoordinate.LOG_TYPE_FOUND: 'emoticon_grin',
@@ -117,7 +114,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
     CACHE_DRAW_SIZE = 13
     CACHE_DRAW_FONT = pango.FontDescription("Nokia Sans Maps 10")
-    MESSAGE_DRAW_FONT = pango.FontDescription("Nokia Sans Maps 13")
 
     def __init__(self, core, dataroot):
         gtk.gdk.threads_init()
@@ -137,6 +133,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.format = geo.Coordinate.FORMAT_DM
 
         Map.set_config(self.core.settings['map_providers'], self.core.settings['download_map_path'], self.noimage_cantload, self.noimage_loading)
+        OsdLayer.set_layout(pango.FontDescription("Nokia Sans Maps 13"), gtk.gdk.color_parse('black'))
+        
 
         self.current_cache = None
         self.current_cache_window_open = False
@@ -237,10 +235,10 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.rotation_manager.set_mode(FremantleRotation.ALWAYS)
         return
         if event.keyval == gtk.keysyms.F7:
-            self.map.zoom( + 1)
+            self.map.relative_zoom( + 1)
             return False
         elif event.keyval == gtk.keysyms.F8:
-            self.map.zoom(-1)
+            self.map.relative_zoom(-1)
             return False
 
 
@@ -342,13 +340,14 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             zoom = 6
 
         self.map = Map(center = coord, zoom = zoom)
+        self.geocache_layer = GeocacheLayer(self.core.pointprovider, self.show_cache)
+        self.map.add_layer(self.geocache_layer)
+        self.map.add_layer(OsdLayer())
 
 
-        self.map.connect('point-clicked', self._on_map_clicked)
         self.map.connect('tile-loader-changed', lambda widget, loader: self._update_zoom_buttons())
         self.map.connect('map-dragged', lambda widget: self._set_track_mode(False))
-        self.map.connect('draw-marks', self._draw_marks)
-
+        
         buttons = gtk.HBox()
 
 
@@ -1375,7 +1374,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.button_show_details.set_value(self.shorten_name(cache.title, 25))
         self.button_show_details.set_sensitive(True)
         self.button_show_details_small.set_sensitive(True)
-        gobject.idle_add(self.map.redraw_marks)
+        self.geocache_layer.set_current_cache(cache)
+        gobject.idle_add(self.map.redraw_layers)
 
     def _on_set_target_clicked(self, some, cache): 
         self.set_target(cache)
@@ -1399,8 +1399,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
         
 
-    def on_zoom_changed(self, blub):
-        self.map.zoom()
 
     def _update_zoom_buttons(self):
         if self.map.get_zoom() == 1:
@@ -1521,7 +1519,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.gps_has_fix = False
         self.update_gps_display()
         self._draw_arrow()
-        self.map.redraw_marks()
+        self.map.redraw_layers()
 
         ##############################################
         #
@@ -1537,6 +1535,10 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.settings.update(settings)
 
         self.block_changes = True
+        if 'options_hide_found' in settings:
+            self.geocache_layer.set_show_found(not settings['options_hide_found'])
+        if 'options_show_name' in settings:
+            self.geocache_layer.set_show_name(settings['options_show_name'])
         if 'map_zoom' in settings:
             self.map.set_zoom(settings['map_zoom'])
         if 'map_position_lat' in settings and 'map_position_lon' in settings:
@@ -1565,4 +1567,3 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         for i in ['options_username', 'options_password', 'download_noimages', 'options_show_name', 'options_hide_found', 'options_show_html_description', 'options_map_double_size', 'options_rotate_screen', 'tts_interval']:
             settings[i] = self.settings[i]
         self.core.save_settings(settings, self)
-
