@@ -7,7 +7,7 @@ if [ "$VERSION" == "" ] ; then
 	echo "gimme version, plz"
 	exit
 fi
-if ["$BUILD" == "" ] ; then
+if [ "$BUILD" == "" ] ; then
 	echo "gimme build, plz"
 	exit
 fi
@@ -19,6 +19,10 @@ rm $PKGROOT/opt/advancedcaching/*.pyc
 rm $PKGROOT/opt/advancedcaching/*.pyo
 rm $PKGROOT/opt/advancedcaching/*.class
 rm $PKGROOT/opt/advancedcaching/*~
+rm -r $PKGROOT/opt/advancedcaching/advcaching.egg-info
+rm -r $PKGROOT/opt/advancedcaching/build
+rm -r $PKGROOT/opt/advancedcaching/dist
+
 sed -i -e "s/version = \".*\"/version = \"$VERSION\"/" $PKGROOT/../build_myapp.py
 sed -i -e "s/build = \".*\"/build = \"$BUILD\"#/" $PKGROOT/../build_myapp.py
 cd $PKGROOT

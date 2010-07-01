@@ -18,16 +18,16 @@ if __name__ == "__main__":
      pass
  print
  p=py2deb.Py2deb("advancedcaching")   #This is the package name and MUST be in lowercase! (using e.g. "advancedcaching" fails miserably...)
- p.description='''AGTL, the all-in-one solution for on- and offline geocaching, makes geocaching paperless! It downloads geocaches including their description, hints, difficulty levels and images. No premium account needed. Searching for caches in your local db is a matter of seconds.
-
- * Map view - supporting Open Street Maps and Open Cycle Maps by default, configurable for other map types, including google maps.
- * GPS view - shows the distance and direction to the selected geocache.
- * Cache details - all necessary details are available even in offline mode.
- * Paperless geocaching features - take notes for a geocache on the go, see the hints and spoiler images, check the latest logs.
- * Fieldnotes support - Ever came home after a long tour and wondered which of those geocaches you found? Never again: Log your find in the field and upload notes and log text when you're at home. Review them on the geocaching website and post the logs.
- * Multicache calculation help - Let your phone do the math for you. Working for the most multi-stage geocaches, AGTL finds the coordinate calculations and let you enter the missing variables.
- * Advanced waypoint handling - AGTL finds waypoints in the geocache descriptions, in the list of waypoints and even in your notes. For your convenience, they're displayed on the map as well - see where you have to go next.
- * Sun compass – Compensates the lack of a magnetic compass
+ p.description='''AGTL, the all-in-one solution for on- and offline geocaching, makes geocaching paperless! 
+It downloads geocaches including their description, hints, difficulty levels and images. No premium account needed. Searching for caches in your local db is a matter of seconds.
+- Map view - supporting Open Street Maps and Open Cycle Maps by default, configurable for other map types, including google maps.
+- GPS view - shows the distance and direction to the selected geocache.
+- Cache details - all necessary details are available even in offline mode.
+- Paperless geocaching features - take notes for a geocache on the go, see the hints and spoiler images, check the latest logs.
+- Fieldnotes support - Ever came home after a long tour and wondered which of those geocaches you found? Never again: Log your find in the field and upload notes and log text when you're at home. Review them on the geocaching website and post the logs.
+- Multicache calculation help - Let your phone do the math for you. Working for the most multi-stage geocaches, AGTL finds the coordinate calculations and let you enter the missing variables.
+- Advanced waypoint handling - AGTL finds waypoints in the geocache descriptions, in the list of waypoints and even in your notes. For your convenience, they're displayed on the map as well - see where you have to go next.
+- Sun compass - Compensates the lack of a magnetic compass
 
 AGTL is Open source and in active development.'''
  
@@ -49,11 +49,11 @@ AGTL is Open source and in active development.'''
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your pre install script
  #  p.preremove="""#!/bin/sh
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your pre remove script
- version = "0.6.1.1"
- build = "1"############## for the first build of this version of your software. Increment for later re-builds of the same version of your software.
+ version = "0.6.1.4"
+ build = "1"########################## for the first build of this version of your software. Increment for later re-builds of the same version of your software.
                              #Text with changelog information to be displayed in the package "Details" tab of the Maemo Application Manager
  changeloginformation = """
- * Fix bug after geocaching.com site update
+- Fix bug after geocaching.com site update (2010-07-01)
 """
  dir_name = "src"            #Name of the subfolder containing your package source files (e.g. usr\share\icons\hicolor\scalable\myappicon.svg, usr\lib\myapp\somelib.py). We suggest to leave it named src in all projects and will refer to that in the wiki article on maemo.org
  #Thanks to DareTheHair from talk.maemo.org for this snippet that recursively builds the file list 
