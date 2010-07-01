@@ -358,7 +358,12 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 waypoints = "%s%s  " % (waypoints, line)
             elif section == 'images':
                 images = "%s%s " % (images, line)
+<<<<<<< HEAD
         logger.debug('finished parsing')
+=======
+
+        print 'finished parsing'
+>>>>>>> d02017d... Fix for geocaching site update 2010-07-01
         coordinate.size, coordinate.difficulty, coordinate.terrain, coordinate.owner, coordinate.lat, coordinate.lon = self.__parse_head(head)
         coordinate.shortdesc = self.__treat_shortdesc(shortdesc)
         coordinate.desc = self.__treat_desc(desc)
@@ -436,14 +441,15 @@ class GeocachingComCacheDownloader(CacheDownloader):
             tds = re.split('<td[^>]*>', line)
             if len(tds) <= 1:
                 continue
-            elif len(tds) > 3:
-                id = ''.join(HTMLManipulations._strip_html(x).strip() for x in tds[3:5])
-                name = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(tds[5])).strip()
-                m = re.compile(r'''(\?\?\?|(?P<lat_sign>N|S) (?P<lat_d>\d+)° (?P<lat_m>[0-9\.]+) (?P<lon_sign>E|W) (?P<lon_d>\d+)° (?P<lon_m>[0-9\.]+))''').search(tds[6])
+            elif len(tds) > 4:
+                id = ''.join(HTMLManipulations._strip_html(x).strip() for x in tds[4:6])
+                name = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(tds[6])).strip()
+            
+                m = re.compile(r'''(\?\?\?|(?P<lat_sign>N|S) (?P<lat_d>\d+)° (?P<lat_m>[0-9\.]+) (?P<lon_sign>E|W) (?P<lon_d>\d+)° (?P<lon_m>[0-9\.]+))''').search(tds[7])
                 lat = self.__from_dm(m.group('lat_sign'), m.group('lat_d'), m.group('lat_m'))
                 lon = self.__from_dm(m.group('lon_sign'), m.group('lon_d'), m.group('lon_m'))
             else:
-                comment = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(tds[2]))).strip()
+                comment = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(tds[3]))).strip()
                 waypoints.append({'lat':lat, 'lon':lon, 'id':id, 'name':name, 'comment':comment})
         '''
         finder = re.finditer(r'<tr class="[^"]+">\s+<td>\s*<img [^>]+>\s*</td>\s*' +
@@ -481,8 +487,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
         output = []
         for l in lines:
             #lines = [re.sub("\w+", ' ', HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(x, True)), '').sub('[ view this log ]') for x in lines[2:]]
-            m = re.match(r"""<td[^>]+><strong><img src="http://www\.geocaching\.com/images/icons/(?:icon_(?P<icon>[a-z]+)|(?P<icon2>coord_update))\.gif" alt="" />""" +
-                r"""&nbsp;(?P<month>[^ ]+) (?P<day>\d+)(, (?P<year>\d+))? by <a href[^>]+>(?P<name>[^<]+)</a></strong> \(\d+ found\)<br />(?P<text>.+)""" +
+            m = re.match(r"""<td[^>]+><strong><img src="http://www\.geocaching\.com/images/icons/(?:icon_(?P<icon>[a-z]+)|(?P<icon2>coord_update))\.gif"[^>]*/>""" +
+                r"""&nbsp;([^ ]+) (\d+)(, (\d+))? by <a[^>]+>([^<]+)</a></strong> \(\d+ found\)<br /><br />(.+)""" +
                 r"""<br /><br /><small>""", l, re.DOTALL)
             if m == None:
                 #print "Could not parse Log-Line:\nBEGIN\n%s\nEND\n\n This can be normal." % l
@@ -583,7 +589,7 @@ if __name__ == '__main__':
     
     if len(c.get_logs()) < 2:
         print "Expected at least 2 logs, got %d" % len(c.get_logs())
+    print c.get_logs()
     print "Owner:%s\nTitle:%s\nTerrain:%s\nDifficulty:%s\nDescription:%s\nShortdesc:%s\nHints:%s" % (c.owner, c.title, c.get_terrain(), c.get_difficulty(), c.desc, c.shortdesc, c.hints)
     print c.get_waypoints()
-    print c.get_logs()
 
