@@ -18,10 +18,13 @@
 #        Author: Daniel Fett advancedcaching@fragcom.de
 #
 
+import math
+
+import cairo
 import gobject
-import openstreetmap
-import threadpool
+import geo
 import gtk
+import openstreetmap
 import pango
 import cairo
 import math
@@ -125,7 +128,7 @@ class Map(gtk.DrawingArea):
         Map.tile_loaders = []
 
         for name, params in map_providers:
-            tl = openstreetmap.get_tile_loader(** params)
+            tl = openstreetmap.get_tile_loader( ** params)
             tl.noimage_loading = Map.noimage_loading
             tl.noimage_cantload = Map.noimage_cantload
             tl.base_dir = map_path
@@ -133,7 +136,7 @@ class Map(gtk.DrawingArea):
             Map.tile_loaders.append((name, tl))
             
 
-    def __init__(self, center, zoom, tile_loader = None, draggable = True):
+    def __init__(self, center, zoom, tile_loader=None, draggable=True):
         gtk.DrawingArea.__init__(self)
 
         self.connect("expose_event", self.__expose_event)
@@ -149,7 +152,7 @@ class Map(gtk.DrawingArea):
         try:
             gobject.signal_new('tile-loader-changed', Map, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
             gobject.signal_new('map-dragged', Map, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
-            gobject.signal_new('draw-marks', Map, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+            gobject.signal_new('draw-marks', Map, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, ))
         except RuntimeError:
             pass
 
@@ -222,6 +225,21 @@ class Map(gtk.DrawingArea):
     def get_zoom(self):
         return self.zoom
 
+
+        ##############################################
+        #
+        # Marker handling
+        #
+        ##############################################
+
+    def add_marker_type(self, type):
+        self.marker_types.append(type)
+
+    def del_all_markers(self):
+        for x in self.marker_types:
+            x.del_all_markers()
+
+
         ##############################################
         #
         # Configuration
@@ -269,7 +287,7 @@ class Map(gtk.DrawingArea):
     def point_in_screen(self, point):
         return (point[0] >= 0 and point[1] >= 0 and point[0] < self.map_width and point[1] < self.map_height)
 
-    def pixmappoint2coord(self, point):
+    def screenpoint2coord(self, point):
         size = self.tile_loader.TILE_SIZE
         coord = self.num2deg(\
                                 (point[0] + self.map_center_x * size - self.map_width / 2) / size, \
@@ -281,11 +299,11 @@ class Map(gtk.DrawingArea):
         point = self.deg2num(coord)
         size = self.tile_loader.TILE_SIZE
 
-        p_x = int(point[0] * size - self.map_center_x * size + self.map_width / 2)
-        p_y = int(point[1] * size - self.map_center_y * size + self.map_height / 2)
-        return [p_x, p_y]
+        p_x = int(point[0] * size + self.map_width / 2)
+        p_y = int(point[1] * size + self.map_height / 2)
+        return (p_x, p_y)
 
-    def screenpoint2coord(self, point):
+    def abspoint2screenpoint(self, abspoint):
         size = self.tile_loader.TILE_SIZE
         coord = self.num2deg(\
                                 ((point[0] - self.draw_root_x - self.draw_at_x) + self.map_center_x * size - self.map_width / 2) / size, \
@@ -294,7 +312,7 @@ class Map(gtk.DrawingArea):
         return coord
 
     def get_visible_area(self):
-        return (self.pixmappoint2coord([0, 0]), self.pixmappoint2coord([self.map_width, self.map_height]))
+        return (self.screenpoint2coord((0, 0)), self.screenpoint2coord((self.map_width, self.map_height)))
 
 
         ##############################################
@@ -363,7 +381,7 @@ class Map(gtk.DrawingArea):
         if event.direction == gtk.gdk.SCROLL_DOWN:
             self.map.zoom(-1)
         else:
-            self.map.zoom(+ 1)
+            self.map.zoom( + 1)
 
     def __drag_start(self, widget, event):
         try:
@@ -411,13 +429,13 @@ class Map(gtk.DrawingArea):
 
         self.window.clear()
         self.window.draw_drawable(gc=self.xgc,
-                                               src=self.pixmap,
-                                               xsrc=0,
-                                               ysrc=0,
-                                               xdest=self.draw_at_x - self.drag_offset_x,
-                                               ydest=self.draw_at_y - self.drag_offset_y,
-                                               width=width,
-                                               height=height)
+                                  src=self.pixmap,
+                                  xsrc=0,
+                                  ysrc=0,
+                                  xdest=self.draw_at_x - self.drag_offset_x,
+                                  ydest=self.draw_at_y - self.drag_offset_y,
+                                  width=width,
+                                  height=height)
 
 
         return True
@@ -526,7 +544,7 @@ class Map(gtk.DrawingArea):
 
     def _add_to_buffer(self, id_string, surface, x, y, scale_source=None):
         self.surface_buffer[id_string] = [surface, x, y, scale_source]
-        self.__draw_tiles(which=([surface, x, y, scale_source], ))
+        self.__draw_tiles(which=([surface, x, y, scale_source],))
 
     def __draw_tiles(self, which=None, off_x=0, off_y=0):
         self.delay_expose = False

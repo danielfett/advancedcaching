@@ -230,18 +230,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             return startd
 
 
-
-    def _on_key_press(self, window, event):
-        self.rotation_manager.set_mode(FremantleRotation.ALWAYS)
-        return
-        if event.keyval == gtk.keysyms.F7:
-            self.map.relative_zoom( + 1)
-            return False
-        elif event.keyval == gtk.keysyms.F8:
-            self.map.relative_zoom(-1)
-            return False
-
-
     def _create_main_view(self):
         root = gtk.VBox()
 
@@ -347,7 +335,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
         self.map.connect('tile-loader-changed', lambda widget, loader: self._update_zoom_buttons())
         self.map.connect('map-dragged', lambda widget: self._set_track_mode(False))
-        
+
+
         buttons = gtk.HBox()
 
 

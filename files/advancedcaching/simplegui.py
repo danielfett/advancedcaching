@@ -572,7 +572,6 @@ class SimpleGui(object):
     def on_download_clicked(self, widget, data=None):
         self.core.on_download(self.map.get_visible_area())
 
-
     def on_download_details_map_clicked(self, some, thing=None):
         self.core.on_download_descriptions(self.map.get_visible_area(), True)
 
