@@ -30,7 +30,8 @@ It downloads geocaches including their description, hints, difficulty levels and
 - Advanced waypoint handling - AGTL finds waypoints in the geocache descriptions, in the list of waypoints and even in your notes. For your convenience, they're displayed on the map as well - see where you have to go next.
 - Sun compass - Compensates the lack of a magnetic compass
 .
-AGTL is Open Source and in active development.'''
+AGTL is Open source and in active development.'''
+ 
  p.author="Daniel Fett"
  p.mail="advancedcaching@fragcom.de"
  p.depends = "python2.5, python-gtk2, python-simplejson, python-location, python-hildon (>= 0.9.0-1maemo15)"
@@ -50,7 +51,7 @@ AGTL is Open Source and in active development.'''
  #  p.preremove="""#!/bin/sh
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your pre remove script
  version = "0.6.1.4"
- build = "1"########################## for the first build of this version of your software. Increment for later re-builds of the same version of your software.
+ build = "4"########################### for the first build of this version of your software. Increment for later re-builds of the same version of your software.
                              #Text with changelog information to be displayed in the package "Details" tab of the Maemo Application Manager
  changeloginformation = """
 - Fix bug after geocaching.com site update (2010-07-01)
