@@ -20,6 +20,7 @@ if __name__ == "__main__":
  p=py2deb.Py2deb("advancedcaching")   #This is the package name and MUST be in lowercase! (using e.g. "advancedcaching" fails miserably...)
  p.description='''AGTL, the all-in-one solution for on- and offline geocaching, makes geocaching paperless! 
 It downloads geocaches including their description, hints, difficulty levels and images. No premium account needed. Searching for caches in your local db is a matter of seconds.
+.
 - Map view - supporting Open Street Maps and Open Cycle Maps by default, configurable for other map types, including google maps.
 - GPS view - shows the distance and direction to the selected geocache.
 - Cache details - all necessary details are available even in offline mode.
@@ -28,7 +29,7 @@ It downloads geocaches including their description, hints, difficulty levels and
 - Multicache calculation help - Let your phone do the math for you. Working for the most multi-stage geocaches, AGTL finds the coordinate calculations and let you enter the missing variables.
 - Advanced waypoint handling - AGTL finds waypoints in the geocache descriptions, in the list of waypoints and even in your notes. For your convenience, they're displayed on the map as well - see where you have to go next.
 - Sun compass - Compensates the lack of a magnetic compass
-
+.
 AGTL is Open source and in active development.'''
  
  p.author="Daniel Fett"
@@ -50,7 +51,7 @@ AGTL is Open source and in active development.'''
  #  p.preremove="""#!/bin/sh
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your pre remove script
  version = "0.6.1.4"
- build = "1"########################## for the first build of this version of your software. Increment for later re-builds of the same version of your software.
+ build = "4"########################### for the first build of this version of your software. Increment for later re-builds of the same version of your software.
                              #Text with changelog information to be displayed in the package "Details" tab of the Maemo Application Manager
  changeloginformation = """
 - Fix bug after geocaching.com site update (2010-07-01)
