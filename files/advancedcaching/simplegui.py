@@ -511,7 +511,7 @@ class SimpleGui():
         display_distance = self.gps_data.position.distance_to(self.current_target)
         display_north = math.radians(self.gps_data.bearing)
         try:
-            sun_angle = astral.get_sun_azimuth_from_fix(self.gps_data)
+            sun_angle = self.astral.get_sun_azimuth_from_fix(self.gps_data)
         except Exception, e:
             print e
             sun_angle = None
