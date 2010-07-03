@@ -18,9 +18,14 @@
 #        Author: Daniel Fett advancedcaching@fragcom.de
 #
 
+VERSION = 0
+VERSION_DATE = '2010-07-03'
+
 import geocaching
 import re
 import gobject
+import logging
+logger = logging.getLogger('fieldnotesuploader')
 
 
 class FieldnotesUploader(gobject.GObject):
@@ -56,7 +61,7 @@ class FieldnotesUploader(gobject.GObject):
 
     def upload(self):
         try:
-            print "+ Uploading fieldnotes..."
+            logger.info("Uploading fieldnotes...")
             page = self.downloader.get_reader(self.URL).read()
             m = re.search('<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="([^"]+)" />', page)
             if m == None:
@@ -74,5 +79,6 @@ class FieldnotesUploader(gobject.GObject):
                 raise Exception("Something went wrong while uploading the field notes.")
             else:
                 self.emit('finished-uploading')
+                logger.info("Finished upload")
         except Exception, e:
             self.emit('upload-error', e)
