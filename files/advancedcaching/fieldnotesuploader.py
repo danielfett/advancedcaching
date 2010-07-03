@@ -66,7 +66,7 @@ class FieldnotesUploader(gobject.GObject):
             response = self.downloader.get_reader(self.URL,
                                                   data=self.downloader.encode_multipart_formdata(
                                                     [('ctl00$ContentBody$btnUpload', 'Upload Field Note'), ('ctl00$ContentBody$chkSuppressDate', ''), ('__VIEWSTATE', viewstate)],
-                                                    [('ctl00$ContentBody$fuFieldNote', 'geocache_visits.txt', text)]
+                                                    [('ctl00$ContentBody$FieldNoteLoader', 'geocache_visits.txt', text)]
                                                   ))
 
             res = response.read()
