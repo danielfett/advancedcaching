@@ -29,6 +29,7 @@ import pango
 import cairo
 import math
 import geo
+import threadpool
 
 class MapLayer():
     def __init__(self):
@@ -338,6 +339,8 @@ class Map(gtk.DrawingArea):
         cr.set_source_surface(self.cr_drawing_area_map)
         cr.paint()
         for l in self.layers:
+            if l.result == None:
+                continue
             cr.set_source_surface(l.result)
             cr.paint()
         cr.reset_clip()
