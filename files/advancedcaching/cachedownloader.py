@@ -358,12 +358,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 waypoints = "%s%s  " % (waypoints, line)
             elif section == 'images':
                 images = "%s%s " % (images, line)
-<<<<<<< HEAD
-        logger.debug('finished parsing')
-=======
 
-        print 'finished parsing'
->>>>>>> d02017d... Fix for geocaching site update 2010-07-01
+        logger.debug('finished parsing')
+
         coordinate.size, coordinate.difficulty, coordinate.terrain, coordinate.owner, coordinate.lat, coordinate.lon = self.__parse_head(head)
         coordinate.shortdesc = self.__treat_shortdesc(shortdesc)
         coordinate.desc = self.__treat_desc(desc)
