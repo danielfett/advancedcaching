@@ -40,7 +40,7 @@ from os import path, mkdir, extsep, remove, walk
 import provider
 from threading import Thread
 import cachedownloader
-from fieldnotesuploader import FieldnotesUploader
+import fieldnotesuploader
 from actors.tts import TTS
 #from actors.notify import Notify
 import logging
@@ -96,7 +96,7 @@ class Core(gobject.GObject):
 
     DATA_DIR = path.expanduser('~/') if not path.exists(MAEMO_HOME) else MAEMO_HOME
 
-    UPDATE_MODULES = [cachedownloader]
+    UPDATE_MODULES = [cachedownloader, fieldnotesuploader]
     
     DEFAULT_SETTINGS = {
         'download_visible': True,
@@ -756,7 +756,7 @@ class Core(gobject.GObject):
         self.gui.set_download_progress(0.5, "Uploading Fieldnotes...")
 
         caches = self.pointprovider.get_new_fieldnotes()
-        fn = FieldnotesUploader(self.downloader)
+        fn = fieldnotesuploader.FieldnotesUploader(self.downloader)
         fn.connect("upload-error", self.on_download_error)
         
         def same_thread(arg1):
