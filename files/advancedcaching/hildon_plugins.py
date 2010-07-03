@@ -80,14 +80,15 @@ class HildonFieldnotes(object):
         self.core.connect('fieldnotes-changed', self._on_fieldnotes_changed)
         logger.info("Using Fieldnotes plugin")
 
-    def _get_fieldnotes_button(self):
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_title("Upload Fieldnote(s)")
         button.set_value("You have not created any fieldnotes.")
         button.connect("clicked", self._on_upload_fieldnotes, None)
         self.button_fieldnotes = button
+
+    def _get_fieldnotes_button(self):
         self.update_fieldnotes_display()
-        return button
+        return self.button_fieldnotes
 
     def _get_write_fieldnote_button(self):
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
