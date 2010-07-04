@@ -137,7 +137,7 @@ class HildonGui(SimpleGui):
             c.name = 'manual'
             return c
         else:
-            return startd
+            return None
 
     def set_tile_loader(self, widget, loader):
         if widget.get_active():
@@ -682,6 +682,8 @@ class HildonGui(SimpleGui):
             except Exception, e:
                 m = c
             m_new = self.show_coordinate_input(m)
+            if m_new == None:
+                return
             bar_entry.set_text(m_new.get_latlon(self.format))
 
         bar_button = hildon.Button(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
@@ -878,6 +880,8 @@ class HildonGui(SimpleGui):
             else:
                 c = geo.Coordinate(0, 0)
             res = self.show_coordinate_input(c)
+            if res == None:
+                return
             text = "\n%s\n" % res.get_latlon(self.format)
             self.cache_notes.get_buffer().insert(self.cache_notes.get_buffer().get_end_iter(), text)
                 
