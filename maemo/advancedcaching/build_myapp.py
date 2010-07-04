@@ -50,11 +50,12 @@ AGTL is Open source and in active development.'''
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your pre install script
  #  p.preremove="""#!/bin/sh
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your pre remove script
- version = "0.6.1.4"
- build = "4"########################### for the first build of this version of your software. Increment for later re-builds of the same version of your software.
+ version = "0.6.1.5"
+ build = "0"############################ for the first build of this version of your software. Increment for later re-builds of the same version of your software.
                              #Text with changelog information to be displayed in the package "Details" tab of the Maemo Application Manager
  changeloginformation = """
-- Fix bug after geocaching.com site update (2010-07-01)
+- Fix Fieldnotes uploading after gc.com site update
+- Fix for sun position indicator (some users couldn't get a gps fix due to this bug)
 """
  dir_name = "src"            #Name of the subfolder containing your package source files (e.g. usr\share\icons\hicolor\scalable\myappicon.svg, usr\lib\myapp\somelib.py). We suggest to leave it named src in all projects and will refer to that in the wiki article on maemo.org
  #Thanks to DareTheHair from talk.maemo.org for this snippet that recursively builds the file list 
