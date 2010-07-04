@@ -177,7 +177,6 @@ class SimpleGui():
         self.fieldnotes_changed = False
         self.map_center_x, self.map_center_y = 100, 100
         
-        
         global xml
         xml = gtk.glade.XML(path.join(dataroot, self.XMLFILE))
         self.load_ui()
@@ -511,7 +510,7 @@ class SimpleGui():
         display_distance = self.gps_data.position.distance_to(self.current_target)
         display_north = math.radians(self.gps_data.bearing)
         try:
-            sun_angle = self.astral.get_sun_azimuth_from_fix(self.gps_data)
+            sun_angle = astral.get_sun_azimuth_from_fix(self.gps_data)
         except Exception, e:
             print e
             sun_angle = None
