@@ -286,25 +286,26 @@ class Map(gtk.DrawingArea):
         ##############################################
 
     def point_in_screen(self, point):
-        return (point[0] >= 0 and point[1] >= 0 and point[0] < self.map_width and point[1] < self.map_height)
-
-    def screenpoint2coord(self, point):
+        a = (point[0] >= 0 and point[1] >= 0 and point[0] < self.map_width and point[1] < self.map_height)
+        return a
+    '''
+    def pixmappoint2coord(self, point):
         size = self.tile_loader.TILE_SIZE
         coord = self.num2deg(\
                                 (point[0] + self.map_center_x * size - self.map_width / 2) / size, \
                                 (point[1] + self.map_center_y * size - self.map_height / 2) / size \
                                 )
         return coord
+    '''
 
     def coord2point(self, coord):
         point = self.deg2num(coord)
         size = self.tile_loader.TILE_SIZE
-
-        p_x = int(point[0] * size + self.map_width / 2)
-        p_y = int(point[1] * size + self.map_height / 2)
+        p_x = int(point[0] * size + self.map_width / 2) - self.map_center_x * size
+        p_y = int(point[1] * size + self.map_height / 2) - self.map_center_y * size
         return (p_x, p_y)
 
-    def abspoint2screenpoint(self, abspoint):
+    def screenpoint2coord(self, point):
         size = self.tile_loader.TILE_SIZE
         coord = self.num2deg(\
                                 ((point[0] - self.draw_root_x - self.draw_at_x) + self.map_center_x * size - self.map_width / 2) / size, \

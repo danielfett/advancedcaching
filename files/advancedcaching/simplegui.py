@@ -194,7 +194,7 @@ class SimpleGui(object):
         
         self.input_export_path = xml.get_widget('input_export_path')
                 
-        self.drawing_area.set_double_buffered(False)
+        self.drawing_area.set_double_buffered(True)
         self.drawing_area.connect("expose_event", self._expose_event)
         self.drawing_area.connect("configure_event", self._configure_event)
         self.drawing_area.connect("button_press_event", self._drag_start)
@@ -1464,7 +1464,10 @@ class GeocacheLayer(MapLayer):
         self.current_cache = None
 
     def set_show_found(self, show_found):
-        self.show_found = show_found
+        if show_found: 
+            self.select_found = None
+        else:
+            self.select_found = True
 
     def set_show_name(self, show_name):
         self.show_name = show_name
@@ -1491,7 +1494,7 @@ class GeocacheLayer(MapLayer):
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map.map_width, self.map.map_height)
         cr = gtk.gdk.CairoContext(cairo.Context(surface))
         
-        coords = self.pointprovider.get_points_filter(self.map.get_visible_area(), self.show_found, self.MAX_NUM_RESULTS_SHOW)
+        coords = self.pointprovider.get_points_filter(self.map.get_visible_area(), self.select_found, self.MAX_NUM_RESULTS_SHOW)
 
         if self.map.get_zoom() < self.CACHES_ZOOM_LOWER_BOUND:
             self.map.set_osd_message('Too many geocaches to display.')
