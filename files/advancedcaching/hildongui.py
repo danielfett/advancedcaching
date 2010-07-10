@@ -65,6 +65,7 @@ from portrait import FremantleRotation
 from simplegui import SimpleGui
 from simplegui import UpdownRows
 from simplegui import GeocacheLayer
+from simplegui import MarksLayer
 from xml.sax.saxutils import escape as my_gtk_label_escape
 from gtkmap import Map, OsdLayer
 
@@ -329,8 +330,15 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
         self.map = Map(center = coord, zoom = zoom)
         self.geocache_layer = GeocacheLayer(self.core.pointprovider, self.show_cache)
+        marks_layer = MarksLayer()
+        
         self.map.add_layer(self.geocache_layer)
+        self.map.add_layer(marks_layer)
         self.map.add_layer(OsdLayer())
+
+        self.core.connect('target-changed', marks_layer.on_target_changed)
+        self.core.connect('good-fix', marks_layer.on_good_fix)
+        self.core.connect('no-fix', marks_layer.on_no_fix)
 
 
         self.map.connect('tile-loader-changed', lambda widget, loader: self._update_zoom_buttons())
@@ -1503,9 +1511,10 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
     def _on_no_fix(self, caller, gps_data, status):
         self.gps_data = gps_data
+        self.gps_has_fix = False
+
         self.label_bearing.set_text("No Fix")
         self.label_latlon.set_text(status)
-        self.gps_has_fix = False
         self.update_gps_display()
         self._draw_arrow()
         self.map.redraw_layers()

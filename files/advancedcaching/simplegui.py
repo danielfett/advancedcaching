@@ -1448,11 +1448,6 @@ class GeocacheLayer(MapLayer):
     COLOR_CACHE_CENTER = gtk.gdk.color_parse('black')
     COLOR_CURRENT_CACHE = gtk.gdk.color_parse('red')
     COLOR_WAYPOINTS = gtk.gdk.color_parse('deeppink')
-    COLOR_CURRENT_POSITION = gtk.gdk.color_parse('red')
-    COLOR_CURRENT_POSITION_NO_FIX = gtk.gdk.color_parse('darkgray')
-    COLOR_TARGET = gtk.gdk.color_parse('black')
-    COLOR_CROSSHAIR = gtk.gdk.color_parse("black")
-    COLOR_LINE_INVERT = gtk.gdk.color_parse("blue")
 
     def __init__(self, pointprovider, show_cache_callback):
         MapLayer.__init__(self)
@@ -1645,14 +1640,45 @@ class GeocacheLayer(MapLayer):
 class MarksLayer(MapLayer):
 
     SIZE_CURRENT_POSITION = 3
+    COLOR_CURRENT_POSITION = gtk.gdk.color_parse('red')
+    COLOR_CURRENT_POSITION_NO_FIX = gtk.gdk.color_parse('darkgray')
+    COLOR_TARGET = gtk.gdk.color_parse('black')
+    COLOR_CROSSHAIR = gtk.gdk.color_parse("black")
+    COLOR_LINE_INVERT = gtk.gdk.color_parse("blue")
+
+
+    def __init__(self):
+        MapLayer.__init__(self)
+        self.current_target = None
+        self.gps_target_distance = None
+        self.gps_target_bearing = None
+        self.gps_data = None
+        self.gps_last_good_fix = None
+        self.gps_has_fix = None
+
+    def on_target_changed(self, caller, cache, distance, bearing):
+        self.current_target = cache    
+        self.gps_target_distance = distance
+        self.gps_target_bearing = bearing
+
+    def on_good_fix(self, core, gps_data, distance, bearing):
+        self.gps_data = gps_data
+        self.gps_last_good_fix = gps_data
+        self.gps_has_fix = True
+        self.gps_target_distance = distance
+        self.gps_target_bearing = bearing
+
+    def on_no_fix(self, caller, gps_data, status):
+        self.gps_data = gps_data
+        self.gps_has_fix = False
 
     def draw(self):
         
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map.map_width, self.map.map_height)
         cr = gtk.gdk.CairoContext(cairo.Context(surface))
         # if we have a target, draw it
-        if self.core.current_target != None:
-            t = self.map.coord2point(self.core.current_target)
+        if self.current_target != None:
+            t = self.map.coord2point(self.current_target)
             if t != False and self.map.point_in_screen(t):
 
 
