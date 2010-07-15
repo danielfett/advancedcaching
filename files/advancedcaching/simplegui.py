@@ -632,51 +632,6 @@ class SimpleGui(object):
         self._draw_arrow()
         #self.do_events()
         self.update_gps_display()
-                
-        if self.map.dragging:
-            return
-
-
-        # redraw marks if we need to
-        if not self.map.drawing_area_configured:
-            return False
-                
-        x, y = self.map.coord2point(self.gps_data.position)
-        if self.gps_last_screen_position != None:
-                                    
-            l, m = self.gps_last_screen_position
-            dist_from_last = (x - l) ** 2 + (y - m) ** 2
-
-            # if we are tracking the user, redraw if far enough from center:
-            if self._get_track_mode():
-                n, o = self.map.map_width / 2, self.map.map_height / 2
-                dist_from_center = (x - n) ** 2 + (y - o) ** 2
-                if dist_from_center > self.REDRAW_DISTANCE_TRACKING ** 2:
-                    self.set_center(self.gps_data.position, reset_track=False)
-                    # update last position, as it is now drawed
-                    # self.gps_last_screen_position = (x, y)
-                    return
-
-            # if we are tracking and we have not moved out of the center
-            # or if we are not tracking the user
-            # in either case, if we have moved far enough since last draw, redraw just the marks
-            if dist_from_last > self.REDRAW_DISTANCE_MINOR ** 2:
-                a, b = self.map.get_visible_area()
-                if self.gps_data.position.lat > min(a.lat, b.lat) \
-                    and self.gps_data.position.lat < max(a.lat, b.lat) \
-                    and self.gps_data.position.lon > min(a.lon, b.lon) \
-                    and self.gps_data.position.lon < max(a.lon, b.lon):
-                        self.map.redraw_layers()
-                # update last position, as it is now drawed
-                # self.gps_last_screen_position = (x, y)
-            self.map.redraw_layers()
-            return
-        else:
-            self.map.redraw_layers()
-            # also update when it was None
-            #self.gps_last_screen_position = (x, y)
-                
-                
         
     def on_image_next_clicked(self, something):
         if len(self.images) == 0:
@@ -869,9 +824,7 @@ class SimpleGui(object):
                 
     def on_track_toggled(self, widget, data=None):
         logger.info("Track toggled, new state: " + repr(widget.get_active()))
-        self.track_enabled = widget.get_active()
-        if widget.get_active() and self.gps_data != None and self.gps_data.position != None:
-            self.set_center(self.gps_data.position, reset_track=False)
+        self.marks_layer.set_follow_position(widget.get_active())
 
     def on_upload_fieldnotes(self, something):
         self.core.on_upload_fieldnotes()
@@ -971,20 +924,17 @@ class SimpleGui(object):
         logger.info("Set Center to %s with reset_track = %s" % (coord, reset_track))
         self.map.set_center(coord, not noupdate)
         if reset_track:
-            self._set_track_mode(False)
+            self.marks_layer.set_follow_position(False)
 
     def _set_track_mode(self, mode):
-        self.track_enabled = mode
-        logger.info("Set track mode = %s" % mode)
-        if mode and self.gps_data != None and self.gps_data.position != None:
-            self.set_center(self.gps_data.position, reset_track = False)
+        self.marks_layer.set_follow_position(mode)
         try:
             self.button_track.set_active(mode)
         except:
             pass
 
     def _get_track_mode(self):
-        return self.track_enabled
+        return self.marks_layer.get_follow_position()
                 
     #called by core
     def set_download_progress(self, fraction, text):
@@ -1636,6 +1586,8 @@ class GeocacheLayer(MapLayer):
                     cr.show_layout(layout)
             cr.stroke()
         self.result = surface
+        
+logger = logging.getLogger('markslayer')
 
 class MarksLayer(MapLayer):
 
@@ -1655,6 +1607,16 @@ class MarksLayer(MapLayer):
         self.gps_data = None
         self.gps_last_good_fix = None
         self.gps_has_fix = None
+        self.follow_position = False
+
+    def set_follow_position(self, value):
+        logger.info('Setting "Follow position" to :' + repr(value))
+        if value and not self.follow_position and self.gps_last_good_fix != None:
+            self.map.set_center(self.gps_last_good_fix.position)
+        self.follow_position = value
+
+    def get_follow_position(self):
+        return self.follow_position
 
     def on_target_changed(self, caller, cache, distance, bearing):
         self.current_target = cache    
@@ -1667,6 +1629,9 @@ class MarksLayer(MapLayer):
         self.gps_has_fix = True
         self.gps_target_distance = distance
         self.gps_target_bearing = bearing
+        if self.follow_position and not self.map.set_center_lazy(self.gps_data.position):
+            self.draw()
+            self.map.refresh()
 
     def on_no_fix(self, caller, gps_data, status):
         self.gps_data = gps_data
@@ -1700,22 +1665,16 @@ class MarksLayer(MapLayer):
 
         if self.gps_last_good_fix != None and self.gps_last_good_fix.position != None:
             p = self.map.coord2point(self.gps_last_good_fix.position)
-            if p != False:
-                self.gps_last_screen_position = p
-
-        p = self.gps_last_screen_position
-        if p != (0, 0) and self.map.point_in_screen(p):
+        else:
+            p = None
+            
+        if p != None and self.map.point_in_screen(p):
 
             cr.set_line_width(2)
 
             if self.gps_has_fix:
                 radius = self.gps_data.error
-
-                # determine radius in meters
-                (x, y) = self.map.coord2point(self.gps_data.position.transform(90.0, radius))
-
-                (x2, y2) = self.map.coord2point(self.gps_data.position)
-                radius_pixels = (x2 - x)
+                radius_pixels = radius / self.map.get_meters_per_pixel(self.gps_last_good_fix.position.lat)
             else:
                 radius_pixels = 10
 
@@ -1754,10 +1713,8 @@ class MarksLayer(MapLayer):
                 cr.stroke()
 
 
-
-
         # and a line between target and position if we have both
-        if self.gps_has_fix and t != False:
+        if p != None and t != False:
             cr.set_line_width(5)
             cr.set_source_rgba(1, 1, 0, 0.5)
             if self.map.point_in_screen(t) and self.map.point_in_screen(p):
@@ -1779,21 +1736,4 @@ class MarksLayer(MapLayer):
                 cr.line_to(int(t[0] - math.sin(direction) * length), int(t[1] + math.cos(direction) * length))
                 cr.stroke()
 
-
-
-        # draw cross across the screen
-        '''
-        cr.set_line_width(1
-        xgc.set_function(gtk.gdk.XOR)
-        cr.set_source_color(self.COLOR_CROSSHAIR)
-
-        radius_inner = 30
-        self.pixmap_marks.draw_line(xgc, self.map_width / 2, 0, self.map_width / 2, self.map_height / 2 - radius_inner)
-        self.pixmap_marks.draw_line(xgc, self.map_width / 2, self.map_height / 2 + radius_inner, self.map_width / 2, self.map_height)
-        self.pixmap_marks.draw_line(xgc, 0, self.map_height / 2, self.map_width / 2 - radius_inner, self.map_height / 2)
-        self.pixmap_marks.draw_line(xgc, self.map_width / 2 + radius_inner, self.map_height / 2, self.map_width, self.map_height / 2)
-
-        xgc.set_function(gtk.gdk.COPY)
-        return False
-        '''
         self.result = surface

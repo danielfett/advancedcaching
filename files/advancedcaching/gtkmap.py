@@ -31,6 +31,9 @@ import math
 import geo
 import threadpool
 
+import logging
+logger = logging.getLogger('gtkmap')
+
 class MapLayer():
     def __init__(self):
         self.result = None
@@ -121,6 +124,8 @@ class Map(gtk.DrawingArea):
     DRAG_RECHECK_SPEED = 20
     CLICK_RADIUS = 20
 
+    LAZY_SET_CENTER_DIFFERENCE = 0.1 # * screen (width|height)
+
     @staticmethod
     def set_config(map_providers, map_path, placeholder_cantload, placeholder_loading):
 
@@ -209,6 +214,21 @@ class Map(gtk.DrawingArea):
         if update:
             self.__draw_map()
 
+    def set_center_lazy(self, coord):
+        old_center_x, old_center_y = self.coord2point(self.center_latlon)
+        new_center_x, new_center_y = self.coord2point(coord)
+        
+        if abs(old_center_x - new_center_x) > \
+            self.map_width * self.LAZY_SET_CENTER_DIFFERENCE or \
+            abs(old_center_y - new_center_y) > \
+            self.map_height * self.LAZY_SET_CENTER_DIFFERENCE:
+            self.set_center(coord)
+            logger.debug('Not lazy!')
+            return True
+        logger.debug('Lazy!')
+        return False
+
+
     def get_center(self):
         return self.center_latlon
 
@@ -277,7 +297,6 @@ class Map(gtk.DrawingArea):
 
     def refresh(self):
         self.queue_draw()
-        pass
 
         ##############################################
         #

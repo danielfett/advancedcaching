@@ -330,15 +330,15 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
         self.map = Map(center = coord, zoom = zoom)
         self.geocache_layer = GeocacheLayer(self.core.pointprovider, self.show_cache)
-        marks_layer = MarksLayer()
+        self.marks_layer = MarksLayer()
         
         self.map.add_layer(self.geocache_layer)
-        self.map.add_layer(marks_layer)
+        self.map.add_layer(self.marks_layer)
         self.map.add_layer(OsdLayer())
 
-        self.core.connect('target-changed', marks_layer.on_target_changed)
-        self.core.connect('good-fix', marks_layer.on_good_fix)
-        self.core.connect('no-fix', marks_layer.on_no_fix)
+        self.core.connect('target-changed', self.marks_layer.on_target_changed)
+        self.core.connect('good-fix', self.marks_layer.on_good_fix)
+        self.core.connect('no-fix', self.marks_layer.on_no_fix)
 
 
         self.map.connect('tile-loader-changed', lambda widget, loader: self._update_zoom_buttons())
@@ -520,7 +520,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         button = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         button.set_label("Follow Position")
         button.set_active(self.track_enabled)
-        #button.connect("clicked", self.on_track_toggled, None)
+        button.connect("clicked", self.on_track_toggled, None)
         button_track = button
         buttons.append(button)
 
