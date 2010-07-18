@@ -237,6 +237,12 @@ class Map(gtk.DrawingArea):
     def get_zoom(self):
         return self.zoom
 
+    def get_max_zoom(self):
+        return self.tile_loader.MAX_ZOOM
+
+    def get_min_zoom(self):
+        return 0
+
 
         ##############################################
         #
@@ -267,7 +273,7 @@ class Map(gtk.DrawingArea):
     def set_tile_loader(self, loader):
         self.tile_loader = loader
         self.emit('tile-loader-changed', loader)
-        self.map.zoom(0)
+        self.relative_zoom(0)
 
     def set_placeholder_images(self, cantload, loading):
         self.noimage_cantload = cairo.ImageSurface.create_from_png(cantload)

@@ -438,7 +438,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         pick_tiles.set_selector(sel_tiles)
         pick_tiles.set_title("Map Style")
         pick_tiles.set_active(0)
-        pick_tiles.connect('value-changed', lambda widget: self.map.set_tile_loader(self.tile_loaders[widget.get_active()][1]))
+        pick_tiles.connect('value-changed', lambda widget: self.map.set_tile_loader(self.map.tile_loaders[widget.get_active()][1]))
         menu.append(pick_tiles)
 
         menu.append(self._get_search_place_button())
@@ -1402,12 +1402,12 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
 
     def _update_zoom_buttons(self):
-        if self.map.get_zoom() == 1:
+        if self.map.get_zoom() == self.map.get_min_zoom():
             self.button_zoom_out.set_sensitive(False)
         else:
             self.button_zoom_out.set_sensitive(True)
             
-        if self.map.get_zoom() == self.tile_loader.MAX_ZOOM:
+        if self.map.get_zoom() == self.map.get_max_zoom():
             self.button_zoom_in.set_sensitive(False)
         else:
             self.button_zoom_in.set_sensitive(True)
