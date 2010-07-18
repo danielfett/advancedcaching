@@ -192,6 +192,9 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         p = "%s%s%%s" % (path.join(dataroot, '%s'), extsep)
         self.noimage_cantload = p % ('noimage-cantload', 'png')
         self.noimage_loading = p % ('noimage-loading', 'png')
+
+        #MarksLayer.load_image_target(p % ('target', 'png'))
+
         out = {}
 
         for key, name in self.ICONS.items():
@@ -206,6 +209,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.image_info = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'general_information'})
         self.image_left = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'general_back'})
         self.image_right = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'general_forward'})
+
 
     def _open_browser(self, widget, link):
         system("dbus-send --print-reply --dest=com.nokia.osso_browser /com/nokia/osso_browser/request com.nokia.osso_browser.open_new_window 'string:%s' &" % link)
@@ -1496,17 +1500,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             self.label_dist.set_markup("<span size='x-large'>No Target</span>")
         else:
             self.label_dist.set_markup("<span size='xx-large'>No Fix</span>")
-
-    def _format_distance(self, distance):
-        if distance == None:
-            return '?'
-        if distance >= 1000:
-            return "%d km" % round(distance / 1000.0)
-        elif distance >= 100:
-            return "%d m" % round(distance)
-        else:
-            return "%.1f m" % round(distance, 1)
-
 
 
     def _on_no_fix(self, caller, gps_data, status):

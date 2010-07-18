@@ -274,12 +274,12 @@ class SimpleGui(object):
          ROW_ID,
          ) = range(6)
         columns = (
-                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
-                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
+                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE, ), False, True),
+                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE, ), False, True),
                    ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
                    ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
                    ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
-                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
+                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID, ), False, True),
                    )
         self.cachelist = listview = extListview.ExtListView(columns, sortable=True, useMarkup=True, canShowHideColumns=False)
         self.cachelist_contents = []
@@ -296,7 +296,7 @@ class SimpleGui(object):
                    ('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
                    ('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
                    ('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
-                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT,), False, True),
+                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT, ), False, True),
                    )
         self.coordlist = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
         self.coordlist.connect('extlistview-button-pressed', self.on_waypoint_clicked)
@@ -375,7 +375,7 @@ class SimpleGui(object):
             else:
                 t = "%.1f" % (r.terrain / 10)
             title = self._format_cache_title(r)
-            rows.append((title, r.type, s, t, d, r.name, ))
+            rows.append((title, r.type, s, t, d, r.name,))
         self.cachelist.replaceContent(rows)
         self.notebook_search.set_current_page(1)
         self.map.redraw_layers()
@@ -542,15 +542,15 @@ class SimpleGui(object):
         self.drawing_area_arrow.queue_draw()
         return False
 
-
-    def _get_arrow_transformed(self, x, y, width, height, angle):
-        multiply = height / (2 * (2-self.ARROW_OFFSET))
+    @staticmethod
+    def _get_arrow_transformed(root_x, root_y, width, height, angle):
+        multiply = height / (2 * (2-SimpleGui.ARROW_OFFSET))
         offset_x = width / 2
         offset_y = height / 2
         s = multiply * math.sin(math.radians(angle))
         c = multiply * math.cos(math.radians(angle))
-        arrow_transformed = [(int(x * c + offset_x - y * s),
-                              int(y * c + offset_y + x * s)) for x, y in self.ARROW_SHAPE]
+        arrow_transformed = [(int(x * c + offset_x - y * s) + root_x,
+                              int(y * c + offset_y + x * s) + root_y) for x, y in SimpleGui.ARROW_SHAPE]
         return arrow_transformed
                 
                 
@@ -847,7 +847,7 @@ class SimpleGui(object):
             self.notebook_all.set_current_page(0)
                                 
     def on_zoomin_clicked(self, widget, data=None):
-        self.map.relative_zoom(+ 1)
+        self.map.relative_zoom( + 1)
                 
     def on_zoomout_clicked(self, widget, data=None):
         self.map.relative_zoom(-1)
@@ -1163,14 +1163,7 @@ class SimpleGui(object):
                         
         if self.gps_has_fix:
             target_distance = self.gps_target_distance
-            if target_distance == None:
-                label = "No Target"
-            if target_distance >= 1000:
-                label = "%3dkm" % round(target_distance / 1000)
-            elif target_distance >= 100:
-                label = "%3dm" % round(target_distance)
-            else:
-                label = "%2.1fm" % round(target_distance, 1)
+            label = self._format_distance(target_distance)
             self.label_dist.set_text("<span size='large'>%s</span>" % label)
             self.label_dist.set_use_markup(True)
             
@@ -1180,7 +1173,16 @@ class SimpleGui(object):
             self.label_dist.set_use_markup(True)
             #self.osd_string = "<span gravity='west' size='xx-large'>No Fix </span>"
         
-                
+    @staticmethod
+    def _format_distance(distance):
+        if distance == None:
+            return '?'
+        if distance >= 1000:
+            return "%d km" % round(distance / 1000.0)
+        elif distance >= 100:
+            return "%d m" % round(distance)
+        else:
+            return "%.1f m" % round(distance, 1)
                 
     def write_settings(self, settings):
         self.settings = settings
@@ -1552,7 +1554,7 @@ class GeocacheLayer(MapLayer):
             cr.set_line_width(1)
             cr.move_to(p[0], p[1] - 3)
             cr.line_to(p[0], p[1] + 3) # |
-            cr.move_to(p[0] - 3, p[1],)
+            cr.move_to(p[0] - 3, p[1], )
             cr.line_to(p[0] + 3, p[1]) # ---
             cr.stroke()
 
@@ -1594,9 +1596,19 @@ class MarksLayer(MapLayer):
     SIZE_CURRENT_POSITION = 3
     COLOR_CURRENT_POSITION = gtk.gdk.color_parse('red')
     COLOR_CURRENT_POSITION_NO_FIX = gtk.gdk.color_parse('darkgray')
-    COLOR_TARGET = gtk.gdk.color_parse('black')
+    COLOR_TARGET = gtk.gdk.color_parse('darkblue')
+    COLOR_TARGET_SHADOW = gtk.gdk.color_parse('white')
     COLOR_CROSSHAIR = gtk.gdk.color_parse("black")
     COLOR_LINE_INVERT = gtk.gdk.color_parse("blue")
+
+    COLOR_DIRECTION_ARROW = gtk.gdk.color_parse("black")
+    COLOR_DIRECTION_ARROW_SHADOW = gtk.gdk.color_parse("white")
+
+    DISTANCE_DRAW_FONT = pango.FontDescription("Sans 20")
+    DISTANCE_DRAW_FONT_COLOR = gtk.gdk.color_parse("black")
+
+    OSD_BORDER_TOPBOTTOM = 25
+    OSD_BORDER_LEFTRIGHT = 35
 
 
     def __init__(self):
@@ -1608,7 +1620,11 @@ class MarksLayer(MapLayer):
         self.gps_last_good_fix = None
         self.gps_has_fix = None
         self.follow_position = False
-
+    '''
+    @staticmethod
+    def load_image_target(filename):
+        MarksLayer.TARGET_SURFACE = cairo.ImageSurface.create_from_png(filename)
+    '''
     def set_follow_position(self, value):
         logger.info('Setting "Follow position" to :' + repr(value))
         if value and not self.follow_position and self.gps_last_good_fix != None:
@@ -1629,7 +1645,7 @@ class MarksLayer(MapLayer):
         self.gps_has_fix = True
         self.gps_target_distance = distance
         self.gps_target_bearing = bearing
-        if self.follow_position and not self.map.set_center_lazy(self.gps_data.position):
+        if (self.follow_position and not self.map.set_center_lazy(self.gps_data.position)) or not self.follow_position:
             self.draw()
             self.map.refresh()
 
@@ -1646,11 +1662,10 @@ class MarksLayer(MapLayer):
             t = self.map.coord2point(self.current_target)
             if t != False and self.map.point_in_screen(t):
 
-
-                cr.set_line_width(2)
-                radius_o = 10
+                
+                radius_o = 15
                 radius_i = 3
-                cr.set_source_color(self.COLOR_TARGET)
+                radius_c = 10
                 cr.move_to(t[0] - radius_o, t[1])
                 cr.line_to(t[0] - radius_i, t[1])
                 cr.move_to(t[0] + radius_o, t[1])
@@ -1659,7 +1674,22 @@ class MarksLayer(MapLayer):
                 cr.line_to(t[0], t[1] + radius_i)
                 cr.move_to(t[0], t[1] - radius_o)
                 cr.line_to(t[0], t[1] - radius_i)
+                cr.new_sub_path()
+                cr.arc(t[0], t[1], radius_c, 0, math.pi * 2)
+
+                cr.set_source_color(self.COLOR_TARGET_SHADOW)
+                cr.set_line_width(3)
+                cr.stroke_preserve()
+                cr.set_source_color(self.COLOR_TARGET)
+                cr.set_line_width(2)
                 cr.stroke()
+
+                '''
+                pos = (t[0] - self.TARGET_SURFACE.get_width()/2, t[1] - self.TARGET_SURFACE.get_height()/2)
+                cr.set_source_surface(self.TARGET_SURFACE, pos[0], pos[1])
+                cr.paint()
+                '''
+
         else:
             t = False
 
@@ -1667,6 +1697,29 @@ class MarksLayer(MapLayer):
             p = self.map.coord2point(self.gps_last_good_fix.position)
         else:
             p = None
+
+        # a line between target and position if we have both
+        if p != None and t != False:
+            cr.set_line_width(5)
+            cr.set_source_rgba(1, 1, 0, 0.5)
+            if self.map.point_in_screen(t) and self.map.point_in_screen(p):
+                cr.move_to(p[0], p[1])
+                cr.line_to(t[0], t[1])
+                cr.stroke()
+            elif self.map.point_in_screen(p):
+                direction = math.radians(self.gps_target_bearing - 180)
+                # correct max length: sqrt(width**2 + height**2)
+                length = self.map.map_width
+                cr.move_to(p[0], p[1])
+                cr.line_to(int(p[0] - math.sin(direction) * length), int(p[1] + math.cos(direction) * length))
+                cr.stroke()
+
+            elif self.map.point_in_screen(t):
+                direction = math.radians(self.gps_target_bearing)
+                length = self.map.map_width + self.map.map_height
+                cr.move_to(t[0], t[1])
+                cr.line_to(int(t[0] - math.sin(direction) * length), int(t[1] + math.cos(direction) * length))
+                cr.stroke()
             
         if p != None and self.map.point_in_screen(p):
 
@@ -1693,7 +1746,7 @@ class MarksLayer(MapLayer):
             # \  /
             #
             # /  \
-
+            '''
             cr.move_to(p[0] - radius_o, p[1] - radius_o)
             cr.line_to(p[0] - radius_i, p[1] - radius_i)
             cr.move_to(p[0] + radius_o, p[1] + radius_o)
@@ -1702,38 +1755,48 @@ class MarksLayer(MapLayer):
             cr.line_to(p[0] + radius_i, p[1] - radius_i)
             cr.move_to(p[0] - radius_o, p[1] + radius_o)
             cr.line_to(p[0] - radius_i, p[1] + radius_i)
-            cr.stroke()
+            cr.stroke()'''
             cr.arc(p[0], p[1], self.SIZE_CURRENT_POSITION, 0, math.pi * 2)
             cr.fill()
             if self.gps_has_fix:
                 cr.set_line_width(1)
-                cr.set_source_color(gtk.gdk.color_parse('blue'))
+                cr.set_source_color(gtk.gdk.color_parse('lightgray'))
+                cr.set_dash((5,3))
                 cr.new_sub_path()
                 cr.arc(p[0], p[1], radius_pixels, 0, math.pi * 2)
                 cr.stroke()
+                cr.set_dash(())
+
+                # draw moving direction, if we're moving
+                if self.gps_data.speed > 2.5: # km/h
+                    position = p#(self.map.map_width - self.OSD_BORDER_LEFTRIGHT, self.map.map_height - self.OSD_BORDER_TOPBOTTOM)
+
+                    arrow = SimpleGui._get_arrow_transformed(position[0] - 15, position[1] - 15, 30, 30, self.gps_data.bearing)
+                    cr.move_to(* arrow[0])
+                    for x, y in arrow:
+                        cr.line_to(x, y)
+                    cr.line_to(* arrow[0])
+
+                    cr.set_source_color(self.COLOR_DIRECTION_ARROW_SHADOW)
+                    cr.set_line_width(2)
+                    cr.stroke_preserve()
+                    cr.set_source_color(self.COLOR_DIRECTION_ARROW)
+                    cr.set_line_width(1)
+                    cr.stroke()
 
 
-        # and a line between target and position if we have both
-        if p != None and t != False:
-            cr.set_line_width(5)
-            cr.set_source_rgba(1, 1, 0, 0.5)
-            if self.map.point_in_screen(t) and self.map.point_in_screen(p):
-                cr.move_to(p[0], p[1])
-                cr.line_to(t[0], t[1])
-                cr.stroke()
-            elif self.map.point_in_screen(p):
-                direction = math.radians(self.gps_target_bearing - 180)
-                # correct max length: sqrt(width**2 + height**2)
-                length = self.map.map_width
-                cr.move_to(p[0], p[1])
-                cr.line_to(int(p[0] - math.sin(direction) * length), int(p[1] + math.cos(direction) * length))
-                cr.stroke()
 
-            elif self.map.point_in_screen(t):
-                direction = math.radians(self.gps_target_bearing)
-                length = self.map.map_width + self.map.map_height
-                cr.move_to(t[0], t[1])
-                cr.line_to(int(t[0] - math.sin(direction) * length), int(t[1] + math.cos(direction) * length))
-                cr.stroke()
+
+
+        
+
+        if self.gps_data != None and self.gps_has_fix:
+            position = (self.map.map_width - self.OSD_BORDER_LEFTRIGHT, self.OSD_BORDER_TOPBOTTOM)
+            layout = self.map.create_pango_layout(SimpleGui._format_distance(self.gps_target_distance))
+            layout.set_font_description(self.DISTANCE_DRAW_FONT)
+            width, height = layout.get_pixel_size()
+            cr.set_source_color(self.DISTANCE_DRAW_FONT_COLOR)
+            cr.move_to(position[0] - width, position[1])
+            cr.show_layout(layout)
 
         self.result = surface

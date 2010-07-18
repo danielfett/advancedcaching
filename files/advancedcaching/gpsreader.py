@@ -299,6 +299,7 @@ class FakeGpsReader():
         return geo.Coordinate(50.0000798795372000, 6.9949468020349700)
 
     def get_data(self):
+        import random
         if self.index < len(self.data) - 1:
             self.index += 1
         if self.data[self.index][0] == '0':
@@ -319,7 +320,7 @@ class FakeGpsReader():
             sats_known = 6,
             dgps = True,
             quality = 0,
-            error = 50,
+            error = random.randrange(10, 100),
             error_bearing = 10
             )
 

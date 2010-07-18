@@ -101,19 +101,10 @@ class OsdLayer(MapLayer):
         layout.set_font_description(self.MESSAGE_DRAW_FONT)
         cr.move_to(position[0], position[1] - 15)
         cr.show_layout(layout)
-        '''
-        # draw moving direction, if we're moving
-        position = (self.map_width - 50, self.map_height - 50)
-        if self.gps_data != None and self.gps_data.speed > 2.5: # km/h
-            arrow = self._get_arrow_transformed(0, 0, 30, 30, self.gps_data.bearing)
 
-            cr.move_to(* (arrow[0][x] + position[x] for x in (0, 1)))
-            for x, y in arrow:
-                cr.line_to(x + position[0], y + position[1])
-            cr.line_to(* (arrow[0][x] + position[x] for x in (0, 1)))
-            cr.stroke()
-        '''
+
         self.result = surface
+
 
 class Map(gtk.DrawingArea):
 
