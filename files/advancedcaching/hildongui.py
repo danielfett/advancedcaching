@@ -438,7 +438,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         pick_tiles.set_selector(sel_tiles)
         pick_tiles.set_title("Map Style")
         pick_tiles.set_active(0)
-        pick_tiles.connect('value-changed', lambda widget: self.set_tile_loader(self.tile_loaders[widget.get_active()][1]))
+        pick_tiles.connect('value-changed', lambda widget: self.map.set_tile_loader(self.tile_loaders[widget.get_active()][1]))
         menu.append(pick_tiles)
 
         menu.append(self._get_search_place_button())
