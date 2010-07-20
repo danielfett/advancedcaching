@@ -181,14 +181,14 @@ class CalcCoordinate():
 
     @staticmethod
     def find(text):
-        logger.debug('Processing Text: \n ------------------------ \n%s\n ----------------------' % text)
+        #logger.debug('Processing Text: \n ------------------------ \n%s\n ----------------------' % text)
         foundsigs = []
         text = re.sub(ur'''(?u)\s[^\W\d_]{2,}\s''', ' | ', text)
         text = re.sub(ur'''(?u)\b[^\W\d_]{4,}\b''', ' | ', text)
         text = text.replace('°', '|')
         text = text.replace(unichr(160), ' ')
         text = re.sub(ur''' +''', ' ', text)
-        logger.debug('Processed Text: \n ------------------------ \n%s\n ----------------------' % text)
+        #logger.debug('Processed Text: \n ------------------------ \n%s\n ----------------------' % text)
 
         single_calc_part = ur'''((?:\([A-Za-z +*/0-9-.,]+\)|[A-Za-z ()+*/0-9-])+)'''
         matches = re.findall(ur'''(?<![a-zA-Z])([NSns])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s['`\s,/]+([EOWeow])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s[\s'`]*(?![a-zA-Z])''' % {'calc' : single_calc_part}, text)

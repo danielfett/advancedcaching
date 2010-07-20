@@ -46,7 +46,7 @@ from actors.tts import TTS
 import logging
 
 logging.basicConfig(level=logging.WARNING,
-                    format='%(asctime)s %(levelname)s %(message)s',
+                    format='%(asctime)s\t%(levelname)s\t%(name)-15s\t %(message)s',
                     )
 
 if len(argv) == 1:
