@@ -1483,6 +1483,7 @@ class GeocacheLayer(MapLayer):
                 if x != p:
                     cr.move_to(p[0], p[1])
                     cr.line_to(x[0], x[1])
+                    cr.set_line_width(2)
                     cr.stroke()
 
             if draw_short:
