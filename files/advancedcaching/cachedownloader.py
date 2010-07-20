@@ -485,7 +485,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         for l in lines:
             #lines = [re.sub("\w+", ' ', HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(x, True)), '').sub('[ view this log ]') for x in lines[2:]]
             m = re.match(r"""<td[^>]+><strong><img src="http://www\.geocaching\.com/images/icons/(?:icon_(?P<icon>[a-z]+)|(?P<icon2>coord_update))\.gif"[^>]*/>""" +
-                r"""&nbsp;([^ ]+) (\d+)(, (\d+))? by <a[^>]+>([^<]+)</a></strong> \(\d+ found\)<br /><br />(.+)""" +
+                r"""&nbsp;(?P<month>[^ ]+) (?P<day>\d+)(, (?P<year>\d+))? by <a[^>]+>(?P<finder>[^<]+)</a></strong> \(\d+ found\)<br /><br />(?P<text>.+)""" +
                 r"""<br /><br /><small>""", l, re.DOTALL)
             if m == None:
                 #print "Could not parse Log-Line:\nBEGIN\n%s\nEND\n\n This can be normal." % l
@@ -497,7 +497,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 year = m.group('year')
                 if year == '' or year == None:
                     year = datetime.datetime.now().year
-                finder = m.group('name')
+                finder = m.group('finder')
                 text = HTMLManipulations._strip_html(HTMLManipulations._replace_br(m.group('text')), True)
                 output.append(dict(type=type, month=month, day=day, year=year, finder=finder, text=text))
         return output
