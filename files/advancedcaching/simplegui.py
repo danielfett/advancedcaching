@@ -1403,7 +1403,7 @@ class GeocacheLayer(MapLayer):
 
     def __init__(self, pointprovider, show_cache_callback):
         MapLayer.__init__(self)
-        self.show_found = True
+        self.show_found = False
         self.show_name = False
         self.pointprovider = pointprovider
         self.visualized_geocaches = []
@@ -1414,7 +1414,8 @@ class GeocacheLayer(MapLayer):
         if show_found: 
             self.select_found = None
         else:
-            self.select_found = True
+            self.select_found = False
+        print self.select_found
 
     def set_show_name(self, show_name):
         self.show_name = show_name
