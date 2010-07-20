@@ -761,10 +761,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         dialog.vbox.pack_start(bar, False)
 
         def sel_coord(widget, data, clist):
-            tm = widget.get_model(0)
-            iter = tm.get_iter(0)
-            widget.get_selected(0, iter)
-            coord = clist[tm.get_path(iter)[0]]
+            coord = clist[self._get_selected_pos(widget)]
             bar_entry.set_text(coord.get_latlon(self.format))
 
         if self.current_cache != None:
@@ -1076,10 +1073,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
     def build_coordinates(self, cache, p):
 
         def show_details(widget_coords, stuff, clist):
-            tm = widget_coords.get_model(0)
-            iter = tm.get_iter(0)
-            widget_coords.get_selected(0, iter)
-            c = clist[tm.get_path(iter)[0]]
+            c = clist[self._get_selected_pos(widget_coords)]
             if c == None:
                 return
             self.__show_coordinate_details(c, cache)
@@ -1149,10 +1143,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
 
         def on_imagelist_clicked(widget, data):
-            tm = widget.get_model(0)
-            iter = tm.get_iter(0)
-            widget.get_selected(0, iter)
-            path, caption = imagelist[tm.get_path(iter)[0]]
+            path, caption = imagelist[self._get_selected_pos(widget)]
             self._on_show_image(path, caption)
 
         selector.connect("changed", on_imagelist_clicked)
@@ -1325,17 +1316,13 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
     @staticmethod
     def _get_selected(widget):
-        tm = widget.get_model(0)
-        iter = tm.get_iter(0)
-        widget.get_selected(0, iter)
-        return tm[tm.get_path(iter)[0]]
+        ls, iter = widget.get_selected(0)
+        return ls[ls.get_path(iter)[0]]
 
     @staticmethod
-    def _get_selected_index(widget):
-        tm = widget.get_model(0)
-        iter = tm.get_iter(0)
-        widget.get_selected(0, iter)
-        return tm.get_path(iter)[0]
+    def _get_selected_pos(widget):
+        ls, iter = widget.get_selected(0)
+        return ls.get_path(iter)[0]
 
 
 

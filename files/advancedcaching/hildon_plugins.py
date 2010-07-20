@@ -72,7 +72,7 @@ class HildonSearchPlace(object):
         dlg.hide()
         if res != gtk.RESPONSE_OK:
             return
-        self.set_center(results[self._get_selected_index(sel)])
+        self.set_center(results[self._get_selected_pos(sel)])
         
 class HildonFieldnotes(object):
     def plugin_init(self):
