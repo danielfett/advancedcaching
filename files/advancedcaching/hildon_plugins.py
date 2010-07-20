@@ -508,14 +508,21 @@ class HildonAboutDialog(object):
 
     def _get_about_button(self):
         button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        button.set_label("About AGTL")
+        button.set_title("About AGTL")
+        button.set_value("and online update")
         button.connect("clicked", self._on_show_about, None)
         return button
 
     def _on_show_about(self, widget, data):
         (RESPONSE_UPDATE, RESPONSE_HOMEPAGE, RESPONSE_OPTIMIZE) = range(3)
-        dialog = gtk.Dialog("About AGTL", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ('Update Parser', RESPONSE_UPDATE, 'Website', RESPONSE_HOMEPAGE, 'Optimize', RESPONSE_OPTIMIZE))
+        dialog = gtk.Dialog("About AGTL", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ('Update', RESPONSE_UPDATE, 'Website', RESPONSE_HOMEPAGE, 'Optimize', RESPONSE_OPTIMIZE))
         dialog.set_size_request(800, 800)
+
+        notebook = gtk.Notebook()
+        dialog.vbox.pack_start(notebook)
+        page = gtk.VBox()
+        notebook.append_page(page, gtk.Label('About'))
+
         copyright = '''Copyright (C) in most parts 2010 Daniel Fett
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -539,22 +546,7 @@ Author: Daniel Fett advancedcaching@fragcom.de'''
         import core
         l.set_markup("<b><u>AGTL version %s</u></b>" % core.VERSION)
         l.set_alignment(0, 0)
-        dialog.vbox.pack_start(l, False)
-
-        l = gtk.Label('')
-        import cachedownloader
-        l.set_markup("Website parser version %d (from %s)" % (cachedownloader.VERSION, cachedownloader.VERSION_DATE))
-        l.set_alignment(0, 0)
-        dialog.vbox.pack_start(l, False)
-
-        sizes = self.core.get_file_sizes()
-        l = gtk.Label('')
-        import cachedownloader
-        l.set_markup("Database Size: %s, Image Folder Size: %s\n(click optimize to purge found geocaches and their images)" % (self.core.format_file_size(sizes['sqlite']), self.core.format_file_size(sizes['images'])))
-        l.set_alignment(0, 0)
-        l.set_line_wrap(True)
-        dialog.vbox.pack_start(l, False)
-        dialog.vbox.pack_start(gtk.HSeparator(), False)
+        page.pack_start(l, False)
 
         l = gtk.Label()
         l.set_line_wrap(True)
@@ -564,7 +556,30 @@ Author: Daniel Fett advancedcaching@fragcom.de'''
         p = hildon.PannableArea()
         p.set_property('mov-mode', hildon.MOVEMENT_MODE_BOTH)
         p.add_with_viewport(l)
-        dialog.vbox.pack_start(p)
+        page.pack_start(p)
+
+
+        page = gtk.VBox()
+        notebook.append_page(page, gtk.Label('Update'))
+
+        l = gtk.Label('')
+        import cachedownloader
+        l.set_markup("Website parser version %d (from %s)\n\nIf you're having trouble downloading geocaches or uploading fieldnotes, try clicking 'update' to fetch the latest website parser.\n\nAlso check the regular maemo updates from time to time." % (cachedownloader.VERSION, cachedownloader.VERSION_DATE))
+        l.set_alignment(0, 0)
+        l.set_line_wrap(True)
+        page.pack_start(l, False)
+
+        page = gtk.VBox()
+        notebook.append_page(page, gtk.Label('Files'))
+
+        sizes = self.core.get_file_sizes()
+        l = gtk.Label('')
+        import cachedownloader
+        l.set_markup("Database Size: %s\nImage Folder Size: %s\n\nClick 'optimize' to purge found geocaches and their images. Be aware that this includes your notes and calculation values for those geocaches." % (self.core.format_file_size(sizes['sqlite']), self.core.format_file_size(sizes['images'])))
+        l.set_alignment(0, 0)
+        l.set_line_wrap(True)
+        page.pack_start(l, False)
+
 
         dialog.show_all()
         result = dialog.run()
