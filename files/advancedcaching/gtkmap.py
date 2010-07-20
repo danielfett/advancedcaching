@@ -151,7 +151,7 @@ class Map(gtk.DrawingArea):
 
     MIN_DRAG_REDRAW_DISTANCE = 5
     DRAG_RECHECK_SPEED = 20
-    CLICK_RADIUS = 20
+    CLICK_RADIUS = 17
 
     LAZY_SET_CENTER_DIFFERENCE = 0.1 # * screen (width|height)
 
@@ -609,11 +609,9 @@ class Map(gtk.DrawingArea):
         cr = gtk.gdk.CairoContext(cairo.Context(self.cr_drawing_area_map))
         if which == None:
             which = self.surface_buffer.values()
-        #print len(which), which
+
         for surface, x, y, scale_source in which:
-            #cr = self.cr_map_context
-            #self.i += 1
-            #print self.i, surface, x, y, scale_source
+
             if surface == None:
                 print "pbuf was none!"
                 return
@@ -631,15 +629,10 @@ class Map(gtk.DrawingArea):
                 imgpat.set_matrix(scale)
                 cr.set_source(imgpat)
             cr.rectangle(max(0, x + off_x), max(0, y + off_y), min(size + x, size, self.map_width - x + size), min(size + y, size, self.map_height - y + size))
-            #cr.set_source_rgba(0.5, 0, 0, 0.3)
+
             cr.fill()
             self.queue_draw_area(max(0, x + off_x), max(0, y + off_y), min(size + x, size, self.map_width - x + size), min(size + y, size, self.map_height - y + size))
-            #layout = self.create_pango_layout("%d" % self.i)
-            #layout.set_font_description(self.CACHE_DRAW_FONT)
-            #cr.set_source_rgba(0, 0, 0, 1)
 
-            #cr.move_to(max(0, x + off_x) + 20*self.i, max(0, y + off_y))
-            #cr.show_layout(layout)
         return False
 
         ##############################################
@@ -647,15 +640,6 @@ class Map(gtk.DrawingArea):
         # Drawing marks & osd
         #
         ##############################################
-    '''
-    def __draw_marks(self):
-        if not self.drawing_area_configured:
-            return False
-
-        self.cr_marks = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map_width, self.map_height)
-        cr = gtk.gdk.CairoContext(cairo.Context(self.cr_marks))
-        self.emit('draw-marks', cr)
-        self.__draw_osd()'''
 
 
     def __draw_layers(self):

@@ -169,17 +169,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         
         self.plugin_init()
 
-    def _on_map_clicked(self, widget, c, c1, c2):
-        if self.settings['options_hide_found']:
-            found = False
-        else:
-            found = None
-        cache = self.core.pointprovider.get_nearest_point_filter(c, c1, c2, found)
-        if cache != None:
-            self.show_cache(cache)
-        else:
-            self.map.refresh()
-
     def plugin_init(self):
         for x in (HildonSearchGeocaches, HildonSearchPlace, HildonFieldnotes):
             x.plugin_init(self)

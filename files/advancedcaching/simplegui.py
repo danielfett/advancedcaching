@@ -1415,7 +1415,6 @@ class GeocacheLayer(MapLayer):
             self.select_found = None
         else:
             self.select_found = False
-        print self.select_found
 
     def set_show_name(self, show_name):
         self.show_name = show_name
