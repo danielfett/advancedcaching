@@ -597,6 +597,8 @@ Author: Daniel Fett advancedcaching@fragcom.de'''
             self.show_success("%d modules upgraded. There's no need to restart AGTL." % updates)
             
 
+logger = logging.getLogger('mapdownloader')
+
 class HildonDownloadMap(object):
 
     SIZE_PER_TILE = 1200
@@ -613,10 +615,10 @@ class HildonDownloadMap(object):
 
     def _show_tile_select_dialog(self, zoom_steps):
         sel_zoom = hildon.TouchSelector(text=True)
-        current_zoom = self.ts.get_zoom()
+        current_zoom = self.map.get_zoom()
 
         for zoom, size, count in zoom_steps:
-            sel_zoom.append_text('Zoom %d (Current+%d) ~%.2f MB' % (zoom, zoom - current_zoom, size))
+            sel_zoom.append_text('Zoom %d (Current+%d) ~%s' % (zoom, zoom - current_zoom, self.core.format_file_size(size)))
 
         sel_zoom.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_MULTIPLE)
         pick_zoom = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
@@ -641,23 +643,23 @@ class HildonDownloadMap(object):
         return steps
 
     def _on_show_download_map(self, widget, data):
-        current_visible_tiles = self.surface_buffer.keys()
+        current_visible_tiles = self.map.surface_buffer.keys()
         if len(current_visible_tiles) == 0:
             return
 
-        current_zoom = self.ts.get_zoom()
-        if current_zoom == self.tile_loader.MAX_ZOOM:
+        current_zoom = self.map.get_zoom()
+        if current_zoom == self.map.get_max_zoom():
             self.show_error("Please zoom out to download tiles")
 
         zoom_steps = []
-        for zoom in xrange(current_zoom + 1, min(self.tile_loader.MAX_ZOOM + 1, current_zoom + 7)):
+        for zoom in xrange(current_zoom + 1, min(self.map.get_max_zoom() + 1, current_zoom + 7)):
             count = len(current_visible_tiles) * (4 ** (zoom-current_zoom))
-            size = (count * HildonDownloadMap.SIZE_PER_TILE) / (1024.0 * 1024.0)
+            size = (count * HildonDownloadMap.SIZE_PER_TILE)
             zoom_steps.append((zoom, size, count))
 
         active_zoom_steps = self._show_tile_select_dialog(zoom_steps)
         for zoom, size, count in active_zoom_steps:
-            print "Requesting zoom %d" % zoom
+            logger.info("Requesting zoom %d" % zoom)
 
         if len(active_zoom_steps) == 0:
             return
@@ -704,7 +706,7 @@ class HildonDownloadMap(object):
             raise Exception("Something went wrong while calculating the amount of tiles. (%d vs. %d)" % (len(requests), todo))
 
         def download_tile(tile, zoom):
-            tl = self.tile_loader(None, tile = tile, zoom = zoom)
+            tl = self.map.tile_loader(None, tile = tile, zoom = zoom)
             res = tl.download_tile_only()
             if res:
                 status['finished'] += 1
@@ -744,10 +746,10 @@ class HildonDownloadMap(object):
                     tile_loader_threadpool.dismissWorkers
                     break
         except threadpool.NoResultsPending:
-            print "**** No pending results."
+            logger.info("Downloading finished")
         except Exception,e:
             print e
             self.show_error(e)
         finally:
-            print "breaking"
+            logger.info("Closing")
             dialog.hide()
