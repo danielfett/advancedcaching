@@ -67,7 +67,7 @@ from simplegui import UpdownRows
 from simplegui import GeocacheLayer
 from simplegui import MarksLayer
 from xml.sax.saxutils import escape as my_gtk_label_escape
-from gtkmap import Map, OsdLayer
+from gtkmap import Map, OsdLayer, SingleMarkLayer
 
 
 import logging
@@ -1065,8 +1065,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.current_cache_window_open = True
 
 
-    def _on_configure_label(self, source, event, widget, force=False):
-        widget.set_size_request(event.width - 10, -1)
+    def _on_configure_label(self, source, event, widget, force=False, factor = 1):
+        widget.set_size_request(event.width * factor - 10, -1)
         if force:
             widget.realize()
 
@@ -1096,11 +1096,18 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             dialog.add_button("as Main Coord.", RESPONSE_AS_MAIN)
             dialog.add_button("copy & edit", RESPONSE_COPY_EDIT)
         lbl = gtk.Label()
-        lbl.set_markup("<b>%s</b>\n%s" % (c.get_latlon(self.format) if c.lat != None else '???', c.comment))        
         lbl.set_line_wrap(True)
         lbl.set_alignment(0, 0.5)
+        lbl.set_markup("<b>%s</b>\n%s" % (c.get_latlon(self.format) if c.lat != None else '???', c.comment))
+        
+        
+        #lbl.set_size_request(dialog.size_request()[0]/2, -1)
+        dialog.connect('configure-event', self._on_configure_label, lbl, True, 2.0/3)
         dialog.vbox.pack_start(lbl, False)
-        dialog.vbox.pack_start(Map(center = c, zoom = 13, draggable = False), True)
+        if c.lat != None:
+            map = Map(center = c, zoom = 17, draggable = False)
+            map.add_layer(SingleMarkLayer(c))
+            dialog.vbox.pack_start(map, True)
         dialog.show_all()
         resp = dialog.run()
         dialog.hide()

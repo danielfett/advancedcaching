@@ -47,6 +47,44 @@ class MapLayer():
     def clicked_coordinate(self, center, topleft, bottomright):
         pass
 
+class SingleMarkLayer(MapLayer):
+    COLOR_TARGET = gtk.gdk.color_parse('darkblue')
+    COLOR_TARGET_SHADOW = gtk.gdk.color_parse('white')
+
+    def __init__(self, coordinate):
+        MapLayer.__init__(self)
+        self.coord = coordinate
+
+    def draw(self):
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map.map_width, self.map.map_height)
+        cr = gtk.gdk.CairoContext(cairo.Context(surface))
+        self.result = surface
+
+        t = self.map.coord2point(self.coord)
+        if not self.map.point_in_screen(t):
+            return
+
+        radius_o = 15
+        radius_i = 3
+        radius_c = 10
+        cr.move_to(t[0] - radius_o, t[1])
+        cr.line_to(t[0] - radius_i, t[1])
+        cr.move_to(t[0] + radius_o, t[1])
+        cr.line_to(t[0] + radius_i, t[1])
+        cr.move_to(t[0], t[1] + radius_o)
+        cr.line_to(t[0], t[1] + radius_i)
+        cr.move_to(t[0], t[1] - radius_o)
+        cr.line_to(t[0], t[1] - radius_i)
+        cr.new_sub_path()
+        cr.arc(t[0], t[1], radius_c, 0, math.pi * 2)
+
+        cr.set_source_color(self.COLOR_TARGET_SHADOW)
+        cr.set_line_width(3)
+        cr.stroke_preserve()
+        cr.set_source_color(self.COLOR_TARGET)
+        cr.set_line_width(2)
+        cr.stroke()
+
 class OsdLayer(MapLayer):
 
     MESSAGE_DRAW_FONT = pango.FontDescription("Sans 5")
