@@ -557,7 +557,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         dialog.run()
         dialog.hide()
 
-
         self._set_track_mode(button_track.get_active())
         logger.debug("Setting 'Hide Found Geocaches' to %s" % check_hide_found.get_active())
         self.settings.update({
@@ -1533,7 +1532,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         if 'options_show_name' in settings:
             self.geocache_layer.set_show_name(settings['options_show_name'])
         if 'map_zoom' in settings:
-            self.map.set_zoom(settings['map_zoom'])
+            if self.map.get_zoom() != settings['map_zoom']:
+                self.map.set_zoom(settings['map_zoom'])
         if 'map_position_lat' in settings and 'map_position_lon' in settings:
             self.set_center(geo.Coordinate(settings['map_position_lat'], settings['map_position_lon']), reset_track = False)
         if 'options_rotate_screen' in settings:
