@@ -1388,7 +1388,8 @@ class GeocacheLayer(MapLayer):
     TOO_MANY_POINTS = 30
     CACHES_ZOOM_LOWER_BOUND = 9
     CACHE_DRAW_SIZE = 10
-    CACHE_DRAW_FONT = pango.FontDescription("Sans 4")
+    CACHE_DRAW_FONT = pango.FontDescription("Sans 10")
+    CACHE_DRAW_FONT_COLOR = gtk.gdk.color_parse('black')
     MAX_NUM_RESULTS_SHOW = 100
 
     # map markers colors
@@ -1503,15 +1504,6 @@ class GeocacheLayer(MapLayer):
                 continue
 
 
-            # print the name?
-            if self.show_name:
-                layout = self.map.create_pango_layout(SimpleGui.shorten_name(c.title, 20))
-                layout.set_font_description(self.CACHE_DRAW_FONT)
-
-                cr.move_to(p[0] + 3 + radius, p[1] - 3 - radius)
-                #cr.set_line_width(1)
-                cr.set_source_color(color)
-                cr.show_layout(layout)
 
 
             # if we have a description for this cache...
@@ -1525,7 +1517,7 @@ class GeocacheLayer(MapLayer):
                 dist = 3
                 count = 3
                 pos_x = p[0] + radius + 3 + 1
-                pos_y = p[1] + radius - (dist * count)
+                pos_y = p[1] + radius - (dist * count) + dist
                 cr.set_line_width(1)
                 for i in xrange(count):
                     cr.move_to(pos_x, pos_y + dist * i)
@@ -1538,18 +1530,29 @@ class GeocacheLayer(MapLayer):
                 cr.set_line_width(1)
                 cr.set_source_color(self.COLOR_CURRENT_CACHE)
                 #radius = 7
-                radius += 3
-                cr.rectangle(p[0] - radius, p[1] - radius, radius * 2, radius * 2)
+                radius_outline = radius + 3
+                cr.rectangle(p[0] - radius_outline, p[1] - radius_outline, radius_outline * 2, radius_outline * 2)
                 cr.stroke()
 
             # if this cache is disabled
             if c.status == geocaching.GeocacheCoordinate.STATUS_DISABLED:
                 cr.set_line_width(3)
                 cr.set_source_color(self.COLOR_CURRENT_CACHE)
-                radius = 7
-                cr.move_to(p[0]-radius, p[1]-radius)
-                cr.line_to(p[0] + radius, p[1] + radius)
+                radius_disabled = 7
+                cr.move_to(p[0]-radius_disabled, p[1]-radius_disabled)
+                cr.line_to(p[0] + radius_disabled, p[1] + radius_disabled)
                 cr.stroke()
+
+
+            # print the name?
+            if self.show_name:
+                layout = self.map.create_pango_layout(SimpleGui.shorten_name(c.title, 20))
+                layout.set_font_description(self.CACHE_DRAW_FONT)
+                width, height = layout.get_pixel_size()
+                cr.move_to(p[0] + 4 + radius, p[1] - height + 2)
+                #cr.set_line_width(1)
+                cr.set_source_color(self.CACHE_DRAW_FONT_COLOR)
+                cr.show_layout(layout)
 
             cr.set_source_color(self.COLOR_CACHE_CENTER)
             cr.set_line_width(1)
