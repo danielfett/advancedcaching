@@ -20,7 +20,7 @@
 
 
 VERSION = 0
-VERSION_DATE = '2010-07-03'
+VERSION_DATE = '2010-07-21'
 
 try:
     import json
