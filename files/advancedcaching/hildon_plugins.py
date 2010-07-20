@@ -190,7 +190,7 @@ class HildonSearchGeocaches(object):
         sel_dist_type = hildon.TouchSelector(text=True)
         sel_dist_type.append_text('anywhere')
         sel_dist_type.append_text('around my position')
-        sel_dist_type.append_text('around the current center')
+        sel_dist_type.append_text('around the current map center')
         pick_dist_type = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
         pick_dist_type.set_selector(sel_dist_type)
         pick_dist_type.set_title("Search")
@@ -383,7 +383,7 @@ class HildonSearchGeocaches(object):
                     logger.debug("No current Fix.")
                     pass
             elif dist_type == 2:
-                center = self.ts.num2deg(self.map_center_x, self.map_center_y)
+                center = self.map.get_center()
             if center != None:
                 radius = list_dist_radius[sel_dist_radius.get_selected_rows(0)[0][0]]
                 sqrt_2 = 1.41421356
