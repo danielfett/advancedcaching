@@ -616,27 +616,27 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         check_show_cache_id.set_active(self.settings['options_show_name'])
         list.pack_start(check_show_cache_id)
 
-        check_map_double_size = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
-        check_map_double_size.set_label("Show Map in double size")
-        check_map_double_size.set_active(self.settings['options_map_double_size'])
-        list.pack_start(check_map_double_size)
+        #check_map_double_size = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
+        #check_map_double_size.set_label("Show Map in double size")
+        #check_map_double_size.set_active(self.settings['options_map_double_size'])
+        #list.pack_start(check_map_double_size)
 
-        check_hide_found = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
-        check_hide_found.set_label("Hide Found Geocaches on Map")
-        check_hide_found.set_active(self.settings['options_hide_found'])
-        list.pack_start(check_hide_found)
+        #check_hide_found = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
+        #check_hide_found.set_label("Hide Found Geocaches on Map")
+        #check_hide_found.set_active(self.settings['options_hide_found'])
+        #list.pack_start(check_hide_found)
 
         check_show_html_description = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         check_show_html_description.set_label("Show Cache Description with HTML")
         check_show_html_description.set_active(self.settings['options_show_html_description'])
         list.pack_start(check_show_html_description)
 
-        rotate_button, rotate_get_result = self._get_rotate_settings()
-        list.pack_start(rotate_button)
+        #rotate_button, rotate_get_result = self._get_rotate_settings()
+        #list.pack_start(rotate_button)
 
-        list.pack_start(gtk.Label('TTS Settings'))
-        tts_button, tts_get_result = self._get_tts_settings()
-        list.pack_start(tts_button)
+        #list.pack_start(gtk.Label('TTS Settings'))
+        #tts_button, tts_get_result = self._get_tts_settings()
+        #list.pack_start(tts_button)
 
         list.pack_start(gtk.Label('Other'))
 
@@ -661,11 +661,11 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
                              'options_password': password.get_text(),
                              'download_noimages': check_dl_images.get_active(),
                              'options_show_name': check_show_cache_id.get_active(),
-                             'options_map_double_size': check_map_double_size.get_active(),
-                             'options_hide_found': check_hide_found.get_active(),
+                             #'options_map_double_size': check_map_double_size.get_active(),
+                             #'options_hide_found': check_hide_found.get_active(),
                              'options_show_html_description': check_show_html_description.get_active(),
-                             'options_rotate_screen': rotate_get_result(),
-                             'tts_interval':tts_get_result(),
+                             #'options_rotate_screen': rotate_get_result(),
+                             #'tts_interval':tts_get_result(),
                              })
         self._on_save_settings(None)
         #self.core.on_userdata_changed(self.settings['options_username'], self.settings['options_password'])
