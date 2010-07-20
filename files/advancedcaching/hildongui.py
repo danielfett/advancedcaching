@@ -232,7 +232,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         elif none_on_cancel:
             return None
         else:
-            return startd
+            return start
 
 
     def _create_main_view(self):
@@ -1229,7 +1229,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
 
     def _on_add_waypoint_clicked (self, widget):
-        self._add_waypoint_to_notes(None)
+        self._add_waypoint_to_notes()
 
     def _get_best_coordinate(self, start=None):
         if start != None:
@@ -1243,7 +1243,9 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         return c
 
     def _add_waypoint_to_notes(self, start=None):
-        res = self.show_coordinate_input(self._get_best_coordinate(start))
+        res = self.show_coordinate_input(self._get_best_coordinate(start), none_on_cancel = True)
+        if res == None:
+            return
         text = "\n%s\n" % res.get_latlon(self.format)
         self.cache_notes.get_buffer().insert(self.cache_notes.get_buffer().get_end_iter(), text)
 
