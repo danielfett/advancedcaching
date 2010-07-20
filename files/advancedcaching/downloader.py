@@ -82,13 +82,14 @@ class FileDownloader():
         logger.info("Logging in")
         url, values = self.login_callback(self.username, self.password)
 
-        page = self.get_reader(url, values, login = False).read()
+        page = self.get_reader(url, values, login = False)
 
         for line in page:
             if 'You are logged in as' in line:
                 break
             elif 'You are not logged in.' in line or 'combination does not match' in line:
                 raise Exception("Wrong password or username!")
+            print line
         else:
             logger.info("Seems as if the language is set to something other than english")
             raise Exception("Please go to geocaching.com and set the website language to english!")
