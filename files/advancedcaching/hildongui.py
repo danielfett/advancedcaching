@@ -335,7 +335,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.map = Map(center = coord, zoom = zoom)
         self.geocache_layer = GeocacheLayer(self.core.pointprovider, self.show_cache)
         self.marks_layer = MarksLayer()
-        
         self.map.add_layer(self.geocache_layer)
         self.map.add_layer(self.marks_layer)
         self.map.add_layer(OsdLayer())
@@ -346,7 +345,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
 
         self.map.connect('tile-loader-changed', lambda widget, loader: self._update_zoom_buttons())
-        self.map.connect('map-dragged', lambda widget: self._set_track_mode(False))
+        #self.map.connect('map-dragged', lambda widget: self._set_track_mode(False))
 
 
         buttons = gtk.HBox()
@@ -1525,6 +1524,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             self.geocache_layer.set_show_found(not settings['options_hide_found'])
         if 'options_show_name' in settings:
             self.geocache_layer.set_show_name(settings['options_show_name'])
+        if 'options_map_double_size' in settings:
+            self.map.set_double_size(settings['options_map_double_size'])
         if 'map_zoom' in settings:
             if self.map.get_zoom() != settings['map_zoom']:
                 self.map.set_zoom(settings['map_zoom'])
