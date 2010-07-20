@@ -19,6 +19,9 @@
 #
 
 
+import logging
+logger = logging.getLogger('downloader')
+
 class FileDownloader():
     USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; U; Linux i686; de; rv:1.9.0.12) Gecko/2009070811  Windows NT Firefox/3.1'
     opener_installed = False
@@ -42,14 +45,14 @@ class FileDownloader():
             try:
                 remove(self.cookiefile)
             except:
-                print "* Could not remove cookie file?!"
+                logger.info("Could not remove cookie file?!")
                 pass
 
 
     def login(self):
         if self.username == '' or self.password == '':
             raise Exception("Please configure your username/password and restart the application")
-        print "+ Checking Login status"
+        logger.info("Checking Login status")
         from cookielib import LWPCookieJar
         cj = LWPCookieJar(self.cookiefile)
         if not self.opener_installed:
@@ -60,35 +63,42 @@ class FileDownloader():
 
         try:
             cj.load()
-            print "+ Loaded cookie file"
+            logger.info("Loaded cookie file")
         except:
-            print "+ Couldn't load cookie file"
+            logger.info("Couldn't load cookie file")
         else:
-            print "+ Checking if still logged in..."
+            logger.info("Checking if still logged in...")
             url = 'http://www.geocaching.com/seek/nearest.aspx'
             page = self.get_reader(url, login = False)
             for line in page:
                 if 'You are logged in as' in line:
                     self.logged_in = True
-                    print "+ Seems as we're still logged in"
+                    logger.info("Seems as we're still logged in")
                     return
                 elif 'You are not logged in.' in line:
-                    print "+ Nope, not logged in anymore"
+                    logger.info("Nope, not logged in anymore")
                     break
         
-        print "+ Logging in"
+        logger.info("Logging in")
         url, values = self.login_callback(self.username, self.password)
 
         page = self.get_reader(url, values, login = False).read()
 
-        if 'combination does not match' in page:
-            raise Exception("Wrong password or username!")
-        print "+ Great success."
+        for line in page:
+            if 'You are logged in as' in line:
+                break
+            elif 'You are not logged in.' in line or 'combination does not match' in line:
+                raise Exception("Wrong password or username!")
+        else:
+            logger.info("Seems as if the language is set to something other than english")
+            raise Exception("Please go to geocaching.com and set the website language to english!")
+
+        logger.info("Great success.")
         self.logged_in = True
         try:
             cj.save()
         except Exception, e:
-            print "+ Could not save cookies:", e
+            logger.info("Could not save cookies: %s" % e)
 
 
     def get_reader(self, url, values=None, data=None, login = True):
