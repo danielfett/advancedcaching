@@ -1549,6 +1549,7 @@ class GeocacheLayer(MapLayer):
                 layout = self.map.create_pango_layout(SimpleGui.shorten_name(c.title, 20))
                 layout.set_font_description(self.CACHE_DRAW_FONT)
                 width, height = layout.get_pixel_size()
+
                 cr.move_to(p[0] + 4 + radius, p[1] - height + 2)
                 #cr.set_line_width(1)
                 cr.set_source_color(self.CACHE_DRAW_FONT_COLOR)
@@ -1649,6 +1650,8 @@ class MarksLayer(MapLayer):
         self.gps_has_fix = True
         self.gps_target_distance = distance
         self.gps_target_bearing = bearing
+        if self.map.dragging:
+            return
         if (self.follow_position and not self.map.set_center_lazy(self.gps_data.position)) or not self.follow_position:
             self.draw()
             self.map.refresh()

@@ -236,6 +236,8 @@ class Map(gtk.DrawingArea):
         ##############################################
 
     def set_center(self, coord, update = True):
+        if self.dragging:
+            return
         self.map_center_x, self.map_center_y = self.deg2num(coord)
         self.center_latlon = coord
         self.draw_at_x = 0
@@ -244,6 +246,8 @@ class Map(gtk.DrawingArea):
             self.__draw_map()
 
     def set_center_lazy(self, coord):
+        if self.dragging:
+            return
         old_center_x, old_center_y = self.coord2point(self.center_latlon)
         new_center_x, new_center_y = self.coord2point(coord)
         
@@ -331,6 +335,8 @@ class Map(gtk.DrawingArea):
         self.refresh()
 
     def refresh(self):
+        if self.dragging:
+            return
         self.queue_draw()
 
         ##############################################
