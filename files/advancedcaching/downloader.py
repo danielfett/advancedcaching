@@ -89,7 +89,6 @@ class FileDownloader():
                 break
             elif 'You are not logged in.' in line or 'combination does not match' in line:
                 raise Exception("Wrong password or username!")
-            print line
         else:
             logger.info("Seems as if the language is set to something other than english")
             raise Exception("Please go to geocaching.com and set the website language to english!")

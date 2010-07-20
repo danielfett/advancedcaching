@@ -184,19 +184,19 @@ class CacheDownloader(gobject.GObject):
         self._init_images()
         coordinate = coordinate.clone()
         self.current_cache = coordinate
-        #try:
-        logger.info("Downloading %s..." % (coordinate.name))
-        response = self._get_cache_page(coordinate.name)
-        if outfile != None:
-            f = open(outfile, 'w')
-            f.write(response.read())
-            f.close()
-            response = open(outfile)
-        u = self._parse_cache_page(response, coordinate)
-        #except Exception, e:
-        #    CacheDownloader.lock.release()
-        #    self.emit('download-error', e)
-        #    return self.current_cache
+        try:
+            logger.info("Downloading %s..." % (coordinate.name))
+            response = self._get_cache_page(coordinate.name)
+            if outfile != None:
+                f = open(outfile, 'w')
+                f.write(response.read())
+                f.close()
+                response = open(outfile)
+            u = self._parse_cache_page(response, coordinate)
+        except Exception, e:
+            CacheDownloader.lock.release()
+            self.emit('download-error', e)
+            return self.current_cache
         CacheDownloader.lock.release()
         self.emit('finished-single', u)
         return u
@@ -448,26 +448,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
             else:
                 comment = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(tds[3]))).strip()
                 waypoints.append({'lat':lat, 'lon':lon, 'id':id, 'name':name, 'comment':comment})
-        '''
-        finder = re.finditer(r'<tr class="[^"]+">\s+<td>\s*<img [^>]+>\s*</td>\s*' +
-                             r'<td>\s*<img [^>]+>\s*</td>\s*' +
-                             r'<td>\s*(?P<id_prefix>[^<]+)\s*</td>\s*' +
-                             r'<td>\s*(?P<id>[^<]+)\s*</td>\s*' +
-                             r'<td>\s*<a href=[^>]+>(?P<name>[^<]+)</a>[^<]+\s*</td>\s*' +
-                             r'<td>\s*(\?\?\?|(?P<lat_sign>N|S) (?P<lat_d>\d+)° (?P<lat_m>[0-9\.]+) (?P<lon_sign>E|W) (?P<lon_d>\d+)° (?P<lon_m>[0-9\.]+))\s*</td>\s*' +
-                             r'<td>.*?</td>\s+</tr>\s*<tr>\s+<td>\s*Note:\s*</td>' +
-                             r'\s*<td colspan="[0-9]+">\s*(?P<comment>.*?)\s*</td>\s*</tr> ', data, re.DOTALL)
-        for m in finder:
-            if m.group(1) == None:
-                continue
-            waypoints.append({
-                             'lat': self.__from_dm(m.group('lat_sign'), m.group('lat_d'), m.group('lat_m')),
-                             'lon': self.__from_dm(m.group('lon_sign'), m.group('lon_d'), m.group('lon_m')),
-                             'id': "%s%s" % m.group('id_prefix', 'id'),
-                             'name': HTMLManipulations._decode_htmlentities(m.group('name')),
-                             'comment': HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(m.group('comment')), True))
-                             })
-        '''
         return waypoints
 
     def __treat_images(self, data):

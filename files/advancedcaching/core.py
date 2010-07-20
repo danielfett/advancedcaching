@@ -606,7 +606,7 @@ class Core(gobject.GObject):
         logging.exception(error)
         def same_thread(error):
             self.gui.hide_progress()
-            self.gui.show_error(error)
+            self.gui.show_error("Error while downloading: '%s'" % error)
             return False
         gobject.idle_add(same_thread, error)
 
