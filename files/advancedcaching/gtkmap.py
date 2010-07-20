@@ -214,6 +214,7 @@ class Map(gtk.DrawingArea):
         self.zoom = zoom
         self.set_center(center, False)
 
+        self.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse("white"))
 
         ##############################################
         #
