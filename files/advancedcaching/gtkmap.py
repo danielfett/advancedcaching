@@ -274,6 +274,7 @@ class Map(gtk.DrawingArea):
     def set_zoom(self, newzoom):
         if newzoom < 1 or newzoom > self.tile_loader.MAX_ZOOM:
             return
+        logger.debug('New zoom level: %d' % newzoom)
         self.zoom = newzoom
         self.set_center(self.center_latlon)
 

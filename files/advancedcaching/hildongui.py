@@ -511,7 +511,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         
         button = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         button.set_label("Follow Position")
-        button.set_active(self.track_enabled)
+        button.set_active(self.marks_layer.get_follow_position())
         button.connect("clicked", self.on_track_toggled, None)
         button_track = button
         buttons.append(button)
