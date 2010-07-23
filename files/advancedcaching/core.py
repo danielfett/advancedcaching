@@ -109,6 +109,7 @@ class Core(gobject.GObject):
         'download_output_dir': path.expanduser(DATA_DIR + 'geocaches/'),
         'map_position_lat': 49.7540,
         'map_position_lon': 6.66135,
+        'map_follow_position': True,
         'map_zoom': 7,
         'download_resize': True,
         'download_resize_pixel': 400,

@@ -139,7 +139,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
         self.current_cache = None
         self.current_cache_window_open = False
-        self.track_enabled = False
                 
         self.gps_data = None
         self.gps_has_fix = False
@@ -511,7 +510,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         
         button = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         button.set_label("Follow Position")
-        button.set_active(self.marks_layer.get_follow_position())
+        button.set_active(self._get_track_mode())
         button.connect("clicked", self.on_track_toggled, None)
         button_track = button
         buttons.append(button)
@@ -1520,6 +1519,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
                 self.map.set_zoom(settings['map_zoom'])
         if 'map_position_lat' in settings and 'map_position_lon' in settings:
             self.set_center(geo.Coordinate(settings['map_position_lat'], settings['map_position_lon']), reset_track = False)
+        if 'map_follow_position' in settings:
+            self._set_track_mode(settings['map_follow_position'])
         if 'options_rotate_screen' in settings:
             self.rotation_manager.set_mode(settings['options_rotate_screen'])
         if 'last_target_lat' in settings:
@@ -1537,6 +1538,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         settings['map_position_lat'] = c.lat
         settings['map_position_lon'] = c.lon
         settings['map_zoom'] = self.map.get_zoom()
+        settings['map_follow_position'] = self._get_track_mode()
 
         if self.current_cache != None:
             settings['last_selected_geocache'] = self.current_cache.name

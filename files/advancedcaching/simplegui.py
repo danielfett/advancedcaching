@@ -923,8 +923,8 @@ class SimpleGui(object):
     def set_center(self, coord, noupdate=False, reset_track=True):
         logger.info("Set Center to %s with reset_track = %s" % (coord, reset_track))
         self.map.set_center(coord, not noupdate)
-        if reset_track:
-            self.marks_layer.set_follow_position(False)
+        #if reset_track:
+        #    self.marks_layer.set_follow_position(False)
 
     def _set_track_mode(self, mode):
         self.marks_layer.set_follow_position(mode)
