@@ -26,15 +26,19 @@ It downloads geocaches including their description, hints, difficulty levels and
 - Cache details - all necessary details are available even in offline mode.
 - Paperless geocaching features - take notes for a geocache on the go, see the hints and spoiler images, check the latest logs.
 - Fieldnotes support - Ever came home after a long tour and wondered which of those geocaches you found? Never again: Log your find in the field and upload notes and log text when you're at home. Review them on the geocaching website and post the logs.
+- Text-to-Speech-Feature! - Select a target, activate TTS and put your earplugs in to enjoy completely stealth geocaching. 
+- Download map tiles for selected zoom levels - for offline use
 - Multicache calculation help - Let your phone do the math for you. Working for the most multi-stage geocaches, AGTL finds the coordinate calculations and let you enter the missing variables.
 - Advanced waypoint handling - AGTL finds waypoints in the geocache descriptions, in the list of waypoints and even in your notes. For your convenience, they're displayed on the map as well - see where you have to go next.
+- Search for cities - in the geonames.org database to navigate quickly
 - Sun compass - Compensates the lack of a magnetic compass
+- Instant update feature - Follow web site updates as soon as possible.
 .
 AGTL is Open source and in active development.'''
  
  p.author="Daniel Fett"
  p.mail="advancedcaching@fragcom.de"
- p.depends = "python2.5, python-gtk2, python-simplejson, python-location, python-hildon (>= 0.9.0-1maemo15)"
+ p.depends = "python2.5, python-gtk2, python-simplejson, python-location, python-hildon (>= 0.9.0-1maemo15), python-gtkhtml2"
  p.section="user/navigation"
  p.icon = "src/usr/share/icons/hicolor/48x48/hildon/advancedcaching.png"
  p.arch="all"                #should be all for python, any for all arch
@@ -50,11 +54,22 @@ AGTL is Open source and in active development.'''
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your pre install script
  #  p.preremove="""#!/bin/sh
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your pre remove script
- version = "0.6.1.4"
- build = "4"########################### for the first build of this version of your software. Increment for later re-builds of the same version of your software.
+ version = "0.7.0.0"
+ build = "1"################################ for the first build of this version of your software. Increment for later re-builds of the same version of your software.
                              #Text with changelog information to be displayed in the package "Details" tab of the Maemo Application Manager
  changeloginformation = """
-- Fix bug after geocaching.com site update (2010-07-01)
+- Text-to-Speech-Feature! - Select a target, activate TTS and put your earplugs in to enjoy completely stealth geocaching. 
+- Search for cities - in the geonames.org database to navigate quickly
+- Download map tiles for selected zoom levels - for offline use
+- New Map drawing - scale indicator on map, on screen display for target distance, better visibility for icons and text
+- Better search features - E.g. search geocaches around your current position.
+- Instant update feature - Follow web site updates as soon as possible.
+- New user interface - featuring a "actions" and a "quick settings" menu
+- New About Dialog
+- Data purging - Clear the database from found geocaches, save space on your phone by deleting old images
+- New coordinate list handling, including editing and preview
+- HTML view for geocaches
+- Several minor new features and bug fixes
 """
  dir_name = "src"            #Name of the subfolder containing your package source files (e.g. usr\share\icons\hicolor\scalable\myappicon.svg, usr\lib\myapp\somelib.py). We suggest to leave it named src in all projects and will refer to that in the wiki article on maemo.org
  #Thanks to DareTheHair from talk.maemo.org for this snippet that recursively builds the file list 
