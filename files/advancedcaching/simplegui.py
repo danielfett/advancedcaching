@@ -1599,8 +1599,8 @@ logger = logging.getLogger('markslayer')
 class MarksLayer(MapLayer):
 
     SIZE_CURRENT_POSITION = 3
-    COLOR_CURRENT_POSITION = gtk.gdk.color_parse('red')
-    COLOR_CURRENT_POSITION_NO_FIX = gtk.gdk.color_parse('darkgray')
+    COLOR_CURRENT_POSITION = gtk.gdk.color_parse('green')
+    COLOR_CURRENT_POSITION_NO_FIX = gtk.gdk.color_parse('red')
     COLOR_TARGET = gtk.gdk.color_parse('darkblue')
     COLOR_TARGET_SHADOW = gtk.gdk.color_parse('white')
     COLOR_CROSSHAIR = gtk.gdk.color_parse("black")
@@ -1767,7 +1767,7 @@ class MarksLayer(MapLayer):
             cr.fill()
             if self.gps_has_fix:
                 cr.set_line_width(1)
-                cr.set_source_color(gtk.gdk.color_parse('lightgray'))
+                cr.set_source_color(gtk.gdk.color_parse('orange'))
                 cr.set_dash((5,3))
                 cr.new_sub_path()
                 cr.arc(p[0], p[1], radius_pixels, 0, math.pi * 2)
@@ -1783,13 +1783,15 @@ class MarksLayer(MapLayer):
                     for x, y in arrow:
                         cr.line_to(x, y)
                     cr.line_to(* arrow[0])
+                else:
+                    cr.arc(p[0], p[1], self.SIZE_CURRENT_POSITION + 5, 0, math.pi * 2)
 
-                    cr.set_source_color(self.COLOR_DIRECTION_ARROW_SHADOW)
-                    cr.set_line_width(2)
-                    cr.stroke_preserve()
-                    cr.set_source_color(self.COLOR_DIRECTION_ARROW)
-                    cr.set_line_width(1)
-                    cr.stroke()
+                cr.set_source_color(self.COLOR_DIRECTION_ARROW_SHADOW)
+                cr.set_line_width(2)
+                cr.stroke_preserve()
+                cr.set_source_color(self.COLOR_DIRECTION_ARROW)
+                cr.set_line_width(1)
+                cr.stroke()
 
 
 
