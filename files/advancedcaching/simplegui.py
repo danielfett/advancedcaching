@@ -1605,6 +1605,7 @@ class MarksLayer(MapLayer):
     COLOR_TARGET_SHADOW = gtk.gdk.color_parse('white')
     COLOR_CROSSHAIR = gtk.gdk.color_parse("black")
     COLOR_LINE_INVERT = gtk.gdk.color_parse("blue")
+    COLOR_ACCURACY = gtk.gdk.color_parse("orange")
 
     COLOR_DIRECTION_ARROW = gtk.gdk.color_parse("black")
     COLOR_DIRECTION_ARROW_SHADOW = gtk.gdk.color_parse("white")
@@ -1753,21 +1754,12 @@ class MarksLayer(MapLayer):
             # \  /
             #
             # /  \
-            '''
-            cr.move_to(p[0] - radius_o, p[1] - radius_o)
-            cr.line_to(p[0] - radius_i, p[1] - radius_i)
-            cr.move_to(p[0] + radius_o, p[1] + radius_o)
-            cr.line_to(p[0] + radius_i, p[1] + radius_i)
-            cr.move_to(p[0] + radius_o, p[1] - radius_o)
-            cr.line_to(p[0] + radius_i, p[1] - radius_i)
-            cr.move_to(p[0] - radius_o, p[1] + radius_o)
-            cr.line_to(p[0] - radius_i, p[1] + radius_i)
-            cr.stroke()'''
+
             cr.arc(p[0], p[1], self.SIZE_CURRENT_POSITION, 0, math.pi * 2)
             cr.fill()
             if self.gps_has_fix:
                 cr.set_line_width(1)
-                cr.set_source_color(gtk.gdk.color_parse('orange'))
+                cr.set_source_color(self.COLOR_ACCURACY)
                 cr.set_dash((5,3))
                 cr.new_sub_path()
                 cr.arc(p[0], p[1], radius_pixels, 0, math.pi * 2)
@@ -1792,12 +1784,6 @@ class MarksLayer(MapLayer):
                 cr.set_source_color(self.COLOR_DIRECTION_ARROW)
                 cr.set_line_width(1)
                 cr.stroke()
-
-
-
-
-
-        
 
         if self.gps_data != None and self.gps_has_fix:
             position = (self.map.map_width - self.OSD_BORDER_LEFTRIGHT, self.OSD_BORDER_TOPBOTTOM)
