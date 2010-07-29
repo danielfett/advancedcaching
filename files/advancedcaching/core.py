@@ -826,6 +826,7 @@ def determine_path ():
                         
 
 def start():
+    gobject.threads_init()
     Core(gui, determine_path())
 
 def start_profile(what):
