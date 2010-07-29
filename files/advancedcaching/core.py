@@ -68,6 +68,9 @@ elif arg == '--desktop':
 elif arg == '--hildon':
     import hildongui
     gui = hildongui.HildonGui
+elif arg == '--qt':
+    import qtgui
+    gui = qtgui.QtGui
 else:
     import cli
     gui = cli.Cli
