@@ -20,7 +20,7 @@
 
 from __future__ import with_statement
 
-VERSION = "0.7.0.0"
+VERSION = "0.7.0.2"
    
 
 
