@@ -58,18 +58,10 @@ AGTL is Open source and in active development.'''
  build = "1"################################ for the first build of this version of your software. Increment for later re-builds of the same version of your software.
                              #Text with changelog information to be displayed in the package "Details" tab of the Maemo Application Manager
  changeloginformation = """
-- Text-to-Speech-Feature! - Select a target, activate TTS and put your earplugs in to enjoy completely stealth geocaching. 
-- Search for cities - in the geonames.org database to navigate quickly
-- Download map tiles for selected zoom levels - for offline use
-- New Map drawing - scale indicator on map, on screen display for target distance, better visibility for icons and text
-- Better search features - E.g. search geocaches around your current position.
-- Instant update feature - Follow web site updates as soon as possible.
-- New user interface - featuring a "actions" and a "quick settings" menu
-- New About Dialog
-- Data purging - Clear the database from found geocaches, save space on your phone by deleting old images
-- New coordinate list handling, including editing and preview
-- HTML view for geocaches
-- Several minor new features and bug fixes
+Bug fix release for 0.7.0.0
+- Fix Fieldnotes Button bug
+- Disable HTML view by default
+- Save state of "follow position"
 """
  dir_name = "src"            #Name of the subfolder containing your package source files (e.g. usr\share\icons\hicolor\scalable\myappicon.svg, usr\lib\myapp\somelib.py). We suggest to leave it named src in all projects and will refer to that in the wiki article on maemo.org
  #Thanks to DareTheHair from talk.maemo.org for this snippet that recursively builds the file list 

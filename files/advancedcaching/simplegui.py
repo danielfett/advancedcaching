@@ -923,8 +923,8 @@ class SimpleGui(object):
     def set_center(self, coord, noupdate=False, reset_track=True):
         logger.info("Set Center to %s with reset_track = %s" % (coord, reset_track))
         self.map.set_center(coord, not noupdate)
-        if reset_track:
-            self.marks_layer.set_follow_position(False)
+        #if reset_track:
+        #    self.marks_layer.set_follow_position(False)
 
     def _set_track_mode(self, mode):
         self.marks_layer.set_follow_position(mode)
@@ -1599,12 +1599,13 @@ logger = logging.getLogger('markslayer')
 class MarksLayer(MapLayer):
 
     SIZE_CURRENT_POSITION = 3
-    COLOR_CURRENT_POSITION = gtk.gdk.color_parse('red')
-    COLOR_CURRENT_POSITION_NO_FIX = gtk.gdk.color_parse('darkgray')
+    COLOR_CURRENT_POSITION = gtk.gdk.color_parse('green')
+    COLOR_CURRENT_POSITION_NO_FIX = gtk.gdk.color_parse('red')
     COLOR_TARGET = gtk.gdk.color_parse('darkblue')
     COLOR_TARGET_SHADOW = gtk.gdk.color_parse('white')
     COLOR_CROSSHAIR = gtk.gdk.color_parse("black")
     COLOR_LINE_INVERT = gtk.gdk.color_parse("blue")
+    COLOR_ACCURACY = gtk.gdk.color_parse("orange")
 
     COLOR_DIRECTION_ARROW = gtk.gdk.color_parse("black")
     COLOR_DIRECTION_ARROW_SHADOW = gtk.gdk.color_parse("white")
@@ -1753,21 +1754,12 @@ class MarksLayer(MapLayer):
             # \  /
             #
             # /  \
-            '''
-            cr.move_to(p[0] - radius_o, p[1] - radius_o)
-            cr.line_to(p[0] - radius_i, p[1] - radius_i)
-            cr.move_to(p[0] + radius_o, p[1] + radius_o)
-            cr.line_to(p[0] + radius_i, p[1] + radius_i)
-            cr.move_to(p[0] + radius_o, p[1] - radius_o)
-            cr.line_to(p[0] + radius_i, p[1] - radius_i)
-            cr.move_to(p[0] - radius_o, p[1] + radius_o)
-            cr.line_to(p[0] - radius_i, p[1] + radius_i)
-            cr.stroke()'''
+
             cr.arc(p[0], p[1], self.SIZE_CURRENT_POSITION, 0, math.pi * 2)
             cr.fill()
             if self.gps_has_fix:
                 cr.set_line_width(1)
-                cr.set_source_color(gtk.gdk.color_parse('lightgray'))
+                cr.set_source_color(self.COLOR_ACCURACY)
                 cr.set_dash((5,3))
                 cr.new_sub_path()
                 cr.arc(p[0], p[1], radius_pixels, 0, math.pi * 2)
@@ -1783,19 +1775,15 @@ class MarksLayer(MapLayer):
                     for x, y in arrow:
                         cr.line_to(x, y)
                     cr.line_to(* arrow[0])
+                else:
+                    cr.arc(p[0], p[1], self.SIZE_CURRENT_POSITION + 5, 0, math.pi * 2)
 
-                    cr.set_source_color(self.COLOR_DIRECTION_ARROW_SHADOW)
-                    cr.set_line_width(2)
-                    cr.stroke_preserve()
-                    cr.set_source_color(self.COLOR_DIRECTION_ARROW)
-                    cr.set_line_width(1)
-                    cr.stroke()
-
-
-
-
-
-        
+                cr.set_source_color(self.COLOR_DIRECTION_ARROW_SHADOW)
+                cr.set_line_width(2)
+                cr.stroke_preserve()
+                cr.set_source_color(self.COLOR_DIRECTION_ARROW)
+                cr.set_line_width(1)
+                cr.stroke()
 
         if self.gps_data != None and self.gps_has_fix:
             position = (self.map.map_width - self.OSD_BORDER_LEFTRIGHT, self.OSD_BORDER_TOPBOTTOM)

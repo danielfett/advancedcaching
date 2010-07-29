@@ -11,6 +11,11 @@ if [ "$BUILD" == "" ] ; then
 	echo "gimme build, plz"
 	exit
 fi
+mkdir -p $PKGROOT/usr/share/applications/hildon/
+mkdir -p $PKGROOT/usr/share/icons/hicolor/48x48/hildon/
+mkdir -p $PKGROOT/opt/advancedcaching/actors
+mkdir -p $PKGROOT/opt/advancedcaching/data
+
 
 cp files/advancedcaching-48.png     $PKGROOT/usr/share/icons/hicolor/48x48/hildon/advancedcaching.png
 cp files/advancedcaching-maemo.desktop $PKGROOT/usr/share/applications/hildon/advancedcaching.desktop

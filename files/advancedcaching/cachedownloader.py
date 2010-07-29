@@ -385,7 +385,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         elif sizestring == 'not_chosen' or sizestring == 'other':
             size = 5
         else:
-            logger.warning("Size not known: %s" % size)
+            logger.warning("Size not known: %s" % sizestring)
             size = 5
         diff = float(re.compile('(?s)Difficulty:</strong>.*?<img src="http://www.geocaching.com/images/stars/stars[0-9_]+\\.gif" alt="([0-9.]+) out').search(head).group(1))*10
         terr = float(re.compile('(?s)Terrain:</strong>.*?<img src="http://www.geocaching.com/images/stars/stars[0-9_]+\\.gif" alt="([0-9.]+) out').search(head).group(1))*10

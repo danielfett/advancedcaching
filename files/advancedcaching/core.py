@@ -109,6 +109,7 @@ class Core(gobject.GObject):
         'download_output_dir': path.expanduser(DATA_DIR + 'geocaches/'),
         'map_position_lat': 49.7540,
         'map_position_lon': 6.66135,
+        'map_follow_position': True,
         'map_zoom': 7,
         'download_resize': True,
         'download_resize_pixel': 400,
@@ -123,7 +124,7 @@ class Core(gobject.GObject):
         'download_map_path': DATA_DIR + MAPS_DIR,
         'options_hide_found': False,
         'options_show_error': True,
-        'options_show_html_description': True,
+        'options_show_html_description': False,
         'map_providers': [
             ('OpenStreetMaps', {'remote_url': "http://128.40.168.104/mapnik/%(zoom)d/%(x)d/%(y)d.png", 'prefix': 'OpenStreetMap I'}),
             ('OpenCycleMaps', {'remote_url': 'http://andy.sandbox.cloudmade.com/tiles/cycle/%(zoom)d/%(x)d/%(y)d.png', 'prefix': 'OpenCycleMap'})
