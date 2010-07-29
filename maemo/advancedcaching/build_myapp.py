@@ -38,7 +38,7 @@ AGTL is Open source and in active development.'''
  
  p.author="Daniel Fett"
  p.mail="advancedcaching@fragcom.de"
- p.depends = "python2.5, python-gtk2, python-simplejson, python-location, python-hildon (>= 0.9.0-1maemo15), python-gtkhtml2"
+ p.depends = "python2.5, python-gtk2, python-simplejson, python-location, python-hildon (>= 0.9.0-1maemo17), python-gtkhtml2"
  p.section="user/navigation"
  p.icon = "src/usr/share/icons/hicolor/48x48/hildon/advancedcaching.png"
  p.arch="all"                #should be all for python, any for all arch
