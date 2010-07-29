@@ -31,7 +31,7 @@ except Exception:
         dlon = math.pow(math.sin(math.radians(target.lon-src.lon) / 2), 2)
         a = dlat + math.cos(math.radians(src.lat)) * math.cos(math.radians(target.lat)) * dlon;
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a));
-        return self.RADIUS_EARTH * c;
+        return Coordinate.RADIUS_EARTH * c;
     distance_to = distance_to_manual
 
 def try_parse_coordinate(text):
