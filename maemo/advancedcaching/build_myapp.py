@@ -58,10 +58,10 @@ AGTL is Open source and in active development.'''
  build = "1"################################ for the first build of this version of your software. Increment for later re-builds of the same version of your software.
                              #Text with changelog information to be displayed in the package "Details" tab of the Maemo Application Manager
  changeloginformation = """
-Bug fix release for 0.7.0.0
-- Fix Fieldnotes Button bug
-- Disable HTML view by default
-- Save state of "follow position"
+Bug fix release for 0.7.0.1
+- Fix downloading of virtual geocaches
+- Fix python-hildon dependency (lists not clickable)
+- Fix python-dbus dependency (application crashing on startup)
 """
  dir_name = "src"            #Name of the subfolder containing your package source files (e.g. usr\share\icons\hicolor\scalable\myappicon.svg, usr\lib\myapp\somelib.py). We suggest to leave it named src in all projects and will refer to that in the wiki article on maemo.org
  #Thanks to DareTheHair from talk.maemo.org for this snippet that recursively builds the file list 
