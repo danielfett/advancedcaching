@@ -38,7 +38,7 @@ AGTL is Open source and in active development.'''
  
  p.author="Daniel Fett"
  p.mail="advancedcaching@fragcom.de"
- p.depends = "python2.5, python-gtk2, python-simplejson, python-location, python-hildon (>= 0.9.0-1maemo17), python-gtkhtml2, python-dbus"
+ p.depends = "python2.5, python-gtk2, python-simplejson, python-location, python-hildon (>= 0.9.0-1maemo17), python-gtkhtml2, python-dbus, python-osso"
  p.section="user/navigation"
  p.icon = "src/usr/share/icons/hicolor/48x48/hildon/advancedcaching.png"
  p.arch="all"                #should be all for python, any for all arch
@@ -55,7 +55,7 @@ AGTL is Open source and in active development.'''
  #  p.preremove="""#!/bin/sh
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your pre remove script
  version = "0.7.0.2"
- build = "0"################################# for the first build of this version of your software. Increment for later re-builds of the same version of your software.
+ build = "1"################################## for the first build of this version of your software. Increment for later re-builds of the same version of your software.
                              #Text with changelog information to be displayed in the package "Details" tab of the Maemo Application Manager
  changeloginformation = """
 Bug fix release for 0.7.0.1
