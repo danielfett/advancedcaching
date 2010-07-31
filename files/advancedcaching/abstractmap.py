@@ -196,6 +196,13 @@ class AbstractMap():
         p_y = int(point[1] * size + self.map_height / 2) - self.map_center_y * size
         return (p_x % self.total_map_width , p_y)
 
+    def coord2point_float(self, coord):
+        point = self.deg2num(coord)
+        size = self.tile_loader.TILE_SIZE
+        p_x = point[0] * size + self.map_width / 2 - self.map_center_x * size
+        p_y = point[1] * size + self.map_height / 2 - self.map_center_y * size
+        return (p_x % self.total_map_width , p_y)
+
     def screenpoint2coord(self, point):
         size = self.tile_loader.TILE_SIZE
         coord = self.num2deg(\

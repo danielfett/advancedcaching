@@ -160,8 +160,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                     off_x = (tile[0]/2.0 - supertile_x) * size
                     off_y = (tile[1]/2.0 - supertile_y) * size
                     surface = self.callback_load(self.local_filename)
-                    #dest = gtk.gdk.Pixbuf(pbuf.get_colorspace(), pbuf.get_has_alpha(), pbuf.get_bits_per_sample(), size, size)
-                    #pbuf.scale(dest, 0, 0, size, size, -off_x*2, -off_y*2, 2, 2, gtk.gdk.INTERP_HYPER)
+                    
                     self.pbuf = (surface, (off_x, off_y))
                 else:
                     surface = self.callback_load(self.local_filename)
@@ -171,11 +170,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 if tryno == 0:
                     return self.recover()
                 else:
-                    print "Exception while loading map tile: ", e
-                    import traceback
-                    traceback.print_exc()
-                    traceback.print_stack()
-                    print "Exception while loading tile:", e
+                    logger.exception("Exception while loading map tile: %s" % e)
                     self.pbuf = (self.noimage_cantload, None)
                     return True
 
@@ -189,7 +184,6 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
 
         def draw(self, pbuf):
             if not self.stop:
-                print pbuf[0]
                 return self.callback_draw(self.id_string, pbuf[0], self.x, self.y, pbuf[1])
             return False
 

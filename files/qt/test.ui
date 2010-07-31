@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>930</width>
-    <height>432</height>
+    <width>561</width>
+    <height>361</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -32,15 +32,15 @@
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout_2"/>
+   <layout class="QHBoxLayout" name="horizontalLayout"/>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>930</width>
-     <height>23</height>
+     <width>561</width>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuMap">
@@ -57,27 +57,46 @@
     <addaction name="actionGeocaches"/>
     <addaction name="actionPlaces"/>
    </widget>
+   <widget class="QMenu" name="menuTest">
+    <property name="title">
+     <string>Test</string>
+    </property>
+    <addaction name="actionBlub"/>
+    <addaction name="separator"/>
+    <addaction name="actionBla"/>
+   </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
      <string>Help</string>
     </property>
-    <addaction name="actionAbout_AGTL"/>
+    <widget class="QMenu" name="menuAbout_AGTL">
+     <property name="title">
+      <string>About &amp;AGTL</string>
+     </property>
+     <addaction name="actionBlub_1"/>
+     <addaction name="actionBlub_2"/>
+    </widget>
+    <addaction name="menuAbout_AGTL"/>
    </widget>
    <addaction name="menuMap"/>
    <addaction name="menuSearch"/>
    <addaction name="menuHelp"/>
+   <addaction name="menuTest"/>
   </widget>
+  <widget class="QStatusBar" name="statusBar"/>
   <widget class="QToolBar" name="toolBar">
    <property name="windowTitle">
     <string>toolBar</string>
    </property>
    <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
+    <enum>BottomToolBarArea</enum>
    </attribute>
    <attribute name="toolBarBreak">
     <bool>false</bool>
    </attribute>
    <addaction name="separator"/>
+   <addaction name="actionZoom_In"/>
+   <addaction name="actionZoom_Out"/>
   </widget>
   <action name="actionHallo_Welt">
    <property name="text">
@@ -107,17 +126,67 @@
     <string>Places</string>
    </property>
   </action>
-  <action name="actionAbout_AGTL">
-   <property name="text">
-    <string>About AGTL</string>
-   </property>
-  </action>
   <action name="actionDownload_Map_Tiles">
    <property name="text">
     <string>Download Map Tiles</string>
    </property>
   </action>
+  <action name="actionBlub">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>blub</string>
+   </property>
+  </action>
+  <action name="actionBla">
+   <property name="text">
+    <string>bla</string>
+   </property>
+  </action>
+  <action name="actionBlub_1">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Blub 1</string>
+   </property>
+  </action>
+  <action name="actionBlub_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Blub 2</string>
+   </property>
+  </action>
+  <action name="actionZoom_In">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/icons/advancedcaching/data/accept.png</normaloff>:/icons/advancedcaching/data/accept.png</iconset>
+   </property>
+   <property name="text">
+    <string>Zoom In</string>
+   </property>
+   <property name="toolTip">
+    <string>Zooooom!</string>
+   </property>
+  </action>
+  <action name="actionZoom_Out">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/icons/advancedcaching/data/asterisk_yellow.png</normaloff>:/icons/advancedcaching/data/asterisk_yellow.png</iconset>
+   </property>
+   <property name="text">
+    <string>Zoom Out</string>
+   </property>
+  </action>
  </widget>
- <resources/>
+ <resources>
+  <include location="icons.qrc"/>
+ </resources>
  <connections/>
 </ui>

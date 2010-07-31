@@ -22,15 +22,21 @@ import math
 from threading import Lock
 
 from abstractmap import AbstractMap, AbstractMapLayer, AbstractGeocacheLayer, AbstractMarksLayer
+
+import logging
+logger = logging.getLogger('qtmap')
+
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-import logging
+logger.debug("Using pyqt bindings")
 import geocaching
-logger = logging.getLogger('qtmap')
+import geo
 
 
 
 class QtMap(QWidget, AbstractMap):
+
+    __pyqtSignals__ = ("tileLoaderChanged(PyObject)", "mapDragged()", "zoomChanged()")
 
     def __init__(self, parent, center, zoom, tile_loader = None):
         QWidget.__init__(self)
@@ -45,6 +51,11 @@ class QtMap(QWidget, AbstractMap):
         self.drag_offset_y = 0
         self.connect(self, SIGNAL('tile-finished'), self.__draw_tiles)
 
+        ##############################################
+        #
+        # Event handling
+        #
+        ##############################################
 
     def paintEvent(self, ev):
         # blit the pixmap
@@ -58,12 +69,6 @@ class QtMap(QWidget, AbstractMap):
                 if l.result == None:
                     continue
                 p.drawPixmap(0, 0, l.result)
-
-    #def mouseMoveEvent(self, ev):
-    #    p = QPainter(self.buffer)
-    #    p.drawLine(self.currentPos, ev.pos())
-    #    self.currentPos=QPoint(ev.pos())
-    #    self.repaint()
 
     def mousePressEvent(self, ev):
         if self.dragging or ev.button() != Qt.LeftButton:
@@ -102,10 +107,6 @@ class QtMap(QWidget, AbstractMap):
         self.dragging = False
         self._draw_map()
 
-    @staticmethod
-    def _load_tile(filename):
-        return filename
-
     def resizeEvent(self, ev):
         s = ev.size()
         self.buffer = QPixmap(s)
@@ -121,10 +122,22 @@ class QtMap(QWidget, AbstractMap):
         #
         ##############################################
 
+    #@pyqtSignature("zoomIn()")
+    def zoom_in(self):
+        self.relative_zoom(+1)
+
+
+    #@pyqtSignature("zoomOut()")
+    def zoom_out(self):
+        self.relative_zoom(-1)
+
     def redraw_layers(self):
         if self.dragging:
             return
         self.__draw_layers()
+        self.repaint()
+
+    def refresh(self):
         self.repaint()
 
         ##############################################
@@ -215,6 +228,10 @@ class QtMap(QWidget, AbstractMap):
         self.emit(SIGNAL('tile-finished'), (([surface, x, y, scale_source],)))
         #self.__draw_tiles(which=([surface, x, y, scale_source],))
 
+    @staticmethod
+    def _load_tile(filename):
+        return filename
+
     def __draw_tiles(self, which=None, off_x=0, off_y=0):
         self.delay_expose = False
         #cr = gtk.gdk.CairoContext(cairo.Context(self.cr_drawing_area_map))
@@ -259,15 +276,10 @@ class QtMap(QWidget, AbstractMap):
         self.repaint()
         return False
 
+class AbstractQtLayer(AbstractMapLayer):
 
-class QtSingleMarkLayer(AbstractMapLayer):
-    PEN_TARGET = QPen(QColor(0, 0, 200), 1)
-    PEN_SHADOW_TARGET = QPen(QColor(255, 255, 255), 3)
-
-    def __init__(self, coordinate):
-        AbstractMapLayer.__init__(self)
+    def __init__(self):
         self.painter = QPainter()
-        self.coord = coordinate
 
     def attach(self, map):
         AbstractMapLayer.attach(self, map)
@@ -277,6 +289,15 @@ class QtSingleMarkLayer(AbstractMapLayer):
     def resize(self):
         self.result = QPixmap(self.map.size())
         self.result.fill(Qt.transparent)
+
+
+class QtSingleMarkLayer(AbstractQtLayer):
+    PEN_TARGET = QPen(QColor(0, 0, 200), 1)
+    PEN_SHADOW_TARGET = QPen(QColor(255, 255, 255), 3)
+
+    def __init__(self, coordinate):
+        AbstractQtLayer.__init__(self)
+        self.coord = coordinate
 
     def draw(self):
         self.result.fill(Qt.transparent)
@@ -311,25 +332,18 @@ class QtSingleMarkLayer(AbstractMapLayer):
         p.drawArc(QRectF(t[0] - radius_c/2, t[1] - radius_c/2, radius_c, radius_c), 0, 16*360)
         p.end()
 
-class QtOsdLayer(AbstractMapLayer):
+class QtOsdLayer(AbstractQtLayer):
 
     MESSAGE_DRAW_FONT = QFont('Sans', 12)
     MESSAGE_DRAW_PEN = QPen(QColor(0, 0, 0))
     OSD_PEN = QPen(QColor(255, 255, 255))
     OSD_BRUSH = QBrush(QColor(0, 0, 0))
 
+    OSD_BORDER_TOPBOTTOM = 25
+    OSD_BORDER_LEFTRIGHT = 35
+
     def __init__(self):
-        AbstractMapLayer.__init__(self)
-        self.painter = QPainter()
-
-    def attach(self, map):
-        AbstractMapLayer.attach(self, map)
-        self.result = QPixmap(self.map.size())
-        self.result.fill(Qt.transparent)
-
-    def resize(self):
-        self.result = QPixmap(self.map.size())
-        self.result.fill(Qt.transparent)
+        AbstractQtLayer.__init__(self)
 
     @staticmethod
     def set_layout(message_draw_font, message_draw_color):
@@ -339,7 +353,7 @@ class QtOsdLayer(AbstractMapLayer):
     def draw(self):
         
         # scale bar position
-        position = (20, self.map.map_height - 28)
+        position = (self.OSD_BORDER_LEFTRIGHT, self.map.map_height - 10 - self.OSD_BORDER_TOPBOTTOM)
 
         # scale bar calculation
         center = self.map.get_center()
@@ -358,15 +372,16 @@ class QtOsdLayer(AbstractMapLayer):
         self.result.fill(Qt.transparent)
         p = self.painter
         p.begin(self.result)
+        p.setRenderHint(QPainter.Antialiasing)
         p.setFont(QtOsdLayer.MESSAGE_DRAW_FONT)
         p.setPen(QtOsdLayer.MESSAGE_DRAW_PEN)
 
         # osd message
         if self.map.osd_message != None:
-            p.drawText(QPoint(20, 20), self.map.osd_message)
+            p.drawText(QRect(self.OSD_BORDER_LEFTRIGHT, self.OSD_BORDER_TOPBOTTOM, 200, 20), Qt.AlignLeft, self.map.osd_message)
 
         # scale bar text
-        p.drawText(QPoint(position[0], position[1]), scale_msg)
+        p.drawText(QRect(self.OSD_BORDER_LEFTRIGHT, self.map.map_height - 10 - self.OSD_BORDER_TOPBOTTOM - 20, 200, 20), Qt.AlignLeft, scale_msg)
 
         # scale bar
         p.setPen(QtOsdLayer.OSD_PEN)
@@ -377,13 +392,14 @@ class QtOsdLayer(AbstractMapLayer):
 
 logger = logging.getLogger('geocachelayer')
 
-class QtGeocacheLayer(AbstractGeocacheLayer):
+class QtGeocacheLayer(AbstractQtLayer, AbstractGeocacheLayer):
 
     CACHE_DRAW_FONT = QFont('Sans', 10)
     CACHE_DRAW_FONT_PEN = QPen(QColor(0, 0, 0))
 
     PEN_CURRENT_CACHE = QPen(QColor(200, 0, 0), 1)
-    PEN_CACHE_DISABLED = QPen(QColor(255, 0, 0), 1)
+    PEN_CACHE_DISABLED = QPen(QColor(255, 0, 0), 3)
+    PEN_WAYPOINTS = QPen(QColor(200, 0, 200), 1)
 
     # map markers colors
     COLOR_MARKED = QColor(255, 255, 0)
@@ -392,20 +408,10 @@ class QtGeocacheLayer(AbstractGeocacheLayer):
     COLOR_REGULAR = QColor(0, 200, 0)
     COLOR_MULTI = QColor(255, 120, 0)
     COLOR_CACHE_CENTER = QColor(0, 0, 0)
-    COLOR_WAYPOINTS = QColor(200, 0, 200)
 
     def __init__(self, pointprovider, show_cache_callback):
+        AbstractQtLayer.__init__(self)
         AbstractGeocacheLayer.__init__(self, pointprovider, show_cache_callback)
-        self.painter = QPainter()
-
-    def attach(self, map):
-        AbstractMapLayer.attach(self, map)
-        self.result = QPixmap(self.map.size())
-        self.result.fill(Qt.transparent)
-
-    def resize(self):
-        self.result = QPixmap(self.map.size())
-        self.result.fill(Qt.transparent)
 
     def draw(self):
 
@@ -429,14 +435,14 @@ class QtGeocacheLayer(AbstractGeocacheLayer):
 
         p = self.painter
         p.begin(self.result)
+        #p.setRenderHint(QPainter.Antialiasing)
         p.setFont(self.CACHE_DRAW_FONT)
         cache_pen = QPen()
-        cache_pen.setWidth(4)
+        cache_pen.setWidth(3)
         cache_pen.setJoinStyle(Qt.MiterJoin)
 
         desc_pen = QPen()
         desc_pen.setWidth(2)
-
         for c in coords: # for each geocache
             radius = default_radius
             if c.found:
@@ -464,7 +470,7 @@ class QtGeocacheLayer(AbstractGeocacheLayer):
             if c.marked:
                 p.setBrush(QBrush(QColor(1, 1, 0, 0.5)))
                 p.setPen(QPen(Qt.transparent))
-                p.drawRectangle(loc[0] - radius, loc[1] - radius, radius * 2, radius * 2)
+                p.drawRect(loc[0] - radius, loc[1] - radius, radius * 2, radius * 2)
 
             p.setBrush(Qt.transparent)
             p.setPen(cache_pen)
@@ -514,69 +520,71 @@ class QtGeocacheLayer(AbstractGeocacheLayer):
                 p.setPen(self.CACHE_DRAW_FONT_PEN)
                 p.drawText(loc[0] + 4 + radius, loc[1] - height + 2, AbstractGeocacheLayer.shorten_name(c.title, 20))
 
-        p.end()
-        return
 
         # draw additional waypoints
         # --> print description!
         if self.current_cache != None and self.current_cache.get_waypoints() != None:
-            cr.set_source_color(self.COLOR_WAYPOINTS)
-            cr.set_line_width(1)
+            p.setPen(self.PEN_WAYPOINTS)
             radius = 5
             num = 0
+            lines = []
             for w in self.current_cache.get_waypoints():
                 if w['lat'] != -1 and w['lon'] != -1:
                     num = num + 1
-                    p = self.map.coord2point(geo.Coordinate(w['lat'], w['lon']))
-                    if not self.map.point_in_screen(p):
+                    loc = self.map.coord2point(geo.Coordinate(w['lat'], w['lon']))
+                    if not self.map.point_in_screen(loc):
                         continue
-                    cr.move_to(p[0], p[1] - radius)
-                    cr.line_to(p[0], p[1] + radius) #  |
-                    #cr.stroke()
-                    cr.move_to(p[0] - radius, p[1])
-                    cr.line_to(p[0] + radius, p[1]) # ---
-                    #cr.stroke()
-                    cr.arc(p[0], p[1], radius, 0, math.pi * 2)
-                    layout = self.map.create_pango_layout('')
-                    layout.set_markup('<i>%s</i>' % (w['id']))
-                    layout.set_font_description(self.CACHE_DRAW_FONT)
-
-                    cr.move_to(p[0] + 3 + radius, p[1] - 3 - radius)
-                    #cr.set_line_width(1)
-                    cr.set_source_color(self.COLOR_WAYPOINTS)
-                    cr.show_layout(layout)
-            cr.stroke()
-
+                    lines.append(QLine(loc[0], loc[1] - radius, loc[0], loc[1] + radius))
+                    lines.append(QLine(loc[0] - radius, loc[1], loc[0] + radius, loc[1]))
+                    p.drawArc(QRectF(loc[0] - radius - 1, loc[1] - radius - 1, radius * 2 + 1, radius * 2 + 1), 0, 16 * 360)
+                    p.drawText(loc[0] + 3 + radius, loc[1] - 3 - radius, w['id'])
+            p.drawLines(lines)
+        p.end()
+        
 logger = logging.getLogger('markslayer')
-'''
-class MarksLayer(AbstractMarksLayer):
 
-    SIZE_CURRENT_POSITION = 3
-    COLOR_CURRENT_POSITION = gtk.gdk.color_parse('green')
-    COLOR_CURRENT_POSITION_NO_FIX = gtk.gdk.color_parse('red')
-    COLOR_TARGET = gtk.gdk.color_parse('darkblue')
-    COLOR_TARGET_SHADOW = gtk.gdk.color_parse('white')
-    COLOR_CROSSHAIR = gtk.gdk.color_parse("black")
-    COLOR_LINE_INVERT = gtk.gdk.color_parse("blue")
-    COLOR_ACCURACY = gtk.gdk.color_parse("orange")
+class QtMarksLayer(AbstractQtLayer, AbstractMarksLayer):
 
-    COLOR_DIRECTION_ARROW = gtk.gdk.color_parse("black")
-    COLOR_DIRECTION_ARROW_SHADOW = gtk.gdk.color_parse("white")
+    SIZE_CURRENT_POSITION = 5
+    BRUSH_CURRENT_POSITION = QBrush(QColor(0, 255, 0))
+    BRUSH_CURRENT_POSITION_NO_FIX = QBrush(QColor(255, 0, 0))
 
-    DISTANCE_DRAW_FONT = pango.FontDescription("Sans 20")
-    DISTANCE_DRAW_FONT_COLOR = gtk.gdk.color_parse("black")
+    PEN_TARGET = QPen(QColor(0, 0, 200), 1)
+    PEN_SHADOW_TARGET = QPen(QColor(255, 255, 255), 3)
+
+    PEN_LINE_DIRECT_LINE = QPen(QColor(255, 255, 0, 0.5), 5)
+    PEN_ACCURACY = QPen(QColor(255, 125, 0), 2)
+
+    PEN_POSITION = QPen(QColor(0, 0, 0), 2)
+    PEN_POSITION_SHADOW = QPen(QColor(255, 255, 255), 4)
+
+    DISTANCE_DRAW_FONT = QFont('Sans', 12)
+    DISTANCE_DRAW_PEN = QPen(QColor(0, 0, 0))
 
     OSD_BORDER_TOPBOTTOM = 25
     OSD_BORDER_LEFTRIGHT = 35
 
+    RADIUS_ARROW = 30
+    RADIUS_STANDING = 5
+
+
+    ARROW_OFFSET = 1.0 / 3.0 # Offset to center of arrow, calculated as 2-x = sqrt(1^2+(x+1)^2)
+    ARROW_SHAPE = [(0, -2 + ARROW_OFFSET), (1, + 1 + ARROW_OFFSET), (0, 0 + ARROW_OFFSET), (-1, 1 + ARROW_OFFSET), (0, -2 + ARROW_OFFSET)]
+
+
+
 
     def __init__(self):
+        AbstractQtLayer.__init__(self)
         AbstractMarksLayer.__init__(self)
+        self.PEN_ACCURACY.setDashPattern([5, 3])
+
 
     def draw(self):
-
-        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map.map_width, self.map.map_height)
-        cr = gtk.gdk.CairoContext(cairo.Context(surface))
+        self.result.fill(Qt.transparent)
+        p = self.painter
+        p.begin(self.result)
+        p.setRenderHint(QPainter.Antialiasing)
         # if we have a target, draw it
         if self.current_target != None:
             t = self.map.coord2point(self.current_target)
@@ -586,58 +594,50 @@ class MarksLayer(AbstractMarksLayer):
                 radius_o = 15
                 radius_i = 3
                 radius_c = 10
-                cr.move_to(t[0] - radius_o, t[1])
-                cr.line_to(t[0] - radius_i, t[1])
-                cr.move_to(t[0] + radius_o, t[1])
-                cr.line_to(t[0] + radius_i, t[1])
-                cr.move_to(t[0], t[1] + radius_o)
-                cr.line_to(t[0], t[1] + radius_i)
-                cr.move_to(t[0], t[1] - radius_o)
-                cr.line_to(t[0], t[1] - radius_i)
-                cr.new_sub_path()
-                cr.arc(t[0], t[1], radius_c, 0, math.pi * 2)
+                p.setPen(QtSingleMarkLayer.PEN_SHADOW_TARGET)
+                p.drawLines(
+                    QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
+                    QLineF(t[0] + radius_o, t[1], t[0] + radius_i, t[1]),
+                    QLineF(t[0], t[1] + radius_o, t[0], t[1] + radius_i),
+                    QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i)
+                    )
+                p.drawArc(QRectF(t[0] - radius_c/2, t[1] - radius_c/2, radius_c, radius_c), 0, 16*360)
 
-                cr.set_source_color(self.COLOR_TARGET_SHADOW)
-                cr.set_line_width(3)
-                cr.stroke_preserve()
-                cr.set_source_color(self.COLOR_TARGET)
-                cr.set_line_width(2)
-                cr.stroke()
+                p.setPen(QtSingleMarkLayer.PEN_TARGET)
+                p.drawLines(
+                    QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
+                    QLineF(t[0] + radius_o, t[1], t[0] + radius_i, t[1]),
+                    QLineF(t[0], t[1] + radius_o, t[0], t[1] + radius_i),
+                    QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i)
+                    )
+                p.drawArc(QRectF(t[0] - radius_c/2, t[1] - radius_c/2, radius_c, radius_c), 0, 16*360)
 
         else:
             t = False
 
         if self.gps_last_good_fix != None and self.gps_last_good_fix.position != None:
-            p = self.map.coord2point(self.gps_last_good_fix.position)
+            loc = self.map.coord2point_float(self.gps_last_good_fix.position)
         else:
-            p = None
+            loc = None
 
         # a line between target and position if we have both
-        if p != None and t != False:
-            cr.set_line_width(5)
-            cr.set_source_rgba(1, 1, 0, 0.5)
-            if self.map.point_in_screen(t) and self.map.point_in_screen(p):
-                cr.move_to(p[0], p[1])
-                cr.line_to(t[0], t[1])
-                cr.stroke()
-            elif self.map.point_in_screen(p):
+        if loc != None and t != False:
+            p.setPen(self.PEN_LINE_DIRECT_LINE)
+            if self.map.point_in_screen(t) and self.map.point_in_screen(loc):
+                p.drawLine(loc[0], loc[1], t[0], t[1])
+            elif self.map.point_in_screen(loc):
                 direction = math.radians(self.gps_target_bearing - 180)
                 # correct max length: sqrt(width**2 + height**2)
                 length = self.map.map_width
-                cr.move_to(p[0], p[1])
-                cr.line_to(int(p[0] - math.sin(direction) * length), int(p[1] + math.cos(direction) * length))
-                cr.stroke()
+                p.drawLine(loc[0], loc[1], loc[0] - math.sin(direction) * length, loc[1] + math.cos(direction) * length)
 
             elif self.map.point_in_screen(t):
                 direction = math.radians(self.gps_target_bearing)
                 length = self.map.map_width + self.map.map_height
-                cr.move_to(t[0], t[1])
-                cr.line_to(int(t[0] - math.sin(direction) * length), int(t[1] + math.cos(direction) * length))
-                cr.stroke()
+                p.drawLine(t[0], t[1], t[0] - math.sin(direction) * length, t[1] + math.cos(direction) * length)
 
-        if p != None and self.map.point_in_screen(p):
-
-            cr.set_line_width(2)
+        if loc != None and self.map.point_in_screen(loc):
+            
 
             if self.gps_has_fix:
                 radius = self.gps_data.error
@@ -645,59 +645,59 @@ class MarksLayer(AbstractMarksLayer):
             else:
                 radius_pixels = 10
 
-            radius_o = int((radius_pixels + 8) / math.sqrt(2))
-            radius_i = int((radius_pixels - 8) / math.sqrt(2))
 
-
-
-            if radius_i < 2:
-                radius_i = 2
             if self.gps_has_fix:
-                cr.set_source_color(self.COLOR_CURRENT_POSITION)
-            else:
-                cr.set_source_color(self.COLOR_CURRENT_POSITION_NO_FIX)
-
-            # \  /
-            #
-            # /  \
-
-            cr.arc(p[0], p[1], self.SIZE_CURRENT_POSITION, 0, math.pi * 2)
-            cr.fill()
-            if self.gps_has_fix:
-                cr.set_line_width(1)
-                cr.set_source_color(self.COLOR_ACCURACY)
-                cr.set_dash((5,3))
-                cr.new_sub_path()
-                cr.arc(p[0], p[1], radius_pixels, 0, math.pi * 2)
-                cr.stroke()
-                cr.set_dash(())
+                p.setPen(self.PEN_ACCURACY)
+                p.setBrush(QBrush(Qt.transparent))
+                p.drawArc(loc[0] - radius_pixels/2.0 - 1, loc[1] - radius_pixels/2.0 - 1, radius_pixels, radius_pixels, 0, 16 * 360)
 
                 # draw moving direction, if we're moving
                 if self.gps_data.speed > 2.5: # km/h
-                    position = p#(self.map.map_width - self.OSD_BORDER_LEFTRIGHT, self.map.map_height - self.OSD_BORDER_TOPBOTTOM)
-
-                    arrow = SimpleGui._get_arrow_transformed(position[0] - 15, position[1] - 15, 30, 30, self.gps_data.bearing)
-                    cr.move_to(* arrow[0])
-                    for x, y in arrow:
-                        cr.line_to(x, y)
-                    cr.line_to(* arrow[0])
+                    arrow = self._get_arrow_transformed(loc[0] - self.RADIUS_ARROW/2, loc[1] - self.RADIUS_ARROW/2, self.RADIUS_ARROW, self.RADIUS_ARROW, self.gps_data.bearing)
+                    p.setPen(self.PEN_POSITION_SHADOW)
+                    p.drawPolyline(*arrow)
+                    p.setPen(self.PEN_POSITION)
+                    p.drawPolyline(*arrow)
                 else:
-                    cr.arc(p[0], p[1], self.SIZE_CURRENT_POSITION + 5, 0, math.pi * 2)
-
-                cr.set_source_color(self.COLOR_DIRECTION_ARROW_SHADOW)
-                cr.set_line_width(2)
-                cr.stroke_preserve()
-                cr.set_source_color(self.COLOR_DIRECTION_ARROW)
-                cr.set_line_width(1)
-                cr.stroke()
+                    p.drawArc(loc[0] - self.RADIUS_STANDING/2.0 , loc[1] - self.RADIUS_STANDING/2.0 - 1, self.RADIUS_STANDING + 1, self.RADIUS_STANDING + 1, 0, 16 * 360)
+            
+            if self.gps_has_fix:
+                p.setBrush(self.BRUSH_CURRENT_POSITION)
+            else:
+                p.setBrush(self.BRUSH_CURRENT_POSITION_NO_FIX)
+            p.setPen(QPen(Qt.transparent))
+            p.drawPie(loc[0] - self.SIZE_CURRENT_POSITION/2.0 , loc[1] - self.SIZE_CURRENT_POSITION/2.0 , self.SIZE_CURRENT_POSITION + 1, self.SIZE_CURRENT_POSITION + 1, 0, 16 * 360)
+            
 
         if self.gps_data != None and self.gps_has_fix:
-            position = (self.map.map_width - self.OSD_BORDER_LEFTRIGHT, self.OSD_BORDER_TOPBOTTOM)
-            layout = self.map.create_pango_layout(SimpleGui._format_distance(self.gps_target_distance))
-            layout.set_font_description(self.DISTANCE_DRAW_FONT)
-            width, height = layout.get_pixel_size()
-            cr.set_source_color(self.DISTANCE_DRAW_FONT_COLOR)
-            cr.move_to(position[0] - width, position[1])
-            cr.show_layout(layout)
+            p.setFont(self.DISTANCE_DRAW_FONT)
+            p.setPen(self.DISTANCE_DRAW_PEN)
+            position = QRect(self.map.map_width - self.OSD_BORDER_LEFTRIGHT - 100, self.OSD_BORDER_TOPBOTTOM, 100, 40)
+            text = self._format_distance(self.gps_target_distance)
+            p.drawText(position, Qt.AlignRight | Qt.TextDontClip, text)
+            
 
-        self.result = surface'''
+        p.end()
+
+
+    @staticmethod
+    def _format_distance(distance):
+        if distance == None:
+            return '?'
+        if distance >= 1000:
+            return "%d km" % round(distance / 1000.0)
+        elif distance >= 100:
+            return "%d m" % round(distance)
+        else:
+            return "%.1f m" % round(distance, 1)
+
+    @staticmethod
+    def _get_arrow_transformed(root_x, root_y, width, height, angle):
+        multiply = height / (2 * (2-QtMarksLayer.ARROW_OFFSET))
+        offset_x = width / 2
+        offset_y = height / 2
+        s = multiply * math.sin(math.radians(angle))
+        c = multiply * math.cos(math.radians(angle))
+        arrow_transformed = [QPointF(x * c + offset_x - y * s + root_x,
+                              y * c + offset_y + x * s + root_y) for x, y in QtMarksLayer.ARROW_SHAPE]
+        return arrow_transformed

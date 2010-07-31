@@ -164,7 +164,6 @@ class Core(gobject.GObject):
         actor_tts = TTS(self)
         actor_tts.connect('error', lambda caller, msg: self.gui.show_error(msg))
         #actor_notify = Notify(self)
-
         self.emit('settings-changed', self.settings, self)
 
  
