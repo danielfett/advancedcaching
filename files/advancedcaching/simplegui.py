@@ -1382,15 +1382,12 @@ class UpdownRows():
 
         return [table, chooser]
 
-class GeocacheLayer(MapLayer):
+logger = logging.getLogger('geocachelayer')
 
-    CACHE_SIZE = 20
-    TOO_MANY_POINTS = 30
-    CACHES_ZOOM_LOWER_BOUND = 9
-    CACHE_DRAW_SIZE = 10
+class GeocacheLayer(AbstractGeocacheLayer):
+
     CACHE_DRAW_FONT = pango.FontDescription("Sans 10")
     CACHE_DRAW_FONT_COLOR = gtk.gdk.color_parse('black')
-    MAX_NUM_RESULTS_SHOW = 100
 
     # map markers colors
     COLOR_MARKED = gtk.gdk.color_parse('yellow')
@@ -1401,42 +1398,6 @@ class GeocacheLayer(MapLayer):
     COLOR_CACHE_CENTER = gtk.gdk.color_parse('black')
     COLOR_CURRENT_CACHE = gtk.gdk.color_parse('red')
     COLOR_WAYPOINTS = gtk.gdk.color_parse('deeppink')
-
-    def __init__(self, pointprovider, show_cache_callback):
-        MapLayer.__init__(self)
-        self.show_found = False
-        self.show_name = False
-        self.pointprovider = pointprovider
-        self.visualized_geocaches = []
-        self.show_cache_callback = show_cache_callback
-        self.current_cache = None
-
-    def set_show_found(self, show_found):
-        if show_found: 
-            self.select_found = None
-        else:
-            self.select_found = False
-
-    def set_show_name(self, show_name):
-        self.show_name = show_name
-
-    def set_current_cache(self, cache):
-        self.current_cache = cache
-
-    def clicked_coordinate(self, center, topleft, bottomright):
-        mindistance = (center.lat - topleft.lat) ** 2 + (center.lon - topleft.lon) ** 2
-        mincache = None
-        for c in self.visualized_geocaches:
-            dist = (c.lat - center.lat) ** 2 + (c.lon - center.lon) ** 2
-            
-            if dist < mindistance:
-                mindistance = dist
-                mincache = c
-                
-        if mincache != None:
-            self.show_cache_callback(mincache)
-        return False
-
 
     def draw(self):
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map.map_width, self.map.map_height)
@@ -1596,7 +1557,7 @@ class GeocacheLayer(MapLayer):
         
 logger = logging.getLogger('markslayer')
 
-class MarksLayer(AbstractMapLayer):
+class MarksLayer(AbstractMarksLayer):
 
     SIZE_CURRENT_POSITION = 3
     COLOR_CURRENT_POSITION = gtk.gdk.color_parse('green')
@@ -1618,48 +1579,7 @@ class MarksLayer(AbstractMapLayer):
 
 
     def __init__(self):
-        MapLayer.__init__(self)
-        self.current_target = None
-        self.gps_target_distance = None
-        self.gps_target_bearing = None
-        self.gps_data = None
-        self.gps_last_good_fix = None
-        self.gps_has_fix = None
-        self.follow_position = False
-    '''
-    @staticmethod
-    def load_image_target(filename):
-        MarksLayer.TARGET_SURFACE = cairo.ImageSurface.create_from_png(filename)
-    '''
-    def set_follow_position(self, value):
-        logger.info('Setting "Follow position" to :' + repr(value))
-        if value and not self.follow_position and self.gps_last_good_fix != None:
-            self.map.set_center(self.gps_last_good_fix.position)
-        self.follow_position = value
-
-    def get_follow_position(self):
-        return self.follow_position
-
-    def on_target_changed(self, caller, cache, distance, bearing):
-        self.current_target = cache    
-        self.gps_target_distance = distance
-        self.gps_target_bearing = bearing
-
-    def on_good_fix(self, core, gps_data, distance, bearing):
-        self.gps_data = gps_data
-        self.gps_last_good_fix = gps_data
-        self.gps_has_fix = True
-        self.gps_target_distance = distance
-        self.gps_target_bearing = bearing
-        if self.map.dragging:
-            return
-        if (self.follow_position and not self.map.set_center_lazy(self.gps_data.position)) or not self.follow_position:
-            self.draw()
-            self.map.refresh()
-
-    def on_no_fix(self, caller, gps_data, status):
-        self.gps_data = gps_data
-        self.gps_has_fix = False
+        AbstractMarksLayer.__init__(self)
 
     def draw(self):
         
@@ -1691,12 +1611,6 @@ class MarksLayer(AbstractMapLayer):
                 cr.set_source_color(self.COLOR_TARGET)
                 cr.set_line_width(2)
                 cr.stroke()
-
-                '''
-                pos = (t[0] - self.TARGET_SURFACE.get_width()/2, t[1] - self.TARGET_SURFACE.get_height()/2)
-                cr.set_source_surface(self.TARGET_SURFACE, pos[0], pos[1])
-                cr.paint()
-                '''
 
         else:
             t = False

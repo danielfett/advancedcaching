@@ -20,17 +20,9 @@
 
 from __future__ import with_statement
 
-import math
-
-import geo
 import gobject
 import logging
 logger = logging.getLogger('openstreetmap')
-
-import cairo
-    
-
-
 
 from os import path, mkdir, extsep, remove
 from threading import Semaphore
@@ -106,24 +98,25 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             answer = True
             if not path.isfile(self.local_filename):
                 self.create_recursive(self.local_path)
-                #gobject.idle_add(lambda: self.draw(self.get_no_image(self.noimage_loading)))
                 self.draw(self.get_no_image(self.noimage_loading))
                 answer = self.__download(self.remote_filename, self.local_filename)
 
             # now the file hopefully exists
             if answer == True:
                 self.load()
-                gobject.idle_add(lambda: self.draw(self.pbuf))
+                self.draw(self.pbuf)
+                #gobject.idle_add(lambda: self.draw(self.pbuf))
             elif answer == False:
-                gobject.idle_add(lambda: self.draw(self.get_no_image(self.noimage_cantload)))
-                pass
+                #gobject.idle_add(lambda: self.draw(self.get_no_image(self.noimage_cantload)))
+                self.draw(self.get_no_image(self.noimage_cantload))
             else:
                 # Do nothing here, as the thread was told to stop
                 pass
 
         def run_again(self):
             self.load()
-            gobject.idle_add(lambda: self.draw(self.pbuf))
+            #gobject.idle_add(lambda: self.draw(self.pbuf))
+            self.draw(self.pbuf)
             return False
 
         def get_no_image(self, default):
@@ -196,6 +189,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
 
         def draw(self, pbuf):
             if not self.stop:
+                print pbuf[0]
                 return self.callback_draw(self.id_string, pbuf[0], self.x, self.y, pbuf[1])
             return False
 
