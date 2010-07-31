@@ -24,7 +24,14 @@ import math
 
 import geo
 import gobject
+import logging
+logger = logging.getLogger('openstreetmap')
+
 import cairo
+    
+
+
+
 from os import path, mkdir, extsep, remove
 from threading import Semaphore
 from urllib import urlretrieve
@@ -50,7 +57,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
         TPL_LOCAL_PATH = path.join("%s", PREFIX, "%d", "%d")
         TPL_LOCAL_FILENAME = path.join("%s", "%%d%s%s" % (extsep, FILE_TYPE))
 
-        def __init__(self, id_string, tile, zoom, undersample = False, x = 0, y = 0, callback_draw = None):
+        def __init__(self, id_string, tile, zoom, undersample = False, x = 0, y = 0, callback_draw = None, callback_load = None):
             self.id_string = id_string
             self.undersample = undersample
             self.tile = tile
@@ -65,6 +72,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 self.download_tile = (int(self.download_tile[0]/2), int(self.download_tile[1]/2))
             self.pbuf = None
             self.callback_draw = callback_draw
+            self.callback_load = callback_load
 
             self.my_noimage = None
             self.stop = False
@@ -75,6 +83,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             self.local_path = self.TPL_LOCAL_PATH % (self.base_dir, self.download_zoom, self.download_tile[0])
             self.local_filename = self.TPL_LOCAL_FILENAME % (self.local_path, self.download_tile[1])
             self.remote_filename = self.REMOTE_URL % {'zoom': self.download_zoom, 'x' : self.download_tile[0], 'y' : self.download_tile[1]}
+            
 
         def halt(self):
             self.stop = True
@@ -157,16 +166,12 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                     supertile_y = int(tile[1]/2)
                     off_x = (tile[0]/2.0 - supertile_x) * size
                     off_y = (tile[1]/2.0 - supertile_y) * size
-                    surface = cairo.ImageSurface.create_from_png(self.local_filename)
-                    if surface.get_width() < size or surface.get_height() < size:
-                        raise Exception("Image too small, probably corrupted file")
+                    surface = self.callback_load(self.local_filename)
                     #dest = gtk.gdk.Pixbuf(pbuf.get_colorspace(), pbuf.get_has_alpha(), pbuf.get_bits_per_sample(), size, size)
                     #pbuf.scale(dest, 0, 0, size, size, -off_x*2, -off_y*2, 2, 2, gtk.gdk.INTERP_HYPER)
                     self.pbuf = (surface, (off_x, off_y))
                 else:
-                    surface = cairo.ImageSurface.create_from_png(self.local_filename)
-                    if surface.get_width() < size or surface.get_height() < size:
-                        raise Exception("Image too small, probably corrupted file")
+                    surface = self.callback_load(self.local_filename)
                     self.pbuf = (surface, None)
                 return True
             except Exception, e:

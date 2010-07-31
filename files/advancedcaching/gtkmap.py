@@ -19,135 +19,19 @@
 #
 
 import math
-
 import cairo
 import gobject
-import geo
 import gtk
 import openstreetmap
 import pango
-import cairo
-import math
-import geo
 import threadpool
-
+from abstractmap import AbstractMap
 import logging
 logger = logging.getLogger('gtkmap')
 
-class MapLayer():
-    def __init__(self):
-        self.result = None
 
-    def draw(self):
-        pass
+class Map(gtk.DrawingArea, AbstractMap):
 
-    def clicked_screen(self, screenpoint):
-        pass
-
-    def clicked_coordinate(self, center, topleft, bottomright):
-        pass
-
-class SingleMarkLayer(MapLayer):
-    COLOR_TARGET = gtk.gdk.color_parse('darkblue')
-    COLOR_TARGET_SHADOW = gtk.gdk.color_parse('white')
-
-    def __init__(self, coordinate):
-        MapLayer.__init__(self)
-        self.coord = coordinate
-
-    def draw(self):
-        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map.map_width, self.map.map_height)
-        cr = gtk.gdk.CairoContext(cairo.Context(surface))
-        self.result = surface
-
-        t = self.map.coord2point(self.coord)
-        if not self.map.point_in_screen(t):
-            return
-
-        radius_o = 15
-        radius_i = 3
-        radius_c = 10
-        cr.move_to(t[0] - radius_o, t[1])
-        cr.line_to(t[0] - radius_i, t[1])
-        cr.move_to(t[0] + radius_o, t[1])
-        cr.line_to(t[0] + radius_i, t[1])
-        cr.move_to(t[0], t[1] + radius_o)
-        cr.line_to(t[0], t[1] + radius_i)
-        cr.move_to(t[0], t[1] - radius_o)
-        cr.line_to(t[0], t[1] - radius_i)
-        cr.new_sub_path()
-        cr.arc(t[0], t[1], radius_c, 0, math.pi * 2)
-
-        cr.set_source_color(self.COLOR_TARGET_SHADOW)
-        cr.set_line_width(3)
-        cr.stroke_preserve()
-        cr.set_source_color(self.COLOR_TARGET)
-        cr.set_line_width(2)
-        cr.stroke()
-
-class OsdLayer(MapLayer):
-
-    MESSAGE_DRAW_FONT = pango.FontDescription("Sans 5")
-    MESSAGE_DRAW_COLOR = gtk.gdk.color_parse('black')
-    COLOR_OSD_SECONDARY = gtk.gdk.color_parse("white")
-    COLOR_OSD_MAIN = gtk.gdk.color_parse("black")
-
-    @staticmethod
-    def set_layout(message_draw_font, message_draw_color):
-        OsdLayer.MESSAGE_DRAW_FONT = message_draw_font
-        OsdLayer.MESSAGE_DRAW_COLOR = message_draw_color
-
-    def draw(self):
-        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map.map_width, self.map.map_height)
-        cr = gtk.gdk.CairoContext(cairo.Context(surface))
-
-        # message
-
-        cr.set_line_width(2)
-        if self.map.osd_message != None:
-            cr.set_source_color(self.MESSAGE_DRAW_COLOR)
-            layout = self.map.create_pango_layout(self.map.osd_message)
-            layout.set_font_description(self.MESSAGE_DRAW_FONT)
-            cr.move_to(20, 20)
-            cr.show_layout(layout)
-
-        # scale bar
-
-        position = (20, self.map.map_height - 28)
-
-        center = self.map.get_center()
-        mpp = self.map.get_meters_per_pixel(center.lat)
-        avglength = self.map.map_width / 5
-        first_length_meters = mpp * avglength
-        final_length_meters = round(first_length_meters, int(-math.floor(math.log(first_length_meters, 10) + 0.00001)))
-        final_length_pixels = final_length_meters / mpp
-        cr.move_to(position[0], position[1] + 10)
-        cr.line_to(position[0] + final_length_pixels, position[1] + 10)
-        cr.set_line_width(5)
-        cr.set_source_color(self.COLOR_OSD_SECONDARY)
-        cr.stroke_preserve()
-        cr.set_line_width(3)
-        cr.set_source_color(self.COLOR_OSD_MAIN)
-        cr.stroke_preserve()
-
-        cr.set_source_color(self.MESSAGE_DRAW_COLOR)
-        if final_length_meters < 10000:
-            msg = "%d m" % final_length_meters
-        else:
-            msg = "%d km" % (final_length_meters/1000)
-        layout = self.map.create_pango_layout(msg)
-        layout.set_font_description(self.MESSAGE_DRAW_FONT)
-        cr.move_to(position[0], position[1] - 15)
-        cr.show_layout(layout)
-
-
-        self.result = surface
-
-
-class Map(gtk.DrawingArea):
-
-    MAP_FACTOR = 0
-    RADIUS_EARTH = 6371000.0
 
     MIN_DRAG_REDRAW_DISTANCE = 5
     DRAG_RECHECK_SPEED = 20
@@ -155,24 +39,10 @@ class Map(gtk.DrawingArea):
 
     LAZY_SET_CENTER_DIFFERENCE = 0.1 # * screen (width|height)
 
-    @staticmethod
-    def set_config(map_providers, map_path, placeholder_cantload, placeholder_loading):
-
-        Map.noimage_cantload = cairo.ImageSurface.create_from_png(placeholder_cantload)
-        Map.noimage_loading = cairo.ImageSurface.create_from_png(placeholder_loading)
-        Map.tile_loaders = []
-
-        for name, params in map_providers:
-            tl = openstreetmap.get_tile_loader( ** params)
-            tl.noimage_loading = Map.noimage_loading
-            tl.noimage_cantload = Map.noimage_cantload
-            tl.base_dir = map_path
-            #tl.gui = self
-            Map.tile_loaders.append((name, tl))
-            
-
+        
     def __init__(self, center, zoom, tile_loader=None, draggable=True):
         gtk.DrawingArea.__init__(self)
+        AbstractMap.__init__(self, center, zoom, tile_loader)
 
         self.connect("expose_event", self.__expose_event)
         self.connect("configure_event", self.__configure_event)
@@ -191,137 +61,18 @@ class Map(gtk.DrawingArea):
         except RuntimeError:
             pass
 
-        self.dragging = False
-        self.active_tile_loaders = []
         self.surface_buffer = {}
         self.delay_expose = False
-        self.double_size = False
-        self.layers = []
-        self.osd_message = None
 
         self.tile_loader_threadpool = threadpool.ThreadPool(openstreetmap.CONCURRENT_THREADS * 2)
 
-        if tile_loader == None:
-            self.tile_loader = self.tile_loaders[0][1]
-        else:
-            self.tile_loader = tile_loader
         #self.ts = openstreetmap.TileServer(self.tile_loader)
 
         self.drawing_area_configured = self.drawing_area_arrow_configured = False
 
-        self.drag_offset_x = 0
-        self.drag_offset_y = 0
-        self.zoom = zoom
-        self.set_center(center, False)
 
         self.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse("white"))
 
-        ##############################################
-        #
-        # Controlling the layers
-        #
-        ##############################################
-
-    def add_layer(self, layer):
-        self.layers.append(layer)
-        layer.map = self
-
-
-    def set_osd_message(self, message):
-        self.osd_message = message
-
-        ##############################################
-        #
-        # Controlling the map view
-        #
-        ##############################################
-
-    def set_center(self, coord, update = True):
-        if self.dragging:
-            return
-        self.map_center_x, self.map_center_y = self.deg2num(coord)
-        self.center_latlon = coord
-        self.draw_at_x = 0
-        self.draw_at_y = 0
-        if update:
-            self.__draw_map()
-
-    def set_center_lazy(self, coord):
-        if self.dragging:
-            return
-        old_center_x, old_center_y = self.coord2point(self.center_latlon)
-        new_center_x, new_center_y = self.coord2point(coord)
-        
-        if abs(old_center_x - new_center_x) > \
-            self.map_width * self.LAZY_SET_CENTER_DIFFERENCE or \
-            abs(old_center_y - new_center_y) > \
-            self.map_height * self.LAZY_SET_CENTER_DIFFERENCE:
-            self.set_center(coord)
-            logger.debug('Not lazy!')
-            return True
-        logger.debug('Lazy!')
-        return False
-
-
-    def get_center(self):
-        return self.center_latlon
-
-    def relative_zoom(self, direction=None):
-        if direction != None:
-            self.set_zoom(self.zoom + direction)
-
-
-    def set_zoom(self, newzoom):
-        if newzoom < 1 or newzoom > self.tile_loader.MAX_ZOOM:
-            return
-        logger.debug('New zoom level: %d' % newzoom)
-        self.zoom = newzoom
-        self.set_center(self.center_latlon)
-
-    def get_zoom(self):
-        return self.zoom
-
-    def get_max_zoom(self):
-        return self.tile_loader.MAX_ZOOM
-
-    def get_min_zoom(self):
-        return 0
-
-
-        ##############################################
-        #
-        # Marker handling
-        #
-        ##############################################
-
-    def add_marker_type(self, type):
-        self.marker_types.append(type)
-
-    def del_all_markers(self):
-        for x in self.marker_types:
-            x.del_all_markers()
-
-
-        ##############################################
-        #
-        # Configuration
-        #
-        ##############################################
-
-    def set_double_size(self, ds):
-        self.double_size = ds
-
-    def get_double_size(self):
-        return self.double_size
-
-    def set_tile_loader(self, loader):
-        self.tile_loader = loader
-        self.emit('tile-loader-changed', loader)
-        self.relative_zoom(0)
-
-    def set_placeholder_images(self, cantload, loading):
-        self.noimage_cantload = cairo.ImageSurface.create_from_png(cantload)
-        self.noimage_loading = cairo.ImageSurface.create_from_png(loading)
 
 
         ##############################################
@@ -340,44 +91,6 @@ class Map(gtk.DrawingArea):
         if self.dragging:
             return
         self.queue_draw()
-
-        ##############################################
-        #
-        # Coordinate Conversion and Checking
-        #
-        ##############################################
-
-    def point_in_screen(self, point):
-        a = (point[0] >= 0 and point[1] >= 0 and point[0] < self.map_width and point[1] < self.map_height)
-        return a
-    '''
-    def pixmappoint2coord(self, point):
-        size = self.tile_loader.TILE_SIZE
-        coord = self.num2deg(\
-                                (point[0] + self.map_center_x * size - self.map_width / 2) / size, \
-                                (point[1] + self.map_center_y * size - self.map_height / 2) / size \
-                                )
-        return coord
-    '''
-
-    def coord2point(self, coord):
-        point = self.deg2num(coord)
-        size = self.tile_loader.TILE_SIZE
-        p_x = int(point[0] * size + self.map_width / 2) - self.map_center_x * size
-        p_y = int(point[1] * size + self.map_height / 2) - self.map_center_y * size
-        return (p_x, p_y)
-
-    def screenpoint2coord(self, point):
-        size = self.tile_loader.TILE_SIZE
-        coord = self.num2deg(\
-                                ((point[0] - self.draw_root_x - self.draw_at_x) + self.map_center_x * size - self.map_width / 2) / size, \
-                                ((point[1] - self.draw_root_y - self.draw_at_y) + self.map_center_y * size - self.map_height / 2) / size \
-                                )
-        return coord
-
-    def get_visible_area(self):
-        return (self.screenpoint2coord((0, 0)), self.screenpoint2coord((self.map_width, self.map_height)))
-
 
         ##############################################
         #
@@ -434,7 +147,9 @@ class Map(gtk.DrawingArea):
         self.draw_root_x = int(-width * self.MAP_FACTOR)
         self.draw_root_y = int(-height * self.MAP_FACTOR)
 
-        gobject.idle_add(self.__draw_map)
+        for l in self.layers:
+            l.resize()
+        gobject.idle_add(self._draw_map)
 
 
         ##############################################
@@ -510,12 +225,9 @@ class Map(gtk.DrawingArea):
         if not self.dragging:
             return
         self.dragging = False
-        offset_x = float(self.drag_offset_x) #(self.drag_start_x - event.x)
-        offset_y = float(self.drag_offset_y) #(self.drag_start_y - event.y)
-        self.map_center_x += (offset_x / self.tile_loader.TILE_SIZE)
-        self.map_center_y += (offset_y / self.tile_loader.TILE_SIZE)
-        self.map_center_x, self.map_center_y = self.check_bounds(self.map_center_x, self.map_center_y)
-        self.center_latlon = self.num2deg(self.map_center_x, self.map_center_y)
+        offset_x = self.drag_offset_x #(self.drag_start_x - event.x)
+        offset_y = self.drag_offset_y #(self.drag_start_y - event.y)
+        self._move_map_relative(offset_x, offset_y)
         if offset_x ** 2 + offset_y ** 2 < self.CLICK_RADIUS ** 2:
             self.draw_at_x -= offset_x
             self.draw_at_y -= offset_y
@@ -534,7 +246,7 @@ class Map(gtk.DrawingArea):
             self.emit('map-dragged')
         self.draw_at_x = self.draw_at_y = 0
         if offset_x != 0 or offset_y != 0:
-            self.__draw_map()
+            self._draw_map()
 
 
         ##############################################
@@ -544,7 +256,7 @@ class Map(gtk.DrawingArea):
         ##############################################
 
 
-    def __draw_map(self):
+    def _draw_map(self):
         if not self.drawing_area_configured:
             return False
         if self.map_width == 0 or self.map_height == 0:
@@ -603,8 +315,15 @@ class Map(gtk.DrawingArea):
     def __get_id_string(self, tile, display_zoom, undersample):
         return (self.tile_loader.PREFIX, tile[0], tile[1], display_zoom, 1 if undersample else 0)
 
+    @staticmethod
+    def _load_tile(filename):
+        surface = cairo.ImageSurface.create_from_png(filename)
+        if surface.get_width() != surface.get_height():
+            raise Exception("Image too small, probably corrupted file")
+        return surface
+
     def __run_tile_loader(self, id_string, tile, zoom, undersample, x, y, callback_draw):
-        d = self.tile_loader(id_string=id_string, tile=tile, zoom=zoom, undersample=undersample, x=x, y=y, callback_draw=callback_draw)
+        d = self.tile_loader(id_string=id_string, tile=tile, zoom=zoom, undersample=undersample, x=x, y=y, callback_draw=callback_draw, callback_load = self._load_tile)
         self.active_tile_loaders.append(d)
         d.run()
 
@@ -657,42 +376,98 @@ class Map(gtk.DrawingArea):
             l.draw()
         
 
-        ##############################################
-        #
-        # Tile Number calculations
-        #
-        ##############################################
-    def tile_size(self):
-        return self.tile_loader.TILE_SIZE
+class SingleMarkLayer(AbstractMapLayer):
+    COLOR_TARGET = gtk.gdk.color_parse('darkblue')
+    COLOR_TARGET_SHADOW = gtk.gdk.color_parse('white')
 
-    def get_meters_per_pixel(self, lat):
-        return math.cos(lat * math.pi / 180.0) * 2.0 * math.pi * self.RADIUS_EARTH / (256 * 2**self.zoom)
+    def __init__(self, coordinate):
+        AbstractMapLayer.__init__(self)
+        self.coord = coordinate
 
-    def deg2tilenum(self, lat_deg, lon_deg):
-        lat_rad = math.radians(lat_deg)
-        n = 2 ** self.zoom
-        xtile = int((lon_deg + 180) / 360 * n)
-        ytile = int((1.0 - math.log(math.tan(lat_rad) + (1.0 / math.cos(lat_rad))) / math.pi) / 2.0 * n)
-        return(xtile, ytile)
+    def draw(self):
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map.map_width, self.map.map_height)
+        cr = gtk.gdk.CairoContext(cairo.Context(surface))
+        self.result = surface
 
-    def deg2num(self, coord):
-        lat_rad = math.radians(coord.lat)
-        n = 2 ** self.zoom
-        xtile = (coord.lon + 180) / 360 * n
-        ytile = (1.0 - math.log(math.tan(lat_rad) + (1.0 / math.cos(lat_rad))) / math.pi) / 2.0 * n
-        return(xtile, ytile)
+        t = self.map.coord2point(self.coord)
+        if not self.map.point_in_screen(t):
+            return
 
-    def num2deg(self, xtile, ytile):
-        n = 2 ** self.zoom
-        lon_deg = xtile / n * 360.0 - 180.0
-        lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * ytile / n)))
-        lat_deg = lat_rad * 180.0 / math.pi
-        return geo.Coordinate(lat_deg, lon_deg)
+        radius_o = 15
+        radius_i = 3
+        radius_c = 10
+        cr.move_to(t[0] - radius_o, t[1])
+        cr.line_to(t[0] - radius_i, t[1])
+        cr.move_to(t[0] + radius_o, t[1])
+        cr.line_to(t[0] + radius_i, t[1])
+        cr.move_to(t[0], t[1] + radius_o)
+        cr.line_to(t[0], t[1] + radius_i)
+        cr.move_to(t[0], t[1] - radius_o)
+        cr.line_to(t[0], t[1] - radius_i)
+        cr.new_sub_path()
+        cr.arc(t[0], t[1], radius_c, 0, math.pi * 2)
 
-    def check_bounds(self, xtile, ytile):
-        max_x = 2**self.zoom
-        max_y = 2**self.zoom
-        return (
-            xtile % max_x,
-            ytile % max_y
-        )
+        cr.set_source_color(self.COLOR_TARGET_SHADOW)
+        cr.set_line_width(3)
+        cr.stroke_preserve()
+        cr.set_source_color(self.COLOR_TARGET)
+        cr.set_line_width(2)
+        cr.stroke()
+
+class OsdLayer(AbstractMapLayer):
+
+    MESSAGE_DRAW_FONT = pango.FontDescription("Sans 5")
+    MESSAGE_DRAW_COLOR = gtk.gdk.color_parse('black')
+    COLOR_OSD_SECONDARY = gtk.gdk.color_parse("white")
+    COLOR_OSD_MAIN = gtk.gdk.color_parse("black")
+
+    @staticmethod
+    def set_layout(message_draw_font, message_draw_color):
+        OsdLayer.MESSAGE_DRAW_FONT = message_draw_font
+        OsdLayer.MESSAGE_DRAW_COLOR = message_draw_color
+
+    def draw(self):
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map.map_width, self.map.map_height)
+        cr = gtk.gdk.CairoContext(cairo.Context(surface))
+
+        # message
+
+        if self.map.osd_message != None:
+            cr.set_source_color(self.MESSAGE_DRAW_COLOR)
+            layout = self.map.create_pango_layout(self.map.osd_message)
+            layout.set_font_description(self.MESSAGE_DRAW_FONT)
+            cr.move_to(20, 20)
+            cr.show_layout(layout)
+
+        # scale bar
+
+        position = (20, self.map.map_height - 28)
+
+        center = self.map.get_center()
+        mpp = self.map.get_meters_per_pixel(center.lat)
+        avglength = self.map.map_width / 5
+        first_length_meters = mpp * avglength
+        final_length_meters = round(first_length_meters, int(-math.floor(math.log(first_length_meters, 10) + 0.00001)))
+        final_length_pixels = final_length_meters / mpp
+        cr.move_to(position[0], position[1] + 10)
+        cr.line_to(position[0] + final_length_pixels, position[1] + 10)
+        cr.set_line_width(5)
+        cr.set_source_color(self.COLOR_OSD_SECONDARY)
+        cr.stroke_preserve()
+        cr.set_line_width(3)
+        cr.set_source_color(self.COLOR_OSD_MAIN)
+        cr.stroke_preserve()
+
+        cr.set_source_color(self.MESSAGE_DRAW_COLOR)
+        if final_length_meters < 10000:
+            msg = "%d m" % final_length_meters
+        else:
+            msg = "%d km" % (final_length_meters/1000)
+        layout = self.map.create_pango_layout(msg)
+        layout.set_font_description(self.MESSAGE_DRAW_FONT)
+        cr.move_to(position[0], position[1] - 15)
+        cr.show_layout(layout)
+
+
+        self.result = surface
+

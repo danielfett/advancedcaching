@@ -6,31 +6,117 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>600</height>
+    <width>930</width>
+    <height>432</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>MainWindow</string>
   </property>
-  <widget class="QWidget" name="centralwidget"/>
+  <property name="autoFillBackground">
+   <bool>false</bool>
+  </property>
+  <property name="documentMode">
+   <bool>false</bool>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout_2"/>
+  </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
-     <height>20</height>
+     <width>930</width>
+     <height>23</height>
     </rect>
    </property>
-   <widget class="QMenu" name="menuTest">
+   <widget class="QMenu" name="menuMap">
     <property name="title">
-     <string>Test</string>
+     <string>Map</string>
     </property>
+    <addaction name="actionDownload_Map_Tiles"/>
+    <addaction name="actionSelect_Map_Style"/>
    </widget>
-   <addaction name="menuTest"/>
+   <widget class="QMenu" name="menuSearch">
+    <property name="title">
+     <string>Search</string>
+    </property>
+    <addaction name="actionGeocaches"/>
+    <addaction name="actionPlaces"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionAbout_AGTL"/>
+   </widget>
+   <addaction name="menuMap"/>
+   <addaction name="menuSearch"/>
+   <addaction name="menuHelp"/>
   </widget>
-  <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="separator"/>
+  </widget>
+  <action name="actionHallo_Welt">
+   <property name="text">
+    <string>Hallo Welt!</string>
+   </property>
+  </action>
+  <action name="actionTsch_ss_Welt">
+   <property name="text">
+    <string>Tschüss Welt!</string>
+   </property>
+  </action>
+  <action name="actionSelect_Map_Style">
+   <property name="text">
+    <string>Select Map Style</string>
+   </property>
+  </action>
+  <action name="actionGeocaches">
+   <property name="text">
+    <string>Geocaches</string>
+   </property>
+   <property name="statusTip">
+    <string>Test</string>
+   </property>
+  </action>
+  <action name="actionPlaces">
+   <property name="text">
+    <string>Places</string>
+   </property>
+  </action>
+  <action name="actionAbout_AGTL">
+   <property name="text">
+    <string>About AGTL</string>
+   </property>
+  </action>
+  <action name="actionDownload_Map_Tiles">
+   <property name="text">
+    <string>Download Map Tiles</string>
+   </property>
+  </action>
  </widget>
  <resources/>
  <connections/>

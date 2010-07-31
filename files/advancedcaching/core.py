@@ -58,19 +58,18 @@ if '-v' in argv:
     logging.getLogger('').setLevel(logging.DEBUG)
     logging.debug("Set log level to DEBUG")
 
-arg = argv[1].strip()
-if arg == '--simple':
+if '--simple' in argv:
     import simplegui
     gui = simplegui.SimpleGui
-elif arg == '--desktop':
+elif '--desktop' in argv:
     import biggui
     gui = biggui.BigGui
-elif arg == '--hildon':
-    import hildongui
-    gui = hildongui.HildonGui
-elif arg == '--qt':
+elif '--qt' in argv:
     import qtgui
     gui = qtgui.QtGui
+elif '--hildon' in argv:
+    import hildongui
+    gui = hildongui.HildonGui
 else:
     import cli
     gui = cli.Cli

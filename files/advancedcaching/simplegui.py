@@ -1596,7 +1596,7 @@ class GeocacheLayer(MapLayer):
         
 logger = logging.getLogger('markslayer')
 
-class MarksLayer(MapLayer):
+class MarksLayer(AbstractMapLayer):
 
     SIZE_CURRENT_POSITION = 3
     COLOR_CURRENT_POSITION = gtk.gdk.color_parse('green')
