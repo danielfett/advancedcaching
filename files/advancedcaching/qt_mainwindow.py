@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'files/qt/test.ui'
+# Form implementation generated from reading ui file 'files/qt/MainWindow.ui'
 #
-# Created: Sat Jul 31 20:24:42 2010
+# Created: Sun Aug  1 10:52:47 2010
 #      by: PyQt4 UI code generator 4.7.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PyQt4 import QtCore, QtGui
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(930, 432)
+        MainWindow.resize(855, 380)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -31,18 +31,18 @@ class Ui_MainWindow(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 930, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 855, 21))
         self.menubar.setObjectName("menubar")
         self.menuMap = QtGui.QMenu(self.menubar)
         self.menuMap.setObjectName("menuMap")
         self.menuSearch = QtGui.QMenu(self.menubar)
         self.menuSearch.setObjectName("menuSearch")
-        self.menuTest = QtGui.QMenu(self.menubar)
-        self.menuTest.setObjectName("menuTest")
         self.menuHelp = QtGui.QMenu(self.menubar)
         self.menuHelp.setObjectName("menuHelp")
         self.menuAbout_AGTL = QtGui.QMenu(self.menuHelp)
         self.menuAbout_AGTL.setObjectName("menuAbout_AGTL")
+        self.menuTest = QtGui.QMenu(self.menubar)
+        self.menuTest.setObjectName("menuTest")
         MainWindow.setMenuBar(self.menubar)
         self.statusBar = QtGui.QStatusBar(MainWindow)
         self.statusBar.setObjectName("statusBar")
@@ -58,8 +58,6 @@ class Ui_MainWindow(object):
         self.actionSelect_Map_Style.setObjectName("actionSelect_Map_Style")
         self.actionGeocaches = QtGui.QAction(MainWindow)
         self.actionGeocaches.setObjectName("actionGeocaches")
-        self.actionPlaces = QtGui.QAction(MainWindow)
-        self.actionPlaces.setObjectName("actionPlaces")
         self.actionDownload_Map_Tiles = QtGui.QAction(MainWindow)
         self.actionDownload_Map_Tiles.setObjectName("actionDownload_Map_Tiles")
         self.actionBlub = QtGui.QAction(MainWindow)
@@ -84,16 +82,18 @@ class Ui_MainWindow(object):
         icon1.addPixmap(QtGui.QPixmap(":/icons/advancedcaching/data/asterisk_yellow.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.actionZoom_Out.setIcon(icon1)
         self.actionZoom_Out.setObjectName("actionZoom_Out")
+        self.actionSearch_Place = QtGui.QAction(MainWindow)
+        self.actionSearch_Place.setObjectName("actionSearch_Place")
         self.menuMap.addAction(self.actionDownload_Map_Tiles)
         self.menuMap.addAction(self.actionSelect_Map_Style)
         self.menuSearch.addAction(self.actionGeocaches)
-        self.menuSearch.addAction(self.actionPlaces)
-        self.menuTest.addAction(self.actionBlub)
-        self.menuTest.addSeparator()
-        self.menuTest.addAction(self.actionBla)
+        self.menuSearch.addAction(self.actionSearch_Place)
         self.menuAbout_AGTL.addAction(self.actionBlub_1)
         self.menuAbout_AGTL.addAction(self.actionBlub_2)
         self.menuHelp.addAction(self.menuAbout_AGTL.menuAction())
+        self.menuTest.addAction(self.actionBlub)
+        self.menuTest.addSeparator()
+        self.menuTest.addAction(self.actionBla)
         self.menubar.addAction(self.menuMap.menuAction())
         self.menubar.addAction(self.menuSearch.menuAction())
         self.menubar.addAction(self.menuHelp.menuAction())
@@ -109,16 +109,15 @@ class Ui_MainWindow(object):
         MainWindow.setWindowTitle(QtGui.QApplication.translate("MainWindow", "MainWindow", None, QtGui.QApplication.UnicodeUTF8))
         self.menuMap.setTitle(QtGui.QApplication.translate("MainWindow", "Map", None, QtGui.QApplication.UnicodeUTF8))
         self.menuSearch.setTitle(QtGui.QApplication.translate("MainWindow", "Search", None, QtGui.QApplication.UnicodeUTF8))
-        self.menuTest.setTitle(QtGui.QApplication.translate("MainWindow", "Test", None, QtGui.QApplication.UnicodeUTF8))
         self.menuHelp.setTitle(QtGui.QApplication.translate("MainWindow", "Help", None, QtGui.QApplication.UnicodeUTF8))
         self.menuAbout_AGTL.setTitle(QtGui.QApplication.translate("MainWindow", "About &AGTL", None, QtGui.QApplication.UnicodeUTF8))
+        self.menuTest.setTitle(QtGui.QApplication.translate("MainWindow", "Test", None, QtGui.QApplication.UnicodeUTF8))
         self.toolBar.setWindowTitle(QtGui.QApplication.translate("MainWindow", "toolBar", None, QtGui.QApplication.UnicodeUTF8))
         self.actionHallo_Welt.setText(QtGui.QApplication.translate("MainWindow", "Hallo Welt!", None, QtGui.QApplication.UnicodeUTF8))
         self.actionTsch_ss_Welt.setText(QtGui.QApplication.translate("MainWindow", "Tschüss Welt!", None, QtGui.QApplication.UnicodeUTF8))
         self.actionSelect_Map_Style.setText(QtGui.QApplication.translate("MainWindow", "Select Map Style", None, QtGui.QApplication.UnicodeUTF8))
         self.actionGeocaches.setText(QtGui.QApplication.translate("MainWindow", "Geocaches", None, QtGui.QApplication.UnicodeUTF8))
         self.actionGeocaches.setStatusTip(QtGui.QApplication.translate("MainWindow", "Test", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionPlaces.setText(QtGui.QApplication.translate("MainWindow", "Places", None, QtGui.QApplication.UnicodeUTF8))
         self.actionDownload_Map_Tiles.setText(QtGui.QApplication.translate("MainWindow", "Download Map Tiles", None, QtGui.QApplication.UnicodeUTF8))
         self.actionBlub.setText(QtGui.QApplication.translate("MainWindow", "blub", None, QtGui.QApplication.UnicodeUTF8))
         self.actionBla.setText(QtGui.QApplication.translate("MainWindow", "bla", None, QtGui.QApplication.UnicodeUTF8))
@@ -127,5 +126,6 @@ class Ui_MainWindow(object):
         self.actionZoom_In.setText(QtGui.QApplication.translate("MainWindow", "Zoom In", None, QtGui.QApplication.UnicodeUTF8))
         self.actionZoom_In.setToolTip(QtGui.QApplication.translate("MainWindow", "Zooooom!", None, QtGui.QApplication.UnicodeUTF8))
         self.actionZoom_Out.setText(QtGui.QApplication.translate("MainWindow", "Zoom Out", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionSearch_Place.setText(QtGui.QApplication.translate("MainWindow", "Search Place", None, QtGui.QApplication.UnicodeUTF8))
 
 import icons_rc

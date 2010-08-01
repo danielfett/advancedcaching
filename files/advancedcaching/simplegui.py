@@ -1163,7 +1163,7 @@ class SimpleGui(object):
                         
         if self.gps_has_fix:
             target_distance = self.gps_target_distance
-            label = self._format_distance(target_distance)
+            label = geo.Coordinate.format_distance(target_distance)
             self.label_dist.set_text("<span size='large'>%s</span>" % label)
             self.label_dist.set_use_markup(True)
             
@@ -1173,16 +1173,6 @@ class SimpleGui(object):
             self.label_dist.set_use_markup(True)
             #self.osd_string = "<span gravity='west' size='xx-large'>No Fix </span>"
         
-    @staticmethod
-    def _format_distance(distance):
-        if distance == None:
-            return '?'
-        if distance >= 1000:
-            return "%d km" % round(distance / 1000.0)
-        elif distance >= 100:
-            return "%d m" % round(distance)
-        else:
-            return "%.1f m" % round(distance, 1)
                 
     def write_settings(self, settings):
         self.settings = settings
@@ -1701,7 +1691,7 @@ class MarksLayer(AbstractMarksLayer):
 
         if self.gps_data != None and self.gps_has_fix:
             position = (self.map.map_width - self.OSD_BORDER_LEFTRIGHT, self.OSD_BORDER_TOPBOTTOM)
-            layout = self.map.create_pango_layout(SimpleGui._format_distance(self.gps_target_distance))
+            layout = self.map.create_pango_layout(geo.Coordinate._format_distance(self.gps_target_distance))
             layout.set_font_description(self.DISTANCE_DRAW_FONT)
             width, height = layout.get_pixel_size()
             cr.set_source_color(self.DISTANCE_DRAW_FONT_COLOR)

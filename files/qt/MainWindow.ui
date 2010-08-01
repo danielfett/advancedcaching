@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>561</width>
-    <height>361</height>
+    <width>855</width>
+    <height>380</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -39,7 +39,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>561</width>
+     <width>855</width>
      <height>21</height>
     </rect>
    </property>
@@ -55,15 +55,7 @@
      <string>Search</string>
     </property>
     <addaction name="actionGeocaches"/>
-    <addaction name="actionPlaces"/>
-   </widget>
-   <widget class="QMenu" name="menuTest">
-    <property name="title">
-     <string>Test</string>
-    </property>
-    <addaction name="actionBlub"/>
-    <addaction name="separator"/>
-    <addaction name="actionBla"/>
+    <addaction name="actionSearch_Place"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
     <property name="title">
@@ -77,6 +69,14 @@
      <addaction name="actionBlub_2"/>
     </widget>
     <addaction name="menuAbout_AGTL"/>
+   </widget>
+   <widget class="QMenu" name="menuTest">
+    <property name="title">
+     <string>Test</string>
+    </property>
+    <addaction name="actionBlub"/>
+    <addaction name="separator"/>
+    <addaction name="actionBla"/>
    </widget>
    <addaction name="menuMap"/>
    <addaction name="menuSearch"/>
@@ -119,11 +119,6 @@
    </property>
    <property name="statusTip">
     <string>Test</string>
-   </property>
-  </action>
-  <action name="actionPlaces">
-   <property name="text">
-    <string>Places</string>
    </property>
   </action>
   <action name="actionDownload_Map_Tiles">
@@ -182,6 +177,11 @@
    </property>
    <property name="text">
     <string>Zoom Out</string>
+   </property>
+  </action>
+  <action name="actionSearch_Place">
+   <property name="text">
+    <string>Search Place</string>
    </property>
   </action>
  </widget>

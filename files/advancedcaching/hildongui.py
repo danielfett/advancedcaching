@@ -1476,7 +1476,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
 
         if self.gps_has_fix and self.gps_target_distance != None:
-            td_string = self._format_distance(self.gps_target_distance)
+            td_string = geo.Coordinate.format_distance(self.gps_target_distance)
             self.label_dist.set_markup("<span size='xx-large'>%s</span>" % td_string)
         elif self.gps_target_distance == None:
             self.label_dist.set_markup("<span size='x-large'>No Target</span>")

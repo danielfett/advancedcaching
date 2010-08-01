@@ -23,6 +23,7 @@ import hildon
 import pango
 import threadpool
 import logging
+import geo
 logger = logging.getLogger('plugins')
 
 class HildonSearchPlace(object):
@@ -461,7 +462,7 @@ class HildonSearchGeocaches(object):
             ls.clear()
             caches.sort(cmp=sortfunc)
             for c in caches:
-                ls.append([self.shorten_name(c.title, 40), " " + c.get_size_string(), ' D%s T%s' % (c.get_difficulty(), c.get_terrain()), " " + self._format_distance(c.prox), c])
+                ls.append([self.shorten_name(c.title, 40), " " + c.get_size_string(), ' D%s T%s' % (c.get_difficulty(), c.get_terrain()), " " + geo.Coordinate.format_distance(c.prox), c])
             tv.handler_unblock_by_func(select_cache)
 
 

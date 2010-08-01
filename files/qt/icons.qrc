@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="icons">
+    <file>../advancedcaching/data/asterisk_yellow.png</file>
+    <file>../advancedcaching/data/accept.png</file>
+  </qresource>
+</RCC>

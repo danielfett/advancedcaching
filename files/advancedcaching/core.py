@@ -805,9 +805,6 @@ class Core(gobject.GObject):
         self.emit('map-marks-changed')
 
 
-                
-    
-
 
 def determine_path ():
     """Borrowed from wxglade.py"""

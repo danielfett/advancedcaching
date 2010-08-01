@@ -259,3 +259,21 @@ class Coordinate(object):
         
     def distance_to(self, target):
         return distance_to(self, target)
+
+    @staticmethod
+    def format_distance(distance):
+        if distance == None:
+            return '?'
+        if distance >= 1000:
+            return "%d km" % round(distance / 1000.0)
+        elif distance >= 100:
+            return "%d m" % round(distance)
+        else:
+            return "%.1f m" % round(distance, 1)
+
+    @staticmethod
+    def format_direction(angle):
+        directions = ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO',
+                        'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW', 'N']
+
+        return directions[int(round(((angle+360.0) % 360.0)/22.5))]

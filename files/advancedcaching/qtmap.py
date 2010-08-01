@@ -673,31 +673,8 @@ class QtMarksLayer(AbstractQtLayer, AbstractMarksLayer):
             p.setFont(self.DISTANCE_DRAW_FONT)
             p.setPen(self.DISTANCE_DRAW_PEN)
             position = QRect(self.map.map_width - self.OSD_BORDER_LEFTRIGHT - 100, self.OSD_BORDER_TOPBOTTOM, 100, 40)
-            text = self._format_distance(self.gps_target_distance)
+            text = geo.Coordinate.format_distance(self.gps_target_distance)
             p.drawText(position, Qt.AlignRight | Qt.TextDontClip, text)
             
 
         p.end()
-
-
-    @staticmethod
-    def _format_distance(distance):
-        if distance == None:
-            return '?'
-        if distance >= 1000:
-            return "%d km" % round(distance / 1000.0)
-        elif distance >= 100:
-            return "%d m" % round(distance)
-        else:
-            return "%.1f m" % round(distance, 1)
-
-    @staticmethod
-    def _get_arrow_transformed(root_x, root_y, width, height, angle):
-        multiply = height / (2 * (2-QtMarksLayer.ARROW_OFFSET))
-        offset_x = width / 2
-        offset_y = height / 2
-        s = multiply * math.sin(math.radians(angle))
-        c = multiply * math.cos(math.radians(angle))
-        arrow_transformed = [QPointF(x * c + offset_x - y * s + root_x,
-                              y * c + offset_y + x * s + root_y) for x, y in QtMarksLayer.ARROW_SHAPE]
-        return arrow_transformed
