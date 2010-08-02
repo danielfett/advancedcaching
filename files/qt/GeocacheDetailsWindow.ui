@@ -18,9 +18,9 @@
     <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>5</number>
+       <number>0</number>
       </property>
-      <widget class="QWidget" name="tab">
+      <widget class="QWidget" name="tabInformation">
        <attribute name="title">
         <string>Information</string>
        </attribute>
@@ -187,7 +187,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_3">
+      <widget class="QWidget" name="tabDescription">
        <attribute name="title">
         <string>Description</string>
        </attribute>
@@ -229,7 +229,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_4">
+      <widget class="QWidget" name="tabLogsHints">
        <attribute name="title">
         <string>Logs &amp;&amp; Hints</string>
        </attribute>
@@ -278,12 +278,12 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_2">
+      <widget class="QWidget" name="tabCoordinateCalculation">
        <attribute name="title">
         <string>Coordinate Calculation</string>
        </attribute>
       </widget>
-      <widget class="QWidget" name="tab_7">
+      <widget class="QWidget" name="tabCoordinates">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
          <horstretch>0</horstretch>
@@ -299,7 +299,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_6">
+      <widget class="QWidget" name="tabImages">
        <attribute name="title">
         <string>Images</string>
        </attribute>
@@ -313,7 +313,7 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="tab_5">
+      <widget class="QWidget" name="tabNotes">
        <attribute name="title">
         <string>Notes</string>
        </attribute>

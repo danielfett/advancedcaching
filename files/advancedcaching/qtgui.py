@@ -9,6 +9,7 @@ logger.debug("Using pyqt bindings")
 #from PyQt4.QtNetwork import *
 from qt_mainwindow import Ui_MainWindow
 from qt_searchdialog import Ui_SearchDialog
+from qt_showimagedialog import Ui_ShowImageDialog
 from qt_geocachedetailswindow import Ui_GeocacheDetailsWindow
 import sys
 import geo
@@ -28,9 +29,9 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
         QMainWindow.__init__(self, parent)
         self.core = core
         self.setupUi(self)
-        self.setupUiMap(dataroot)
-        self.setupUiCustom()
-        self.setupUiSignals()
+        self.setup_ui_map(dataroot)
+        self.setup_ui_custom()
+        self.setup_ui_signals()
 
     def __on_settings_changed(self, caller, settings, source):
         if 'last_target_lat' in settings:
@@ -46,7 +47,7 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
         #
         ##############################################
         
-    def setupUiMap(self, dataroot):
+    def setup_ui_map(self, dataroot):
         noimage_cantload = "%s/noimage-cantload.png" % dataroot
         noimage_loading = "%s/noimage-loading.png" % dataroot
         QtMap.set_config(self.core.settings['map_providers'], self.core.settings['download_map_path'], noimage_cantload, noimage_loading)
@@ -62,7 +63,7 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
         self.map.add_layer(self.marksLayer)
 
 
-    def setupUiCustom(self):
+    def setup_ui_custom(self):
         self.qa = QActionGroup(None)
         self.qa.addAction(self.actionBlub_1)
         self.qa.addAction(self.actionBlub_2)
@@ -79,13 +80,13 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
         self.statusBar.addWidget(self.labelPosition)
         self.progressBar.hide()
 
-    def setupUiSignals(self):
-        self.connect(self.actionZoom_In, SIGNAL("triggered()"), self.map.zoom_in)
-        self.connect(self.actionZoom_Out, SIGNAL("triggered()"), self.map.zoom_out)
-        self.connect(self.actionSearch_Place, SIGNAL('triggered()'), self.__show_search_place)
-        self.connect(self.actionUpdate_Geocache_Map, SIGNAL('triggered()'), self.__download_overview)
-        self.connect(self.actionDownload_Details_for_all_visible_Geocaches, SIGNAL('triggered()'), self.__download_details_map)
-        self.connect(self.map, SIGNAL('centerChanged()'), self.__update_progress_bar)
+    def setup_ui_signals(self):
+        self.actionZoom_In.triggered.connect(self.map.zoom_in)
+        self.actionZoom_Out.triggered.connect(self.map.zoom_out)
+        self.actionSearch_Place.triggered.connect(self.__show_search_place)
+        self.actionUpdate_Geocache_Map.triggered.connect(self.__download_overview)
+        self.actionDownload_Details_for_all_visible_Geocaches.triggered.connect(self.__download_details_map)
+        self.map.centerChanged.connect(self.__update_progress_bar)
         self.core.connect('target-changed', self.marksLayer.on_target_changed)
         self.core.connect('good-fix', self.marksLayer.on_good_fix)
         self.core.connect('no-fix', self.marksLayer.on_no_fix)
@@ -100,7 +101,7 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
     def __show_search_place(self):
         dialog = QtSearchDialog(self.core, self)
         dialog.show()
-        self.connect(dialog, SIGNAL("locationSelected(PyQt_PyObject)"), self.map.set_center)
+        dialog.locationSelected.connect(self.map.set_center)
 
     def __update_progress_bar(self):
         text = self.map.get_center().get_latlon()
@@ -148,13 +149,16 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
 logger = logging.getLogger('qtsearchdialog')
 
 class QtSearchDialog(Ui_SearchDialog, QDialog):
+
+    locationSelected = pyqtSignal(geo.Coordinate)
+
     def __init__(self, core, parent = None):
         QDialog.__init__(self, parent)
         self.setupUi(self)
         self.core = core
-        self.connect(self.pushButtonSearch, SIGNAL('clicked()'), self.__start_search)
-        self.connect(self.lineEditSearch, SIGNAL('returnPresed()'), self.__start_search)
-        self.connect(self.listWidgetResults, SIGNAL('itemClicked (QListWidgetItem *)'), self.__return_location)
+        self.pushButtonSearch.clicked.connect(self.__start_search)
+        self.lineEditSearch.returnPressed.connect(self.__start_search)
+        self.listWidgetResults.itemClicked.connect(self.__return_location)
 
     def __start_search(self):
         search_text = unicode(self.lineEditSearch.text()).strip()
@@ -189,7 +193,7 @@ class QtSearchDialog(Ui_SearchDialog, QDialog):
     def __return_location(self, item):
         res = self.results[item.data(Qt.UserRole).toInt()[0]]
         logger.debug("Setting center to %s" % res)
-        self.emit(SIGNAL('locationSelected(PyQt_PyObject)'), res)
+        self.locationSelected.emit(res)
 
         
 
@@ -259,19 +263,27 @@ class QtGeocacheWindow(QMainWindow, Ui_GeocacheDetailsWindow):
 
         self.labelLogs.setText(''.join(logs))
 
-        #self.connect(self.pushButtonShowHint, SIGNAL('clicked()'), self.__show_hint)
-
         hint = d(geocache.hints).strip()
         if len(hint) > 0:
             self.pushButtonShowHint.clicked.connect(lambda: self.__show_hint(hint))
         else:
             self.pushButtonShowHint.hide()
 
+        # images
+
         images = geocache.get_images()
         if len(images) > 0:
+            i = 0
             for filename, description in images.items():
                 file = self.get_path_to_image(filename)
-                m = QListWidgetItem(QIcon(file), d(description), self.listWidgetImages)
+                icon = QIcon(file)
+                m = QListWidgetItem(icon, d(description), self.listWidgetImages)
+                m.setData(Qt.UserRole, QVariant(i))
+                i += 1
+
+            self.listWidgetImages.itemClicked.connect(lambda item: self.__show_image(item.icon().pixmap(QApplication.desktop().size())))
+        else:
+            self.tabImages.deleteLater()
 
 
         
@@ -281,12 +293,39 @@ class QtGeocacheWindow(QMainWindow, Ui_GeocacheDetailsWindow):
         finder = d(log['finder'])
         line1 = "<tr><td><img src='%s'>%s</td><td align='right'>%s</td></tr>" % (icon, finder, date)
         line2 = "<tr><td colspan='2'>%s</td></tr>" % log['text'].strip()
+        line3 = "<tr>td colspan='2'><hr></td></tr>"
 
-        return "%s%s" % (line1, line2)
+        return ''.join((line1, line2, line3))
 
     def __show_hint(self, text):
         QMessageBox.information(self, "Hint, Hint!", text)
 
     def get_path_to_image(self, image):
         return path.join(self.core.settings['download_output_dir'], image)
-    
+
+    def __show_image(self, pixmap):
+        m = QtShowImageDialog(self)
+        m.show_image(pixmap)
+        m.show()
+
+
+
+logger = logging.getLogger('qtshowimagedialog')
+
+class QtShowImageDialog(Ui_ShowImageDialog, QDialog):
+
+    def __init__(self, parent = None):
+        QDialog.__init__(self, parent)
+        self.setupUi(self)
+        self.size_hint = QSize(10, 10)
+
+    def show_image(self, pixmap):
+        self.labelImage.setPixmap(pixmap)
+        self.size_hint = pixmap.size()
+        self.labelImage.adjustSize()
+        self.scrollAreaWidgetContents.adjustSize()
+        self.scrollArea.adjustSize()
+        self.adjustSize()
+
+    def sizeHint(self):
+        return self.size_hint

@@ -52,6 +52,8 @@
     <addaction name="separator"/>
     <addaction name="actionUpdate_Geocache_Map"/>
     <addaction name="actionDownload_Details_for_all_visible_Geocaches"/>
+    <addaction name="separator"/>
+    <addaction name="actionOptions"/>
    </widget>
    <widget class="QMenu" name="menuSearch">
     <property name="title">
@@ -75,11 +77,9 @@
    </widget>
    <widget class="QMenu" name="menuTest">
     <property name="title">
-     <string>Test</string>
+     <string>Tools</string>
     </property>
-    <addaction name="actionBlub"/>
-    <addaction name="separator"/>
-    <addaction name="actionBla"/>
+    <addaction name="actionExport_all_visible_Geocaches"/>
    </widget>
    <addaction name="menuMap"/>
    <addaction name="menuSearch"/>
@@ -165,7 +165,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset>
      <normaloff>:/icons/advancedcaching/data/accept.png</normaloff>:/icons/advancedcaching/data/accept.png</iconset>
    </property>
    <property name="text">
@@ -177,7 +177,7 @@
   </action>
   <action name="actionZoom_Out">
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset>
      <normaloff>:/icons/advancedcaching/data/asterisk_yellow.png</normaloff>:/icons/advancedcaching/data/asterisk_yellow.png</iconset>
    </property>
    <property name="text">
@@ -191,7 +191,7 @@
   </action>
   <action name="actionUpdate_Geocache_Map">
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset>
      <normaloff>:/icons/advancedcaching/data/emoticon_grin.png</normaloff>:/icons/advancedcaching/data/emoticon_grin.png</iconset>
    </property>
    <property name="text">
@@ -200,11 +200,21 @@
   </action>
   <action name="actionDownload_Details_for_all_visible_Geocaches">
    <property name="icon">
-    <iconset resource="icons.qrc">
+    <iconset>
      <normaloff>:/icons/advancedcaching/data/comment.png</normaloff>:/icons/advancedcaching/data/comment.png</iconset>
    </property>
    <property name="text">
     <string>Download Details for visible Geocaches</string>
+   </property>
+  </action>
+  <action name="actionOptions">
+   <property name="text">
+    <string>Options</string>
+   </property>
+  </action>
+  <action name="actionExport_all_visible_Geocaches">
+   <property name="text">
+    <string>Export all visible Geocaches</string>
    </property>
   </action>
  </widget>

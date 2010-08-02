@@ -36,7 +36,11 @@ import geo
 
 class QtMap(QWidget, AbstractMap):
 
-    __pyqtSignals__ = ("tileLoaderChanged(PyObject)", "mapDragged()", "zoomChanged()", "centerChanged()")
+    tileLoaderChanged = pyqtSignal()
+    mapDragged = pyqtSignal()
+    zoomChanged = pyqtSignal()
+    centerChanged = pyqtSignal()
+    tileFinished = pyqtSignal(tuple)
 
     def __init__(self, parent, center, zoom, tile_loader = None):
         QWidget.__init__(self)
@@ -49,7 +53,7 @@ class QtMap(QWidget, AbstractMap):
         self.sem = Lock()
         self.drag_offset_x = 0
         self.drag_offset_y = 0
-        self.connect(self, SIGNAL('tile-finished'), self.__draw_tiles)
+        self.tileFinished.connect(self.__draw_tiles)
 
         ##############################################
         #
@@ -108,7 +112,7 @@ class QtMap(QWidget, AbstractMap):
             self.repaint()
         else:
             self._move_map_relative(offset_x, offset_y)
-            self.emit(SIGNAL('mapDragged()'))
+            self.mapDragged.emit()
 
     def resizeEvent(self, ev):
         s = ev.size()
@@ -129,10 +133,13 @@ class QtMap(QWidget, AbstractMap):
     def zoom_in(self):
         self.relative_zoom(+1)
 
-
     #@pyqtSignature("zoomOut()")
     def zoom_out(self):
         self.relative_zoom(-1)
+
+    def relative_zoom(self, direction=None):
+        AbstractMap.relative_zoom(self, direction)
+        self.zoomChanged.emit()
 
     def redraw_layers(self):
         if self.dragging:
@@ -145,11 +152,11 @@ class QtMap(QWidget, AbstractMap):
 
     def set_center(self, coord, update = True):
         AbstractMap.set_center(self, coord, update)
-        self.emit(SIGNAL('centerChanged()'))
+        self.centerChanged.emit()
 
     def _move_map_relative(self, offset_x, offset_y, update = True):
         AbstractMap._move_map_relative(self, offset_x, offset_y, update)
-        self.emit(SIGNAL('centerChanged()'))
+        self.centerChanged.emit()
 
 
         ##############################################
@@ -237,7 +244,7 @@ class QtMap(QWidget, AbstractMap):
 
     def _add_to_buffer(self, id_string, surface, x, y, scale_source=None):
         self.surface_buffer[id_string] = [surface, x, y, scale_source]
-        self.emit(SIGNAL('tile-finished'), (([surface, x, y, scale_source],)))
+        self.tileFinished.emit(([surface, x, y, scale_source],))
         #self.__draw_tiles(which=([surface, x, y, scale_source],))
 
     @staticmethod
@@ -266,7 +273,7 @@ class QtMap(QWidget, AbstractMap):
                     pm = QPixmap(self.noimage_cantload)
                 except Exception:
                     logger.exception("Could not load replacement Pixmap from Filename %s" % self.noimage_cantload)
-            if scale_source == None: ###################################### delete me
+            if scale_source == None:
                 p.begin(self.buffer)
                 p.drawPixmap(x+off_x, y+off_y, pm)
                 p.end()
