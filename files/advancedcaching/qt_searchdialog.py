@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'files/qt/SearchDialog.ui'
 #
-# Created: Sun Aug  1 10:52:47 2010
+# Created: Mon Aug  2 11:20:03 2010
 #      by: PyQt4 UI code generator 4.7.2
 #
 # WARNING! All changes made in this file will be lost!

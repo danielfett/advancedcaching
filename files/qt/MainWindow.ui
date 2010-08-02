@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>855</width>
-    <height>380</height>
+    <width>767</width>
+    <height>392</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -39,7 +39,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>855</width>
+     <width>767</width>
      <height>21</height>
     </rect>
    </property>
@@ -47,8 +47,11 @@
     <property name="title">
      <string>Map</string>
     </property>
-    <addaction name="actionDownload_Map_Tiles"/>
     <addaction name="actionSelect_Map_Style"/>
+    <addaction name="actionDownload_Map_Tiles"/>
+    <addaction name="separator"/>
+    <addaction name="actionUpdate_Geocache_Map"/>
+    <addaction name="actionDownload_Details_for_all_visible_Geocaches"/>
    </widget>
    <widget class="QMenu" name="menuSearch">
     <property name="title">
@@ -97,6 +100,8 @@
    <addaction name="separator"/>
    <addaction name="actionZoom_In"/>
    <addaction name="actionZoom_Out"/>
+   <addaction name="actionUpdate_Geocache_Map"/>
+   <addaction name="actionDownload_Details_for_all_visible_Geocaches"/>
   </widget>
   <action name="actionHallo_Welt">
    <property name="text">
@@ -182,6 +187,24 @@
   <action name="actionSearch_Place">
    <property name="text">
     <string>Search Place</string>
+   </property>
+  </action>
+  <action name="actionUpdate_Geocache_Map">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/icons/advancedcaching/data/emoticon_grin.png</normaloff>:/icons/advancedcaching/data/emoticon_grin.png</iconset>
+   </property>
+   <property name="text">
+    <string>Update Geocache Locations</string>
+   </property>
+  </action>
+  <action name="actionDownload_Details_for_all_visible_Geocaches">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/icons/advancedcaching/data/comment.png</normaloff>:/icons/advancedcaching/data/comment.png</iconset>
+   </property>
+   <property name="text">
+    <string>Download Details for visible Geocaches</string>
    </property>
   </action>
  </widget>

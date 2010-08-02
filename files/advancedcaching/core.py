@@ -88,15 +88,15 @@ class Core(gobject.GObject):
         'save-settings': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
         }
 
-    SETTINGS_DIR = path.expanduser('~/.agtl')
+    SETTINGS_DIR = path.expanduser(path.join('~', '.agtl'))
     CACHES_DB = path.join(SETTINGS_DIR, "caches.db")
     COOKIE_FILE = path.join(SETTINGS_DIR, "cookies.lwp")
     UPDATE_DIR = path.join(SETTINGS_DIR, 'updates')
 
-    MAEMO_HOME = path.expanduser("~/MyDocs/.")
-    MAPS_DIR = 'Maps/'
+    MAEMO_HOME = path.expanduser(path.join('~', 'MyDocs', '.'))
+    MAPS_DIR = path.join('Maps', '')
 
-    DATA_DIR = path.expanduser('~/') if not path.exists(MAEMO_HOME) else MAEMO_HOME
+    DATA_DIR = path.expanduser(path.join('~', '')) if not path.exists(MAEMO_HOME) else MAEMO_HOME
 
     UPDATE_MODULES = [cachedownloader, fieldnotesuploader]
     
@@ -108,7 +108,7 @@ class Core(gobject.GObject):
         'download_create_index': False,
         'download_run_after': False,
         'download_run_after_string': '',
-        'download_output_dir': path.expanduser(DATA_DIR + 'geocaches/'),
+        'download_output_dir': path.expanduser(path.join(DATA_DIR, 'geocaches', '')),
         'map_position_lat': 49.7540,
         'map_position_lon': 6.66135,
         'map_follow_position': True,
@@ -143,7 +143,7 @@ class Core(gobject.GObject):
         self.current_position = None
         self.create_recursive(self.SETTINGS_DIR)
 
-        dataroot = path.join(root, 'data')
+        self.dataroot = path.join(root, 'data')
 
         self._install_updates()
 
@@ -158,7 +158,7 @@ class Core(gobject.GObject):
                 
         self.pointprovider = provider.PointProvider(self.CACHES_DB, geocaching.GeocacheCoordinate, 'geocaches')
 
-        self.gui = guitype(self, dataroot)
+        self.gui = guitype(self, self.dataroot)
 
         
         actor_tts = TTS(self)
@@ -204,7 +204,7 @@ class Core(gobject.GObject):
                 try:
                     mkdir(dpath)
                 except Exception, e:
-                    logging.info("Could not create directory; " + e)
+                    logging.info("Could not create directory; %s" % e)
                     pass
 
     def optimize_data(self):

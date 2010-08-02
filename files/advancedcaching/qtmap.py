@@ -36,7 +36,7 @@ import geo
 
 class QtMap(QWidget, AbstractMap):
 
-    __pyqtSignals__ = ("tileLoaderChanged(PyObject)", "mapDragged()", "zoomChanged()")
+    __pyqtSignals__ = ("tileLoaderChanged(PyObject)", "mapDragged()", "zoomChanged()", "centerChanged()")
 
     def __init__(self, parent, center, zoom, tile_loader = None):
         QWidget.__init__(self)
@@ -101,11 +101,14 @@ class QtMap(QWidget, AbstractMap):
         self.drag_end = ev.pos()
         offset_x = self.drag_start.x() - self.drag_end.x()
         offset_y = self.drag_start.y() - self.drag_end.y()
-        self._move_map_relative(offset_x, offset_y)
         self.drag_offset_x = 0
         self.drag_offset_y = 0
         self.dragging = False
-        self._draw_map()
+        if self._check_click(offset_x, offset_y, ev.pos().x(), ev.pos().y()):
+            self.repaint()
+        else:
+            self._move_map_relative(offset_x, offset_y)
+            self.emit(SIGNAL('mapDragged()'))
 
     def resizeEvent(self, ev):
         s = ev.size()
@@ -139,6 +142,15 @@ class QtMap(QWidget, AbstractMap):
 
     def refresh(self):
         self.repaint()
+
+    def set_center(self, coord, update = True):
+        AbstractMap.set_center(self, coord, update)
+        self.emit(SIGNAL('centerChanged()'))
+
+    def _move_map_relative(self, offset_x, offset_y, update = True):
+        AbstractMap._move_map_relative(self, offset_x, offset_y, update)
+        self.emit(SIGNAL('centerChanged()'))
+
 
         ##############################################
         #
@@ -405,13 +417,20 @@ class QtGeocacheLayer(AbstractQtLayer, AbstractGeocacheLayer):
     COLOR_MARKED = QColor(255, 255, 0)
     COLOR_DEFAULT = QColor(0, 0, 255)
     COLOR_FOUND = QColor(100, 100, 100)
-    COLOR_REGULAR = QColor(0, 200, 0)
+    COLOR_REGULAR = QColor(0, 255, 0)
     COLOR_MULTI = QColor(255, 120, 0)
     COLOR_CACHE_CENTER = QColor(0, 0, 0)
 
     def __init__(self, pointprovider, show_cache_callback):
         AbstractQtLayer.__init__(self)
         AbstractGeocacheLayer.__init__(self, pointprovider, show_cache_callback)
+
+
+    def clicked_screen(self, screenpoint):
+        AbstractGeocacheLayer.clicked_screen(self, screenpoint)
+
+    def clicked_coordinate(self, center, topleft, bottomright):
+        AbstractGeocacheLayer.clicked_coordinate(self, center, topleft, bottomright)
 
     def draw(self):
 
@@ -567,9 +586,6 @@ class QtMarksLayer(AbstractQtLayer, AbstractMarksLayer):
     RADIUS_ARROW = 30
     RADIUS_STANDING = 5
 
-
-    ARROW_OFFSET = 1.0 / 3.0 # Offset to center of arrow, calculated as 2-x = sqrt(1^2+(x+1)^2)
-    ARROW_SHAPE = [(0, -2 + ARROW_OFFSET), (1, + 1 + ARROW_OFFSET), (0, 0 + ARROW_OFFSET), (-1, 1 + ARROW_OFFSET), (0, -2 + ARROW_OFFSET)]
 
 
 

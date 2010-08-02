@@ -1,5 +1,13 @@
 <RCC>
   <qresource prefix="icons">
+    <file>../advancedcaching/data/calendar_edit.png</file>
+    <file>../advancedcaching/data/comment.png</file>
+    <file>../advancedcaching/data/cross.png</file>
+    <file>../advancedcaching/data/cross.png</file>
+    <file>../advancedcaching/data/delete.png</file>
+    <file>../advancedcaching/data/emoticon_grin.png</file>
+    <file>../advancedcaching/data/error.png</file>
+    <file>../advancedcaching/data/group.png</file>
     <file>../advancedcaching/data/asterisk_yellow.png</file>
     <file>../advancedcaching/data/accept.png</file>
   </qresource>

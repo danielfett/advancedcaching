@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'files/qt/MainWindow.ui'
 #
-# Created: Sun Aug  1 10:52:47 2010
+# Created: Mon Aug  2 11:20:03 2010
 #      by: PyQt4 UI code generator 4.7.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PyQt4 import QtCore, QtGui
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(855, 380)
+        MainWindow.resize(767, 392)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
         sizePolicy.setHorizontalStretch(0)
         sizePolicy.setVerticalStretch(0)
@@ -31,7 +31,7 @@ class Ui_MainWindow(object):
         self.horizontalLayout.setObjectName("horizontalLayout")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtGui.QMenuBar(MainWindow)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 855, 21))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 767, 21))
         self.menubar.setObjectName("menubar")
         self.menuMap = QtGui.QMenu(self.menubar)
         self.menuMap.setObjectName("menuMap")
@@ -84,8 +84,21 @@ class Ui_MainWindow(object):
         self.actionZoom_Out.setObjectName("actionZoom_Out")
         self.actionSearch_Place = QtGui.QAction(MainWindow)
         self.actionSearch_Place.setObjectName("actionSearch_Place")
-        self.menuMap.addAction(self.actionDownload_Map_Tiles)
+        self.actionUpdate_Geocache_Map = QtGui.QAction(MainWindow)
+        icon2 = QtGui.QIcon()
+        icon2.addPixmap(QtGui.QPixmap(":/icons/advancedcaching/data/emoticon_grin.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.actionUpdate_Geocache_Map.setIcon(icon2)
+        self.actionUpdate_Geocache_Map.setObjectName("actionUpdate_Geocache_Map")
+        self.actionDownload_Details_for_all_visible_Geocaches = QtGui.QAction(MainWindow)
+        icon3 = QtGui.QIcon()
+        icon3.addPixmap(QtGui.QPixmap(":/icons/advancedcaching/data/comment.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.actionDownload_Details_for_all_visible_Geocaches.setIcon(icon3)
+        self.actionDownload_Details_for_all_visible_Geocaches.setObjectName("actionDownload_Details_for_all_visible_Geocaches")
         self.menuMap.addAction(self.actionSelect_Map_Style)
+        self.menuMap.addAction(self.actionDownload_Map_Tiles)
+        self.menuMap.addSeparator()
+        self.menuMap.addAction(self.actionUpdate_Geocache_Map)
+        self.menuMap.addAction(self.actionDownload_Details_for_all_visible_Geocaches)
         self.menuSearch.addAction(self.actionGeocaches)
         self.menuSearch.addAction(self.actionSearch_Place)
         self.menuAbout_AGTL.addAction(self.actionBlub_1)
@@ -101,6 +114,8 @@ class Ui_MainWindow(object):
         self.toolBar.addSeparator()
         self.toolBar.addAction(self.actionZoom_In)
         self.toolBar.addAction(self.actionZoom_Out)
+        self.toolBar.addAction(self.actionUpdate_Geocache_Map)
+        self.toolBar.addAction(self.actionDownload_Details_for_all_visible_Geocaches)
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
@@ -127,5 +142,7 @@ class Ui_MainWindow(object):
         self.actionZoom_In.setToolTip(QtGui.QApplication.translate("MainWindow", "Zooooom!", None, QtGui.QApplication.UnicodeUTF8))
         self.actionZoom_Out.setText(QtGui.QApplication.translate("MainWindow", "Zoom Out", None, QtGui.QApplication.UnicodeUTF8))
         self.actionSearch_Place.setText(QtGui.QApplication.translate("MainWindow", "Search Place", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionUpdate_Geocache_Map.setText(QtGui.QApplication.translate("MainWindow", "Update Geocache Locations", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionDownload_Details_for_all_visible_Geocaches.setText(QtGui.QApplication.translate("MainWindow", "Download Details for visible Geocaches", None, QtGui.QApplication.UnicodeUTF8))
 
 import icons_rc

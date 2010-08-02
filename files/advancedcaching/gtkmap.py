@@ -25,8 +25,9 @@ import gtk
 import openstreetmap
 import pango
 import threadpool
-from abstractmap import AbstractMap
+from abstractmap import AbstractMap, AbstractMapLayer, AbstractMarksLayer, AbstractGeocacheLayer
 import logging
+import geocaching
 logger = logging.getLogger('gtkmap')
 
 
@@ -35,8 +36,7 @@ class Map(gtk.DrawingArea, AbstractMap):
 
     MIN_DRAG_REDRAW_DISTANCE = 5
     DRAG_RECHECK_SPEED = 20
-    CLICK_RADIUS = 17
-
+    
     LAZY_SET_CENTER_DIFFERENCE = 0.1 # * screen (width|height)
 
         
@@ -228,20 +228,9 @@ class Map(gtk.DrawingArea, AbstractMap):
         offset_x = self.drag_offset_x #(self.drag_start_x - event.x)
         offset_y = self.drag_offset_y #(self.drag_start_y - event.y)
         self._move_map_relative(offset_x, offset_y)
-        if offset_x ** 2 + offset_y ** 2 < self.CLICK_RADIUS ** 2:
+        if self._check_click(offset_x, offset_y, event.x, event.y):
             self.draw_at_x -= offset_x
             self.draw_at_y -= offset_y
-            x, y = event.x, event.y
-
-            c = self.screenpoint2coord((x, y))
-            c1 = self.screenpoint2coord([x-self.CLICK_RADIUS, y-self.CLICK_RADIUS])
-            c2 = self.screenpoint2coord([x + self.CLICK_RADIUS, y + self.CLICK_RADIUS])
-
-            for l in reversed(self.layers):
-                if l.clicked_screen((x, y)) == False:
-                    break
-                if l.clicked_coordinate(c, c1, c2) == False:
-                    break
         else:
             self.emit('map-dragged')
         self.draw_at_x = self.draw_at_y = 0
@@ -471,3 +460,331 @@ class OsdLayer(AbstractMapLayer):
 
         self.result = surface
 
+
+logger = logging.getLogger('geocachelayer')
+
+class GeocacheLayer(AbstractGeocacheLayer):
+
+    CACHE_DRAW_FONT = pango.FontDescription("Sans 10")
+    CACHE_DRAW_FONT_COLOR = gtk.gdk.color_parse('black')
+
+    # map markers colors
+    COLOR_MARKED = gtk.gdk.color_parse('yellow')
+    COLOR_DEFAULT = gtk.gdk.color_parse('blue')
+    COLOR_FOUND = gtk.gdk.color_parse('grey')
+    COLOR_REGULAR = gtk.gdk.color_parse('green')
+    COLOR_MULTI = gtk.gdk.color_parse('orange')
+    COLOR_CACHE_CENTER = gtk.gdk.color_parse('black')
+    COLOR_CURRENT_CACHE = gtk.gdk.color_parse('red')
+    COLOR_WAYPOINTS = gtk.gdk.color_parse('deeppink')
+
+    def draw(self):
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map.map_width, self.map.map_height)
+        cr = gtk.gdk.CairoContext(cairo.Context(surface))
+
+        coords = self.pointprovider.get_points_filter(self.map.get_visible_area(), self.select_found, self.MAX_NUM_RESULTS_SHOW)
+
+        if self.map.get_zoom() < self.CACHES_ZOOM_LOWER_BOUND:
+            self.map.set_osd_message('Too many geocaches to display.')
+            self.visualized_geocaches = []
+            self.result = surface
+            return
+        elif len(coords) >= self.MAX_NUM_RESULTS_SHOW:
+            self.map.set_osd_message('Too many geocaches to display.')
+            self.visualized_geocaches = []
+            self.result = surface
+            return
+        self.map.set_osd_message(None)
+        self.visualized_geocaches = coords
+        draw_short = (len(coords) > self.TOO_MANY_POINTS)
+
+        default_radius = self.CACHE_DRAW_SIZE
+        found, regular, multi, default = self.COLOR_FOUND, self.COLOR_REGULAR, self.COLOR_MULTI, self.COLOR_DEFAULT
+
+
+
+        for c in coords: # for each geocache
+            radius = default_radius
+            if c.found:
+                color = found
+            elif c.type == geocaching.GeocacheCoordinate.TYPE_REGULAR:
+                color = regular
+            elif c.type == geocaching.GeocacheCoordinate.TYPE_MULTI:
+                color = multi
+            else:
+                color = default
+            cr.set_source_color(color)
+
+
+            p = self.map.coord2point(c)
+
+            if c.alter_lat != None and (c.alter_lat != 0 and c.alter_lon != 0):
+                x = self.map.coord2point(geo.Coordinate(c.alter_lat, c.alter_lon))
+                if x != p:
+                    cr.move_to(p[0], p[1])
+                    cr.line_to(x[0], x[1])
+                    cr.set_line_width(2)
+                    cr.stroke()
+
+            if draw_short:
+                radius = radius / 2.0
+
+            if c.marked:
+                cr.set_source_rgba(1, 1, 0, 0.5)
+                cr.rectangle(p[0] - radius, p[1] - radius, radius * 2, radius * 2)
+                cr.fill()
+
+
+            cr.set_source_color(color)
+            cr.set_line_width(4)
+            cr.rectangle(p[0] - radius, p[1] - radius, radius * 2, radius * 2)
+            cr.stroke()
+
+            if draw_short:
+                continue
+
+
+
+
+            # if we have a description for this cache...
+            if c.was_downloaded():
+                # draw something like:
+                # ----
+                # ----
+                # ----
+                # besides the icon
+                width = 6
+                dist = 3
+                count = 3
+                pos_x = p[0] + radius + 3 + 1
+                pos_y = p[1] + radius - (dist * count) + dist
+                cr.set_line_width(1)
+                for i in xrange(count):
+                    cr.move_to(pos_x, pos_y + dist * i)
+                    cr.line_to(pos_x + width, pos_y + dist * i)
+                    cr.set_line_width(2)
+                cr.stroke()
+
+            # if this cache is the active cache
+            if self.current_cache != None and c.name == self.current_cache.name:
+                cr.set_line_width(1)
+                cr.set_source_color(self.COLOR_CURRENT_CACHE)
+                #radius = 7
+                radius_outline = radius + 3
+                cr.rectangle(p[0] - radius_outline, p[1] - radius_outline, radius_outline * 2, radius_outline * 2)
+                cr.stroke()
+
+            # if this cache is disabled
+            if c.status == geocaching.GeocacheCoordinate.STATUS_DISABLED:
+                cr.set_line_width(3)
+                cr.set_source_color(self.COLOR_CURRENT_CACHE)
+                radius_disabled = 7
+                cr.move_to(p[0]-radius_disabled, p[1]-radius_disabled)
+                cr.line_to(p[0] + radius_disabled, p[1] + radius_disabled)
+                cr.stroke()
+
+
+            # print the name?
+            if self.show_name:
+                layout = self.map.create_pango_layout(AbstractGeocacheLayer.shorten_name(c.title, 20))
+                layout.set_font_description(self.CACHE_DRAW_FONT)
+                width, height = layout.get_pixel_size()
+
+                cr.move_to(p[0] + 4 + radius, p[1] - height + 2)
+                #cr.set_line_width(1)
+                cr.set_source_color(self.CACHE_DRAW_FONT_COLOR)
+                cr.show_layout(layout)
+
+            cr.set_source_color(self.COLOR_CACHE_CENTER)
+            cr.set_line_width(1)
+            cr.move_to(p[0], p[1] - 3)
+            cr.line_to(p[0], p[1] + 3) # |
+            cr.move_to(p[0] - 3, p[1], )
+            cr.line_to(p[0] + 3, p[1]) # ---
+            cr.stroke()
+
+        # draw additional waypoints
+        # --> print description!
+        if self.current_cache != None and self.current_cache.get_waypoints() != None:
+            cr.set_source_color(self.COLOR_WAYPOINTS)
+            cr.set_line_width(1)
+            radius = 5
+            num = 0
+            for w in self.current_cache.get_waypoints():
+                if w['lat'] != -1 and w['lon'] != -1:
+                    num = num + 1
+                    p = self.map.coord2point(geo.Coordinate(w['lat'], w['lon']))
+                    if not self.map.point_in_screen(p):
+                        continue
+                    cr.move_to(p[0], p[1] - radius)
+                    cr.line_to(p[0], p[1] + radius) #  |
+                    #cr.stroke()
+                    cr.move_to(p[0] - radius, p[1])
+                    cr.line_to(p[0] + radius, p[1]) # ---
+                    #cr.stroke()
+                    cr.arc(p[0], p[1], radius, 0, math.pi * 2)
+                    layout = self.map.create_pango_layout('')
+                    layout.set_markup('<i>%s</i>' % (w['id']))
+                    layout.set_font_description(self.CACHE_DRAW_FONT)
+
+                    cr.move_to(p[0] + 3 + radius, p[1] - 3 - radius)
+                    #cr.set_line_width(1)
+                    cr.set_source_color(self.COLOR_WAYPOINTS)
+                    cr.show_layout(layout)
+            cr.stroke()
+        self.result = surface
+
+logger = logging.getLogger('markslayer')
+
+class MarksLayer(AbstractMarksLayer):
+
+    SIZE_CURRENT_POSITION = 3
+    COLOR_CURRENT_POSITION = gtk.gdk.color_parse('green')
+    COLOR_CURRENT_POSITION_NO_FIX = gtk.gdk.color_parse('red')
+    COLOR_TARGET = gtk.gdk.color_parse('darkblue')
+    COLOR_TARGET_SHADOW = gtk.gdk.color_parse('white')
+    COLOR_CROSSHAIR = gtk.gdk.color_parse("black")
+    COLOR_LINE_INVERT = gtk.gdk.color_parse("blue")
+    COLOR_ACCURACY = gtk.gdk.color_parse("orange")
+
+    COLOR_DIRECTION_ARROW = gtk.gdk.color_parse("black")
+    COLOR_DIRECTION_ARROW_SHADOW = gtk.gdk.color_parse("white")
+
+    DISTANCE_DRAW_FONT = pango.FontDescription("Sans 20")
+    DISTANCE_DRAW_FONT_COLOR = gtk.gdk.color_parse("black")
+
+    OSD_BORDER_TOPBOTTOM = 25
+    OSD_BORDER_LEFTRIGHT = 35
+
+
+    def __init__(self):
+        AbstractMarksLayer.__init__(self)
+
+    def draw(self):
+
+        surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map.map_width, self.map.map_height)
+        cr = gtk.gdk.CairoContext(cairo.Context(surface))
+        # if we have a target, draw it
+        if self.current_target != None:
+            t = self.map.coord2point(self.current_target)
+            if t != False and self.map.point_in_screen(t):
+
+
+                radius_o = 15
+                radius_i = 3
+                radius_c = 10
+                cr.move_to(t[0] - radius_o, t[1])
+                cr.line_to(t[0] - radius_i, t[1])
+                cr.move_to(t[0] + radius_o, t[1])
+                cr.line_to(t[0] + radius_i, t[1])
+                cr.move_to(t[0], t[1] + radius_o)
+                cr.line_to(t[0], t[1] + radius_i)
+                cr.move_to(t[0], t[1] - radius_o)
+                cr.line_to(t[0], t[1] - radius_i)
+                cr.new_sub_path()
+                cr.arc(t[0], t[1], radius_c, 0, math.pi * 2)
+
+                cr.set_source_color(self.COLOR_TARGET_SHADOW)
+                cr.set_line_width(3)
+                cr.stroke_preserve()
+                cr.set_source_color(self.COLOR_TARGET)
+                cr.set_line_width(2)
+                cr.stroke()
+
+        else:
+            t = False
+
+        if self.gps_last_good_fix != None and self.gps_last_good_fix.position != None:
+            p = self.map.coord2point(self.gps_last_good_fix.position)
+        else:
+            p = None
+
+        # a line between target and position if we have both
+        if p != None and t != False:
+            cr.set_line_width(5)
+            cr.set_source_rgba(1, 1, 0, 0.5)
+            if self.map.point_in_screen(t) and self.map.point_in_screen(p):
+                cr.move_to(p[0], p[1])
+                cr.line_to(t[0], t[1])
+                cr.stroke()
+            elif self.map.point_in_screen(p):
+                direction = math.radians(self.gps_target_bearing - 180)
+                # correct max length: sqrt(width**2 + height**2)
+                length = self.map.map_width
+                cr.move_to(p[0], p[1])
+                cr.line_to(int(p[0] - math.sin(direction) * length), int(p[1] + math.cos(direction) * length))
+                cr.stroke()
+
+            elif self.map.point_in_screen(t):
+                direction = math.radians(self.gps_target_bearing)
+                length = self.map.map_width + self.map.map_height
+                cr.move_to(t[0], t[1])
+                cr.line_to(int(t[0] - math.sin(direction) * length), int(t[1] + math.cos(direction) * length))
+                cr.stroke()
+
+        if p != None and self.map.point_in_screen(p):
+
+            cr.set_line_width(2)
+
+            if self.gps_has_fix:
+                radius = self.gps_data.error
+                radius_pixels = radius / self.map.get_meters_per_pixel(self.gps_last_good_fix.position.lat)
+            else:
+                radius_pixels = 10
+
+            radius_o = int((radius_pixels + 8) / math.sqrt(2))
+            radius_i = int((radius_pixels - 8) / math.sqrt(2))
+
+
+
+            if radius_i < 2:
+                radius_i = 2
+            if self.gps_has_fix:
+                cr.set_source_color(self.COLOR_CURRENT_POSITION)
+            else:
+                cr.set_source_color(self.COLOR_CURRENT_POSITION_NO_FIX)
+
+            # \  /
+            #
+            # /  \
+
+            cr.arc(p[0], p[1], self.SIZE_CURRENT_POSITION, 0, math.pi * 2)
+            cr.fill()
+            if self.gps_has_fix:
+                cr.set_line_width(1)
+                cr.set_source_color(self.COLOR_ACCURACY)
+                cr.set_dash((5,3))
+                cr.new_sub_path()
+                cr.arc(p[0], p[1], radius_pixels, 0, math.pi * 2)
+                cr.stroke()
+                cr.set_dash(())
+
+                # draw moving direction, if we're moving
+                if self.gps_data.speed > 2.5: # km/h
+                    position = p#(self.map.map_width - self.OSD_BORDER_LEFTRIGHT, self.map.map_height - self.OSD_BORDER_TOPBOTTOM)
+
+                    arrow = self._get_arrow_transformed(position[0] - 15, position[1] - 15, 30, 30, self.gps_data.bearing)
+                    cr.move_to(* arrow[0])
+                    for x, y in arrow:
+                        cr.line_to(x, y)
+                    cr.line_to(* arrow[0])
+                else:
+                    cr.arc(p[0], p[1], self.SIZE_CURRENT_POSITION + 5, 0, math.pi * 2)
+
+                cr.set_source_color(self.COLOR_DIRECTION_ARROW_SHADOW)
+                cr.set_line_width(2)
+                cr.stroke_preserve()
+                cr.set_source_color(self.COLOR_DIRECTION_ARROW)
+                cr.set_line_width(1)
+                cr.stroke()
+
+        if self.gps_data != None and self.gps_has_fix:
+            position = (self.map.map_width - self.OSD_BORDER_LEFTRIGHT, self.OSD_BORDER_TOPBOTTOM)
+            layout = self.map.create_pango_layout(geo.Coordinate._format_distance(self.gps_target_distance))
+            layout.set_font_description(self.DISTANCE_DRAW_FONT)
+            width, height = layout.get_pixel_size()
+            cr.set_source_color(self.DISTANCE_DRAW_FONT_COLOR)
+            cr.move_to(position[0] - width, position[1])
+            cr.show_layout(layout)
+
+        self.result = surface

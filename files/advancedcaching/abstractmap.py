@@ -33,6 +33,9 @@ class AbstractMap():
     MAP_FACTOR = 0
     RADIUS_EARTH = 6371000.0
 
+    CLICK_MAX_RADIUS = 7
+    CLICK_CHECK_RADIUS = 17
+
     @classmethod
     def set_config(Map, map_providers, map_path, placeholder_cantload, placeholder_loading):
 
@@ -138,25 +141,13 @@ class AbstractMap():
     def get_min_zoom(self):
         return 0
 
-    def _move_map_relative(self, offset_x, offset_y):
+    def _move_map_relative(self, offset_x, offset_y, update = True):
         self.map_center_x += (float(offset_x) / self.tile_loader.TILE_SIZE)
         self.map_center_y += (float(offset_y) / self.tile_loader.TILE_SIZE)
         self.map_center_x, self.map_center_y = self.check_bounds(self.map_center_x, self.map_center_y)
         self.center_latlon = self.num2deg(self.map_center_x, self.map_center_y)
-
-        ##############################################
-        #
-        # Marker handling
-        #
-        ##############################################
-
-    def add_marker_type(self, type):
-        self.marker_types.append(type)
-
-    def del_all_markers(self):
-        for x in self.marker_types:
-            x.del_all_markers()
-
+        if update:
+            self._draw_map()
 
         ##############################################
         #
@@ -214,6 +205,20 @@ class AbstractMap():
     def get_visible_area(self):
         return (self.screenpoint2coord((0, 0)), self.screenpoint2coord((self.map_width, self.map_height)))
 
+
+    def _check_click(self, offset_x, offset_y, ev_x, ev_y):
+        if offset_x ** 2 + offset_y ** 2 < self.CLICK_MAX_RADIUS ** 2:
+
+            c = self.screenpoint2coord((ev_x, ev_y))
+            c1 = self.screenpoint2coord([ev_x - self.CLICK_CHECK_RADIUS, ev_y - self.CLICK_CHECK_RADIUS])
+            c2 = self.screenpoint2coord([ev_x + self.CLICK_CHECK_RADIUS, ev_y + self.CLICK_CHECK_RADIUS])
+            for l in reversed(self.layers):
+                if l.clicked_screen((ev_x, ev_y)) == False:
+                    break
+                if l.clicked_coordinate(c, c1, c2) == False:
+                    break
+            return True
+        return False
 
         ##############################################
         #
@@ -275,10 +280,18 @@ class AbstractMapLayer():
 
     def attach(self, map):
         self.map = map
+        
+    def refresh(self):
+        self.draw()
+        self.map.refresh()
 
 logger = logging.getLogger('abstractmarkslayer')
 
 class AbstractMarksLayer(AbstractMapLayer):
+
+    ARROW_OFFSET = 1.0 / 3.0 # Offset to center of arrow, calculated as 2-x = sqrt(1^2+(x+1)^2)
+    ARROW_SHAPE = [(0, -2 + ARROW_OFFSET), (1, + 1 + ARROW_OFFSET), (0, 0 + ARROW_OFFSET), (-1, 1 + ARROW_OFFSET), (0, -2 + ARROW_OFFSET)]
+
     def __init__(self):
         AbstractMapLayer.__init__(self)
         self.current_target = None
@@ -319,6 +332,19 @@ class AbstractMarksLayer(AbstractMapLayer):
     def on_no_fix(self, caller, gps_data, status):
         self.gps_data = gps_data
         self.gps_has_fix = False
+
+
+    @staticmethod
+    def _get_arrow_transformed(root_x, root_y, width, height, angle):
+        multiply = height / (2 * (2-SimpleGui.ARROW_OFFSET))
+        offset_x = width / 2
+        offset_y = height / 2
+        s = multiply * math.sin(math.radians(angle))
+        c = multiply * math.cos(math.radians(angle))
+        arrow_transformed = [(int(x * c + offset_x - y * s) + root_x,
+                              int(y * c + offset_y + x * s) + root_y) for x, y in SimpleGui.ARROW_SHAPE]
+        return arrow_transformed
+                
 
 class AbstractGeocacheLayer(AbstractMapLayer):
 

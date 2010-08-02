@@ -273,7 +273,7 @@ class Coordinate(object):
 
     @staticmethod
     def format_direction(angle):
-        directions = ['N', 'NNO', 'NO', 'ONO', 'O', 'OSO', 'SO', 'SSO',
+        directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
                         'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW', 'N']
 
         return directions[int(round(((angle+360.0) % 360.0)/22.5))]
