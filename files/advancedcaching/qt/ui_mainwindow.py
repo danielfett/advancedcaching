@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'files/qt/MainWindow.ui'
 #
-# Created: Mon Aug  2 12:41:45 2010
+# Created: Tue Aug  3 13:52:33 2010
 #      by: PyQt4 UI code generator 4.7.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -56,8 +56,8 @@ class Ui_MainWindow(object):
         self.actionTsch_ss_Welt.setObjectName("actionTsch_ss_Welt")
         self.actionSelect_Map_Style = QtGui.QAction(MainWindow)
         self.actionSelect_Map_Style.setObjectName("actionSelect_Map_Style")
-        self.actionGeocaches = QtGui.QAction(MainWindow)
-        self.actionGeocaches.setObjectName("actionGeocaches")
+        self.actionSearch_Geocaches = QtGui.QAction(MainWindow)
+        self.actionSearch_Geocaches.setObjectName("actionSearch_Geocaches")
         self.actionDownload_Map_Tiles = QtGui.QAction(MainWindow)
         self.actionDownload_Map_Tiles.setObjectName("actionDownload_Map_Tiles")
         self.actionBlub = QtGui.QAction(MainWindow)
@@ -94,19 +94,23 @@ class Ui_MainWindow(object):
         icon3.addPixmap(QtGui.QPixmap(":/icons/advancedcaching/data/comment.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
         self.actionDownload_Details_for_all_visible_Geocaches.setIcon(icon3)
         self.actionDownload_Details_for_all_visible_Geocaches.setObjectName("actionDownload_Details_for_all_visible_Geocaches")
+        self.actionOptions = QtGui.QAction(MainWindow)
+        self.actionOptions.setObjectName("actionOptions")
+        self.actionExport_all_visible_Geocaches = QtGui.QAction(MainWindow)
+        self.actionExport_all_visible_Geocaches.setObjectName("actionExport_all_visible_Geocaches")
         self.menuMap.addAction(self.actionSelect_Map_Style)
         self.menuMap.addAction(self.actionDownload_Map_Tiles)
         self.menuMap.addSeparator()
         self.menuMap.addAction(self.actionUpdate_Geocache_Map)
         self.menuMap.addAction(self.actionDownload_Details_for_all_visible_Geocaches)
-        self.menuSearch.addAction(self.actionGeocaches)
+        self.menuMap.addSeparator()
+        self.menuMap.addAction(self.actionOptions)
+        self.menuSearch.addAction(self.actionSearch_Geocaches)
         self.menuSearch.addAction(self.actionSearch_Place)
         self.menuAbout_AGTL.addAction(self.actionBlub_1)
         self.menuAbout_AGTL.addAction(self.actionBlub_2)
         self.menuHelp.addAction(self.menuAbout_AGTL.menuAction())
-        self.menuTest.addAction(self.actionBlub)
-        self.menuTest.addSeparator()
-        self.menuTest.addAction(self.actionBla)
+        self.menuTest.addAction(self.actionExport_all_visible_Geocaches)
         self.menubar.addAction(self.menuMap.menuAction())
         self.menubar.addAction(self.menuSearch.menuAction())
         self.menubar.addAction(self.menuHelp.menuAction())
@@ -126,13 +130,13 @@ class Ui_MainWindow(object):
         self.menuSearch.setTitle(QtGui.QApplication.translate("MainWindow", "Search", None, QtGui.QApplication.UnicodeUTF8))
         self.menuHelp.setTitle(QtGui.QApplication.translate("MainWindow", "Help", None, QtGui.QApplication.UnicodeUTF8))
         self.menuAbout_AGTL.setTitle(QtGui.QApplication.translate("MainWindow", "About &AGTL", None, QtGui.QApplication.UnicodeUTF8))
-        self.menuTest.setTitle(QtGui.QApplication.translate("MainWindow", "Test", None, QtGui.QApplication.UnicodeUTF8))
+        self.menuTest.setTitle(QtGui.QApplication.translate("MainWindow", "Tools", None, QtGui.QApplication.UnicodeUTF8))
         self.toolBar.setWindowTitle(QtGui.QApplication.translate("MainWindow", "toolBar", None, QtGui.QApplication.UnicodeUTF8))
         self.actionHallo_Welt.setText(QtGui.QApplication.translate("MainWindow", "Hallo Welt!", None, QtGui.QApplication.UnicodeUTF8))
         self.actionTsch_ss_Welt.setText(QtGui.QApplication.translate("MainWindow", "Tschüss Welt!", None, QtGui.QApplication.UnicodeUTF8))
         self.actionSelect_Map_Style.setText(QtGui.QApplication.translate("MainWindow", "Select Map Style", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionGeocaches.setText(QtGui.QApplication.translate("MainWindow", "Geocaches", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionGeocaches.setStatusTip(QtGui.QApplication.translate("MainWindow", "Test", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionSearch_Geocaches.setText(QtGui.QApplication.translate("MainWindow", "Search Geocaches", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionSearch_Geocaches.setStatusTip(QtGui.QApplication.translate("MainWindow", "Test", None, QtGui.QApplication.UnicodeUTF8))
         self.actionDownload_Map_Tiles.setText(QtGui.QApplication.translate("MainWindow", "Download Map Tiles", None, QtGui.QApplication.UnicodeUTF8))
         self.actionBlub.setText(QtGui.QApplication.translate("MainWindow", "blub", None, QtGui.QApplication.UnicodeUTF8))
         self.actionBla.setText(QtGui.QApplication.translate("MainWindow", "bla", None, QtGui.QApplication.UnicodeUTF8))
@@ -144,5 +148,7 @@ class Ui_MainWindow(object):
         self.actionSearch_Place.setText(QtGui.QApplication.translate("MainWindow", "Search Place", None, QtGui.QApplication.UnicodeUTF8))
         self.actionUpdate_Geocache_Map.setText(QtGui.QApplication.translate("MainWindow", "Update Geocache Locations", None, QtGui.QApplication.UnicodeUTF8))
         self.actionDownload_Details_for_all_visible_Geocaches.setText(QtGui.QApplication.translate("MainWindow", "Download Details for visible Geocaches", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionOptions.setText(QtGui.QApplication.translate("MainWindow", "Options", None, QtGui.QApplication.UnicodeUTF8))
+        self.actionExport_all_visible_Geocaches.setText(QtGui.QApplication.translate("MainWindow", "Export all visible Geocaches", None, QtGui.QApplication.UnicodeUTF8))
 
 import icons_rc

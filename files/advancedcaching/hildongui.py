@@ -321,7 +321,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             zoom = 6
 
         self.map = Map(center = coord, zoom = zoom)
-        self.geocache_layer = GeocacheLayer(self.core.pointprovider, self.show_cache)
+        self.geocache_layer = GeocacheLayer(self.__get_geocaches_callback, self.show_cache)
         self.marks_layer = MarksLayer()
         self.map.add_layer(self.geocache_layer)
         self.map.add_layer(self.marks_layer)
@@ -1500,7 +1500,9 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         #
         ##############################################
 
-        
+    def __get_geocaches_callback(self, visible_area, maxresults):
+        return self.core.pointprovider.get_points_filter(visible_area, not self.settings['options_hide_found'], maxresults)
+ 
 
     def _on_settings_changed(self, caller, settings, source):
         #if source == self:
@@ -1508,8 +1510,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.settings.update(settings)
 
         self.block_changes = True
-        if 'options_hide_found' in settings:
-            self.geocache_layer.set_show_found(not settings['options_hide_found'])
+        #if 'options_hide_found' in settings:
+        #    self.geocache_layer.set_show_found(not settings['options_hide_found'])
         if 'options_show_name' in settings:
             self.geocache_layer.set_show_name(settings['options_show_name'])
         if 'options_map_double_size' in settings:

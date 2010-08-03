@@ -59,7 +59,7 @@
     <property name="title">
      <string>Search</string>
     </property>
-    <addaction name="actionGeocaches"/>
+    <addaction name="actionSearch_Geocaches"/>
     <addaction name="actionSearch_Place"/>
    </widget>
    <widget class="QMenu" name="menuHelp">
@@ -118,9 +118,9 @@
     <string>Select Map Style</string>
    </property>
   </action>
-  <action name="actionGeocaches">
+  <action name="actionSearch_Geocaches">
    <property name="text">
-    <string>Geocaches</string>
+    <string>Search Geocaches</string>
    </property>
    <property name="statusTip">
     <string>Test</string>
@@ -165,7 +165,7 @@
     <bool>true</bool>
    </property>
    <property name="icon">
-    <iconset>
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/advancedcaching/data/accept.png</normaloff>:/icons/advancedcaching/data/accept.png</iconset>
    </property>
    <property name="text">
@@ -177,7 +177,7 @@
   </action>
   <action name="actionZoom_Out">
    <property name="icon">
-    <iconset>
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/advancedcaching/data/asterisk_yellow.png</normaloff>:/icons/advancedcaching/data/asterisk_yellow.png</iconset>
    </property>
    <property name="text">
@@ -191,7 +191,7 @@
   </action>
   <action name="actionUpdate_Geocache_Map">
    <property name="icon">
-    <iconset>
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/advancedcaching/data/emoticon_grin.png</normaloff>:/icons/advancedcaching/data/emoticon_grin.png</iconset>
    </property>
    <property name="text">
@@ -200,7 +200,7 @@
   </action>
   <action name="actionDownload_Details_for_all_visible_Geocaches">
    <property name="icon">
-    <iconset>
+    <iconset resource="icons.qrc">
      <normaloff>:/icons/advancedcaching/data/comment.png</normaloff>:/icons/advancedcaching/data/comment.png</iconset>
    </property>
    <property name="text">

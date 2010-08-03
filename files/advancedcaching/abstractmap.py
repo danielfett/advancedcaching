@@ -355,11 +355,11 @@ class AbstractGeocacheLayer(AbstractMapLayer):
 
     MAX_NUM_RESULTS_SHOW = 100
 
-    def __init__(self, pointprovider, show_cache_callback):
+    def __init__(self, get_geocaches_callback, show_cache_callback):
         AbstractMapLayer.__init__(self)
-        self.show_found = False
+        #self.show_found = False
         self.show_name = False
-        self.pointprovider = pointprovider
+        self.get_geocaches_callback = get_geocaches_callback
         self.visualized_geocaches = []
         self.show_cache_callback = show_cache_callback
         self.current_cache = None

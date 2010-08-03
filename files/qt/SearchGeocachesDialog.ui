@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>Dialog</class>
- <widget class="QDialog" name="Dialog">
+ <class>SearchGeocachesDialog</class>
+ <widget class="QDialog" name="SearchGeocachesDialog">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -31,7 +31,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QLineEdit" name="lineEdit"/>
+       <widget class="QLineEdit" name="lineEditName"/>
       </item>
      </layout>
     </widget>
@@ -73,7 +73,7 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QListWidget" name="listWidget">
+       <widget class="QListWidget" name="listWidgetSize">
         <item>
          <property name="text">
           <string>micro</string>
@@ -133,7 +133,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QDoubleSpinBox" name="doubleSpinBox_2">
+         <widget class="QDoubleSpinBox" name="doubleSpinBoxDifficultyMin">
           <property name="buttonSymbols">
            <enum>QAbstractSpinBox::UpDownArrows</enum>
           </property>
@@ -165,7 +165,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QDoubleSpinBox" name="doubleSpinBox">
+         <widget class="QDoubleSpinBox" name="doubleSpinBoxDifficultyMax">
           <property name="decimals">
            <number>1</number>
           </property>
@@ -202,7 +202,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QDoubleSpinBox" name="doubleSpinBox_3">
+         <widget class="QDoubleSpinBox" name="doubleSpinBoxTerrainMin">
           <property name="decimals">
            <number>1</number>
           </property>
@@ -225,7 +225,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QDoubleSpinBox" name="doubleSpinBox_4">
+         <widget class="QDoubleSpinBox" name="doubleSpinBoxTerrainMax">
           <property name="decimals">
            <number>1</number>
           </property>
@@ -262,7 +262,7 @@
        </widget>
       </item>
       <item row="0" column="1">
-       <widget class="QComboBox" name="comboBox">
+       <widget class="QComboBox" name="comboBoxLocation">
         <item>
          <property name="text">
           <string>anywhere</string>
@@ -288,7 +288,34 @@
        </widget>
       </item>
       <item row="2" column="1">
-       <widget class="QComboBox" name="comboBox_2"/>
+       <layout class="QHBoxLayout" name="horizontalLayout_4">
+        <item>
+         <widget class="QSpinBox" name="spinBoxRadius">
+          <property name="enabled">
+           <bool>false</bool>
+          </property>
+          <property name="suffix">
+           <string> km</string>
+          </property>
+          <property name="minimum">
+           <number>1</number>
+          </property>
+          <property name="maximum">
+           <number>100</number>
+          </property>
+          <property name="singleStep">
+           <number>2</number>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QLabel" name="labelLocation">
+          <property name="text">
+           <string/>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </widget>
@@ -310,88 +337,21 @@
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QListWidget" name="listWidget_2">
-        <item>
-         <property name="text">
-          <string>traditional</string>
-         </property>
-         <property name="checkState">
-          <enum>Checked</enum>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>multi-stage</string>
-         </property>
-         <property name="checkState">
-          <enum>Checked</enum>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>virtual</string>
-         </property>
-         <property name="checkState">
-          <enum>Checked</enum>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>earth</string>
-         </property>
-         <property name="checkState">
-          <enum>Checked</enum>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>event</string>
-         </property>
-         <property name="checkState">
-          <enum>Checked</enum>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>mystery</string>
-         </property>
-         <property name="checkState">
-          <enum>Checked</enum>
-         </property>
-        </item>
-        <item>
-         <property name="text">
-          <string>all</string>
-         </property>
-         <property name="checkState">
-          <enum>Checked</enum>
-         </property>
-        </item>
-       </widget>
+       <widget class="QListWidget" name="listWidgetType"/>
       </item>
       <item row="3" column="0">
        <widget class="QLabel" name="label_6">
         <property name="text">
-         <string>Found status</string>
+         <string>Filter</string>
         </property>
        </widget>
       </item>
       <item row="3" column="1">
        <layout class="QHBoxLayout" name="horizontalLayout">
         <item>
-         <widget class="QCheckBox" name="checkBox_2">
+         <widget class="QCheckBox" name="checkBoxHideFound">
           <property name="text">
-           <string>show found</string>
-          </property>
-          <property name="checked">
-           <bool>true</bool>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="checkBox">
-          <property name="text">
-           <string>show not found</string>
+           <string>hide found geocaches</string>
           </property>
           <property name="checked">
            <bool>true</bool>
@@ -400,26 +360,12 @@
         </item>
        </layout>
       </item>
-      <item row="4" column="0">
-       <widget class="QLabel" name="label_9">
-        <property name="text">
-         <string>Other</string>
-        </property>
-       </widget>
-      </item>
       <item row="4" column="1">
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
-         <widget class="QCheckBox" name="checkBox_3">
+         <widget class="QCheckBox" name="checkBoxShowOnlyMarked">
           <property name="text">
            <string>only marked geocaches</string>
-          </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="QCheckBox" name="checkBox_4">
-          <property name="text">
-           <string>only available geocaches</string>
           </property>
          </widget>
         </item>
@@ -435,7 +381,7 @@
   <connection>
    <sender>dialogButtonBox</sender>
    <signal>accepted()</signal>
-   <receiver>Dialog</receiver>
+   <receiver>SearchGeocachesDialog</receiver>
    <slot>accept()</slot>
    <hints>
     <hint type="sourcelabel">
@@ -451,7 +397,7 @@
   <connection>
    <sender>dialogButtonBox</sender>
    <signal>rejected()</signal>
-   <receiver>Dialog</receiver>
+   <receiver>SearchGeocachesDialog</receiver>
    <slot>reject()</slot>
    <hints>
     <hint type="sourcelabel">

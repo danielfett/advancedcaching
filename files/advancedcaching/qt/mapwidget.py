@@ -17,20 +17,22 @@
 #
 #        Author: Daniel Fett advancedcaching@fragcom.de
 #
-import threadpool
+import logging
 import math
 from threading import Lock
 
-from abstractmap import AbstractMap, AbstractMapLayer, AbstractGeocacheLayer, AbstractMarksLayer
-
-import logging
-logger = logging.getLogger('qtmap')
-
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-logger.debug("Using pyqt bindings")
-import geocaching
+from abstractmap import AbstractGeocacheLayer
+from abstractmap import AbstractMap
+from abstractmap import AbstractMapLayer
+from abstractmap import AbstractMarksLayer
 import geo
+import geocaching
+import threadpool
+logger = logging.getLogger('qtmap')
+
+logger.debug("Using pyqt bindings")
 
 
 
@@ -42,7 +44,7 @@ class QtMap(QWidget, AbstractMap):
     centerChanged = pyqtSignal()
     tileFinished = pyqtSignal(tuple)
 
-    def __init__(self, parent, center, zoom, tile_loader = None):
+    def __init__(self, parent, center, zoom, tile_loader=None):
         QWidget.__init__(self)
         AbstractMap.__init__(self, center, zoom, tile_loader)
         self.buffer = QPixmap(self.size())
@@ -131,7 +133,7 @@ class QtMap(QWidget, AbstractMap):
 
     #@pyqtSignature("zoomIn()")
     def zoom_in(self):
-        self.relative_zoom(+1)
+        self.relative_zoom( + 1)
 
     #@pyqtSignature("zoomOut()")
     def zoom_out(self):
@@ -150,11 +152,11 @@ class QtMap(QWidget, AbstractMap):
     def refresh(self):
         self.repaint()
 
-    def set_center(self, coord, update = True):
+    def set_center(self, coord, update=True):
         AbstractMap.set_center(self, coord, update)
         self.centerChanged.emit()
 
-    def _move_map_relative(self, offset_x, offset_y, update = True):
+    def _move_map_relative(self, offset_x, offset_y, update=True):
         AbstractMap._move_map_relative(self, offset_x, offset_y, update)
         self.centerChanged.emit()
 
@@ -238,13 +240,13 @@ class QtMap(QWidget, AbstractMap):
 
     def __run_tile_loader(self, id_string, tile, zoom, undersample, x, y, callback_draw):
         #callback_draw = lambda x, y, z: 1
-        d = self.tile_loader(id_string=id_string, tile=tile, zoom=zoom, undersample=undersample, x=x, y=y, callback_draw=callback_draw, callback_load = self._load_tile)
+        d = self.tile_loader(id_string=id_string, tile=tile, zoom=zoom, undersample=undersample, x=x, y=y, callback_draw=callback_draw, callback_load=self._load_tile)
         self.active_tile_loaders.append(d)
         d.run()
 
     def _add_to_buffer(self, id_string, surface, x, y, scale_source=None):
         self.surface_buffer[id_string] = [surface, x, y, scale_source]
-        self.tileFinished.emit(([surface, x, y, scale_source],))
+        self.tileFinished.emit(([surface, x, y, scale_source], ))
         #self.__draw_tiles(which=([surface, x, y, scale_source],))
 
     @staticmethod
@@ -275,14 +277,14 @@ class QtMap(QWidget, AbstractMap):
                     logger.exception("Could not load replacement Pixmap from Filename %s" % self.noimage_cantload)
             if scale_source == None:
                 p.begin(self.buffer)
-                p.drawPixmap(x+off_x, y+off_y, pm)
+                p.drawPixmap(x + off_x, y + off_y, pm)
                 p.end()
             else:
                 p.begin(self.buffer)
                 p.setRenderHint(QPainter.SmoothPixmapTransform, True)
                 xs, ys = scale_source
                 target = QRectF(x + off_x, y + off_y, size, size)
-                source = QRectF(xs, ys, size/2, size/2)
+                source = QRectF(xs, ys, size / 2, size / 2)
                 p.drawPixmap(target, pm, source)
                 p.end()
 
@@ -334,21 +336,21 @@ class QtSingleMarkLayer(AbstractQtLayer):
         radius_c = 10
         p.setPen(QtSingleMarkLayer.PEN_SHADOW_TARGET)
         p.drawLines(
-            QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
-            QLineF(t[0] + radius_o, t[1], t[0] + radius_i, t[1]),
-            QLineF(t[0], t[1] + radius_o, t[0], t[1] + radius_i),
-            QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i)
-            )
-        p.drawArc(QRectF(t[0] - radius_c/2, t[1] - radius_c/2, radius_c, radius_c), 0, 16*360)
+                    QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
+                    QLineF(t[0] + radius_o, t[1], t[0] + radius_i, t[1]),
+                    QLineF(t[0], t[1] + radius_o, t[0], t[1] + radius_i),
+                    QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i)
+                    )
+        p.drawArc(QRectF(t[0] - radius_c / 2, t[1] - radius_c / 2, radius_c, radius_c), 0, 16 * 360)
 
         p.setPen(QtSingleMarkLayer.PEN_TARGET)
         p.drawLines(
-            QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
-            QLineF(t[0] + radius_o, t[1], t[0] + radius_i, t[1]),
-            QLineF(t[0], t[1] + radius_o, t[0], t[1] + radius_i),
-            QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i)
-            )
-        p.drawArc(QRectF(t[0] - radius_c/2, t[1] - radius_c/2, radius_c, radius_c), 0, 16*360)
+                    QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
+                    QLineF(t[0] + radius_o, t[1], t[0] + radius_i, t[1]),
+                    QLineF(t[0], t[1] + radius_o, t[0], t[1] + radius_i),
+                    QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i)
+                    )
+        p.drawArc(QRectF(t[0] - radius_c / 2, t[1] - radius_c / 2, radius_c, radius_c), 0, 16 * 360)
         p.end()
 
 class QtOsdLayer(AbstractQtLayer):
@@ -385,7 +387,7 @@ class QtOsdLayer(AbstractQtLayer):
         if final_length_meters < 10000:
             scale_msg = "%d m" % final_length_meters
         else:
-            scale_msg = "%d km" % (final_length_meters/1000)
+            scale_msg = "%d km" % (final_length_meters / 1000)
 
         # start drawing
         self.result.fill(Qt.transparent)
@@ -428,9 +430,9 @@ class QtGeocacheLayer(AbstractQtLayer, AbstractGeocacheLayer):
     COLOR_MULTI = QColor(255, 120, 0)
     COLOR_CACHE_CENTER = QColor(0, 0, 0)
 
-    def __init__(self, pointprovider, show_cache_callback):
+    def __init__(self, get_geocaches_callback, show_cache_callback):
         AbstractQtLayer.__init__(self)
-        AbstractGeocacheLayer.__init__(self, pointprovider, show_cache_callback)
+        AbstractGeocacheLayer.__init__(self, get_geocaches_callback, show_cache_callback)
 
 
     def clicked_screen(self, screenpoint):
@@ -440,8 +442,8 @@ class QtGeocacheLayer(AbstractQtLayer, AbstractGeocacheLayer):
         AbstractGeocacheLayer.clicked_coordinate(self, center, topleft, bottomright)
 
     def draw(self):
-
-        coords = self.pointprovider.get_points_filter(self.map.get_visible_area(), self.select_found, self.MAX_NUM_RESULTS_SHOW)
+        coords = self.get_geocaches_callback(self.map.get_visible_area(), self.MAX_NUM_RESULTS_SHOW)
+        
         self.result.fill(Qt.transparent)
         if self.map.get_zoom() < self.CACHES_ZOOM_LOWER_BOUND:
             self.map.set_osd_message('Too many geocaches to display.')
@@ -619,21 +621,21 @@ class QtMarksLayer(AbstractQtLayer, AbstractMarksLayer):
                 radius_c = 10
                 p.setPen(QtSingleMarkLayer.PEN_SHADOW_TARGET)
                 p.drawLines(
-                    QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
-                    QLineF(t[0] + radius_o, t[1], t[0] + radius_i, t[1]),
-                    QLineF(t[0], t[1] + radius_o, t[0], t[1] + radius_i),
-                    QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i)
-                    )
-                p.drawArc(QRectF(t[0] - radius_c/2, t[1] - radius_c/2, radius_c, radius_c), 0, 16*360)
+                            QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
+                            QLineF(t[0] + radius_o, t[1], t[0] + radius_i, t[1]),
+                            QLineF(t[0], t[1] + radius_o, t[0], t[1] + radius_i),
+                            QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i)
+                            )
+                p.drawArc(QRectF(t[0] - radius_c / 2, t[1] - radius_c / 2, radius_c, radius_c), 0, 16 * 360)
 
                 p.setPen(QtSingleMarkLayer.PEN_TARGET)
                 p.drawLines(
-                    QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
-                    QLineF(t[0] + radius_o, t[1], t[0] + radius_i, t[1]),
-                    QLineF(t[0], t[1] + radius_o, t[0], t[1] + radius_i),
-                    QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i)
-                    )
-                p.drawArc(QRectF(t[0] - radius_c/2, t[1] - radius_c/2, radius_c, radius_c), 0, 16*360)
+                            QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
+                            QLineF(t[0] + radius_o, t[1], t[0] + radius_i, t[1]),
+                            QLineF(t[0], t[1] + radius_o, t[0], t[1] + radius_i),
+                            QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i)
+                            )
+                p.drawArc(QRectF(t[0] - radius_c / 2, t[1] - radius_c / 2, radius_c, radius_c), 0, 16 * 360)
 
         else:
             t = False
@@ -672,24 +674,24 @@ class QtMarksLayer(AbstractQtLayer, AbstractMarksLayer):
             if self.gps_has_fix:
                 p.setPen(self.PEN_ACCURACY)
                 p.setBrush(QBrush(Qt.transparent))
-                p.drawArc(loc[0] - radius_pixels/2.0 - 1, loc[1] - radius_pixels/2.0 - 1, radius_pixels, radius_pixels, 0, 16 * 360)
+                p.drawArc(loc[0] - radius_pixels / 2.0 - 1, loc[1] - radius_pixels / 2.0 - 1, radius_pixels, radius_pixels, 0, 16 * 360)
 
                 # draw moving direction, if we're moving
                 if self.gps_data.speed > 2.5: # km/h
-                    arrow = self._get_arrow_transformed(loc[0] - self.RADIUS_ARROW/2, loc[1] - self.RADIUS_ARROW/2, self.RADIUS_ARROW, self.RADIUS_ARROW, self.gps_data.bearing)
+                    arrow = self._get_arrow_transformed(loc[0] - self.RADIUS_ARROW / 2, loc[1] - self.RADIUS_ARROW / 2, self.RADIUS_ARROW, self.RADIUS_ARROW, self.gps_data.bearing)
                     p.setPen(self.PEN_POSITION_SHADOW)
                     p.drawPolyline(*arrow)
                     p.setPen(self.PEN_POSITION)
                     p.drawPolyline(*arrow)
                 else:
-                    p.drawArc(loc[0] - self.RADIUS_STANDING/2.0 , loc[1] - self.RADIUS_STANDING/2.0 - 1, self.RADIUS_STANDING + 1, self.RADIUS_STANDING + 1, 0, 16 * 360)
+                    p.drawArc(loc[0] - self.RADIUS_STANDING / 2.0, loc[1] - self.RADIUS_STANDING / 2.0 - 1, self.RADIUS_STANDING + 1, self.RADIUS_STANDING + 1, 0, 16 * 360)
             
             if self.gps_has_fix:
                 p.setBrush(self.BRUSH_CURRENT_POSITION)
             else:
                 p.setBrush(self.BRUSH_CURRENT_POSITION_NO_FIX)
             p.setPen(QPen(Qt.transparent))
-            p.drawPie(loc[0] - self.SIZE_CURRENT_POSITION/2.0 , loc[1] - self.SIZE_CURRENT_POSITION/2.0 , self.SIZE_CURRENT_POSITION + 1, self.SIZE_CURRENT_POSITION + 1, 0, 16 * 360)
+            p.drawPie(loc[0] - self.SIZE_CURRENT_POSITION / 2.0, loc[1] - self.SIZE_CURRENT_POSITION / 2.0, self.SIZE_CURRENT_POSITION + 1, self.SIZE_CURRENT_POSITION + 1, 0, 16 * 360)
             
 
         if self.gps_data != None and self.gps_has_fix:
