@@ -399,7 +399,7 @@ class QtOsdLayer(AbstractQtLayer):
 
         # osd message
         if self.map.osd_message != None:
-            p.drawText(QRect(self.OSD_BORDER_LEFTRIGHT, self.OSD_BORDER_TOPBOTTOM, 200, 20), Qt.AlignLeft, self.map.osd_message)
+            p.drawText(QRect(self.OSD_BORDER_LEFTRIGHT, self.OSD_BORDER_TOPBOTTOM, 300, 20), Qt.AlignLeft, self.map.osd_message)
 
         # scale bar text
         p.drawText(QRect(self.OSD_BORDER_LEFTRIGHT, self.map.map_height - 10 - self.OSD_BORDER_TOPBOTTOM - 20, 200, 20), Qt.AlignLeft, scale_msg)
@@ -446,7 +446,7 @@ class QtGeocacheLayer(AbstractQtLayer, AbstractGeocacheLayer):
         
         self.result.fill(Qt.transparent)
         if self.map.get_zoom() < self.CACHES_ZOOM_LOWER_BOUND:
-            self.map.set_osd_message('Too many geocaches to display.')
+            self.map.set_osd_message('Zoom in to see geocaches.')
             self.visualized_geocaches = []
             return
         elif len(coords) >= self.MAX_NUM_RESULTS_SHOW:

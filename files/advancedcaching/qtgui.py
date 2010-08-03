@@ -68,7 +68,6 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
         noimage_loading = "%s/noimage-loading.png" % dataroot
         QtMap.set_config(self.core.settings['map_providers'], self.core.settings['download_map_path'], noimage_cantload, noimage_loading)
         self.map = QtMap(self, geo.Coordinate(50, 7), 13)
-        self.setCentralWidget(self.map)
         self.osd_layer = QtOsdLayer()
         self.map.add_layer(self.osd_layer)
         #self.mark_layer = QtSingleMarkLayer(geo.Coordinate(49, 6))
@@ -77,6 +76,7 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
         self.map.add_layer(self.geocacheLayer)
         self.marksLayer = QtMarksLayer()
         self.map.add_layer(self.marksLayer)
+        self.setCentralWidget(self.map)
 
 
     def setup_ui_custom(self):
@@ -116,6 +116,7 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
         sys.exit(self.app.exec_())
 
     def __show_search_place(self):
+        #self.map.fit_to_bounds(47.301585, 55.021921, 8.407974, 10.244751)
         dialog = QtSearchDialog(self.core, self)
         dialog.show()
         dialog.locationSelected.connect(self.map.set_center)
@@ -134,7 +135,7 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
         #return self.core.pointprovider.get_points_filter(visible_area, not self.settings['options_hide_found'], maxresults)
 
     def __show_search_geocaches(self):
-        d = QtSearchGeocachesDialog(self.core, self)
+        d = QtSearchGeocachesDialog(self.core, self.map.get_center(), self.core.current_position, self)
         d.show()
 
         ##############################################

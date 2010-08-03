@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'files/qt/SearchResultsDialog.ui'
 #
-# Created: Tue Aug  3 13:52:34 2010
+# Created: Tue Aug  3 19:17:25 2010
 #      by: PyQt4 UI code generator 4.7.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,7 +12,7 @@ from PyQt4 import QtCore, QtGui
 class Ui_SearchResultsDialog(object):
     def setupUi(self, SearchResultsDialog):
         SearchResultsDialog.setObjectName("SearchResultsDialog")
-        SearchResultsDialog.resize(414, 399)
+        SearchResultsDialog.resize(667, 457)
         self.verticalLayout = QtGui.QVBoxLayout(SearchResultsDialog)
         self.verticalLayout.setObjectName("verticalLayout")
         self.tableWidgetResults = QtGui.QTableWidget(SearchResultsDialog)
@@ -22,13 +22,7 @@ class Ui_SearchResultsDialog(object):
         self.tableWidgetResults.setShowGrid(False)
         self.tableWidgetResults.setObjectName("tableWidgetResults")
         self.tableWidgetResults.setColumnCount(5)
-        self.tableWidgetResults.setRowCount(3)
-        item = QtGui.QTableWidgetItem()
-        self.tableWidgetResults.setVerticalHeaderItem(0, item)
-        item = QtGui.QTableWidgetItem()
-        self.tableWidgetResults.setVerticalHeaderItem(1, item)
-        item = QtGui.QTableWidgetItem()
-        self.tableWidgetResults.setVerticalHeaderItem(2, item)
+        self.tableWidgetResults.setRowCount(0)
         item = QtGui.QTableWidgetItem()
         self.tableWidgetResults.setHorizontalHeaderItem(0, item)
         item = QtGui.QTableWidgetItem()
@@ -56,9 +50,6 @@ class Ui_SearchResultsDialog(object):
 
     def retranslateUi(self, SearchResultsDialog):
         SearchResultsDialog.setWindowTitle(QtGui.QApplication.translate("SearchResultsDialog", "Search Results", None, QtGui.QApplication.UnicodeUTF8))
-        self.tableWidgetResults.verticalHeaderItem(0).setText(QtGui.QApplication.translate("SearchResultsDialog", "Zeile!", None, QtGui.QApplication.UnicodeUTF8))
-        self.tableWidgetResults.verticalHeaderItem(1).setText(QtGui.QApplication.translate("SearchResultsDialog", "nochnezeile", None, QtGui.QApplication.UnicodeUTF8))
-        self.tableWidgetResults.verticalHeaderItem(2).setText(QtGui.QApplication.translate("SearchResultsDialog", "undnocheine", None, QtGui.QApplication.UnicodeUTF8))
         self.tableWidgetResults.horizontalHeaderItem(0).setText(QtGui.QApplication.translate("SearchResultsDialog", "Geocache", None, QtGui.QApplication.UnicodeUTF8))
         self.tableWidgetResults.horizontalHeaderItem(1).setText(QtGui.QApplication.translate("SearchResultsDialog", "Size", None, QtGui.QApplication.UnicodeUTF8))
         self.tableWidgetResults.horizontalHeaderItem(2).setText(QtGui.QApplication.translate("SearchResultsDialog", "T", None, QtGui.QApplication.UnicodeUTF8))

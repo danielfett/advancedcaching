@@ -277,3 +277,16 @@ class Coordinate(object):
                         'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW', 'N']
 
         return directions[int(round(((angle+360.0) % 360.0)/22.5))]
+ 
+    @staticmethod
+    def get_bounds(coord_list):
+        min_lat = coord_list[0].lat
+        max_lat = coord_list[0].lat
+        min_lon = coord_list[0].lon
+        max_lon = coord_list[0].lon
+        for x in coord_list:
+            min_lat = min(min_lat, x.lat)
+            max_lat = max(max_lat, x.lat)
+            min_lon = min(min_lon, x.lon)
+            max_lon = max(max_lon, x.lon)
+        return min_lat, max_lat, min_lon, max_lon

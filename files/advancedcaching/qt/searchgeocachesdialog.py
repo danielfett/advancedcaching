@@ -44,15 +44,15 @@ class QtSearchGeocachesDialog(Ui_SearchGeocachesDialog, QDialog):
         ('all/other', geocaching.GeocacheCoordinate.TYPE_UNKNOWN)
     ]
 
-    def __init__(self, core, parent=None):
+    def __init__(self, core, map_position, user_position, parent=None):
         QDialog.__init__(self, parent)
         self.core = core
         self.setupUi(self)
         self.populateUi()
         self.setModal(True)
         self.dialogButtonBox.clicked.connect(self.__button_clicked)
-        self.target = self.core.current_target
-        self.position = self.core.current_position
+        self.map_position = map_position
+        self.user_position = user_position
 
 
     def populateUi(self):
@@ -64,9 +64,9 @@ class QtSearchGeocachesDialog(Ui_SearchGeocachesDialog, QDialog):
     def __combo_box_changed(self, index):
         self.spinBoxRadius.setEnabled(index != 0)
         if index == 1:
-            text = self.position.get_latlon() if self.position != None else 'not available'
+            text = self.map_position.get_latlon() if self.map_position != None else 'not available'
         elif index == 2:
-            text = self.target.get_latlon() if self.target != None else 'not available'
+            text = self.user_position.get_latlon() if self.user_position != None else 'not available'
         else:
             text = ''
         self.labelLocation.setText(d(text))
@@ -94,10 +94,10 @@ class QtSearchGeocachesDialog(Ui_SearchGeocachesDialog, QDialog):
         # Location & Radius
 
         i = self.comboBoxLocation.currentIndex()
-        if i == 1 and self.position != None:
-            center = self.position
-        elif i == 2 and self.target != None:
-            center = self.target
+        if i == 1 and self.map_position != None:
+            center = self.map_position
+        elif i == 2 and self.user_position != None:
+            center = self.user_position
         else:
             center = None
 
@@ -106,7 +106,7 @@ class QtSearchGeocachesDialog(Ui_SearchGeocachesDialog, QDialog):
             sqrt_2 = 1.41421356
             c1 = center.transform(-45, radius * 1000 * sqrt_2)
             c2 = center.transform(-45 + 180, radius * 1000 * sqrt_2)
-            location = (c1, c2)
+            location = (c2, c1)
             logger.debug("Location: %s %s" % location)
         else:
             location = None
@@ -143,7 +143,7 @@ class QtSearchGeocachesDialog(Ui_SearchGeocachesDialog, QDialog):
 
         diff_min = r(self.doubleSpinBoxDifficultyMin.value())
         diff_max = r(self.doubleSpinBoxDifficultyMax.value() + 0.5)
-        if diff_min == 1 and diff_max == 5:
+        if diff_min == 1 and diff_max == 5.5:
             difficulties = None
         else:
             # range doesn't support floats!
@@ -152,7 +152,7 @@ class QtSearchGeocachesDialog(Ui_SearchGeocachesDialog, QDialog):
 
         terr_min = r(self.doubleSpinBoxTerrainMin.value())
         terr_max = r(self.doubleSpinBoxTerrainMax.value() + 0.5)
-        if terr_min == 1 and terr_max == 5:
+        if terr_min == 1 and terr_max == 5.5:
             terrains = None
         else:
             # range doesn't support floats!
@@ -160,10 +160,10 @@ class QtSearchGeocachesDialog(Ui_SearchGeocachesDialog, QDialog):
         logger.debug("Terrains: %s" % terrains)
 
         results = self.core.get_points_filter(found=found, name_search=name, size=sizes, terrain=terrains, diff=difficulties, ctype=types, marked=marked, location=location)
-        logger.debug("Found %d results" % len(results))
+        logger.debug("Found %d results" % len(results[0]))
 
         self.__show_results(results)
 
     def __show_results(self, results):
-        d = QtSearchResultsDialog(results)
-        d.show()
+        d = QtSearchResultsDialog(self.core)
+        d.show(results[0])

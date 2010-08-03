@@ -149,6 +149,29 @@ class AbstractMap():
         if update:
             self._draw_map()
 
+
+    def fit_to_bounds(self, minlat, maxlat, minlon, maxlon):
+        if minlat == maxlat and minlon == maxlon:
+            self.set_center(geo.Coordinate(minlat, minlon))
+            self.set_zoom(self.get_max_zoom())
+            return
+        logger.debug("Settings Bounds: lat(%f, %f) lon(%f, %f)" % (minlat, maxlat, minlon, maxlon))
+        req_deg_per_pix_lat = (maxlat - minlat) / self.map_height
+        prop_zoom_lat = math.log(((180.0/req_deg_per_pix_lat) / self.tile_loader.TILE_SIZE), 2)
+
+        req_deg_per_pix_lon = (maxlon - minlon) / self.map_width
+        prop_zoom_lon = math.log(((360.0/req_deg_per_pix_lon) / self.tile_loader.TILE_SIZE), 2)
+
+        target_zoom = math.floor(min(prop_zoom_lat, prop_zoom_lon))
+        logger.debug("Proposed zoom lat: %f, proposed zoom lon: %f, target: %f" %(prop_zoom_lat, prop_zoom_lon, target_zoom))
+        
+        center = geo.Coordinate((maxlat + minlat) / 2.0, (maxlon + minlon) / 2.0)
+        logger.debug("New Center: %s" % center)
+
+        self.set_center(center, False)
+        self.set_zoom(max(min(target_zoom, self.get_max_zoom()), self.get_min_zoom()))
+
+
         ##############################################
         #
         # Configuration
@@ -203,8 +226,14 @@ class AbstractMap():
         return coord
 
     def get_visible_area(self):
-        return (self.screenpoint2coord((0, 0)), self.screenpoint2coord((self.map_width, self.map_height)))
+        print self.map_width, self.map_height
+        a = self.screenpoint2coord((0, 0))
+        b = self.screenpoint2coord((self.map_width, self.map_height))
+        return geo.Coordinate(min(a.lat, b.lat), min(a.lon, b.lon)), geo.Coordinate(max(a.lat, b.lat), max(a.lon, b.lon))
 
+    @staticmethod
+    def in_area(coord, area):
+        return (coord.lat > area[0].lat and coord.lat < area[1].lat and coord.lon > area[0].lon and coord.lon < area[1].lon)
 
     def _check_click(self, offset_x, offset_y, ev_x, ev_y):
         if offset_x ** 2 + offset_y ** 2 < self.CLICK_MAX_RADIUS ** 2:

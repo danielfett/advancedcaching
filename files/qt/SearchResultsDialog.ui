@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>414</width>
-    <height>399</height>
+    <width>667</width>
+    <height>457</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -70,21 +70,6 @@
      <attribute name="verticalHeaderStretchLastSection">
       <bool>false</bool>
      </attribute>
-     <row>
-      <property name="text">
-       <string>Zeile!</string>
-      </property>
-     </row>
-     <row>
-      <property name="text">
-       <string>nochnezeile</string>
-      </property>
-     </row>
-     <row>
-      <property name="text">
-       <string>undnocheine</string>
-      </property>
-     </row>
      <column>
       <property name="text">
        <string>Geocache</string>
