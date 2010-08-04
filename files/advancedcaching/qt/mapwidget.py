@@ -361,15 +361,39 @@ class QtOsdLayer(AbstractQtLayer):
     OSD_BRUSH = QBrush(QColor(0, 0, 0))
 
     OSD_BORDER_TOPBOTTOM = 25
-    OSD_BORDER_LEFTRIGHT = 35
+    OSD_BORDER_LEFTRIGHT = 10
+
+    BUTTON_SIZE = 35
+    BUTTON_DISTANCE = 10
+
+    BUTTON_PEN = QPen(QColor(0, 0, 0))
+    BUTTON_BRUSH = QBrush(QColor(255, 255, 255, 170))
+    BUTTON_SIGN_PEN = QPen(Qt.transparent)
+    BUTTON_SIGN_BRUSH = QBrush(QColor(100, 100, 100))
+    BUTTON_SIGN_DISABLED_PEN = QPen(Qt.transparent)
+    BUTTON_SIGN_DISABLED_BRUSH = QBrush(QColor(200, 200, 200))
+
+    SIGN_WIDTH = 7
+    SIGN_SIZE = 0.7
 
     def __init__(self):
         AbstractQtLayer.__init__(self)
+        self.click_zoom_in = None
+        self.click_zoom_out = None
 
     @staticmethod
     def set_layout(message_draw_font, message_draw_color):
         QtOsdLayer.MESSAGE_DRAW_FONT = message_draw_font
         QtOsdLayer.MESSAGE_DRAW_COLOR = message_draw_color
+
+    def clicked_screen(self, screenpoint):
+        if self.click_zoom_in == None or self.click_zoom_out == None:
+            return
+        if self.click_zoom_in.contains(*screenpoint):
+            self.map.zoom_in()
+        elif self.click_zoom_out.contains(*screenpoint):
+            self.map.zoom_out()
+        return False
 
     def draw(self):
         
@@ -408,7 +432,38 @@ class QtOsdLayer(AbstractQtLayer):
         p.setPen(QtOsdLayer.OSD_PEN)
         p.setBrush(QtOsdLayer.OSD_BRUSH)
         p.drawRect(position[0], position[1] + 10, final_length_pixels, 3)
+
+        # zoom buttons
+        bd = self.BUTTON_DISTANCE
+        zoom_in_pos_y = self.map.map_height/2.0 - bd/2.0 - self.BUTTON_SIZE
+        zoom_out_pos_y = self.map.map_height/2.0 + bd/2.0
+        self.click_zoom_in = self.__draw_zoom_button(self.OSD_BORDER_LEFTRIGHT, zoom_in_pos_y, 1)
+        self.click_zoom_out = self.__draw_zoom_button(self.OSD_BORDER_LEFTRIGHT, zoom_out_pos_y, -1)
+        
+        
         p.end()
+
+    def __draw_zoom_button(self, pos_x, pos_y, direction = -1):
+        bs = self.BUTTON_SIZE
+        p = self.painter
+        rect = QRectF(pos_x, pos_y, bs, bs)
+        p.setPen(self.BUTTON_PEN)
+        p.setBrush(self.BUTTON_BRUSH)
+        p.drawRoundedRect(rect, 5, 5)
+        sign = QRectF(pos_x + ((1-self.SIGN_SIZE)*bs)/2.0, pos_y + bs/2.0 - self.SIGN_WIDTH/2.0, bs * self.SIGN_SIZE, self.SIGN_WIDTH)
+        new_zoom = self.map.get_zoom() + direction
+        if new_zoom < self.map.get_min_zoom() or new_zoom > self.map.get_max_zoom():
+            p.setPen(self.BUTTON_SIGN_DISABLED_PEN)
+            p.setBrush(self.BUTTON_SIGN_DISABLED_BRUSH)
+        else:
+            p.setPen(self.BUTTON_SIGN_PEN)
+            p.setBrush(self.BUTTON_SIGN_BRUSH)
+        p.drawRect(sign)
+        if direction == 1:
+            sign = QRectF(pos_x + bs/2.0 - self.SIGN_WIDTH/2.0, pos_y + ((1-self.SIGN_SIZE)*bs)/2.0, self.SIGN_WIDTH, bs * self.SIGN_SIZE)
+            p.drawRect(sign)
+        return rect
+
 
 
 logger = logging.getLogger('geocachelayer')

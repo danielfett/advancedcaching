@@ -72,14 +72,14 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
         noimage_loading = "%s/noimage-loading.png" % dataroot
         QtMap.set_config(self.core.settings['map_providers'], self.core.settings['download_map_path'], noimage_cantload, noimage_loading)
         self.map = QtMap(self, geo.Coordinate(50, 7), 13)
-        self.osd_layer = QtOsdLayer()
-        self.map.add_layer(self.osd_layer)
         #self.mark_layer = QtSingleMarkLayer(geo.Coordinate(49, 6))
         #self.map.add_layer(self.mark_layer)
         self.geocacheLayer = QtGeocacheLayer(self.__get_geocaches_callback, self.__show_cache)
         self.map.add_layer(self.geocacheLayer)
         self.marksLayer = QtMarksLayer()
         self.map.add_layer(self.marksLayer)
+        self.osd_layer = QtOsdLayer()
+        self.map.add_layer(self.osd_layer)
         self.setCentralWidget(self.map)
 
 
