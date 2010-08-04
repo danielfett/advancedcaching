@@ -45,14 +45,18 @@ class QtSearchResultsDialog(Ui_SearchResultsDialog, QDialog):
         self.tableWidgetResults.clearContents()
         self.tableWidgetResults.setRowCount(len(results))
         row = 0
+        max_size_first_col = 0
         for g in results:
-            print g
             col = 0
-            for item in self.__make_items(g):
+            items = self.__make_items(g)
+            # remember size of first col
+            max_size_first_col = max(max_size_first_col, items[0].sizeHint().width())
+            for item in items:
                 self.tableWidgetResults.setItem(row, col, item)
                 col += 1
             row += 1
         self.tableWidgetResults.resizeColumnsToContents()
+        self.tableWidgetResults.setColumnWidth(0, 300)
         self.tableWidgetResults.selectAll()
 
     def __make_items(self, cache):
@@ -79,16 +83,13 @@ class QtSearchResultsDialog(Ui_SearchResultsDialog, QDialog):
         self.geocacheLayer = QtGeocacheLayer(self.__get_geocaches_callback, self.__show_cache)
         self.osdLayer = QtOsdLayer()
 
-        self.geocacheLayer.TOO_MANY_POINTS = 1001
-        self.geocacheLayer.MAX_NUM_RESULTS_SHOW = 1001
-        self.geocacheLayer.CACHES_ZOOM_LOWER_BOUND = 1
         self.map.add_layer(self.geocacheLayer)
         self.map.add_layer(self.osdLayer)
         #self.map = QLabel("test")
         self.layout().insertWidget(1, self.map)
         self.map.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         self.map.show()
-        self.centralLayout = QVBoxLayout(self)
+        self.centralLayout = QVBoxLayout()
 
         self.splitter = QSplitter()
         self.splitter.setOrientation(Qt.Vertical)
@@ -100,6 +101,7 @@ class QtSearchResultsDialog(Ui_SearchResultsDialog, QDialog):
         l.deleteLater()
         QCoreApplication.sendPostedEvents(l, QEvent.DeferredDelete)
         self.setLayout(self.centralLayout)
+        self.splitter.setSizes([1000, 1000])
         self.tableWidgetResults.itemSelectionChanged.connect(self.__selection_changed)
 
     def __selection_changed(self):

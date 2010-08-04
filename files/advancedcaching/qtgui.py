@@ -64,6 +64,10 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
         ##############################################
         
     def setup_ui_map(self, dataroot):
+
+        QtGeocacheLayer.TOO_MANY_POINTS = 500
+        QtGeocacheLayer.MAX_NUM_RESULTS_SHOW = 1001
+        QtGeocacheLayer.CACHES_ZOOM_LOWER_BOUND = 2
         noimage_cantload = "%s/noimage-cantload.png" % dataroot
         noimage_loading = "%s/noimage-loading.png" % dataroot
         QtMap.set_config(self.core.settings['map_providers'], self.core.settings['download_map_path'], noimage_cantload, noimage_loading)

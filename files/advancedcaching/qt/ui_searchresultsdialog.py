@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'files/qt/SearchResultsDialog.ui'
 #
-# Created: Tue Aug  3 19:17:25 2010
+# Created: Wed Aug  4 11:15:00 2010
 #      by: PyQt4 UI code generator 4.7.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -12,14 +12,21 @@ from PyQt4 import QtCore, QtGui
 class Ui_SearchResultsDialog(object):
     def setupUi(self, SearchResultsDialog):
         SearchResultsDialog.setObjectName("SearchResultsDialog")
-        SearchResultsDialog.resize(667, 457)
+        SearchResultsDialog.resize(613, 605)
         self.verticalLayout = QtGui.QVBoxLayout(SearchResultsDialog)
         self.verticalLayout.setObjectName("verticalLayout")
         self.tableWidgetResults = QtGui.QTableWidget(SearchResultsDialog)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.tableWidgetResults.sizePolicy().hasHeightForWidth())
+        self.tableWidgetResults.setSizePolicy(sizePolicy)
+        self.tableWidgetResults.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
         self.tableWidgetResults.setAlternatingRowColors(True)
         self.tableWidgetResults.setSelectionMode(QtGui.QAbstractItemView.ExtendedSelection)
         self.tableWidgetResults.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         self.tableWidgetResults.setShowGrid(False)
+        self.tableWidgetResults.setWordWrap(True)
         self.tableWidgetResults.setObjectName("tableWidgetResults")
         self.tableWidgetResults.setColumnCount(5)
         self.tableWidgetResults.setRowCount(0)
@@ -36,7 +43,9 @@ class Ui_SearchResultsDialog(object):
         self.tableWidgetResults.horizontalHeader().setVisible(True)
         self.tableWidgetResults.horizontalHeader().setCascadingSectionResizes(False)
         self.tableWidgetResults.horizontalHeader().setHighlightSections(True)
+        self.tableWidgetResults.horizontalHeader().setMinimumSectionSize(40)
         self.tableWidgetResults.horizontalHeader().setSortIndicatorShown(True)
+        self.tableWidgetResults.horizontalHeader().setStretchLastSection(False)
         self.tableWidgetResults.verticalHeader().setVisible(False)
         self.tableWidgetResults.verticalHeader().setSortIndicatorShown(False)
         self.tableWidgetResults.verticalHeader().setStretchLastSection(False)
@@ -50,6 +59,7 @@ class Ui_SearchResultsDialog(object):
 
     def retranslateUi(self, SearchResultsDialog):
         SearchResultsDialog.setWindowTitle(QtGui.QApplication.translate("SearchResultsDialog", "Search Results", None, QtGui.QApplication.UnicodeUTF8))
+        self.tableWidgetResults.setSortingEnabled(True)
         self.tableWidgetResults.horizontalHeaderItem(0).setText(QtGui.QApplication.translate("SearchResultsDialog", "Geocache", None, QtGui.QApplication.UnicodeUTF8))
         self.tableWidgetResults.horizontalHeaderItem(1).setText(QtGui.QApplication.translate("SearchResultsDialog", "Size", None, QtGui.QApplication.UnicodeUTF8))
         self.tableWidgetResults.horizontalHeaderItem(2).setText(QtGui.QApplication.translate("SearchResultsDialog", "T", None, QtGui.QApplication.UnicodeUTF8))

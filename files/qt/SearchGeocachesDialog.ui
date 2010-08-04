@@ -270,12 +270,12 @@
         </item>
         <item>
          <property name="text">
-          <string>around my position</string>
+          <string>around the current map center</string>
          </property>
         </item>
         <item>
          <property name="text">
-          <string>around the current map center</string>
+          <string>around my position</string>
          </property>
         </item>
        </widget>

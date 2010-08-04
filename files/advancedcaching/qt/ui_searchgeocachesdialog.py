@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'files/qt/SearchGeocachesDialog.ui'
 #
-# Created: Tue Aug  3 19:17:25 2010
+# Created: Wed Aug  4 11:15:00 2010
 #      by: PyQt4 UI code generator 4.7.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -204,8 +204,8 @@ class Ui_SearchGeocachesDialog(object):
         self.groupBox_2.setTitle(QtGui.QApplication.translate("SearchGeocachesDialog", "Location", None, QtGui.QApplication.UnicodeUTF8))
         self.label_2.setText(QtGui.QApplication.translate("SearchGeocachesDialog", "Location", None, QtGui.QApplication.UnicodeUTF8))
         self.comboBoxLocation.setItemText(0, QtGui.QApplication.translate("SearchGeocachesDialog", "anywhere", None, QtGui.QApplication.UnicodeUTF8))
-        self.comboBoxLocation.setItemText(1, QtGui.QApplication.translate("SearchGeocachesDialog", "around my position", None, QtGui.QApplication.UnicodeUTF8))
-        self.comboBoxLocation.setItemText(2, QtGui.QApplication.translate("SearchGeocachesDialog", "around the current map center", None, QtGui.QApplication.UnicodeUTF8))
+        self.comboBoxLocation.setItemText(1, QtGui.QApplication.translate("SearchGeocachesDialog", "around the current map center", None, QtGui.QApplication.UnicodeUTF8))
+        self.comboBoxLocation.setItemText(2, QtGui.QApplication.translate("SearchGeocachesDialog", "around my position", None, QtGui.QApplication.UnicodeUTF8))
         self.label_3.setText(QtGui.QApplication.translate("SearchGeocachesDialog", "Radius", None, QtGui.QApplication.UnicodeUTF8))
         self.spinBoxRadius.setSuffix(QtGui.QApplication.translate("SearchGeocachesDialog", " km", None, QtGui.QApplication.UnicodeUTF8))
         self.groupBox_3.setTitle(QtGui.QApplication.translate("SearchGeocachesDialog", "Details (1)", None, QtGui.QApplication.UnicodeUTF8))

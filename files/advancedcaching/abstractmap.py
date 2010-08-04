@@ -226,7 +226,6 @@ class AbstractMap():
         return coord
 
     def get_visible_area(self):
-        print self.map_width, self.map_height
         a = self.screenpoint2coord((0, 0))
         b = self.screenpoint2coord((self.map_width, self.map_height))
         return geo.Coordinate(min(a.lat, b.lat), min(a.lon, b.lon)), geo.Coordinate(max(a.lat, b.lat), max(a.lon, b.lon))
