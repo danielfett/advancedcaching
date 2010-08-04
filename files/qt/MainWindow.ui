@@ -98,8 +98,6 @@
     <bool>false</bool>
    </attribute>
    <addaction name="separator"/>
-   <addaction name="actionZoom_In"/>
-   <addaction name="actionZoom_Out"/>
    <addaction name="actionUpdate_Geocache_Map"/>
    <addaction name="actionDownload_Details_for_all_visible_Geocaches"/>
   </widget>
@@ -158,30 +156,6 @@
    </property>
    <property name="text">
     <string>Blub 2</string>
-   </property>
-  </action>
-  <action name="actionZoom_In">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="icon">
-    <iconset resource="icons.qrc">
-     <normaloff>:/icons/advancedcaching/data/accept.png</normaloff>:/icons/advancedcaching/data/accept.png</iconset>
-   </property>
-   <property name="text">
-    <string>Zoom In</string>
-   </property>
-   <property name="toolTip">
-    <string>Zooooom!</string>
-   </property>
-  </action>
-  <action name="actionZoom_Out">
-   <property name="icon">
-    <iconset resource="icons.qrc">
-     <normaloff>:/icons/advancedcaching/data/asterisk_yellow.png</normaloff>:/icons/advancedcaching/data/asterisk_yellow.png</iconset>
-   </property>
-   <property name="text">
-    <string>Zoom Out</string>
    </property>
   </action>
   <action name="actionSearch_Place">

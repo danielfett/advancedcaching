@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'files/qt/MainWindow.ui'
 #
-# Created: Wed Aug  4 11:14:58 2010
+# Created: Wed Aug  4 14:54:48 2010
 #      by: PyQt4 UI code generator 4.7.2
 #
 # WARNING! All changes made in this file will be lost!
@@ -71,28 +71,17 @@ class Ui_MainWindow(object):
         self.actionBlub_2 = QtGui.QAction(MainWindow)
         self.actionBlub_2.setCheckable(True)
         self.actionBlub_2.setObjectName("actionBlub_2")
-        self.actionZoom_In = QtGui.QAction(MainWindow)
-        self.actionZoom_In.setCheckable(True)
-        icon = QtGui.QIcon()
-        icon.addPixmap(QtGui.QPixmap(":/icons/advancedcaching/data/accept.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.actionZoom_In.setIcon(icon)
-        self.actionZoom_In.setObjectName("actionZoom_In")
-        self.actionZoom_Out = QtGui.QAction(MainWindow)
-        icon1 = QtGui.QIcon()
-        icon1.addPixmap(QtGui.QPixmap(":/icons/advancedcaching/data/asterisk_yellow.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.actionZoom_Out.setIcon(icon1)
-        self.actionZoom_Out.setObjectName("actionZoom_Out")
         self.actionSearch_Place = QtGui.QAction(MainWindow)
         self.actionSearch_Place.setObjectName("actionSearch_Place")
         self.actionUpdate_Geocache_Map = QtGui.QAction(MainWindow)
-        icon2 = QtGui.QIcon()
-        icon2.addPixmap(QtGui.QPixmap(":/icons/advancedcaching/data/emoticon_grin.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.actionUpdate_Geocache_Map.setIcon(icon2)
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(":/icons/advancedcaching/data/emoticon_grin.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.actionUpdate_Geocache_Map.setIcon(icon)
         self.actionUpdate_Geocache_Map.setObjectName("actionUpdate_Geocache_Map")
         self.actionDownload_Details_for_all_visible_Geocaches = QtGui.QAction(MainWindow)
-        icon3 = QtGui.QIcon()
-        icon3.addPixmap(QtGui.QPixmap(":/icons/advancedcaching/data/comment.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
-        self.actionDownload_Details_for_all_visible_Geocaches.setIcon(icon3)
+        icon1 = QtGui.QIcon()
+        icon1.addPixmap(QtGui.QPixmap(":/icons/advancedcaching/data/comment.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.actionDownload_Details_for_all_visible_Geocaches.setIcon(icon1)
         self.actionDownload_Details_for_all_visible_Geocaches.setObjectName("actionDownload_Details_for_all_visible_Geocaches")
         self.actionOptions = QtGui.QAction(MainWindow)
         self.actionOptions.setObjectName("actionOptions")
@@ -116,8 +105,6 @@ class Ui_MainWindow(object):
         self.menubar.addAction(self.menuHelp.menuAction())
         self.menubar.addAction(self.menuTest.menuAction())
         self.toolBar.addSeparator()
-        self.toolBar.addAction(self.actionZoom_In)
-        self.toolBar.addAction(self.actionZoom_Out)
         self.toolBar.addAction(self.actionUpdate_Geocache_Map)
         self.toolBar.addAction(self.actionDownload_Details_for_all_visible_Geocaches)
 
@@ -142,9 +129,6 @@ class Ui_MainWindow(object):
         self.actionBla.setText(QtGui.QApplication.translate("MainWindow", "bla", None, QtGui.QApplication.UnicodeUTF8))
         self.actionBlub_1.setText(QtGui.QApplication.translate("MainWindow", "Blub 1", None, QtGui.QApplication.UnicodeUTF8))
         self.actionBlub_2.setText(QtGui.QApplication.translate("MainWindow", "Blub 2", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionZoom_In.setText(QtGui.QApplication.translate("MainWindow", "Zoom In", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionZoom_In.setToolTip(QtGui.QApplication.translate("MainWindow", "Zooooom!", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionZoom_Out.setText(QtGui.QApplication.translate("MainWindow", "Zoom Out", None, QtGui.QApplication.UnicodeUTF8))
         self.actionSearch_Place.setText(QtGui.QApplication.translate("MainWindow", "Search Place", None, QtGui.QApplication.UnicodeUTF8))
         self.actionUpdate_Geocache_Map.setText(QtGui.QApplication.translate("MainWindow", "Update Geocache Locations", None, QtGui.QApplication.UnicodeUTF8))
         self.actionDownload_Details_for_all_visible_Geocaches.setText(QtGui.QApplication.translate("MainWindow", "Download Details for visible Geocaches", None, QtGui.QApplication.UnicodeUTF8))

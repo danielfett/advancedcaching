@@ -3,7 +3,34 @@ from sqlite3 import connect, Row
 
 from copy import copy
 
-
+'''
+ add table "waypoints" with fields...
+ - geocache
+ - lat/lon
+ - calc-string
+ - description
+ add info field "downloaded" to geocaches
+ then...
+ - parse description after download
+ - when showing a geocache, extract waypoints (in geocaching.py) with..
+   if has downloaded date:
+   - wpts from waypoints table
+   - waypoints-list:
+     - those without calc-string (i.e. with lat/lon)
+     - those with calc string and full set of variables
+   - calc-coord-list:
+     - those with calc string
+   if no download date but with description:
+   emulate get_waypoint_list, but set NO_EDIT flag
+  - editing:
+   user may edit latlon/calcstring for existing coordinates
+  - adding:
+   user may add new coordinate, either with latlon or with calcstring
+  - updating:
+   if coordinate entry exists, don't overwrite it.
+  - deleting:
+   user may delete entries
+'''
 
 class PointProvider():
     MAX_RESULTS = 1000

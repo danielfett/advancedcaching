@@ -119,18 +119,24 @@ class AbstractMap():
     def get_center(self):
         return self.center_latlon
 
-    def relative_zoom(self, direction=None):
+    def relative_zoom(self, direction=None, update=True):
         if direction != None:
-            self.set_zoom(self.zoom + direction)
+            self.set_zoom(self.zoom + direction, update)
+
+    def relative_zoom_preserve_center_at(self, screenpoint, direction):
+        offs = screenpoint[0] - self.map_width/2.0, screenpoint[1] - self.map_height/2.0
+        self.set_center(self.screenpoint2coord(screenpoint), False)
+        self.relative_zoom(direction, False)
+        self._move_map_relative(-offs[0], -offs[1])
 
 
-    def set_zoom(self, newzoom):
+    def set_zoom(self, newzoom, update = True):
         if newzoom < 0 or newzoom > self.tile_loader.MAX_ZOOM:
             return
         logger.debug('New zoom level: %d' % newzoom)
         self.zoom = newzoom
         self.total_map_width = (256 * 2**self.zoom)
-        self.set_center(self.center_latlon)
+        self.set_center(self.center_latlon, update)
 
     def get_zoom(self):
         return self.zoom

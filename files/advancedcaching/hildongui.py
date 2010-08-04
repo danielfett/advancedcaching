@@ -1547,4 +1547,4 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
         for i in ['options_username', 'options_password', 'download_noimages', 'options_show_name', 'options_hide_found', 'options_show_html_description', 'options_map_double_size', 'options_rotate_screen', 'tts_interval']:
             settings[i] = self.settings[i]
-        self.core.save_settings(settings, self)
+        caller.save_settings(settings, self)

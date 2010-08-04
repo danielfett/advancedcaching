@@ -28,6 +28,7 @@ from qt.ui_mainwindow import Ui_MainWindow
 from qt.geocachedetailswindow import QtGeocacheDetailsWindow
 from qt.searchgeocachesdialog import QtSearchGeocachesDialog
 from qt.searchdialog import QtSearchDialog
+from qt.optionsdialog import QtOptionsDialog
 import sys
 import geo
 from gui import Gui
@@ -49,10 +50,6 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
         self.setup_ui_custom()
         self.setup_ui_signals()
 
-    def __on_settings_changed(self, caller, settings, source):
-        if 'last_target_lat' in settings:
-            self.set_target(geo.Coordinate(settings['last_target_lat'], settings['last_target_lon']))
-
     def set_target(self, cache):
         self.core.set_target(cache)
 
@@ -67,7 +64,7 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
 
         QtGeocacheLayer.TOO_MANY_POINTS = 500
         QtGeocacheLayer.MAX_NUM_RESULTS_SHOW = 1001
-        QtGeocacheLayer.CACHES_ZOOM_LOWER_BOUND = 2
+        QtGeocacheLayer.CACHES_ZOOM_LOWER_BOUND = 5
         noimage_cantload = "%s/noimage-cantload.png" % dataroot
         noimage_loading = "%s/noimage-loading.png" % dataroot
         QtMap.set_config(self.core.settings['map_providers'], self.core.settings['download_map_path'], noimage_cantload, noimage_loading)
@@ -101,17 +98,17 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
         self.progressBar.hide()
 
     def setup_ui_signals(self):
-        self.actionZoom_In.triggered.connect(self.map.zoom_in)
-        self.actionZoom_Out.triggered.connect(self.map.zoom_out)
         self.actionSearch_Place.triggered.connect(self.__show_search_place)
         self.actionUpdate_Geocache_Map.triggered.connect(self.__download_overview)
         self.actionDownload_Details_for_all_visible_Geocaches.triggered.connect(self.__download_details_map)
         self.actionSearch_Geocaches.triggered.connect(self.__show_search_geocaches)
+        self.actionOptions.triggered.connect(self.__show_options)
         self.map.centerChanged.connect(self.__update_progress_bar)
         self.core.connect('target-changed', self.marksLayer.on_target_changed)
         self.core.connect('good-fix', self.marksLayer.on_good_fix)
         self.core.connect('no-fix', self.marksLayer.on_no_fix)
         self.core.connect('settings-changed', self.__on_settings_changed)
+        self.core.connect('save-settings', self._on_save_settings)
         
 
     def show(self):
@@ -119,34 +116,48 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
         self.core.connect('map-marks-changed', lambda caller: self.geocacheLayer.refresh())
         sys.exit(self.app.exec_())
 
-    def __show_search_place(self):
-        #self.map.fit_to_bounds(47.301585, 55.021921, 8.407974, 10.244751)
-        dialog = QtSearchDialog(self.core, self)
-        dialog.show()
-        dialog.locationSelected.connect(self.map.set_center)
+    def __get_geocaches_callback(self, visible_area, maxresults):
+        return self.core.pointprovider.get_points_filter(visible_area, None, maxresults)
+        #return self.core.pointprovider.get_points_filter(visible_area, not self.settings['options_hide_found'], maxresults)
 
-    def __update_progress_bar(self):
-        text = self.map.get_center().get_latlon()
-        self.labelPosition.setText(d(text))
+
+        ##############################################
+        #
+        # show subwindows
+        #
+        ##############################################
+
+    def __show_search_geocaches(self):
+        d = QtSearchGeocachesDialog(self.core, self.map.get_center(), self.core.current_position, self)
+        d.show()
 
     def __show_cache(self, geocache):
         window = QtGeocacheDetailsWindow(self.core, self)
         window.show_geocache(geocache)
         window.show()
 
-    def __get_geocaches_callback(self, visible_area, maxresults):
-        return self.core.pointprovider.get_points_filter(visible_area, None, maxresults)
-        #return self.core.pointprovider.get_points_filter(visible_area, not self.settings['options_hide_found'], maxresults)
+    def __show_search_place(self):
+        #self.map.fit_to_bounds(47.301585, 55.021921, 8.407974, 10.244751)
+        dialog = QtSearchDialog(self.core, self)
+        dialog.show()
+        dialog.locationSelected.connect(self.map.set_center)
 
-    def __show_search_geocaches(self):
-        d = QtSearchGeocachesDialog(self.core, self.map.get_center(), self.core.current_position, self)
-        d.show()
+    def __show_options(self):
+        dialog = QtOptionsDialog(self.core, self.core.settings, self)
+        dialog.setModal(True)
+        dialog.saveSettings.connect(lambda: self.core.save_settings(dialog.get_settings(), self))
+        dialog.show()
+
 
         ##############################################
         #
         # called by Core and Signals
         #
         ##############################################
+
+    def __update_progress_bar(self):
+        text = self.map.get_center().get_latlon()
+        self.labelPosition.setText(d(text))
 
     def set_download_progress(self, fraction, text=''):
         self.progressBar.setValue(int(100 * fraction))
@@ -178,5 +189,29 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
 
 
         
+        ##############################################
+        #
+        # Settings handling
+        #
+        ##############################################
+
+    def _on_save_settings(self, caller):
+        c = self.map.get_center()
+        settings['map_position_lat'] = c.lat
+        settings['map_position_lon'] = c.lon
+        settings['map_zoom'] = self.map.get_zoom()
+        settings['map_follow_position'] = self.marksLayer.get_follow_position()
+
+        #if self.current_cache != None:
+        #    settings['last_selected_geocache'] = self.current_cache.name
+
+        #for i in ['options_username', 'options_password', 'download_noimages', 'options_show_name', 'options_hide_found', 'options_show_html_description', 'options_map_double_size', 'options_rotate_screen', 'tts_interval']:
+        #    settings[i] = self.settings[i]
+        caller.save_settings(settings, self)
+
+    def __on_settings_changed(self, caller, settings, source):
+        if 'last_target_lat' in settings:
+            self.set_target(geo.Coordinate(settings['last_target_lat'], settings['last_target_lon']))
+
 
 

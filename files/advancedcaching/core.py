@@ -74,7 +74,8 @@ else:
     import cli
     gui = cli.Cli
 
-    
+logger = logging.getLogger('core')
+
 class Core(gobject.GObject):
 
     __gsignals__ = {
@@ -338,42 +339,58 @@ class Core(gobject.GObject):
     #
     ##############################################
 
+    '''
+    This should be called to update the settings throughout all components.
+    '''
     def save_settings(self, settings, source):
+        logger.debug("Got settings update from %s" % source)
+        
         self.settings.update(settings)
         self.emit('settings-changed', settings, source)
 
+    '''
+    This is called when settings have changed.
+    '''
     def __on_settings_changed(self, caller, settings, source):
+        logger.debug("Settings where changed by %s." % source)
         if source == self:
             return
         if 'options_username' in settings and 'options_password' in settings:
             self.downloader.update_userdata(settings['options_username'], settings['options_password'])
 
+    '''
+    This is called when settings shall be saved, calling save_settings afterwards.
+    '''
     def __on_save_settings(self, caller):
+        logger.debug("Assembling update for settings, on behalf of %s" % caller)
         settings = {
             'last_target_lat': self.current_target.lat,
             'last_target_lon': self.current_target.lon
         }
         caller.save_settings(settings, self)
-                
+    
     def __del__(self):
+        logger.debug("Somebody is trying to kill me, saving the settings.")
         self.emit('save-settings')
         self.__write_config()
 
     # called by gui
     def on_destroy(self):
+        logger.debug("Somebody is being killed, saving the settings.")
         self.emit('save-settings')
         self.__write_config()
 
     # called by gui
-    def on_config_changed(self, new_settings):
-        self.settings = new_settings
-        self.downloader.update_userdata(self.settings['options_username'], self.settings['options_password'])
-        self.__write_config()
+    #def on_config_changed(self, new_settings):
+    #    self.settings = new_settings
+    #    self.downloader.update_userdata(self.settings['options_username'], self.settings['options_password'])
+    #    self.__write_config()
 
 
 
     def __read_config(self):
         filename = path.join(self.SETTINGS_DIR, 'config')
+        logger.debug("Loading config from %s" % filename)
         if not path.exists(filename):
             self.settings = self.DEFAULT_SETTINGS
             return
@@ -393,6 +410,7 @@ class Core(gobject.GObject):
 
     def __write_config(self):
         filename = path.join(self.SETTINGS_DIR, 'config')
+        logger.debug("Writing settings to %s" % filename)
         f = file(filename, 'w')
         f.write(dumps(self.settings, sort_keys=True, indent=4))
 

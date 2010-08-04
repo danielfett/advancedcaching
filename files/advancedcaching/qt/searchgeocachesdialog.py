@@ -73,7 +73,7 @@ class QtSearchGeocachesDialog(Ui_SearchGeocachesDialog, QDialog):
 
 
     def show(self):
-        ret = QDialog.show(self)
+        QDialog.show(self)
 
     def __button_clicked(self, button):
         id = self.dialogButtonBox.standardButton(button)

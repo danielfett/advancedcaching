@@ -116,6 +116,10 @@ class QtMap(QWidget, AbstractMap):
             self._move_map_relative(offset_x, offset_y)
             self.mapDragged.emit()
 
+    def mouseDoubleClickEvent(self, ev):
+        self.set_center(self.screenpoint2coord((ev.x(), ev.y())), False)
+        self.zoom_in()
+
     def resizeEvent(self, ev):
         s = ev.size()
         self.buffer = QPixmap(s)
@@ -124,6 +128,16 @@ class QtMap(QWidget, AbstractMap):
         for l in self.layers:
             l.resize()
         self._draw_map()
+
+    def wheelEvent(self, ev):
+        if ev.delta() == 0:
+            return
+        if ev.delta() > 0:
+            dir = 1
+        else:
+            dir = -1
+        self.relative_zoom_preserve_center_at((ev.x(), ev.y()), dir)
+        
 
         ##############################################
         #
@@ -139,8 +153,8 @@ class QtMap(QWidget, AbstractMap):
     def zoom_out(self):
         self.relative_zoom(-1)
 
-    def relative_zoom(self, direction=None):
-        AbstractMap.relative_zoom(self, direction)
+    def relative_zoom(self, direction=None, update=True):
+        AbstractMap.relative_zoom(self, direction, update)
         self.zoomChanged.emit()
 
     def redraw_layers(self):
@@ -391,9 +405,11 @@ class QtOsdLayer(AbstractQtLayer):
             return
         if self.click_zoom_in.contains(*screenpoint):
             self.map.zoom_in()
+            return False
         elif self.click_zoom_out.contains(*screenpoint):
             self.map.zoom_out()
-        return False
+            return False
+        
 
     def draw(self):
         
@@ -473,6 +489,7 @@ class QtGeocacheLayer(AbstractQtLayer, AbstractGeocacheLayer):
     CACHE_DRAW_FONT = QFont('Sans', 10)
     CACHE_DRAW_FONT_PEN = QPen(QColor(0, 0, 0))
 
+    BRUSH_CACHE = QBrush(QColor(255, 255, 255, 100))
     PEN_CURRENT_CACHE = QPen(QColor(200, 0, 0), 1)
     PEN_CACHE_DISABLED = QPen(QColor(255, 0, 0), 3)
     PEN_WAYPOINTS = QPen(QColor(200, 0, 200), 1)
@@ -484,6 +501,9 @@ class QtGeocacheLayer(AbstractQtLayer, AbstractGeocacheLayer):
     COLOR_REGULAR = QColor(0, 255, 0)
     COLOR_MULTI = QColor(255, 120, 0)
     COLOR_CACHE_CENTER = QColor(0, 0, 0)
+
+    CENTER_CROSS_SIZE = 3
+    CENTER_CROSS_PEN = QPen(QColor(0, 0, 0), 0.7)
 
     def __init__(self, get_geocaches_callback, show_cache_callback):
         AbstractQtLayer.__init__(self)
@@ -518,11 +538,11 @@ class QtGeocacheLayer(AbstractQtLayer, AbstractGeocacheLayer):
 
         p = self.painter
         p.begin(self.result)
-        #p.setRenderHint(QPainter.Antialiasing)
+        p.setRenderHint(QPainter.Antialiasing)
         p.setFont(self.CACHE_DRAW_FONT)
         cache_pen = QPen()
-        cache_pen.setWidth(3)
-        cache_pen.setJoinStyle(Qt.MiterJoin)
+        cache_pen.setWidth(2)
+        #cache_pen.setJoinStyle(Qt.MiterJoin)
 
         desc_pen = QPen()
         desc_pen.setWidth(2)
@@ -555,17 +575,22 @@ class QtGeocacheLayer(AbstractQtLayer, AbstractGeocacheLayer):
                 p.setPen(QPen(Qt.transparent))
                 p.drawRect(loc[0] - radius, loc[1] - radius, radius * 2, radius * 2)
 
-            p.setBrush(Qt.transparent)
+            p.setBrush(self.BRUSH_CACHE)
             p.setPen(cache_pen)
-            p.drawRect(loc[0] - radius, loc[1] - radius, radius * 2, radius * 2)
+            rect = QRectF(loc[0] - radius, loc[1] - radius, radius * 2, radius * 2)
+            p.drawRoundedRect(rect, 3.5, 3.5)
             p.setBrush(QBrush(Qt.transparent))
 
             if draw_short:
                 continue
 
             # +
-            p.setPen(QPen(color, 1))
-            p.drawLines(QLine(loc[0], loc[1] - 3, loc[0], loc[1] + 3), QLine(loc[0] - 3, loc[1], loc[0] + 3, loc[1]))
+            p.setPen(self.CENTER_CROSS_PEN)
+            s = self.CENTER_CROSS_SIZE
+            p.drawLines(
+                QLineF(loc[0] - s, loc[1] - s, loc[0] + s, loc[1] + s),
+                QLineF(loc[0] - s, loc[1] + s, loc[0] + s, loc[1] - s)
+                )
 
 
             # if we have a description for this cache...

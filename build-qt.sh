@@ -5,4 +5,6 @@ pyuic4 files/qt/ShowImageDialog.ui > files/advancedcaching/qt/ui_showimagedialog
 pyuic4 files/qt/GeocacheDetailsWindow.ui > files/advancedcaching/qt/ui_geocachedetailswindow.py
 pyuic4 files/qt/SearchGeocachesDialog.ui > files/advancedcaching/qt/ui_searchgeocachesdialog.py
 pyuic4 files/qt/SearchResultsDialog.ui > files/advancedcaching/qt/ui_searchresultsdialog.py
+pyuic4 files/qt/OptionsDialog.ui > files/advancedcaching/qt/ui_optionsdialog.py
+
 pyrcc4 files/qt/icons.qrc > files/advancedcaching/qt/icons_rc.py
