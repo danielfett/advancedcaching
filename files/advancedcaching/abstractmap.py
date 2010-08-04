@@ -398,13 +398,13 @@ class AbstractGeocacheLayer(AbstractMapLayer):
         self.show_cache_callback = show_cache_callback
         self.current_cache = None
         self.select_found = None
-
+    '''
     def set_show_found(self, show_found):
         if show_found:
             self.select_found = None
         else:
             self.select_found = False
-
+    '''
     def set_show_name(self, show_name):
         self.show_name = show_name
 

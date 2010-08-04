@@ -18,16 +18,21 @@
 #        Author: Daniel Fett advancedcaching@fragcom.de
 #
 
+import logging
 import math
+
+from abstractmap import AbstractGeocacheLayer
+from abstractmap import AbstractMap
+from abstractmap import AbstractMapLayer
+from abstractmap import AbstractMarksLayer
 import cairo
+import geo
+import geocaching
 import gobject
 import gtk
 import openstreetmap
 import pango
 import threadpool
-from abstractmap import AbstractMap, AbstractMapLayer, AbstractMarksLayer, AbstractGeocacheLayer
-import logging
-import geocaching
 logger = logging.getLogger('gtkmap')
 
 
@@ -55,9 +60,9 @@ class Map(gtk.DrawingArea, AbstractMap):
         self.set_events(gtk.gdk.EXPOSURE_MASK | gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.BUTTON_RELEASE_MASK | gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.SCROLL)
 
         try:
-            gobject.signal_new('tile-loader-changed', Map, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+            gobject.signal_new('tile-loader-changed', Map, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, ))
             gobject.signal_new('map-dragged', Map, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ())
-            gobject.signal_new('draw-marks', Map, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, ))
+            gobject.signal_new('draw-marks', Map, gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
         except RuntimeError:
             pass
 
@@ -162,7 +167,7 @@ class Map(gtk.DrawingArea, AbstractMap):
         if event.direction == gtk.gdk.SCROLL_DOWN:
             self.map.zoom(-1)
         else:
-            self.map.zoom( + 1)
+            self.map.zoom(+ 1)
 
     def __drag_start(self, widget, event):
         try:
@@ -312,13 +317,13 @@ class Map(gtk.DrawingArea, AbstractMap):
         return surface
 
     def __run_tile_loader(self, id_string, tile, zoom, undersample, x, y, callback_draw):
-        d = self.tile_loader(id_string=id_string, tile=tile, zoom=zoom, undersample=undersample, x=x, y=y, callback_draw=callback_draw, callback_load = self._load_tile)
+        d = self.tile_loader(id_string=id_string, tile=tile, zoom=zoom, undersample=undersample, x=x, y=y, callback_draw=callback_draw, callback_load=self._load_tile)
         self.active_tile_loaders.append(d)
         d.run()
 
     def _add_to_buffer(self, id_string, surface, x, y, scale_source=None):
         self.surface_buffer[id_string] = [surface, x, y, scale_source]
-        self.__draw_tiles(which=([surface, x, y, scale_source],))
+        self.__draw_tiles(which=([surface, x, y, scale_source], ))
 
     def __draw_tiles(self, which=None, off_x=0, off_y=0):
         self.delay_expose = False
@@ -451,7 +456,7 @@ class OsdLayer(AbstractMapLayer):
         if final_length_meters < 10000:
             msg = "%d m" % final_length_meters
         else:
-            msg = "%d km" % (final_length_meters/1000)
+            msg = "%d km" % (final_length_meters / 1000)
         layout = self.map.create_pango_layout(msg)
         layout.set_font_description(self.MESSAGE_DRAW_FONT)
         cr.move_to(position[0], position[1] - 15)
@@ -482,7 +487,7 @@ class GeocacheLayer(AbstractGeocacheLayer):
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, self.map.map_width, self.map.map_height)
         cr = gtk.gdk.CairoContext(cairo.Context(surface))
 
-        coords = self.pointprovider.get_points_filter(self.map.get_visible_area(), self.select_found, self.MAX_NUM_RESULTS_SHOW)
+        coords = self.get_geocaches_callback(self.map.get_visible_area(), self.MAX_NUM_RESULTS_SHOW)
 
         if self.map.get_zoom() < self.CACHES_ZOOM_LOWER_BOUND:
             self.map.set_osd_message('Too many geocaches to display.')
@@ -599,7 +604,7 @@ class GeocacheLayer(AbstractGeocacheLayer):
             cr.set_line_width(1)
             cr.move_to(p[0], p[1] - 3)
             cr.line_to(p[0], p[1] + 3) # |
-            cr.move_to(p[0] - 3, p[1], )
+            cr.move_to(p[0] - 3, p[1],)
             cr.line_to(p[0] + 3, p[1]) # ---
             cr.stroke()
 
@@ -753,7 +758,7 @@ class MarksLayer(AbstractMarksLayer):
             if self.gps_has_fix:
                 cr.set_line_width(1)
                 cr.set_source_color(self.COLOR_ACCURACY)
-                cr.set_dash((5,3))
+                cr.set_dash((5, 3))
                 cr.new_sub_path()
                 cr.arc(p[0], p[1], radius_pixels, 0, math.pi * 2)
                 cr.stroke()

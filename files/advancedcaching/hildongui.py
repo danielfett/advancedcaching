@@ -1501,7 +1501,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         ##############################################
 
     def __get_geocaches_callback(self, visible_area, maxresults):
-        return self.core.pointprovider.get_points_filter(visible_area, not self.settings['options_hide_found'], maxresults)
+        return self.core.pointprovider.get_points_filter(visible_area, False if self.settings['options_hide_found'] else None, maxresults)
  
 
     def _on_settings_changed(self, caller, settings, source):
