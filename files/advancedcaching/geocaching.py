@@ -23,7 +23,12 @@ try:
 except (ImportError, AttributeError):
     from json import loads, dumps
 
+from datetime import datetime
+import logging
+import time
+
 import geo
+logger = logging.getLogger('geocaching')
 
 class GeocacheCoordinate(geo.Coordinate):
     LOG_NO_LOG = 0
@@ -78,10 +83,14 @@ class GeocacheCoordinate(geo.Coordinate):
         TYPE_VIRTUAL: 'Virtual Cache'
     }
 
+    USER_TYPE_COORDINATE = 0
+    USER_TYPE_CALC_STRING = 1
+    USER_TYPE_CALC_STRING_OVERRIDE = 2
+
     ATTRS = ('lat', 'lon', 'title', 'name', 'shortdesc', 'desc', 'hints', 'type', \
              'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
              'images', 'notes', 'fieldnotes', 'logas', 'logdate', 'marked', \
-             'logs', 'status', 'vars', 'alter_lat', 'alter_lon')
+             'logs', 'status', 'vars', 'alter_lat', 'alter_lon', 'updated', 'user_coordinates')
 
 
     SQLROW = {
@@ -109,7 +118,9 @@ class GeocacheCoordinate(geo.Coordinate):
         'status': 'INTEGER',
         'vars': 'TEXT',
         'alter_lat': 'REAL',
-        'alter_lon': 'REAL'
+        'alter_lon': 'REAL',
+        'updated' : 'INTEGER',
+        'user_coordinates' : 'TEXT',
         }
     def __init__(self, lat, lon=None, name='', data=None):
         geo.Coordinate.__init__(self, lat, lon, name)
@@ -141,12 +152,17 @@ class GeocacheCoordinate(geo.Coordinate):
         self.vars = ''
         self.alter_lat = 0
         self.alter_lon = 0
+        self.updated = datetime.fromtimestamp(0)
+        self.user_coordinates = ''
 
     def clone(self):
         n = GeocacheCoordinate(self.lat, self.lon)
         for k in self.ATTRS:
             setattr(n, k, getattr(self, k))
         return n
+
+    def updated(self):
+        self.updated = datetime.now()
         
     def get_difficulty(self):
         return "%.1f" % (self.difficulty / 10.0) if self.difficulty != -1 else '?'
@@ -170,6 +186,18 @@ class GeocacheCoordinate(geo.Coordinate):
             return 1 if self.marked else 0
         elif attribute == 'vars':
             return dumps(self.calc.get_vars()) if self.calc != None else ''
+        elif attribute == 'updated':
+            return int(time.mktime(self.updated.timetuple()))
+        elif attribute == 'user_coordinates':
+            try:
+                return dumps(self.saved_user_coordinates)
+            except AttributeError:
+                return self.user_coordinates
+        elif attribute == 'waypoints':
+            try:
+                return dumps(self.saved_waypoints)
+            except AttributeError:
+                return self.waypoints
         else:
             return getattr(self, attribute)
                 
@@ -186,18 +214,29 @@ class GeocacheCoordinate(geo.Coordinate):
             self.logs = ''
         if ret['vars'] == None:
             self.vars = ''
+        ret['updated'] = datetime.fromtimestamp(ret['updated'])
         ret['found'] = (ret['found'] == 1)
         self.__dict__ = ret
         
     def get_waypoints(self):
-        if self.waypoints in (None, '{}', ''):
-            return []
         try:
             return self.saved_waypoints
         except (AttributeError):
-            self.saved_waypoints = loads(self.waypoints)
+            if self.waypoints in (None, '{}', ''):
+                self.saved_waypoints = []
+            else:
+                self.saved_waypoints = loads(self.waypoints)
             return self.saved_waypoints
 
+    def get_user_coordinates(self, type):
+        try:
+            return [(id, point) for id, point in self.saved_user_coordinates.items() if point['type'] == type]
+        except (AttributeError):
+            if self.user_coordinates in (None, '{}', ''):
+                self.saved_user_coordinates = {}
+            else:
+                self.saved_user_coordinates = loads(self.user_coordinates)
+            return self.saved_user_coordinates
 
     def get_logs(self):
         if self.logs == None or self.logs == '':
@@ -214,11 +253,7 @@ class GeocacheCoordinate(geo.Coordinate):
             return self.saved_images
 
     def set_waypoints(self, wps):
-        self.waypoints = dumps(wps)
-        try:
-            del self.saved_waypoints
-        except:
-            pass
+        self.saved_waypoints = wps
 
     def set_logs(self, ls):
         self.logs = dumps(ls)
@@ -268,13 +303,40 @@ class GeocacheCoordinate(geo.Coordinate):
             vars = {}
         else:
             vars = loads(self.vars)
-        text = "%s | %s" % (stripped_desc, " | ".join(w['comment'] for w in self.get_waypoints()))
-        self.calc = CalcCoordinateManager(self, text, vars)
+        self.calc = CalcCoordinateManager(self, vars)
+        self.calc.add_text(stripped_desc, '')
+        for w in self.get_waypoints():
+            self.calc.add_text(w['comment'], "Waypoint %s" % w['name'])
+        for id, local in self.get_user_coordinates(self.USER_TYPE_CALC_STRING):
+            self.calc.add_text(local['value'], id)
+
+    def add_or_edit_user_coordinate(self, type, value, name, id = None):
+        try:
+            if id == None:
+                if len(self.saved_user_coordinates) > 0:
+                    id = max(self.saved_user_coordinates.keys()) + 1
+                else:
+                    id = 0
+            self.saved_user_coordinates[id] = {'value': value, 'type' : type, 'name' : name}
+        except AttributeError:
+            logger.exception("get_user_coordinates has to be called first!")
+            return None
+        return id
+
+
+
+    def delete_user_coordinate(self, id):
+        try:
+            del self.saved_user_coordinates[id]
+        except AttributeError:
+            logger.exception("get_user_coordinates has to be called first!")
+            return None
 
     def get_collected_coordinates(self, format, include_unknown = True, htmlcallback = lambda x: x, shorten_callback = lambda x: x):
         cache = self
         cache.display_text = "Geocache: %s" % cache.get_latlon(format)
         cache.comment = "Original coordinate given in the cache description."
+        cache.user_coordinate_id = None
         clist = {0: cache}
         i = 1
         # waypoints
@@ -289,72 +351,52 @@ class GeocacheCoordinate(geo.Coordinate):
                 coord = geo.Coordinate(None, None, w['name'])
                 coord.comment = htmlcallback(w['comment'])
                 latlon = '???'
+            coord.user_coordinate_id = None
             coord.display_text = "%s - %s - %s\n%s" % (w['name'], latlon, w['id'], shorten_callback(htmlcallback(w['comment'])))
             clist[i] = coord
             i += 1
 
         # parsed from notes
         for coord in geo.search_coordinates(self.notes):
-            coord.display_text = "manually entered: %s" % coord.get_latlon(format)
+            coord.display_text = "from notes: %s" % coord.get_latlon(format)
             coord.comment = "This coordinate was manually entered in the notes field."
+            coord.user_coordinate_id = None
+            clist[i] = coord
+            i += 1
+
+        # read from local user_coordinates
+        for id, local in self.get_user_coordinates(self.USER_TYPE_COORDINATE):
+            coord = geo.Coordinate(* local['value'])
+            coord.display_text = local['name'] if local['name'] != '' else 'manually entered'
+            coord.comment = "This coordinate was manually entered."
+            coord.user_coordinate_id = id
             clist[i] = coord
             i += 1
 
         # cache calc
         if self.calc != None:
-            for coord in self.calc.get_solutions():
+            for coord, source in self.calc.get_solutions():
                 if coord == False:
                     continue
                 coord.display_text = "calculated: %s = %s" % (coord.name, coord.get_latlon(format))
-                coord.comment = "This coordinate was calculated:\n%s = %s" % (coord.name, coord.get_latlon(format))
+                if type(source) == int:
+                    source_string = "entered calculation"
+                    coord.user_coordinate_id = source
+                else:
+                    source_string = source
+                    coord.user_coordinate_id = None
+                coord.comment = "From %s:\n%s = %s" % (source_string, coord.name, coord.get_latlon(format))
                 clist[i] = coord
                 i += 1
 
-            for coord in self.calc.get_plain_coordinates():
+            for coord, source in self.calc.get_plain_coordinates():
                 if coord == False:
                     continue
                 coord.display_text = "found: %s" % (coord.get_latlon(format))
                 coord.comment = "This coordinate was found in the description."
+                coord.user_coordinate_id = None
                 clist[i] = coord
                 i += 1
         return clist
     
-        
-"""
-class GpxReader():
-        def __init__(self, pointprovider):
-                self.pointprovider = pointprovider
-                
-        def read_file(self, filename):
-                lat = lon = -1
-                uid = name = comment = description = url = cachetype = ''
-                found = intag = False
-                locline = re.compile('<wpt lat="(\d+\.\d+)" lon="(\d+\.\d+)"')
-                if os.path.exists(filename):
-                        for line in open(filename, 'r'):
-                                line = line.strip()
-                                if line.startswith('<wpt'):
-                                        match = locline.match(line)
-                                        lat = float(match.group(1))
-                                        lon = float(match.group(2))
-                                        intag = True
-                                elif line.startswith('<name>') and intag and lat != -1 and lon != -1:
-                                        name = line.rpartition('</name>')[0][6:]
-                                        currentcoord = GeocacheCoordinate(lat, lon, name)
-                                elif line.startswith('<cmt>') and intag:
-                                        currentcoord.title = line.rpartition('</cmt>')[0][5:]
-                                elif line.startswith('<desc>') and intag:
-                                        currentcoord.desc = line.rpartition('</desc>')[0][6:]
-                                elif line.startswith('<sym>') and intag:
-                                        typestring = line.rpartition('</sym>')[0][5:].split('-')
-                                        currentcoord.type = typestring[-1]
-                                        if typestring[1] == 'ifound':
-                                                currentcoord.found = True
-                                                #found = False                                                                                                
-                                elif line.startswith('</wpt>') and intag:
-                                        self.pointprovider.add_point(currentcoord)
-                                        currentcoord = None
-                                        lat = lon = -1
-                                        uid = name = comment = description = url = cachetype = ''
-                                        found = intag = False
-"""
+       

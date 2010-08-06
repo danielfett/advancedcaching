@@ -4,7 +4,6 @@ from sqlite3 import connect, Row
 from copy import copy
 
 
-
 class PointProvider():
     MAX_RESULTS = 1000
 

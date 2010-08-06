@@ -19,7 +19,7 @@
 #
 
 
-VERSION = 0
+VERSION = 3
 VERSION_DATE = '2010-07-21'
 
 try:

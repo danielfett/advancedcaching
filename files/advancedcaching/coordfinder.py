@@ -56,10 +56,22 @@ import logging
 logger = logging.getLogger('coordfinder')
 
 class CalcCoordinateManager(object):
-    def __init__(self, cache, text, vars):
+    def __init__(self, vars):
         self.__vars = vars
-        self.coords, self.requires = CalcCoordinate.find(text)
-        self.update()
+        self.__known_signatures = {}
+        self.requires = set()
+        self.coords = []
+
+    def add_text(self, text, source):
+        self.__add_coords(CalcCoordinate.find(text, source))
+
+    def __add_coords(self, coords):
+        for x in coords:
+            if x.signature in self.__known_signatures:
+                continue
+            self.__known_signatures[x.signature] = True
+            self.requires |= x.requires
+            self.coords.append(x)
         
     def set_var(self, char, value):
         if value != '':
@@ -72,17 +84,17 @@ class CalcCoordinateManager(object):
         for c in self.coords:
             c.set_vars(self.__vars)
             if c.has_requires():
-                result = c.try_get_solution()
+                c.try_get_solution()
 
     def get_solutions(self):
-        return [c.result for c in self.coords if c.has_requires() and len(c.requires) > 0]
+        return [(c.result, c.source) for c in self.coords if c.has_requires() and len(c.requires) > 0]
 
     def get_plain_coordinates(self):
-        return [c.result for c in self.coords if len(c.requires) == 0]
+        return [(c.result, c.source) for c in self.coords if len(c.requires) == 0]
 
     def get_vars(self):
         return self.__vars
-        
+
 
 class CalcCoordinate():
 
@@ -97,21 +109,23 @@ class CalcCoordinate():
 
     EXPECTED_LENGTHS = [(1,2), (1,2), (3,), (1,2,3), (1,2), (3,)]
 
-    def __init__(self, ns, lat_deg, lat_min, lat_min_2, ew, lon_deg, lon_min, lon_min_2):
+    def __init__(self, ns, lat_deg, lat_min, lat_min_2, ew, lon_deg, lon_min, lon_min_2, source):
         self.ns = ns
         self.ew = ew
-        self.lat_deg   = self.prepare(lat_deg)
-        self.lat_min   = self.prepare(lat_min)
-        self.lat_min_2 = self.prepare(lat_min_2)
-        self.lon_deg   = self.prepare(lon_deg)
-        self.lon_min   = self.prepare(lon_min)
-        self.lon_min_2 = self.prepare(lon_min_2)
+        self.lat_deg   = self.__prepare(lat_deg)
+        self.lat_min   = self.__prepare(lat_min)
+        self.lat_min_2 = self.__prepare(lat_min_2)
+        self.lon_deg   = self.__prepare(lon_deg)
+        self.lon_min   = self.__prepare(lon_min)
+        self.lon_min_2 = self.__prepare(lon_min_2)
         self.orig = "%s%s %s.%s %s%s %s.%s" % (self.ns, self.lat_deg, self.lat_min, self.lat_min_2, self.ew, self.lon_deg, self.lon_min, self.lon_min_2)
-        self.requires = set([x for i in [self.lat_deg, self.lat_min, self.lat_min_2, self.lon_deg, self.lon_min, self.lon_min_2] for x in re.sub('[^A-Za-z]', '', i)])
+        self.requires = set(x for i in [self.lat_deg, self.lat_min, self.lat_min_2, self.lon_deg, self.lon_min, self.lon_min_2] for x in re.sub('[^A-Za-z]', '', i))
         self.warnings = []
         self.vars = {}
+        self.signature = "|".join(ns, self.lat_deg, self.lat_min, self.lat_min_2, ew, self.lon_deg, self.lon_min, self.lon_min_2)
+        self.source = source
 
-    def prepare(self, text):
+    def __prepare(self, text):
         return (re.sub('[^A-Za-z()+*/0-9-.,]', '', text)).replace(',', '.')
 
     def set_vars(self, var):
@@ -126,7 +140,7 @@ class CalcCoordinate():
 
     def try_get_solution(self):
 
-        replaced = [self.replace(x) for x in [self.lat_deg, self.lat_min, self.lat_min_2, self.lon_deg, self.lon_min, self.lon_min_2]]
+        replaced = [self.__replace(x) for x in [self.lat_deg, self.lat_min, self.lat_min_2, self.lon_deg, self.lon_min, self.lon_min_2]]
         self.replaced_result = ("%%s%s %s.%s %%s%s %s.%s" % tuple(replaced)) % (self.ns, self.ew)
         results = [self.resolve(x) for x in replaced]
         
@@ -153,18 +167,18 @@ class CalcCoordinate():
     def resolve(self, text):
         c = 1
         while c > 0:
-            text, c = re.subn('\([^()]+\)', lambda match: self.safe_eval(match.group(0)), text)
+            text, c = re.subn('\([^()]+\)', lambda match: self.__safe_eval(match.group(0)), text)
         if re.match('^[0-9]+$', text) == None:
             # determine number of leading zeros
             #lz = len(text) - len(str(int(text)))
-            text = self.safe_eval(text)
+            text = self.__safe_eval(text)
             try:
                 text = "%03d" % int(text)
-            except Exception, e:
+            except Exception:
                 text = '?'
         return text
 
-    def safe_eval(self, text):
+    def __safe_eval(self, text):
         try:
             tmp = eval(text,{"__builtins__":None},{})
         except (SyntaxError, Exception):
@@ -180,33 +194,15 @@ class CalcCoordinate():
         return str(tmp)
 
     @staticmethod
-    def find(text):
-        #logger.debug('Processing Text: \n ------------------------ \n%s\n ----------------------' % text)
-        foundsigs = []
+    def find(text, source):
         text = re.sub(ur'''(?u)\s[^\W\d_]{2,}\s''', ' | ', text)
         text = re.sub(ur'''(?u)\b[^\W\d_]{4,}\b''', ' | ', text)
         text = text.replace('°', '|')
         text = text.replace(unichr(160), ' ')
         text = re.sub(ur''' +''', ' ', text)
-        #logger.debug('Processed Text: \n ------------------------ \n%s\n ----------------------' % text)
-
         single_calc_part = ur'''((?:\([A-Za-z +*/0-9-.,]+\)|[A-Za-z ()+*/0-9-])+)'''
         matches = re.findall(ur'''(?<![a-zA-Z])([NSns])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s['`\s,/]+([EOWeow])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s[\s'`]*(?![a-zA-Z])''' % {'calc' : single_calc_part}, text)
-        found = []
-        requires = set()
-        for match in matches:
-            sig = "|".join(re.sub('[^A-Za-z()+*/0-9-.,]+', '', x) for x in match)
-
-            if sig in foundsigs:
-                continue
-            foundsigs.append(sig)
-            logger.info("Found match: " + repr(match))
-            c = CalcCoordinate(*match)
-            #if len(c.requires) == 0:
-            #    continue
-            found.append(c)
-            requires |= c.requires
-        return (found, requires)
+        return [CalcCoordinate(*match, source = source) for match in matches]
 
 if __name__ == "__main__":
     from simplegui import SimpleGui
