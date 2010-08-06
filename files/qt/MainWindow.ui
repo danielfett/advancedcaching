@@ -162,6 +162,9 @@
    <property name="text">
     <string>Search Place</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+P</string>
+   </property>
   </action>
   <action name="actionUpdate_Geocache_Map">
    <property name="icon">

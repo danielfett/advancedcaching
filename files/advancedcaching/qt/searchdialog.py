@@ -37,7 +37,7 @@ class QtSearchDialog(Ui_SearchDialog, QDialog):
         self.setupUi(self)
         self.core = core
         self.pushButtonSearch.clicked.connect(self.__start_search)
-        self.lineEditSearch.returnPressed.connect(self.__start_search)
+        #self.lineEditSearch.returnPressed.connect(self.__start_search)
         self.listWidgetResults.itemClicked.connect(self.__return_location)
 
     def __start_search(self):
@@ -49,6 +49,7 @@ class QtSearchDialog(Ui_SearchDialog, QDialog):
         except Exception, e:
             QErrorMessage.qtHandler().showMessage(repr(e))
             logger.exception(repr(e))
+            return
         self.listWidgetResults.clear()
         if len(self.results) == 0:
             QMessageBox.information(self, "Search results", "The search returned no results.")
@@ -57,7 +58,7 @@ class QtSearchDialog(Ui_SearchDialog, QDialog):
         i = 0
         if self.core.current_position == None:
             for res in self.results:
-                m = QListWidgetItem(res.name, self.listWidgetResults)
+                m = QListWidgetItem("res.<i>name</i>", self.listWidgetResults)
                 m.setData(Qt.UserRole, QVariant(i))
                 i += 1
         else:
@@ -65,7 +66,7 @@ class QtSearchDialog(Ui_SearchDialog, QDialog):
             for res in self.results:
                 distance = geo.Coordinate.format_distance(res.distance_to(pos))
                 direction = geo.Coordinate.format_direction(pos.bearing_to(res))
-                text = "%s (%s %s)" % (res.name, distance, direction)
+                text = "%s <b>(%s %s)</b>" % (res.name, distance, direction)
                 m = QListWidgetItem(text, self.listWidgetResults)
                 m.setData(Qt.UserRole, QVariant(i))
                 i += 1

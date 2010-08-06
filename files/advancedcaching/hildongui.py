@@ -20,25 +20,6 @@
 
  
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
-# auto update feature
-# download map data
-# direction indicator in map view
-# edit waypoints
-# improved waypoint handling
-# - list of user waypoints:
-#   - per cache
-#   - "free" waypoints
-# - add/remove/edit of waypoints
-# - still parse waypoints from notes
-# - add parsing of calculations from notes
-# 'show on map' for waypoints
-# changes in menu:
-# - new "tools" button:
-#   - download map
-#   - upload fieldnotes
-#   - find location by name
-#   - export waypoints
-# add 'download map around geocaches' option
  
 ### For the gui :-)
 
