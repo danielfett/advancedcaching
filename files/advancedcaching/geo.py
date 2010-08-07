@@ -31,7 +31,7 @@ except Exception:
         dlon = math.pow(math.sin(math.radians(target.lon-src.lon) / 2), 2)
         a = dlat + math.cos(math.radians(src.lat)) * math.cos(math.radians(target.lat)) * dlon;
         c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a));
-        return self.RADIUS_EARTH * c;
+        return Coordinate.RADIUS_EARTH * c;
     distance_to = distance_to_manual
 
 def try_parse_coordinate(text):
@@ -259,3 +259,34 @@ class Coordinate(object):
         
     def distance_to(self, target):
         return distance_to(self, target)
+
+    @staticmethod
+    def format_distance(distance):
+        if distance == None:
+            return '?'
+        if distance >= 1000:
+            return "%d km" % round(distance / 1000.0)
+        elif distance >= 100:
+            return "%d m" % round(distance)
+        else:
+            return "%.1f m" % round(distance, 1)
+
+    @staticmethod
+    def format_direction(angle):
+        directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE',
+                        'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW', 'N']
+
+        return directions[int(round(((angle+360.0) % 360.0)/22.5))]
+ 
+    @staticmethod
+    def get_bounds(coord_list):
+        min_lat = coord_list[0].lat
+        max_lat = coord_list[0].lat
+        min_lon = coord_list[0].lon
+        max_lon = coord_list[0].lon
+        for x in coord_list:
+            min_lat = min(min_lat, x.lat)
+            max_lat = max(max_lat, x.lat)
+            min_lon = min(min_lon, x.lon)
+            max_lon = max(max_lon, x.lon)
+        return min_lat, max_lat, min_lon, max_lon

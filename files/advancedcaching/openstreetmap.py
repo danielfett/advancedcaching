@@ -20,11 +20,10 @@
 
 from __future__ import with_statement
 
-import math
-
-import geo
 import gobject
-import cairo
+import logging
+logger = logging.getLogger('openstreetmap')
+
 from os import path, mkdir, extsep, remove
 from threading import Semaphore
 from urllib import urlretrieve
@@ -50,7 +49,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
         TPL_LOCAL_PATH = path.join("%s", PREFIX, "%d", "%d")
         TPL_LOCAL_FILENAME = path.join("%s", "%%d%s%s" % (extsep, FILE_TYPE))
 
-        def __init__(self, id_string, tile, zoom, undersample = False, x = 0, y = 0, callback_draw = None):
+        def __init__(self, id_string, tile, zoom, undersample = False, x = 0, y = 0, callback_draw = None, callback_load = None):
             self.id_string = id_string
             self.undersample = undersample
             self.tile = tile
@@ -65,6 +64,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                 self.download_tile = (int(self.download_tile[0]/2), int(self.download_tile[1]/2))
             self.pbuf = None
             self.callback_draw = callback_draw
+            self.callback_load = callback_load
 
             self.my_noimage = None
             self.stop = False
@@ -75,6 +75,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             self.local_path = self.TPL_LOCAL_PATH % (self.base_dir, self.download_zoom, self.download_tile[0])
             self.local_filename = self.TPL_LOCAL_FILENAME % (self.local_path, self.download_tile[1])
             self.remote_filename = self.REMOTE_URL % {'zoom': self.download_zoom, 'x' : self.download_tile[0], 'y' : self.download_tile[1]}
+            
 
         def halt(self):
             self.stop = True
@@ -97,24 +98,25 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             answer = True
             if not path.isfile(self.local_filename):
                 self.create_recursive(self.local_path)
-                #gobject.idle_add(lambda: self.draw(self.get_no_image(self.noimage_loading)))
                 self.draw(self.get_no_image(self.noimage_loading))
                 answer = self.__download(self.remote_filename, self.local_filename)
 
             # now the file hopefully exists
             if answer == True:
                 self.load()
-                gobject.idle_add(lambda: self.draw(self.pbuf))
+                self.draw(self.pbuf)
+                #gobject.idle_add(lambda: self.draw(self.pbuf))
             elif answer == False:
-                gobject.idle_add(lambda: self.draw(self.get_no_image(self.noimage_cantload)))
-                pass
+                #gobject.idle_add(lambda: self.draw(self.get_no_image(self.noimage_cantload)))
+                self.draw(self.get_no_image(self.noimage_cantload))
             else:
                 # Do nothing here, as the thread was told to stop
                 pass
 
         def run_again(self):
             self.load()
-            gobject.idle_add(lambda: self.draw(self.pbuf))
+            #gobject.idle_add(lambda: self.draw(self.pbuf))
+            self.draw(self.pbuf)
             return False
 
         def get_no_image(self, default):
@@ -157,27 +159,18 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                     supertile_y = int(tile[1]/2)
                     off_x = (tile[0]/2.0 - supertile_x) * size
                     off_y = (tile[1]/2.0 - supertile_y) * size
-                    surface = cairo.ImageSurface.create_from_png(self.local_filename)
-                    if surface.get_width() < size or surface.get_height() < size:
-                        raise Exception("Image too small, probably corrupted file")
-                    #dest = gtk.gdk.Pixbuf(pbuf.get_colorspace(), pbuf.get_has_alpha(), pbuf.get_bits_per_sample(), size, size)
-                    #pbuf.scale(dest, 0, 0, size, size, -off_x*2, -off_y*2, 2, 2, gtk.gdk.INTERP_HYPER)
+                    surface = self.callback_load(self.local_filename)
+                    
                     self.pbuf = (surface, (off_x, off_y))
                 else:
-                    surface = cairo.ImageSurface.create_from_png(self.local_filename)
-                    if surface.get_width() < size or surface.get_height() < size:
-                        raise Exception("Image too small, probably corrupted file")
+                    surface = self.callback_load(self.local_filename)
                     self.pbuf = (surface, None)
                 return True
             except Exception, e:
                 if tryno == 0:
                     return self.recover()
                 else:
-                    print "Exception while loading map tile: ", e
-                    import traceback
-                    traceback.print_exc()
-                    traceback.print_stack()
-                    print "Exception while loading tile:", e
+                    logger.exception("Exception while loading map tile: %s" % e)
                     self.pbuf = (self.noimage_cantload, None)
                     return True
 

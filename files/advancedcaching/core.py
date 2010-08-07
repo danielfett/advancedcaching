@@ -58,21 +58,24 @@ if '-v' in argv:
     logging.getLogger('').setLevel(logging.DEBUG)
     logging.debug("Set log level to DEBUG")
 
-arg = argv[1].strip()
-if arg == '--simple':
+if '--simple' in argv:
     import simplegui
     gui = simplegui.SimpleGui
-elif arg == '--desktop':
+elif '--desktop' in argv:
     import biggui
     gui = biggui.BigGui
-elif arg == '--hildon':
+elif '--qt' in argv:
+    import qtgui
+    gui = qtgui.QtGui
+elif '--hildon' in argv:
     import hildongui
     gui = hildongui.HildonGui
 else:
     import cli
     gui = cli.Cli
 
-    
+logger = logging.getLogger('core')
+
 class Core(gobject.GObject):
 
     __gsignals__ = {
@@ -86,15 +89,15 @@ class Core(gobject.GObject):
         'save-settings': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
         }
 
-    SETTINGS_DIR = path.expanduser('~/.agtl')
+    SETTINGS_DIR = path.expanduser(path.join('~', '.agtl'))
     CACHES_DB = path.join(SETTINGS_DIR, "caches.db")
     COOKIE_FILE = path.join(SETTINGS_DIR, "cookies.lwp")
     UPDATE_DIR = path.join(SETTINGS_DIR, 'updates')
 
-    MAEMO_HOME = path.expanduser("~/MyDocs/.")
-    MAPS_DIR = 'Maps/'
+    MAEMO_HOME = path.expanduser(path.join('~', 'MyDocs', '.'))
+    MAPS_DIR = path.join('Maps', '')
 
-    DATA_DIR = path.expanduser('~/') if not path.exists(MAEMO_HOME) else MAEMO_HOME
+    DATA_DIR = path.expanduser(path.join('~', '')) if not path.exists(MAEMO_HOME) else MAEMO_HOME
 
     UPDATE_MODULES = [cachedownloader, fieldnotesuploader]
     
@@ -106,7 +109,7 @@ class Core(gobject.GObject):
         'download_create_index': False,
         'download_run_after': False,
         'download_run_after_string': '',
-        'download_output_dir': path.expanduser(DATA_DIR + 'geocaches/'),
+        'download_output_dir': path.expanduser(path.join(DATA_DIR, 'geocaches', '')),
         'map_position_lat': 49.7540,
         'map_position_lon': 6.66135,
         'map_follow_position': True,
@@ -141,7 +144,7 @@ class Core(gobject.GObject):
         self.current_position = None
         self.create_recursive(self.SETTINGS_DIR)
 
-        dataroot = path.join(root, 'data')
+        self.dataroot = path.join(root, 'data')
 
         self._install_updates()
 
@@ -156,13 +159,12 @@ class Core(gobject.GObject):
                 
         self.pointprovider = provider.PointProvider(self.CACHES_DB, geocaching.GeocacheCoordinate, 'geocaches')
 
-        self.gui = guitype(self, dataroot)
+        self.gui = guitype(self, self.dataroot)
 
         
         actor_tts = TTS(self)
         actor_tts.connect('error', lambda caller, msg: self.gui.show_error(msg))
         #actor_notify = Notify(self)
-
         self.emit('settings-changed', self.settings, self)
 
  
@@ -203,7 +205,7 @@ class Core(gobject.GObject):
                 try:
                     mkdir(dpath)
                 except Exception, e:
-                    logging.info("Could not create directory; " + e)
+                    logging.info("Could not create directory; %s" % e)
                     pass
 
     def optimize_data(self):
@@ -337,42 +339,58 @@ class Core(gobject.GObject):
     #
     ##############################################
 
+    '''
+    This should be called to update the settings throughout all components.
+    '''
     def save_settings(self, settings, source):
+        logger.debug("Got settings update from %s" % source)
+        
         self.settings.update(settings)
         self.emit('settings-changed', settings, source)
 
+    '''
+    This is called when settings have changed.
+    '''
     def __on_settings_changed(self, caller, settings, source):
+        logger.debug("Settings where changed by %s." % source)
         if source == self:
             return
         if 'options_username' in settings and 'options_password' in settings:
             self.downloader.update_userdata(settings['options_username'], settings['options_password'])
 
+    '''
+    This is called when settings shall be saved, calling save_settings afterwards.
+    '''
     def __on_save_settings(self, caller):
+        logger.debug("Assembling update for settings, on behalf of %s" % caller)
         settings = {
             'last_target_lat': self.current_target.lat,
             'last_target_lon': self.current_target.lon
         }
         caller.save_settings(settings, self)
-                
+    
     def __del__(self):
+        logger.debug("Somebody is trying to kill me, saving the settings.")
         self.emit('save-settings')
         self.__write_config()
 
     # called by gui
     def on_destroy(self):
+        logger.debug("Somebody is being killed, saving the settings.")
         self.emit('save-settings')
         self.__write_config()
 
     # called by gui
-    def on_config_changed(self, new_settings):
-        self.settings = new_settings
-        self.downloader.update_userdata(self.settings['options_username'], self.settings['options_password'])
-        self.__write_config()
+    #def on_config_changed(self, new_settings):
+    #    self.settings = new_settings
+    #    self.downloader.update_userdata(self.settings['options_username'], self.settings['options_password'])
+    #    self.__write_config()
 
 
 
     def __read_config(self):
         filename = path.join(self.SETTINGS_DIR, 'config')
+        logger.debug("Loading config from %s" % filename)
         if not path.exists(filename):
             self.settings = self.DEFAULT_SETTINGS
             return
@@ -392,6 +410,7 @@ class Core(gobject.GObject):
 
     def __write_config(self):
         filename = path.join(self.SETTINGS_DIR, 'config')
+        logger.debug("Writing settings to %s" % filename)
         f = file(filename, 'w')
         f.write(dumps(self.settings, sort_keys=True, indent=4))
 
@@ -804,9 +823,6 @@ class Core(gobject.GObject):
         self.emit('map-marks-changed')
 
 
-                
-    
-
 
 def determine_path ():
     """Borrowed from wxglade.py"""
@@ -823,6 +839,7 @@ def determine_path ():
                         
 
 def start():
+    gobject.threads_init()
     Core(gui, determine_path())
 
 def start_profile(what):

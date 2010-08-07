@@ -171,7 +171,7 @@ class GeocacheCoordinate(geo.Coordinate):
         return "%.1f" % (self.terrain / 10.0) if self.difficulty != -1 else '?'
 
     def get_status(self):
-        return self.STATUS_TEXT[self.status]
+        return self.STATUS_TEXT[self.status] if self.status != None else ''
 
     def serialize(self):
         ret = {}

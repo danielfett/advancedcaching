@@ -1,0 +1,202 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>767</width>
+    <height>392</height>
+   </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <property name="autoFillBackground">
+   <bool>false</bool>
+  </property>
+  <property name="documentMode">
+   <bool>false</bool>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Maximum" vsizetype="Maximum">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout"/>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>767</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuMap">
+    <property name="title">
+     <string>Map</string>
+    </property>
+    <addaction name="actionSelect_Map_Style"/>
+    <addaction name="actionDownload_Map_Tiles"/>
+    <addaction name="separator"/>
+    <addaction name="actionUpdate_Geocache_Map"/>
+    <addaction name="actionDownload_Details_for_all_visible_Geocaches"/>
+    <addaction name="separator"/>
+    <addaction name="actionOptions"/>
+   </widget>
+   <widget class="QMenu" name="menuSearch">
+    <property name="title">
+     <string>Search</string>
+    </property>
+    <addaction name="actionSearch_Geocaches"/>
+    <addaction name="actionSearch_Place"/>
+   </widget>
+   <widget class="QMenu" name="menuHelp">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <widget class="QMenu" name="menuAbout_AGTL">
+     <property name="title">
+      <string>About &amp;AGTL</string>
+     </property>
+     <addaction name="actionBlub_1"/>
+     <addaction name="actionBlub_2"/>
+    </widget>
+    <addaction name="menuAbout_AGTL"/>
+   </widget>
+   <widget class="QMenu" name="menuTest">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <addaction name="actionExport_all_visible_Geocaches"/>
+   </widget>
+   <addaction name="menuMap"/>
+   <addaction name="menuSearch"/>
+   <addaction name="menuHelp"/>
+   <addaction name="menuTest"/>
+  </widget>
+  <widget class="QStatusBar" name="statusBar"/>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>BottomToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="separator"/>
+   <addaction name="actionUpdate_Geocache_Map"/>
+   <addaction name="actionDownload_Details_for_all_visible_Geocaches"/>
+  </widget>
+  <action name="actionHallo_Welt">
+   <property name="text">
+    <string>Hallo Welt!</string>
+   </property>
+  </action>
+  <action name="actionTsch_ss_Welt">
+   <property name="text">
+    <string>Tschüss Welt!</string>
+   </property>
+  </action>
+  <action name="actionSelect_Map_Style">
+   <property name="text">
+    <string>Select Map Style</string>
+   </property>
+  </action>
+  <action name="actionSearch_Geocaches">
+   <property name="text">
+    <string>Search Geocaches</string>
+   </property>
+   <property name="statusTip">
+    <string>Test</string>
+   </property>
+  </action>
+  <action name="actionDownload_Map_Tiles">
+   <property name="text">
+    <string>Download Map Tiles</string>
+   </property>
+  </action>
+  <action name="actionBlub">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>blub</string>
+   </property>
+  </action>
+  <action name="actionBla">
+   <property name="text">
+    <string>bla</string>
+   </property>
+  </action>
+  <action name="actionBlub_1">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Blub 1</string>
+   </property>
+  </action>
+  <action name="actionBlub_2">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Blub 2</string>
+   </property>
+  </action>
+  <action name="actionSearch_Place">
+   <property name="text">
+    <string>Search Place</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Shift+P</string>
+   </property>
+  </action>
+  <action name="actionUpdate_Geocache_Map">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/icons/advancedcaching/data/emoticon_grin.png</normaloff>:/icons/advancedcaching/data/emoticon_grin.png</iconset>
+   </property>
+   <property name="text">
+    <string>Update Geocache Locations</string>
+   </property>
+  </action>
+  <action name="actionDownload_Details_for_all_visible_Geocaches">
+   <property name="icon">
+    <iconset resource="icons.qrc">
+     <normaloff>:/icons/advancedcaching/data/comment.png</normaloff>:/icons/advancedcaching/data/comment.png</iconset>
+   </property>
+   <property name="text">
+    <string>Download Details for visible Geocaches</string>
+   </property>
+  </action>
+  <action name="actionOptions">
+   <property name="text">
+    <string>Options</string>
+   </property>
+  </action>
+  <action name="actionExport_all_visible_Geocaches">
+   <property name="text">
+    <string>Export all visible Geocaches</string>
+   </property>
+  </action>
+ </widget>
+ <resources>
+  <include location="icons.qrc"/>
+ </resources>
+ <connections/>
+</ui>

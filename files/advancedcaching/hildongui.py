@@ -20,25 +20,6 @@
 
  
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
-# auto update feature
-# download map data
-# direction indicator in map view
-# edit waypoints
-# improved waypoint handling
-# - list of user waypoints:
-#   - per cache
-#   - "free" waypoints
-# - add/remove/edit of waypoints
-# - still parse waypoints from notes
-# - add parsing of calculations from notes
-# 'show on map' for waypoints
-# changes in menu:
-# - new "tools" button:
-#   - download map
-#   - upload fieldnotes
-#   - find location by name
-#   - export waypoints
-# add 'download map around geocaches' option
  
 ### For the gui :-)
 
@@ -321,7 +302,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             zoom = 6
 
         self.map = Map(center = coord, zoom = zoom)
-        self.geocache_layer = GeocacheLayer(self.core.pointprovider, self.show_cache)
+        self.geocache_layer = GeocacheLayer(self.__get_geocaches_callback, self.show_cache)
         self.marks_layer = MarksLayer()
         self.map.add_layer(self.geocache_layer)
         self.map.add_layer(self.marks_layer)
@@ -1476,7 +1457,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
 
         if self.gps_has_fix and self.gps_target_distance != None:
-            td_string = self._format_distance(self.gps_target_distance)
+            td_string = geo.Coordinate.format_distance(self.gps_target_distance)
             self.label_dist.set_markup("<span size='xx-large'>%s</span>" % td_string)
         elif self.gps_target_distance == None:
             self.label_dist.set_markup("<span size='x-large'>No Target</span>")
@@ -1500,7 +1481,9 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         #
         ##############################################
 
-        
+    def __get_geocaches_callback(self, visible_area, maxresults):
+        return self.core.pointprovider.get_points_filter(visible_area, False if self.settings['options_hide_found'] else None, maxresults)
+ 
 
     def _on_settings_changed(self, caller, settings, source):
         #if source == self:
@@ -1508,8 +1491,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.settings.update(settings)
 
         self.block_changes = True
-        if 'options_hide_found' in settings:
-            self.geocache_layer.set_show_found(not settings['options_hide_found'])
+        #if 'options_hide_found' in settings:
+        #    self.geocache_layer.set_show_found(not settings['options_hide_found'])
         if 'options_show_name' in settings:
             self.geocache_layer.set_show_name(settings['options_show_name'])
         if 'options_map_double_size' in settings:
@@ -1545,4 +1528,4 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
         for i in ['options_username', 'options_password', 'download_noimages', 'options_show_name', 'options_hide_found', 'options_show_html_description', 'options_map_double_size', 'options_rotate_screen', 'tts_interval']:
             settings[i] = self.settings[i]
-        self.core.save_settings(settings, self)
+        caller.save_settings(settings, self)
