@@ -214,7 +214,7 @@ class GeocacheCoordinate(geo.Coordinate):
             self.logs = ''
         if ret['vars'] == None:
             self.vars = ''
-        ret['updated'] = datetime.fromtimestamp(ret['updated'])
+        ret['updated'] = datetime.fromtimestamp(ret['updated'] if ret['updated'] != None else 0)
         ret['found'] = (ret['found'] == 1)
         self.__dict__ = ret
         
@@ -303,12 +303,13 @@ class GeocacheCoordinate(geo.Coordinate):
             vars = {}
         else:
             vars = loads(self.vars)
-        self.calc = CalcCoordinateManager(self, vars)
-        self.calc.add_text(stripped_desc, '')
+        self.calc = CalcCoordinateManager(vars)
+        self.calc.add_text(stripped_desc, 'Description')
         for w in self.get_waypoints():
             self.calc.add_text(w['comment'], "Waypoint %s" % w['name'])
         for id, local in self.get_user_coordinates(self.USER_TYPE_CALC_STRING):
             self.calc.add_text(local['value'], id)
+        self.calc.update()
 
     def add_or_edit_user_coordinate(self, type, value, name, id = None):
         try:
@@ -322,8 +323,6 @@ class GeocacheCoordinate(geo.Coordinate):
             logger.exception("get_user_coordinates has to be called first!")
             return None
         return id
-
-
 
     def delete_user_coordinate(self, id):
         try:

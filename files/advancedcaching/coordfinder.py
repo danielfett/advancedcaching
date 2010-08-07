@@ -58,20 +58,29 @@ logger = logging.getLogger('coordfinder')
 class CalcCoordinateManager(object):
     def __init__(self, vars):
         self.__vars = vars
-        self.__known_signatures = {}
+        self.__known_signatures = []
+        self.__filtered_signatures = []
         self.requires = set()
         self.coords = []
 
     def add_text(self, text, source):
         self.__add_coords(CalcCoordinate.find(text, source))
 
-    def __add_coords(self, coords):
+    def __add_coords(self, coords, apply_filter = True):
         for x in coords:
             if x.signature in self.__known_signatures:
                 continue
-            self.__known_signatures[x.signature] = True
+            if apply_filter and x.signature in self.__filtered_signatures:
+                continue
+            self.__known_signatures.append(x.signature)
             self.requires |= x.requires
             self.coords.append(x)
+            
+    def __remove_coord(self, ):
+
+    def __add_replacement(self, signature, replacement_text):
+
+
         
     def set_var(self, char, value):
         if value != '':
@@ -122,7 +131,7 @@ class CalcCoordinate():
         self.requires = set(x for i in [self.lat_deg, self.lat_min, self.lat_min_2, self.lon_deg, self.lon_min, self.lon_min_2] for x in re.sub('[^A-Za-z]', '', i))
         self.warnings = []
         self.vars = {}
-        self.signature = "|".join(ns, self.lat_deg, self.lat_min, self.lat_min_2, ew, self.lon_deg, self.lon_min, self.lon_min_2)
+        self.signature = "|".join([ns, self.lat_deg, self.lat_min, self.lat_min_2, ew, self.lon_deg, self.lon_min, self.lon_min_2])
         self.source = source
 
     def __prepare(self, text):
@@ -159,7 +168,7 @@ class CalcCoordinate():
         
 
 
-    def replace(self, text):
+    def __replace(self, text):
         for char, value in self.vars.items():
             text = text.replace(char, str(value))
         return text
@@ -193,6 +202,8 @@ class CalcCoordinate():
             self.warnings.append(self.WARNING_VERY_HIGH % tmp)
         return str(tmp)
 
+    SINGLE_CALC_PART = ur'''((?:\([A-Za-z +*/0-9-.,]+\)|[A-Za-z ()+*/0-9-])+)'''
+
     @staticmethod
     def find(text, source):
         text = re.sub(ur'''(?u)\s[^\W\d_]{2,}\s''', ' | ', text)
@@ -200,9 +211,13 @@ class CalcCoordinate():
         text = text.replace('°', '|')
         text = text.replace(unichr(160), ' ')
         text = re.sub(ur''' +''', ' ', text)
-        single_calc_part = ur'''((?:\([A-Za-z +*/0-9-.,]+\)|[A-Za-z ()+*/0-9-])+)'''
-        matches = re.findall(ur'''(?<![a-zA-Z])([NSns])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s['`\s,/]+([EOWeow])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s[\s'`]*(?![a-zA-Z])''' % {'calc' : single_calc_part}, text)
-        return [CalcCoordinate(*match, source = source) for match in matches]
+        matches = re.findall(ur'''(?<![a-zA-Z])([NSns])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s['`\s,/]+([EOWeow])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s[\s'`]*(?![a-zA-Z])''' % {'calc' : CalcCoordinate.SINGLE_CALC_PART}, text)
+        return [CalcCoordinate(*match, **{'source': source}) for match in matches]
+
+    @staticmethod
+    def is_calc_string(text):
+        regex = ur'''^([NSns])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s['`\s,/]+([EOWeow])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s[\s'`]*$''' % {'calc' : CalcCoordinate.SINGLE_CALC_PART}, text)
+        return (re.match(regex, text) != None)
 
 if __name__ == "__main__":
     from simplegui import SimpleGui
