@@ -17,4 +17,3 @@
 #
 #        Author: Daniel Fett advancedcaching@fragcom.de
 #
-from qt_tools import *
