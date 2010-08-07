@@ -49,6 +49,7 @@ from simplegui import GeocacheLayer
 from simplegui import MarksLayer
 from xml.sax.saxutils import escape as my_gtk_label_escape
 from gtkmap import Map, OsdLayer, SingleMarkLayer
+from coordfinder import CalcCoordinate
 
 
 import logging
@@ -922,9 +923,17 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             self.build_cache_images(cache, notebook)
 
             # calculated coords
-            cache.start_calc(text_longdesc)
-            if len(cache.calc.requires) > 0:
-                self.build_cache_calc(cache, notebook)
+            p = gtk.VBox()
+            notebook.append_page(p, gtk.Label("Calc"))
+
+            def rebuild_cache_calc():
+                cache.start_calc(self._strip_html(text_longdesc))
+                self.build_cache_calc(cache, p)
+
+            rebuild_cache_calc()
+            self.rebuild_cache_calc = rebuild_cache_calc
+
+
 
         # coords
         p = gtk.VBox()
@@ -1125,13 +1134,14 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
         notebook.append_page(selector, gtk.Label("Images"))
 
-    def build_cache_calc(self, cache, notebook):
+    def build_cache_calc(self, cache, p):
 
         def input_changed(widget, char):
             cache.calc.set_var(char, widget.get_text())
             self.show_cache_calc_results(cache)
 
-        p = gtk.VBox()
+        for x in p.get_children():
+            p.remove(x)
         count = len(cache.calc.requires)
         # create table with n columns.
         cols = 7
@@ -1165,7 +1175,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         p.pack_start(a, True)
         self.cache_calc_viewport = vp
         self.show_cache_calc_results(cache)
-        notebook.append_page(p, gtk.Label("Calc"))
 
     def show_cache_calc_results(self, cache):
         p = gtk.VBox()
@@ -1183,8 +1192,14 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             l = gtk.Label()
             l.set_alignment(0, 0.5)
             l.set_markup(label_text)
+            b = gtk.HBox()
+            b.pack_start(l, True)
             
-            p.pack_start(l, False)
+            button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
+            button.set_label("edit")
+            button.connect("clicked", self._on_edit_calc_coordinate, cache, c, c.source)
+            b.pack_start(button, False)
+            p.pack_start(b, False)
             p.pack_start(gtk.HSeparator(), False)
             
         for x in self.cache_calc_viewport.get_children():
@@ -1192,7 +1207,68 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.cache_calc_viewport.add(p)
         self.cache_calc_viewport.show_all()
 
+    def _on_edit_calc_coordinate(self, caller, cache, coordinate, source_id):
+        RESPONSE_DELETE = 1000
 
+        
+        if type(source_id) != int:
+            before = coordinate.orig
+            before_name = ''
+            ctype = geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING_OVERRIDE
+            logger.debug("Overwriting original coordinate.")
+        else:
+            info = cache.get_user_coordinate(source_id)
+            before_name = info['name']
+            ctype = info['type']
+            if info['type'] == geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING:
+                before = info['value']
+                logger.debug("Editing user supplied calc string.")
+            elif info['type'] == geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING_OVERRIDE:
+                before = info['value'][1]
+                logger.debug("Editing user supplied overwrite.")
+            else:
+                raise Exception("Illegal type.")
+        dialog = gtk.Dialog("Edit Calculation", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (
+            gtk.STOCK_OK, gtk.RESPONSE_ACCEPT,
+            "Delete", RESPONSE_DELETE
+            ))
+            
+        grp = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
+        entry_name = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+        entry_name.set_text(before_name)
+        dialog.vbox.pack_start(hildon.Caption(grp, "Name", entry_name, None, hildon.CAPTION_MANDATORY))
+        
+
+        entry_calc = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+        entry_calc.set_text(before)
+        dialog.vbox.pack_start(hildon.Caption(grp, "Calculation", entry_calc, None, hildon.CAPTION_MANDATORY))
+
+        dialog.show_all()
+        while True:
+            res = dialog.run()
+            if CalcCoordinate.is_calc_string(entry_calc.get_text()):
+                break
+            else:
+                self.show_error("Please enter a valid calculation.")
+        dialog.hide()
+
+        if res not in (gtk.RESPONSE_ACCEPT, RESPONSE_DELETE):
+            return
+        if res == gtk.RESPONSE_ACCEPT:
+            if type(source_id) != int:
+                value = (coordinate.signature, entry_calc.get_text())
+                id = None
+            elif info['type'] == geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING:
+                value = entry_calc.get_text()
+                id = source_id
+            else:
+                value = (info['value'][0], entry_calc.get_text())
+                id = source_id
+            cache.set_user_coordinate(ctype, value, entry_name.get_text(), id)
+
+        self.core.save_cache_attribute(self.current_cache, 'user_coordinates')
+        self.rebuild_cache_calc()
+        
     def _on_add_waypoint_clicked (self, widget):
         self._add_waypoint_to_notes()
 

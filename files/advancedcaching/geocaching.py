@@ -230,13 +230,23 @@ class GeocacheCoordinate(geo.Coordinate):
 
     def get_user_coordinates(self, type):
         try:
-            return [(id, point) for id, point in self.saved_user_coordinates.items() if point['type'] == type]
+            self.saved_user_coordinates
         except (AttributeError):
             if self.user_coordinates in (None, '{}', ''):
                 self.saved_user_coordinates = {}
             else:
                 self.saved_user_coordinates = loads(self.user_coordinates)
-            return self.saved_user_coordinates
+        return [(int(id), point) for id, point in self.saved_user_coordinates.items() if point['type'] == type]
+        
+
+    def get_user_coordinate(self, id):
+        try:
+            return self.saved_user_coordinates[str(id)]
+        except AttributeError:
+            logger.exception("Call get_user_coordinates first!")
+        except KeyError:
+            raise Exception("No user coordinate with id %d" % id)
+
 
     def get_logs(self):
         if self.logs == None or self.logs == '':
@@ -305,19 +315,23 @@ class GeocacheCoordinate(geo.Coordinate):
             vars = loads(self.vars)
         self.calc = CalcCoordinateManager(vars)
         self.calc.add_text(stripped_desc, 'Description')
-        for w in self.get_waypoints():
-            self.calc.add_text(w['comment'], "Waypoint %s" % w['name'])
+        for id, local in self.get_user_coordinates(self.USER_TYPE_CALC_STRING_OVERRIDE):
+            signature, replacement_text = local['value']
+            self.calc.add_replacement(signature, replacement_text, id)
         for id, local in self.get_user_coordinates(self.USER_TYPE_CALC_STRING):
             self.calc.add_text(local['value'], id)
+        for w in self.get_waypoints():
+            self.calc.add_text(w['comment'], "Waypoint %s" % w['name'])
         self.calc.update()
 
-    def add_or_edit_user_coordinate(self, type, value, name, id = None):
+    def set_user_coordinate(self, type, value, name, id = None):
+        # todo: use sequence!
         try:
             if id == None:
                 if len(self.saved_user_coordinates) > 0:
-                    id = max(self.saved_user_coordinates.keys()) + 1
+                    id = str(int(max(self.saved_user_coordinates.keys())) + 1)
                 else:
-                    id = 0
+                    id = str(0)
             self.saved_user_coordinates[id] = {'value': value, 'type' : type, 'name' : name}
         except AttributeError:
             logger.exception("get_user_coordinates has to be called first!")

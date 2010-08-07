@@ -64,10 +64,12 @@ class CalcCoordinateManager(object):
         self.coords = []
 
     def add_text(self, text, source):
+        logger.debug("Adding Text with length %d from source %s" % (len(text), source))
         self.__add_coords(CalcCoordinate.find(text, source))
 
     def __add_coords(self, coords, apply_filter = True):
         for x in coords:
+            logger.debug("Adding: %s, apply_filter = %s" % (x, apply_filter))
             if x.signature in self.__known_signatures:
                 continue
             if apply_filter and x.signature in self.__filtered_signatures:
@@ -75,11 +77,23 @@ class CalcCoordinateManager(object):
             self.__known_signatures.append(x.signature)
             self.requires |= x.requires
             self.coords.append(x)
+        logger.debug("Now having %d coords, %d requires" % (len(self.coords), len(self.requires)))
             
-    def __remove_coord(self, ):
+    def __remove_coord(self, signature):
+        self.__filtered_signatures.append(signature)
+        self.requires = set()
+        logger.debug("Removing: %s" % signature)
+        new_coords = []
+        for x in self.coords:
+            if x.signature != signature:
+                self.requires |= x.requires
+                new_coords.append(x)
+            logger.debug("At %s, requires = %s" % (x, x.requires))
+        logger.debug("Now having %d coords, %d requires" % (len(self.coords), len(self.requires)))
 
-    def __add_replacement(self, signature, replacement_text):
-
+    def add_replacement(self, signature, replacement_text, source):
+        self.__remove_coord(signature)
+        self.__add_coords(CalcCoordinate.find(replacement_text, source), False)
 
         
     def set_var(self, char, value):
@@ -90,6 +104,7 @@ class CalcCoordinateManager(object):
         self.update()
 
     def update(self):
+        logger.debug("updating...")
         for c in self.coords:
             c.set_vars(self.__vars)
             if c.has_requires():
@@ -202,6 +217,9 @@ class CalcCoordinate():
             self.warnings.append(self.WARNING_VERY_HIGH % tmp)
         return str(tmp)
 
+    def __str__(self):
+        return "<%s> from %s" % (self.orig, self.source)
+
     SINGLE_CALC_PART = ur'''((?:\([A-Za-z +*/0-9-.,]+\)|[A-Za-z ()+*/0-9-])+)'''
 
     @staticmethod
@@ -216,7 +234,7 @@ class CalcCoordinate():
 
     @staticmethod
     def is_calc_string(text):
-        regex = ur'''^([NSns])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s['`\s,/]+([EOWeow])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s[\s'`]*$''' % {'calc' : CalcCoordinate.SINGLE_CALC_PART}, text)
+        regex = ur'''^([NSns])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s['`\s,/]+([EOWeow])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s[\s'`]*$''' % {'calc' : CalcCoordinate.SINGLE_CALC_PART}
         return (re.match(regex, text) != None)
 
 if __name__ == "__main__":
