@@ -228,20 +228,23 @@ class GeocacheCoordinate(geo.Coordinate):
                 self.saved_waypoints = loads(self.waypoints)
             return self.saved_waypoints
 
-    def get_user_coordinates(self, type):
+    def get_user_coordinates(self, ctype):
         try:
             self.saved_user_coordinates
         except (AttributeError):
             if self.user_coordinates in (None, '{}', ''):
-                self.saved_user_coordinates = {}
+                self.saved_user_coordinates = []
             else:
                 self.saved_user_coordinates = loads(self.user_coordinates)
-        return [(int(id), point) for id, point in self.saved_user_coordinates.items() if point['type'] == type]
+                if type(self.saved_user_coordinates) != list:
+                    logger.debug('Creating new list!')
+                    self.saved_user_coordinates = []
+        return [(id, point) for id, point in zip(range(len(self.saved_user_coordinates)), self.saved_user_coordinates) if point['type'] == ctype]
         
 
     def get_user_coordinate(self, id):
         try:
-            return self.saved_user_coordinates[str(id)]
+            return self.saved_user_coordinates[id]
         except AttributeError:
             logger.exception("Call get_user_coordinates first!")
         except KeyError:
@@ -325,25 +328,24 @@ class GeocacheCoordinate(geo.Coordinate):
         self.calc.update()
 
     def set_user_coordinate(self, type, value, name, id = None):
-        # todo: use sequence!
+        d = {'value': value, 'type' : type, 'name' : name}
         try:
             if id == None:
-                if len(self.saved_user_coordinates) > 0:
-                    id = str(int(max(self.saved_user_coordinates.keys())) + 1)
-                else:
-                    id = str(0)
-            self.saved_user_coordinates[id] = {'value': value, 'type' : type, 'name' : name}
+                new_id = len(self.saved_user_coordinates)
+                self.saved_user_coordinates.append(d)
+                return new_id
+            else:
+                self.saved_user_coordinates[id] = d
+                return id
         except AttributeError:
-            logger.exception("get_user_coordinates has to be called first!")
-            return None
-        return id
+            raise Exception("get_user_coordinates has to be called first!")
+        
 
     def delete_user_coordinate(self, id):
         try:
             del self.saved_user_coordinates[id]
         except AttributeError:
-            logger.exception("get_user_coordinates has to be called first!")
-            return None
+            raise Exception("get_user_coordinates has to be called first!")
 
     def get_collected_coordinates(self, format, include_unknown = True, htmlcallback = lambda x: x, shorten_callback = lambda x: x):
         cache = self
@@ -369,14 +371,6 @@ class GeocacheCoordinate(geo.Coordinate):
             clist[i] = coord
             i += 1
 
-        # parsed from notes
-        for coord in geo.search_coordinates(self.notes):
-            coord.display_text = "from notes: %s" % coord.get_latlon(format)
-            coord.comment = "This coordinate was manually entered in the notes field."
-            coord.user_coordinate_id = None
-            clist[i] = coord
-            i += 1
-
         # read from local user_coordinates
         for id, local in self.get_user_coordinates(self.USER_TYPE_COORDINATE):
             coord = geo.Coordinate(* local['value'])
@@ -391,13 +385,13 @@ class GeocacheCoordinate(geo.Coordinate):
             for coord, source in self.calc.get_solutions():
                 if coord == False:
                     continue
-                coord.display_text = "calculated: %s = %s" % (coord.name, coord.get_latlon(format))
                 if type(source) == int:
-                    source_string = "entered calculation"
+                    source_string = self.get_user_coordinate(source)['name']
                     coord.user_coordinate_id = source
                 else:
                     source_string = source
                     coord.user_coordinate_id = None
+                coord.display_text = "%s: %s = %s" % (source_string, coord.name, coord.get_latlon(format))
                 coord.comment = "From %s:\n%s = %s" % (source_string, coord.name, coord.get_latlon(format))
                 clist[i] = coord
                 i += 1
@@ -405,11 +399,24 @@ class GeocacheCoordinate(geo.Coordinate):
             for coord, source in self.calc.get_plain_coordinates():
                 if coord == False:
                     continue
-                coord.display_text = "found: %s" % (coord.get_latlon(format))
-                coord.comment = "This coordinate was found in the description."
-                coord.user_coordinate_id = None
+                if type(source) == int:
+                    source_string = self.get_user_coordinate(source)['name']
+                    coord.user_coordinate_id = source
+                else:
+                    source_string = source
+                    coord.user_coordinate_id = None
+                coord.display_text = "%s: %s" % (source_string, coord.get_latlon(format))
+                coord.comment = "Found in %s." % source_string
                 clist[i] = coord
                 i += 1
+
+        # parsed from notes
+        for coord in geo.search_coordinates(self.notes):
+            coord.display_text = "from notes: %s" % coord.get_latlon(format)
+            coord.comment = "This coordinate was manually entered in the notes field."
+            coord.user_coordinate_id = None
+            clist[i] = coord
+            i += 1
         return clist
     
        

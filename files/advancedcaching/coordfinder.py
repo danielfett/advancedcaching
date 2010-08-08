@@ -62,6 +62,7 @@ class CalcCoordinateManager(object):
         self.__filtered_signatures = []
         self.requires = set()
         self.coords = []
+        logger.debug("New coordfinder started")
 
     def add_text(self, text, source):
         logger.debug("Adding Text with length %d from source %s" % (len(text), source))
@@ -81,6 +82,7 @@ class CalcCoordinateManager(object):
             
     def __remove_coord(self, signature):
         self.__filtered_signatures.append(signature)
+        self.__known_signatures = []
         self.requires = set()
         logger.debug("Removing: %s" % signature)
         new_coords = []
@@ -88,7 +90,8 @@ class CalcCoordinateManager(object):
             if x.signature != signature:
                 self.requires |= x.requires
                 new_coords.append(x)
-            logger.debug("At %s, requires = %s" % (x, x.requires))
+                self.__known_signatures.append(x.signature)
+        self.coords = new_coords
         logger.debug("Now having %d coords, %d requires" % (len(self.coords), len(self.requires)))
 
     def add_replacement(self, signature, replacement_text, source):

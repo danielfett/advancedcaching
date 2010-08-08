@@ -172,6 +172,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.icon_pixbufs = out
 
         self.image_icon_add = gtk.image_new_from_file(self.ICONPATH % {'size' : 64, 'name':'general_add'})
+        self.image_icon_add_2 = gtk.image_new_from_file(self.ICONPATH % {'size' : 64, 'name':'general_add'})
+        self.image_icon_add_3 = gtk.image_new_from_file(self.ICONPATH % {'size' : 64, 'name':'general_add'})
         self.image_zoom_in = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'pdf_zoomin'})
         self.image_zoom_out = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'pdf_zoomout'})
         self.image_action = gtk.image_new_from_file(self.ICONPATH % {'size' : 64, 'name':'keyboard_menu'})
@@ -184,9 +186,14 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
     def _open_browser(self, widget, link):
         system("dbus-send --print-reply --dest=com.nokia.osso_browser /com/nokia/osso_browser/request com.nokia.osso_browser.open_new_window 'string:%s' &" % link)
 
-    def show_coordinate_input(self, start, none_on_cancel=False):
+    def show_coordinate_input(self, start, none_on_cancel = False, show_name_input = False):
         udr = UpdownRows(self.format, start, True)
         dialog = gtk.Dialog("Edit Target", self.window, gtk.DIALOG_MODAL, ("OK", gtk.RESPONSE_ACCEPT))
+        if show_name_input:
+            e = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+            dialog.vbox.pack_start(e)
+            e.set_text(start.name)
+
         dialog.set_size_request(-1, 480)
         dialog.vbox.pack_start(udr.table_lat)
                 
@@ -197,7 +204,10 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         dialog.destroy()
         if res == gtk.RESPONSE_ACCEPT:
             c = udr.get_value()
-            c.name = 'manual'
+            if show_name_input:
+                c.name = e.get_text()
+            else:
+                c.name = 'manual'
             return c
         elif none_on_cancel:
             return None
@@ -923,12 +933,12 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             self.build_cache_images(cache, notebook)
 
             # calculated coords
-            p = gtk.VBox()
-            notebook.append_page(p, gtk.Label("Calc"))
+            cache_calc_box = gtk.VBox()
+            notebook.append_page(cache_calc_box, gtk.Label("Calc"))
 
             def rebuild_cache_calc():
                 cache.start_calc(self._strip_html(text_longdesc))
-                self.build_cache_calc(cache, p)
+                self.build_cache_calc(cache, cache_calc_box)
 
             rebuild_cache_calc()
             self.rebuild_cache_calc = rebuild_cache_calc
@@ -950,8 +960,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.cache_notes.get_buffer().connect('changed', self.on_notes_changed)
         self.notes_changed = False
 
-        button = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
-        button.set_label("Add Waypoint")
+        button = hildon.Button(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL	)
+        button.set_title("Add Waypoint")
         button.set_image(self.image_icon_add)
         button.connect("clicked", self._on_add_waypoint_clicked)
 
@@ -1048,7 +1058,11 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             widget.realize()
 
     def build_coordinates(self, cache, p):
-
+        button = hildon.Button(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
+        button.set_title("Add Coordinate")
+        button.set_image(self.image_icon_add_2)
+        button.connect("clicked", lambda caller, cache: self._add_waypoint_to_user_coordinates_list(cache), cache)
+        p.pack_start(button, False)
         def show_details(widget_coords, stuff, clist):
             c = clist[self._get_selected_pos(widget_coords)]
             if c == None:
@@ -1058,10 +1072,10 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
 
         p.pack_start(widget_coords, True, True)
-        widget_coords.show_all()
+        p.show_all()
 
     def __show_coordinate_details(self, c, cache):
-        RESPONSE_AS_TARGET, RESPONSE_AS_MAIN, RESPONSE_COPY_EDIT = range(3)
+        RESPONSE_AS_TARGET, RESPONSE_AS_MAIN, RESPONSE_COPY_EDIT, RESPONSE_EDIT, RESPONSE_DELETE = range(5)
         try:
             name = c.display_text
         except AttributeError:
@@ -1071,6 +1085,10 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         if c.lat != None:
             dialog.add_button("as Target", RESPONSE_AS_TARGET)
             dialog.add_button("as Main Coord.", RESPONSE_AS_MAIN)
+        if c.user_coordinate_id != None:
+            dialog.add_button("edit", RESPONSE_EDIT)
+            dialog.add_button("delete", RESPONSE_DELETE)
+        elif c.lat != None:
             dialog.add_button("copy & edit", RESPONSE_COPY_EDIT)
         lbl = gtk.Label()
         lbl.set_line_wrap(True)
@@ -1097,6 +1115,11 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         elif resp == RESPONSE_COPY_EDIT:
             self._add_waypoint_to_notes(c)
             self.update_coords()
+        elif resp == RESPONSE_EDIT:
+            self._on_edit_user_coordinate(None, cache, c.user_coordinate_id)
+            self.update_coords()
+        elif resp == RESPONSE_DELETE:
+            self.__delete_user_coordinate(cache, c.user_coordinate_id)
 
 
 
@@ -1135,7 +1158,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         notebook.append_page(selector, gtk.Label("Images"))
 
     def build_cache_calc(self, cache, p):
-
+        logger.debug("Cache calc for %s" % p)
         def input_changed(widget, char):
             cache.calc.set_var(char, widget.get_text())
             self.show_cache_calc_results(cache)
@@ -1167,107 +1190,170 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             m.pack_start(e)
             table.attach(m, col, col + 1, row, row + 1)
             i += 1
+
+
+        # add button
+        button = hildon.Button(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL	)
+        button.set_title("Add Calculation")
+        button.set_image(self.image_icon_add_3)
+        button.connect("clicked", self._on_edit_user_coordinate, cache)
+        p.pack_start(button, False)
+
+        # add contents
         p.pack_start(table, False)
         p.pack_start(gtk.HSeparator(), False)
+
+        # add list vbox
         a = hildon.PannableArea()
-        vp = gtk.Viewport()
-        a.add(vp)
+        self.cache_calc_vbox = gtk.VBox()
+        a.add_with_viewport(self.cache_calc_vbox)
         p.pack_start(a, True)
-        self.cache_calc_viewport = vp
+
+
+        p.show_all()
         self.show_cache_calc_results(cache)
 
     def show_cache_calc_results(self, cache):
-        p = gtk.VBox()
+        for x in self.cache_calc_vbox.get_children():
+            self.cache_calc_vbox.remove(x)
         vars = cache.calc.get_vars()
         for c in cache.calc.coords:
             if len(c.requires) == 0:
                 continue
+            if type(c.source) == int:
+                source = cache.get_user_coordinate(c.source)['name']
+            else:
+                source = c.source
             if c.has_requires():
                 text_calc = "= %s\n%s%s" % (c.replaced_result, c.result if c.result != False else '', "".join("\n<b>!</b> <span color='gold'>%s</span>" % warning for warning in c.warnings))
             else:
                 text_calc = "<i>Needs %s</i>\n" % (', '.join(("<s>%s</s>" if r in vars else "<b>%s</b>") % r for r in c.requires))
 
-            label_text = '<b>%s</b>\n%s' % (c.orig, text_calc)
-
+            label_text = '%s: <b>%s</b>\n%s' % (source, c.orig, text_calc)
+            #logger.debug("Showing cache calc: %s" % label_text)
             l = gtk.Label()
             l.set_alignment(0, 0.5)
             l.set_markup(label_text)
-            b = gtk.HBox()
-            b.pack_start(l, True)
+            b = gtk.Table(rows = 2, columns = 2)
+            b.attach(l, 0, 1, 0, 2)
             
             button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
             button.set_label("edit")
-            button.connect("clicked", self._on_edit_calc_coordinate, cache, c, c.source)
-            b.pack_start(button, False)
-            p.pack_start(b, False)
-            p.pack_start(gtk.HSeparator(), False)
+            button.connect("clicked", self._on_edit_user_coordinate, cache, c.source, c)
+            b.attach(button, 1, 2, 0, 1, 0, 0)
+
+            self.cache_calc_vbox.pack_start(b, False)
+            self.cache_calc_vbox.pack_start(gtk.HSeparator(), False)
             
-        for x in self.cache_calc_viewport.get_children():
-            self.cache_calc_viewport.remove(x)
-        self.cache_calc_viewport.add(p)
-        self.cache_calc_viewport.show_all()
+        self.cache_calc_vbox.show_all()
 
-    def _on_edit_calc_coordinate(self, caller, cache, coordinate, source_id):
-        RESPONSE_DELETE = 1000
-
-        
-        if type(source_id) != int:
-            before = coordinate.orig
+    def _on_edit_user_coordinate(self, caller, cache, source_id = None, coordinate = None):
+        if source_id == None:
+            before_calc = ''
+            before_name = ''
+            ctype = geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING
+            logger.debug("Adding new calc string")
+            button_text = None
+        elif type(source_id) != int:
+            before_calc = coordinate.orig
             before_name = ''
             ctype = geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING_OVERRIDE
             logger.debug("Overwriting original coordinate.")
+            button_text = None
         else:
             info = cache.get_user_coordinate(source_id)
             before_name = info['name']
             ctype = info['type']
             if info['type'] == geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING:
-                before = info['value']
+                before_calc = info['value']
                 logger.debug("Editing user supplied calc string.")
+                button_text = 'Delete'
             elif info['type'] == geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING_OVERRIDE:
-                before = info['value'][1]
+                before_calc = info['value'][1]
                 logger.debug("Editing user supplied overwrite.")
+                button_text = 'Reset'
+            elif info['type'] == geocaching.GeocacheCoordinate.USER_TYPE_COORDINATE:
+                start = geo.Coordinate(info['value'][0], info['value'][1], info['name'])
+                res = self.show_coordinate_input(start, none_on_cancel = True, show_name_input = True)
+                if res == None:
+                    return
+                cache.set_user_coordinate(geocaching.GeocacheCoordinate.USER_TYPE_COORDINATE, (res.lat, res.lon), res.name, source_id)
+                self.core.save_cache_attribute(self.current_cache, 'user_coordinates')
+                self.update_coords()
+                return
             else:
                 raise Exception("Illegal type.")
+
+        (res, after_name, after_calc) = self.__show_edit_calculation(before_calc, before_name, button_text)
+
+        if res not in (gtk.RESPONSE_ACCEPT, gtk.RESPONSE_NO):
+            return
+        if res == gtk.RESPONSE_ACCEPT:
+            try:
+                geo.try_parse_coordinate(after_calc)
+                self.show_success("Coordinate saved.")
+            except Exception:
+                self.show_success("Calc string saved.")
+            if source_id == None:
+                value = after_calc
+                id = None
+            elif type(source_id) != int:
+                value = (coordinate.signature, after_calc)
+                id = None
+            elif info['type'] == geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING or info['type'] == geocaching.GeocacheCoordinate.USER_TYPE_COORDINATE:
+                value = after_calc
+                id = source_id
+            else:
+                value = (info['value'][0], after_calc)
+                id = source_id
+            cache.set_user_coordinate(ctype, value, after_name, id)
+        elif res == gtk.RESPONSE_NO:
+            cache.delete_user_coordinate(source_id)
+
+        self.core.save_cache_attribute(self.current_cache, 'user_coordinates')
+        self.rebuild_cache_calc()
+        
+    def __delete_user_coordinate(self, cache, id):
+        cache.delete_user_coordinate(id)
+        self.core.save_cache_attribute(cache, 'user_coordinates')
+        self.rebuild_cache_calc()
+        self.update_coords()
+
+    def __show_edit_calculation(self, before_calc, before_name, button_text):
         dialog = gtk.Dialog("Edit Calculation", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (
-            gtk.STOCK_OK, gtk.RESPONSE_ACCEPT,
-            "Delete", RESPONSE_DELETE
+            gtk.STOCK_OK, gtk.RESPONSE_ACCEPT
             ))
-            
+
+        if button_text != None:
+            dialog.add_button(button_text, gtk.RESPONSE_NO)
+
+        text = "Enter a Coordinate or a calculation string.\n" + \
+        "Format is: <b>N12 12.123 E123 12.123</b>\n" + \
+        "Variables: <b>A-Z</b>, Operators: <b>+-*/%()</b>"
+        lbl = gtk.Label()
+        dialog.vbox.pack_start(lbl)
+        lbl.set_line_wrap(True)
+        lbl.set_alignment(0, 0.5)
+        lbl.set_markup(text)
+
         grp = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
         entry_name = hildon.Entry(gtk.HILDON_SIZE_AUTO)
         entry_name.set_text(before_name)
         dialog.vbox.pack_start(hildon.Caption(grp, "Name", entry_name, None, hildon.CAPTION_MANDATORY))
-        
 
         entry_calc = hildon.Entry(gtk.HILDON_SIZE_AUTO)
-        entry_calc.set_text(before)
+        entry_calc.set_text(before_calc)
         dialog.vbox.pack_start(hildon.Caption(grp, "Calculation", entry_calc, None, hildon.CAPTION_MANDATORY))
 
         dialog.show_all()
         while True:
             res = dialog.run()
-            if CalcCoordinate.is_calc_string(entry_calc.get_text()):
-                break
-            else:
+            if res == gtk.RESPONSE_ACCEPT and not CalcCoordinate.is_calc_string(entry_calc.get_text()):
                 self.show_error("Please enter a valid calculation.")
-        dialog.hide()
-
-        if res not in (gtk.RESPONSE_ACCEPT, RESPONSE_DELETE):
-            return
-        if res == gtk.RESPONSE_ACCEPT:
-            if type(source_id) != int:
-                value = (coordinate.signature, entry_calc.get_text())
-                id = None
-            elif info['type'] == geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING:
-                value = entry_calc.get_text()
-                id = source_id
             else:
-                value = (info['value'][0], entry_calc.get_text())
-                id = source_id
-            cache.set_user_coordinate(ctype, value, entry_name.get_text(), id)
-
-        self.core.save_cache_attribute(self.current_cache, 'user_coordinates')
-        self.rebuild_cache_calc()
+                break
+        dialog.hide()
+        return (res, entry_name.get_text(), entry_calc.get_text())
         
     def _on_add_waypoint_clicked (self, widget):
         self._add_waypoint_to_notes()
@@ -1289,6 +1375,16 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             return
         text = "\n%s\n" % res.get_latlon(self.format)
         self.cache_notes.get_buffer().insert(self.cache_notes.get_buffer().get_end_iter(), text)
+
+
+
+    def _add_waypoint_to_user_coordinates_list(self, cache, start=None):
+        res = self.show_coordinate_input(self._get_best_coordinate(start), none_on_cancel = True, show_name_input = True)
+        if res == None:
+            return
+        cache.set_user_coordinate(geocaching.GeocacheCoordinate.USER_TYPE_COORDINATE, (res.lat, res.lon), res.name)
+        self.core.save_cache_attribute(self.current_cache, 'user_coordinates')
+        self.update_coords()
 
         
     def _on_show_image(self, dpath, caption):
