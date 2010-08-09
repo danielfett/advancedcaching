@@ -110,6 +110,9 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.core.connect('no-fix', self._on_no_fix)
         self.core.connect('settings-changed', self._on_settings_changed)
         self.core.connect('save-settings', self._on_save_settings)
+        self.core.connect('error', lambda caller, message: self.show_error(message))
+        self.core.connect('progress', lambda caller, fraction, text: self.set_progress(fraction, text))
+        self.core.connect('hide-progress', lambda caller: self.hide_progress())
 
         self.settings = {}
 
@@ -1541,9 +1544,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         b = self.cache_notes.get_buffer()
         return b.get_text(b.get_start_iter(), b.get_end_iter())
                 
-
-    #called by core
-    def set_download_progress(self, fraction, text = ''):
+    def set_progress(self, fraction, text = ''):
         hildon.hildon_gtk_window_set_progress_indicator(self.window, 1)
         if text == '':
             text = 'Please wait...'
@@ -1557,8 +1558,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
 
     def show_error(self, errormsg):
-        #if isinstance(errormsg, Exception):
-        #    raise errormsg
         hildon.hildon_banner_show_information(self.window, "", "%s" % errormsg)
 
     def show_success(self, message):

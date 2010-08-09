@@ -58,7 +58,6 @@ if '-v' in argv:
     import logging.handlers
     logging.getLogger('').setLevel(logging.DEBUG)
     logging.debug("Set log level to DEBUG")
-    logging.getLogger().addHandler(handler)
 
 if '--simple' in argv:
     import simplegui
@@ -89,6 +88,9 @@ class Core(gobject.GObject):
         'target-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT)),
         'settings-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT, )),
         'save-settings': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
+        'error': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, )),
+        'progress': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT, )),
+        'hide-progress': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
         }
 
     SETTINGS_DIR = path.expanduser(path.join('~', '.agtl'))
@@ -165,7 +167,7 @@ class Core(gobject.GObject):
 
         
         actor_tts = TTS(self)
-        actor_tts.connect('error', lambda caller, msg: self.gui.show_error(msg))
+        actor_tts.connect('error', lambda caller, msg: self.emit('error', msg))
         #actor_notify = Notify(self)
         self.emit('settings-changed', self.settings, self)
 
@@ -587,7 +589,7 @@ class Core(gobject.GObject):
 
     # called by gui
     def on_download(self, location, sync=False):
-        self.gui.set_download_progress(0.5, "Downloading...")
+        self.emit('progress', 0.5, "Downloading...")
         cd = cachedownloader.GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
         cd.connect("already-downloading-error", self.on_already_downloading_error)
@@ -612,7 +614,7 @@ class Core(gobject.GObject):
             if point_new:
                 new_caches.append(c)
         self.pointprovider.save()
-        self.gui.hide_progress()
+        self.emit('hide-progress')
         self.emit('map-marks-changed')
         if sync:
             return (caches, new_caches)
@@ -621,21 +623,21 @@ class Core(gobject.GObject):
 
     # called on signal by downloading thread
     def on_already_downloading_error(self, something, error):
-        self.gui.show_error(error)
+        self.emit('error', error)
 
     # called on signal by downloading thread
     def on_download_error(self, something, error):
         logging.exception(error)
         def same_thread(error):
-            self.gui.hide_progress()
-            self.gui.show_error("Error while downloading: '%s'" % error)
+            self.emit('hide-progress')
+            self.emit('error', error)
             return False
         gobject.idle_add(same_thread, error)
 
     # called by gui
     def on_download_cache(self, cache, sync=False):
         #
-        self.gui.set_download_progress(0.5, "Downloading %s..." % cache.name)
+        self.emit('progress', 0.5, "Downloading %s..." % cache.name)
 
         cd = cachedownloader.GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
@@ -658,7 +660,7 @@ class Core(gobject.GObject):
     def on_download_cache_complete(self, something, cache):
         self.pointprovider.add_point(cache, True)
         self.pointprovider.save()
-        self.gui.hide_progress()
+        self.emit('hide-progress')
         self.emit('cache-changed', cache)
         return False
 
@@ -722,7 +724,7 @@ class Core(gobject.GObject):
         for c in caches:
             self.pointprovider.add_point(c, True)
         self.pointprovider.save()
-        self.gui.hide_progress()
+        self.emit('hide-progress')
         for c in caches:
             self.emit('cache-changed', c)
         self.emit('map-marks-changed')
@@ -731,7 +733,7 @@ class Core(gobject.GObject):
 
     # called on signal by downloading thread
     def on_download_progress(self, something, cache_name, i, max_i):
-        self.gui.set_download_progress(float(i) / float(max_i), "Downloading %s (%d of %d)..." % (cache_name, i, max_i))
+        self.emit('progress', float(i) / float(max_i), "Downloading %s (%d of %d)..." % (cache_name, i, max_i))
         return False
 
     ##############################################
@@ -747,13 +749,13 @@ class Core(gobject.GObject):
         else:
             raise Exception("Format currently not supported: %s" % format)
 
-        self.gui.set_download_progress(0.5, "Exporting %s..." % cache.name)
+        self.emit('progress', 0.5, "Exporting %s..." % cache.name)
         try:
             exporter.export(cache, folder)
         except Exception, e:
-            self.gui.show_error(e)
+            self.emit('error', e)
         finally:
-            self.gui.hide_progress()
+            self.emit('hide-progress')
         
                 
 
@@ -775,7 +777,7 @@ class Core(gobject.GObject):
         self.emit('fieldnotes-changed')        
 
     def on_upload_fieldnotes(self):
-        self.gui.set_download_progress(0.5, "Uploading Fieldnotes...")
+        self.emit('progress', 0.5, "Uploading Fieldnotes...")
 
         caches = self.pointprovider.get_new_fieldnotes()
         fn = fieldnotesuploader.FieldnotesUploader(self.downloader)
@@ -797,7 +799,7 @@ class Core(gobject.GObject):
         for c in caches:
             c.logas = geocaching.GeocacheCoordinate.LOG_NO_LOG
             self.save_cache_attribute(c, 'logas')
-        self.gui.hide_progress()
+        self.emit('hide-progress')
         self.emit('fieldnotes-changed')
 
     def get_new_fieldnotes_count(self):

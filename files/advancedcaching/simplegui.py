@@ -118,6 +118,9 @@ class SimpleGui(Gui):
         self.core.connect('no-fix', self._on_no_fix)
         self.core.connect('settings-changed', self._on_settings_changed)
         self.core.connect('save-settings', self._on_save_settings)
+        self.core.connect('error', lambda caller, message: self.show_error(message))
+        self.core.connect('progress', lambda caller, fraction, text: self.set_progress(fraction, text))
+        self.core.connect('hide-progress', lambda caller: self.hide_progress())
 
         self.settings = {}
 
@@ -602,7 +605,6 @@ class SimpleGui(Gui):
 
     def hide_progress(self):
         self.progressbar.hide()
-                        
                 
     def _load_images(self):
         if self.current_cache == None:
@@ -618,7 +620,8 @@ class SimpleGui(Gui):
         self.core.on_download(self.map.get_visible_area())
 
     def on_download_details_map_clicked(self, some, thing=None):
-        self.core.on_download_descriptions(self.map.get_visible_area(), True)
+        logger.debug("Downloading geocaches on map.")
+        self.core.on_download_descriptions(self.map.get_visible_area())
 
     def on_download_details_sync_clicked(self, something):
         self.core.on_download_descriptions(self.map.get_visible_area())
@@ -976,12 +979,12 @@ class SimpleGui(Gui):
     def _get_track_mode(self):
         return self.marks_layer.get_follow_position()
                 
-    #called by core
-    def set_download_progress(self, fraction, text):
+    def set_progress(self, fraction, text):
+        gtk.gdk.threads_enter()
         self.progressbar.show()
         self.progressbar.set_text(text)
         self.progressbar.set_fraction(fraction)
-        #self.do_events()
+        gtk.gdk.threads_leave()
 
 
     def set_target(self, cache):
@@ -1145,20 +1148,25 @@ class SimpleGui(Gui):
 
                 
     def show_error(self, errormsg):
-        if isinstance(errormsg, Exception):
-            raise errormsg
-        error_dlg = gtk.MessageDialog(type=gtk.MESSAGE_ERROR, \
-                                      message_format="%s" % errormsg, \
-                                      buttons=gtk.BUTTONS_OK)
+        gtk.gdk.threads_enter()
+        error_dlg = gtk.MessageDialog(self.window,
+            gtk.DIALOG_MODAL, gtk.MESSAGE_ERROR,
+            gtk.BUTTONS_CLOSE,  "%s" % errormsg)
+
+        error_dlg.connect('response', lambda w,d: error_dlg.destroy())
         error_dlg.run()
         error_dlg.destroy()
+        gtk.gdk.threads_leave()
+        
 
     def show_success(self, message):
+        gtk.gdk.threads_enter()
         suc_dlg = gtk.MessageDialog(type=gtk.MESSAGE_INFO \
                                     , message_format=message \
                                     , buttons=gtk.BUTTONS_OK)
         suc_dlg.run()
         suc_dlg.destroy()
+        gtk.gdk.threads_leave()
 
     def show_coordinate_input(self, start):
         udr = UpdownRows(self.format, start, False)
