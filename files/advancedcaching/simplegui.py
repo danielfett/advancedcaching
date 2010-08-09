@@ -170,6 +170,9 @@ class SimpleGui(Gui):
             self.show_cache(cache)
         return False
 
+    def set_current_cache(self, cache):
+        pass
+
 
     def _on_map_changed(self, something):
         self.map.redraw_layers()

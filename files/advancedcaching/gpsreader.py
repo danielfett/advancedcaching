@@ -22,11 +22,14 @@
 import geo
 from socket import socket, AF_INET, SOCK_STREAM
 from datetime import datetime
+import logging
+
+logger = logging.getLogger('gpsreader')
 
 try:
     import location
 except (ImportError):
-    print "If you're on maemo, please install python-location"
+    logger.warning("If you're on maemo, please install python-location")
 
 class Fix():
     BEARING_HOLD_EPD = 90 # arbitrary, yet non-random value
@@ -69,11 +72,13 @@ class GpsReader():
     BEARING_HOLD_SPEED = 0.62 # meters per second. empirical value.
     QUALITY_LOW_BOUND = 5.0 # meters of HDOP.
     DGPS_ADVANTAGE = 1 # see below for usage
-
+    PORT = 2947
+    HOST = '127.0.0.1'
 
     EMPTY = Fix()
 
     def __init__(self):
+        logger.info("Using GPSD gps reader on port %d host %s" % (self.PORT, self.HOST))
         self.status = "connecting..."
         self.connected = False
         self.last_bearing = 0
@@ -85,12 +90,13 @@ class GpsReader():
         try:
 
             self.gpsd_connection = socket(AF_INET, SOCK_STREAM)
-            self.gpsd_connection.connect(("127.0.0.1", 2947))
+            self.gpsd_connection.connect((self.HOST, self.PORT))
             self.status = "connected"
             self.connected = True
         except:
-            self.status = "Could not connect to GPSD on Localhost, Port 2947"
-            print "Could not connect"
+            text = "Could not connect to GPSD!"
+            logger.warning(text)
+            self.status = text
             self.connected = False
 
     def get_data(self):
@@ -148,7 +154,7 @@ class GpsReader():
                 err_track = splitted[11]
                 time = datetime.utcfromtimestamp(int(float(splitted[1])))
             except:
-                print "GPSD Output: \n%s\n  -- cannot be parsed." % data
+                logger.info("GPSD Output: \n%s\n  -- cannot be parsed." % data)
                 self.status = "Could not read GPSD output."
                 return Fix()
             alt = self.to_float(alt)
@@ -192,7 +198,7 @@ class GpsReader():
                 timestamp = time
                 )
         except Exception, e:
-            print "Fehler beim Auslesen der Daten: %s " % e
+            logger.exception("Fehler beim Auslesen der Daten: %s " % e)
             return self.EMPTY
 
     @staticmethod
@@ -207,7 +213,7 @@ class LocationGpsReader():
     BEARING_HOLD_SPEED = 2.5 # km/h
 
     def __init__(self, cb_error, cb_changed):
-        print "+ Using liblocation GPS device"
+        logger.info("Using liblocation GPS device")
 
         control = location.GPSDControl.get_default()
         device = location.GPSDevice()
@@ -259,7 +265,7 @@ class LocationGpsReader():
         Fix.min_timediff = min(Fix.min_timediff, datetime.utcnow() - a.timestamp)
         # if this fix is too old, discard it
         if ((datetime.utcnow() - a.timestamp) - Fix.min_timediff).seconds > LocationGpsReader.TIMEOUT:
-            print "Discarding fix: Timestamp diff is %d, should not be > %d" % (((datetime.utcnow() - a.timestamp) - Fix.min_timediff).seconds, LocationGpsReader.TIMEOUT)
+            logger.info("Discarding fix: Timestamp diff is %d, should not be > %d" % (((datetime.utcnow() - a.timestamp) - Fix.min_timediff).seconds, LocationGpsReader.TIMEOUT))
             return a
 
         # now on for location dependent data

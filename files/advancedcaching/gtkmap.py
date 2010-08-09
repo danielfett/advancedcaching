@@ -166,9 +166,9 @@ class Map(gtk.DrawingArea, AbstractMap):
 
     def __scroll(self, widget, event):
         if event.direction == gtk.gdk.SCROLL_DOWN:
-            self.map.zoom(-1)
+            self.relative_zoom(-1)
         else:
-            self.map.zoom(+ 1)
+            self.relative_zoom(+ 1)
 
     def __drag_start(self, widget, event):
         try:

@@ -23,6 +23,10 @@ from __future__ import with_statement
 VERSION = "0.7.0.2"
    
 
+import logging
+logging.basicConfig(level=logging.WARNING,
+                    format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s',
+                    )
 
 from geo import Coordinate
 try:
@@ -43,11 +47,6 @@ import cachedownloader
 import fieldnotesuploader
 from actors.tts import TTS
 #from actors.notify import Notify
-import logging
-
-logging.basicConfig(level=logging.WARNING,
-                    format='%(asctime)s\t%(levelname)s\t%(name)-15s\t %(message)s',
-                    )
 
 if len(argv) == 1:
     import cli
@@ -55,8 +54,11 @@ if len(argv) == 1:
     exit()
 
 if '-v' in argv:
+    import colorer
+    import logging.handlers
     logging.getLogger('').setLevel(logging.DEBUG)
     logging.debug("Set log level to DEBUG")
+    logging.getLogger().addHandler(handler)
 
 if '--simple' in argv:
     import simplegui
@@ -80,12 +82,12 @@ class Core(gobject.GObject):
 
     __gsignals__ = {
         'map-marks-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
-        'cache-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'cache-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, )),
         'fieldnotes-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
         'good-fix': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT)),
         'no-fix': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT)),
         'target-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT)),
-        'settings-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT,)),
+        'settings-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT, )),
         'save-settings': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, ()),
         }
 
@@ -135,7 +137,7 @@ class Core(gobject.GObject):
         ],
         'options_map_double_size': False,
         'options_rotate_screen': 0,
-        'tts_interval' : 0
+        'tts_interval': 0
     }
             
     def __init__(self, guitype, root):
@@ -210,7 +212,7 @@ class Core(gobject.GObject):
 
     def optimize_data(self):
         self.pointprovider.push_filter()
-        self.pointprovider.set_filter(found = True)
+        self.pointprovider.set_filter(found=True)
         old_geocaches = self.pointprovider.get_points_filter()
         self.pointprovider.pop_filter()
         for x in old_geocaches:
@@ -230,11 +232,11 @@ class Core(gobject.GObject):
         folder = self.settings['download_output_dir']
         folder_size = 0
         for (p, dirs, files) in walk(folder):
-          for file in files:
-            filename = path.join(p, file)
-            folder_size += path.getsize(filename)
+            for file in files:
+                filename = path.join(p, file)
+                folder_size += path.getsize(filename)
         sqlite_size = path.getsize(self.CACHES_DB)
-        return {'images' : folder_size, 'sqlite' : sqlite_size}
+        return {'images': folder_size, 'sqlite': sqlite_size}
 
     @staticmethod
     def format_file_size(size):
