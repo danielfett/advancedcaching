@@ -23,6 +23,7 @@ from threading import Lock
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+from PyQt4.QtOpenGL import *
 from abstractmap import AbstractGeocacheLayer
 from abstractmap import AbstractMap
 from abstractmap import AbstractMapLayer
@@ -36,7 +37,7 @@ logger.debug("Using pyqt bindings")
 
 
 
-class QtMap(QWidget, AbstractMap):
+class QtMap(QGLWidget, AbstractMap):
 
     tileLoaderChanged = pyqtSignal()
     mapDragged = pyqtSignal()
@@ -45,7 +46,8 @@ class QtMap(QWidget, AbstractMap):
     tileFinished = pyqtSignal(tuple)
 
     def __init__(self, parent, center, zoom, tile_loader=None):
-        QWidget.__init__(self)
+        #QWidget.__init__(self)
+        QGLWidget.__init__(self, QGLFormat(QGL.SampleBuffers | QGL.DoubleBuffer | QGL.Rgba))
         AbstractMap.__init__(self, center, zoom, tile_loader)
         self.buffer = QPixmap(self.size())
         self.painter = QPainter()
@@ -271,7 +273,6 @@ class QtMap(QWidget, AbstractMap):
         self.delay_expose = False
         #cr = gtk.gdk.CairoContext(cairo.Context(self.cr_drawing_area_map))
         p = self.painter
-        self.sem.acquire()
 
         if which == None:
             which = self.surface_buffer.values()
@@ -282,34 +283,46 @@ class QtMap(QWidget, AbstractMap):
                 continue
             size = self.tile_loader.TILE_SIZE
             try:
-                pm = QPixmap(surface)
+                pm = self.__load_tile_cached(surface)
             except Exception:
                 logger.exception("Could not load Pixmap from Filename %s" % surface)
                 try:
-                    pm = QPixmap(self.noimage_cantload)
+                    pm = self.__load_tile_cached(self.noimage_cantload)
                 except Exception:
                     logger.exception("Could not load replacement Pixmap from Filename %s" % self.noimage_cantload)
+
+            
             if scale_source == None:
+                self.sem.acquire()
                 p.begin(self.buffer)
                 p.drawPixmap(x + off_x, y + off_y, pm)
                 p.end()
             else:
-                p.begin(self.buffer)
-                p.setRenderHint(QPainter.SmoothPixmapTransform, True)
                 xs, ys = scale_source
                 target = QRectF(x + off_x, y + off_y, size, size)
                 source = QRectF(xs, ys, size / 2, size / 2)
+                self.sem.acquire()
+                p.begin(self.buffer)
+                p.setRenderHint(QPainter.SmoothPixmapTransform, True)
                 p.drawPixmap(target, pm, source)
                 p.end()
+            self.sem.release()
 
             #cr.rectangle(max(0, x + off_x), max(0, y + off_y), min(size + x, size, self.map_width - x + size), min(size + y, size, self.map_height - y + size))
 
             #cr.fill()
             #self.queue_draw_area(max(0, x + off_x), max(0, y + off_y), min(size + x, size, self.map_width - x + size), min(size + y, size, self.map_height - y + size))
 
-        self.sem.release()
+        
         self.repaint()
         return False
+
+    def __load_tile_cached(self, filename):
+        pixmap = QPixmapCache.find(filename)
+        if pixmap == None:
+            pixmap = QPixmap(filename)
+            QPixmapCache.insert(filename, pixmap)
+        return pixmap
 
 class AbstractQtLayer(AbstractMapLayer):
 
@@ -578,7 +591,8 @@ class QtGeocacheLayer(AbstractQtLayer, AbstractGeocacheLayer):
             p.setBrush(self.BRUSH_CACHE)
             p.setPen(cache_pen)
             rect = QRectF(loc[0] - radius, loc[1] - radius, radius * 2, radius * 2)
-            p.drawRoundedRect(rect, 3.5, 3.5)
+            #p.drawRoundedRect(rect, 3.5, 3.5)
+            p.drawRect(rect)
             p.setBrush(QBrush(Qt.transparent))
 
             if draw_short:
