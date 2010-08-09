@@ -46,8 +46,7 @@ class QtMap(QGLWidget, AbstractMap):
     tileFinished = pyqtSignal(tuple)
 
     def __init__(self, parent, center, zoom, tile_loader=None):
-        #QWidget.__init__(self)
-        QGLWidget.__init__(self, QGLFormat(QGL.SampleBuffers | QGL.DoubleBuffer | QGL.Rgba))
+        QGLWidget.__init__(self, QGLFormat(QGL.SampleBuffers | QGL.DoubleBuffer | QGL.Rgba | QGL.DirectRendering))
         AbstractMap.__init__(self, center, zoom, tile_loader)
         self.buffer = QPixmap(self.size())
         self.painter = QPainter()
