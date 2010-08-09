@@ -31,7 +31,6 @@
 import math
 
 from astral import Astral
-import cairo
 import geo
 import geocaching
 import gobject
@@ -42,7 +41,7 @@ try:
 except (ImportError):
     print "Please install glade if you're NOT on the maemo platform."
 import pango
-from os import path
+from os import path, extsep
 import re
 from cachedownloader import HTMLManipulations
 from gtkmap import *
@@ -55,8 +54,6 @@ class SimpleGui(Gui):
     USES = ['gpsprovider']
     XMLFILE = "freerunner.glade"
 
-
-
     REDRAW_DISTANCE_TRACKING = 50 # distance from center of visible map in px
     REDRAW_DISTANCE_MINOR = 4 # distance from last displayed point in px
     DISTANCE_DISABLE_ARROW = 5 # meters
@@ -66,8 +63,6 @@ class SimpleGui(Gui):
 
     ARROW_OFFSET = 1.0 / 3.0 # Offset to center of arrow, calculated as 2-x = sqrt(1^2+(x+1)^2)
     ARROW_SHAPE = [(0, -2 + ARROW_OFFSET), (1, + 1 + ARROW_OFFSET), (0, 0 + ARROW_OFFSET), (-1, 1 + ARROW_OFFSET)]
-
-
 
 
     # arrow colors and sizes
@@ -113,17 +108,22 @@ class SimpleGui(Gui):
     def __init__(self, core, dataroot):
     
         gtk.gdk.threads_init()
+        self._prepare_images(dataroot)
         
-        self.noimage_loading = cairo.ImageSurface.create_from_png(path.join(dataroot, 'noimage-loading.png'))
-        self.noimage_cantload = cairo.ImageSurface.create_from_png(path.join(dataroot, 'noimage-cantload.png'))
         self.core = core
         self.core.connect('map-marks-changed', self._on_map_changed)
         self.core.connect('cache-changed', self._on_cache_changed)
-        #self.core.connect('target-changed', self._on_target_changed)
+        self.core.connect('target-changed', self._on_target_changed)
         self.core.connect('good-fix', self._on_good_fix)
         self.core.connect('no-fix', self._on_no_fix)
-        #self.core.connect('settings-changed', self._on_settings_changed)
-        
+        self.core.connect('settings-changed', self._on_settings_changed)
+        self.core.connect('save-settings', self._on_save_settings)
+
+        self.settings = {}
+
+        Map.set_config(self.core.settings['map_providers'], self.core.settings['download_map_path'], self.noimage_cantload, self.noimage_loading)
+        #OsdLayer.set_layout(pango.FontDescription("Nokia Sans Maps 13"), gtk.gdk.color_parse('black'))
+
                 
         self.format = geo.Coordinate.FORMAT_DM
 
@@ -151,6 +151,17 @@ class SimpleGui(Gui):
         xml = gtk.glade.XML(path.join(dataroot, self.XMLFILE))
         self.load_ui()
         # self.build_tile_loaders()
+
+
+    def _get_geocaches_callback(self, visible_area, maxresults):
+        return self.core.pointprovider.get_points_filter(visible_area, False if self.settings['options_hide_found'] else None, maxresults)
+ 
+
+    def _prepare_images(self, dataroot):
+        p = "%s%s%%s" % (path.join(dataroot, '%s'), extsep)
+        self.noimage_cantload = p % ('noimage-cantload', 'png')
+        self.noimage_loading = p % ('noimage-loading', 'png')
+
 
     def _on_cache_changed(self, something, cache):
         
@@ -194,20 +205,15 @@ class SimpleGui(Gui):
         
         self.input_export_path = xml.get_widget('input_export_path')
                 
-        self.drawing_area.set_double_buffered(True)
-        self.drawing_area.connect("expose_event", self._expose_event)
-        self.drawing_area.connect("configure_event", self._configure_event)
-        self.drawing_area.connect("button_press_event", self._drag_start)
-        self.drawing_area.connect("scroll_event", self._scroll)
-        self.drawing_area.connect("button_release_event", self._drag_end)
-        self.drawing_area.connect("motion_notify_event", self._drag)
-        self.drawing_area.set_events(gtk.gdk.EXPOSURE_MASK | gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.BUTTON_RELEASE_MASK | gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.SCROLL | gtk.gdk.BUTTON_MOTION_MASK)
-                
         # arrow drawing area
         self.drawing_area_arrow.connect("expose_event", self._expose_event_arrow)
         self.drawing_area_arrow.connect("configure_event", self._configure_event_arrow)
         self.drawing_area_arrow.set_events(gtk.gdk.EXPOSURE_MASK)
-                
+
+        # map
+        self._configure_map()
+        xml.get_widget('tableMap').attach(self.map, 0, 4, 1, 2)
+
                 
         self.cache_elements = {
             'name_downloaded': xml.get_widget('link_cache_name'),
@@ -274,12 +280,12 @@ class SimpleGui(Gui):
          ROW_ID,
          ) = range(6)
         columns = (
-                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE, ), False, True),
-                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE, ), False, True),
+                   ('name', [(txtRdr, gobject.TYPE_STRING)], (ROW_TITLE,), False, True),
+                   ('type', [(txtRdr, gobject.TYPE_STRING)], (ROW_TYPE,), False, True),
                    ('size', [(txtRdr, gobject.TYPE_STRING)], (ROW_SIZE, ROW_ID), False, True),
                    ('ter', [(txtRdr, gobject.TYPE_STRING)], (ROW_TERRAIN, ROW_ID), False, True),
                    ('dif', [(txtRdr, gobject.TYPE_STRING)], (ROW_DIFF, ROW_ID), False, True),
-                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID, ), False, True),
+                   ('ID', [(txtRdr, gobject.TYPE_STRING)], (ROW_ID,), False, True),
                    )
         self.cachelist = listview = extListview.ExtListView(columns, sortable=True, useMarkup=True, canShowHideColumns=False)
         self.cachelist_contents = []
@@ -296,7 +302,7 @@ class SimpleGui(Gui):
                    ('name', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_NAME), False, True),
                    ('pos', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_LATLON), False, True),
                    ('id', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_ID), False, True),
-                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT, ), False, True),
+                   ('comment', [(txtRdr, gobject.TYPE_STRING)], (COL_COORD_COMMENT,), False, True),
                    )
         self.coordlist = extListview.ExtListView(columns, sortable=True, useMarkup=False, canShowHideColumns=False)
         self.coordlist.connect('extlistview-button-pressed', self.on_waypoint_clicked)
@@ -305,7 +311,26 @@ class SimpleGui(Gui):
         self.notebook_all.set_current_page(1)
         gobject.timeout_add_seconds(10, self._check_notes_save)
 
+    def _configure_map(self):
+        try:
+            coord = geo.Coordinate(self.settings['map_position_lat'], self.settings['map_position_lon'])
+            zoom = self.settings['map_zoom']
+        except KeyError:
+            coord = self._get_best_coordinate(geo.Coordinate(50, 10))
+            zoom = 6
 
+        self.map = Map(center=coord, zoom=zoom)
+        self.geocache_layer = GeocacheLayer(self._get_geocaches_callback, self.show_cache)
+        self.marks_layer = MarksLayer()
+        self.map.add_layer(self.geocache_layer)
+        self.map.add_layer(self.marks_layer)
+        self.map.add_layer(OsdLayer())
+
+        self.core.connect('target-changed', self.marks_layer.on_target_changed)
+        self.core.connect('good-fix', self.marks_layer.on_good_fix)
+        self.core.connect('no-fix', self.marks_layer.on_no_fix)
+        self.map.connect('tile-loader-changed', lambda widget, loader: self._update_zoom_buttons())
+        
     def on_marked_label_clicked(self, event=None, widget=None):
         w = xml.get_widget('check_cache_marked')
         w.set_active(not w.get_active())
@@ -344,7 +369,19 @@ class SimpleGui(Gui):
     def do_events(self):
         while gtk.events_pending():
             gtk.main_iteration()
-                
+
+
+
+    def _get_best_coordinate(self, start=None):
+        if start != None:
+            c = start
+        elif self.gps_data != None and self.gps_data.position != None:
+            c = self.gps_data.position
+        elif self.core.current_target != None:
+            c = self.core.current_target
+        else:
+            c = geo.Coordinate(0, 0)
+        return c
                 
     # called by core
     def display_results_advanced(self, caches):
@@ -375,7 +412,7 @@ class SimpleGui(Gui):
             else:
                 t = "%.1f" % (r.terrain / 10)
             title = self._format_cache_title(r)
-            rows.append((title, r.type, s, t, d, r.name,))
+            rows.append((title, r.type, s, t, d, r.name, ))
         self.cachelist.replaceContent(rows)
         self.notebook_search.set_current_page(1)
         self.map.redraw_layers()
@@ -847,7 +884,7 @@ class SimpleGui(Gui):
             self.notebook_all.set_current_page(0)
                                 
     def on_zoomin_clicked(self, widget, data=None):
-        self.map.relative_zoom( + 1)
+        self.map.relative_zoom(+ 1)
                 
     def on_zoomout_clicked(self, widget, data=None):
         self.map.relative_zoom(-1)
@@ -942,10 +979,14 @@ class SimpleGui(Gui):
         self.progressbar.set_text(text)
         self.progressbar.set_fraction(fraction)
         #self.do_events()
-                
+
+
     def set_target(self, cache):
-        raise Exception("FIXME")
-        self.current_target = cache
+        self.core.set_target(cache)
+
+    def _on_target_changed(self, caller, cache, distance, bearing):
+        self.gps_target_distance = distance
+        self.gps_target_bearing = bearing
         self.label_target.set_text("<span size='large'>%s\n%s</span>" % (cache.get_lat(self.format), cache.get_lon(self.format)))
         self.label_target.set_use_markup(True)
         
@@ -1001,7 +1042,7 @@ class SimpleGui(Gui):
         self.cache_elements['desc'].set_text(showdesc)
 
         # is cache marked?
-        self.cache_elements['marked'].set_active(cache.marked)
+        self.cache_elements['marked'].set_active(True if cache.marked else False)
 
         # Set View
         self.notebook_cache.set_current_page(0)
@@ -1057,8 +1098,8 @@ class SimpleGui(Gui):
         self.button_download_details.set_sensitive(True)
 
         # Load notes
-        self.cache_elements['notes'].set_text(cache.notes)
-        self.cache_elements['fieldnotes'].set_text(cache.fieldnotes)
+        self.cache_elements['notes'].set_text(cache.notes if cache.notes != None else '')
+        self.cache_elements['fieldnotes'].set_text(cache.fieldnotes if cache.fieldnotes != None else '')
 
         # Set field note (log) settings
         if cache.logas == geocaching.GeocacheCoordinate.LOG_AS_FOUND:
@@ -1236,6 +1277,50 @@ class SimpleGui(Gui):
             return s[0:end] + suffix
 
 
+    def _on_settings_changed(self, caller, settings, source):
+        #if source == self:
+        #    return
+        self.settings.update(settings)
+
+        self.block_changes = True
+        #if 'options_hide_found' in settings:
+        #    self.geocache_layer.set_show_found(not settings['options_hide_found'])
+        if 'options_show_name' in settings:
+            self.geocache_layer.set_show_name(settings['options_show_name'])
+        if 'options_map_double_size' in settings:
+            self.map.set_double_size(settings['options_map_double_size'])
+        if 'map_zoom' in settings:
+            if self.map.get_zoom() != settings['map_zoom']:
+                self.map.set_zoom(settings['map_zoom'])
+        if 'map_position_lat' in settings and 'map_position_lon' in settings:
+            self.set_center(geo.Coordinate(settings['map_position_lat'], settings['map_position_lon']), reset_track = False)
+        if 'map_follow_position' in settings:
+            self._set_track_mode(settings['map_follow_position'])
+        if 'last_target_lat' in settings:
+            self.set_target(geo.Coordinate(settings['last_target_lat'], settings['last_target_lon']))
+        if 'last_selected_geocache' in settings and settings['last_selected_geocache'] not in (None, ''):
+            cache = self.core.get_geocache_by_name(settings['last_selected_geocache'])
+            if cache != None:
+                self.set_current_cache(cache)
+
+        self.block_changes = False
+
+
+    def _on_save_settings(self, caller):
+        c = self.map.get_center()
+        settings = {}
+        settings['map_position_lat'] = c.lat
+        settings['map_position_lon'] = c.lon
+        settings['map_zoom'] = self.map.get_zoom()
+        settings['map_follow_position'] = self._get_track_mode()
+
+        if self.current_cache != None:
+            settings['last_selected_geocache'] = self.current_cache.name
+
+        for i in ['options_username', 'options_password', 'download_noimages', 'options_show_name', 'options_hide_found', 'options_show_html_description', 'options_map_double_size']:
+            settings[i] = self.settings[i]
+        caller.save_settings(settings, self)
+
 class Updown():
     def __init__(self, table, position, small):
         self.value = int(0)
@@ -1271,7 +1356,6 @@ class Updown():
                 
     def update(self):
         self.label.set_markup("<b>%d</b>" % self.value)
-                
 
                 
 class PlusMinusUpdown():
@@ -1371,3 +1455,4 @@ class UpdownRows():
                     cn = cn + 1
 
         return [table, chooser]
+

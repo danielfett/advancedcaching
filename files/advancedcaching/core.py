@@ -883,11 +883,12 @@ def start_profile(what):
             print "-- %d %4f %s" % (line.callcount, line.totaltime, line.code)
 
 
-if '--profile' in argv:
-    start = start_profile('start()')
 
         
 
 if __name__ == "__main__":
-    start()
+    if '--profile' in argv:
+        start_profile('start()')
+    else:
+        start()
 

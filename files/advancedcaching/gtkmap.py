@@ -116,6 +116,7 @@ class Map(gtk.DrawingArea, AbstractMap):
         #for i in xrange(50):
         cr = self.window.cairo_create()
         cr.rectangle(x, y, width, height)
+        cr.save()
         cr.clip()
         cr.set_source_surface(self.cr_drawing_area_map)
         cr.paint()
@@ -124,7 +125,7 @@ class Map(gtk.DrawingArea, AbstractMap):
                 continue
             cr.set_source_surface(l.result)
             cr.paint()
-        cr.reset_clip()
+        cr.restore()
         #end = time.time()
         #print end - start
         #import sys

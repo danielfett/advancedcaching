@@ -152,7 +152,7 @@ class GeocacheCoordinate(geo.Coordinate):
         self.vars = ''
         self.alter_lat = 0
         self.alter_lon = 0
-        self.updated = datetime.fromtimestamp(0)
+        self.updated = 0
         self.user_coordinates = ''
 
     def clone(self):
@@ -162,7 +162,10 @@ class GeocacheCoordinate(geo.Coordinate):
         return n
 
     def updated(self):
-        self.updated = datetime.now()
+        self.updated = int(time.mktime(datetime.now().timetuple()))
+
+    def get_updated(self):
+        return datetime.fromtimestamp(self.updated)
         
     def get_difficulty(self):
         return "%.1f" % (self.difficulty / 10.0) if self.difficulty != -1 else '?'
@@ -186,8 +189,6 @@ class GeocacheCoordinate(geo.Coordinate):
             return 1 if self.marked else 0
         elif attribute == 'vars':
             return dumps(self.calc.get_vars()) if self.calc != None else ''
-        elif attribute == 'updated':
-            return int(time.mktime(self.updated.timetuple()))
         elif attribute == 'user_coordinates':
             try:
                 return dumps(self.saved_user_coordinates)
@@ -214,7 +215,6 @@ class GeocacheCoordinate(geo.Coordinate):
             self.logs = ''
         if ret['vars'] == None:
             self.vars = ''
-        ret['updated'] = datetime.fromtimestamp(ret['updated'] if ret['updated'] != None else 0)
         ret['found'] = (ret['found'] == 1)
         self.__dict__ = ret
         

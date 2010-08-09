@@ -305,32 +305,9 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.main_gpspage.pack_start(self.main_gpspage_table, False, True)
         
         self.main_mappage = gtk.VBox()
-        try:
-            coord = geo.Coordinate(self.settings['map_position_lat'], self.settings['map_position_lon'])
-            zoom = self.settings['map_zoom']
-        except KeyError:
-            coord = self._get_best_coordinate(geo.Coordinate(50, 10))
-            zoom = 6
-
-        self.map = Map(center = coord, zoom = zoom)
-        self.geocache_layer = GeocacheLayer(self.__get_geocaches_callback, self.show_cache)
-        self.marks_layer = MarksLayer()
-        self.map.add_layer(self.geocache_layer)
-        self.map.add_layer(self.marks_layer)
-        self.map.add_layer(OsdLayer())
-
-        self.core.connect('target-changed', self.marks_layer.on_target_changed)
-        self.core.connect('good-fix', self.marks_layer.on_good_fix)
-        self.core.connect('no-fix', self.marks_layer.on_no_fix)
-
-
-        self.map.connect('tile-loader-changed', lambda widget, loader: self._update_zoom_buttons())
-        #self.map.connect('map-dragged', lambda widget: self._set_track_mode(False))
-
+        self._configure_map()
 
         buttons = gtk.HBox()
-
-
 
         button = hildon.GtkButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         button.set_image(self.image_action)
@@ -1358,17 +1335,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
     def _on_add_waypoint_clicked (self, widget):
         self._add_waypoint_to_notes()
 
-    def _get_best_coordinate(self, start=None):
-        if start != None:
-            c = start
-        elif self.gps_data != None and self.gps_data.position != None:
-            c = self.gps_data.position
-        elif self.core.current_target != None:
-            c = self.core.current_target
-        else:
-            c = geo.Coordinate(0, 0)
-        return c
-
     def _add_waypoint_to_notes(self, start=None):
         res = self.show_coordinate_input(self._get_best_coordinate(start), none_on_cancel = True)
         if res == None:
@@ -1518,9 +1484,6 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.hide_cache_view(go_to_map = True)
         self.set_active_page(True)
 
-    def set_target(self, cache):
-        self.core.set_target(cache)
-
     def _on_target_changed(self, caller, cache, distance, bearing):
         self.gps_target_distance = distance
         self.gps_target_bearing = bearing
@@ -1653,39 +1616,12 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         #
         ##############################################
 
-    def __get_geocaches_callback(self, visible_area, maxresults):
-        return self.core.pointprovider.get_points_filter(visible_area, False if self.settings['options_hide_found'] else None, maxresults)
- 
-
     def _on_settings_changed(self, caller, settings, source):
-        #if source == self:
-        #    return
-        self.settings.update(settings)
-
-        self.block_changes = True
-        #if 'options_hide_found' in settings:
-        #    self.geocache_layer.set_show_found(not settings['options_hide_found'])
-        if 'options_show_name' in settings:
-            self.geocache_layer.set_show_name(settings['options_show_name'])
-        if 'options_map_double_size' in settings:
-            self.map.set_double_size(settings['options_map_double_size'])
-        if 'map_zoom' in settings:
-            if self.map.get_zoom() != settings['map_zoom']:
-                self.map.set_zoom(settings['map_zoom'])
-        if 'map_position_lat' in settings and 'map_position_lon' in settings:
-            self.set_center(geo.Coordinate(settings['map_position_lat'], settings['map_position_lon']), reset_track = False)
-        if 'map_follow_position' in settings:
-            self._set_track_mode(settings['map_follow_position'])
+        SimpleGui._on_settings_changed(self, caller, settings, source)
         if 'options_rotate_screen' in settings:
             self.rotation_manager.set_mode(settings['options_rotate_screen'])
-        if 'last_target_lat' in settings:
-            self.set_target(geo.Coordinate(settings['last_target_lat'], settings['last_target_lon']))
-        if 'last_selected_geocache' in settings and settings['last_selected_geocache'] not in (None, ''):
-            cache = self.core.get_geocache_by_name(settings['last_selected_geocache'])
-            if cache != None:
-                self.set_current_cache(cache)
+        
 
-        self.block_changes = False
 
     def _on_save_settings(self, caller):
         c = self.map.get_center()

@@ -114,7 +114,7 @@ class QtGui(QMainWindow, Ui_MainWindow, Gui):
     def show(self):
         QMainWindow.show(self)
         self.core.connect('map-marks-changed', lambda caller: self.geocacheLayer.refresh())
-        sys.exit(self.app.exec_())
+        self.app.exec_()
 
     def __get_geocaches_callback(self, visible_area, maxresults):
         return self.core.pointprovider.get_points_filter(visible_area, None, maxresults)

@@ -9,7 +9,6 @@
     <child>
       <widget class="GtkVBox" id="vbox1">
         <property name="visible">True</property>
-        <property name="orientation">vertical</property>
         <child>
           <widget class="GtkNotebook" id="notebook_all">
             <property name="width_request">480</property>
@@ -109,7 +108,6 @@
                     <child>
                       <widget class="GtkVBox" id="vbox2">
                         <property name="visible">True</property>
-                        <property name="orientation">vertical</property>
                         <child>
                           <widget class="GtkLabel" id="label_latlon">
                             <property name="visible">True</property>
@@ -159,21 +157,9 @@
               </packing>
             </child>
             <child>
-              <widget class="GtkTable" id="table2">
+              <widget class="GtkTable" id="tableMap">
                 <property name="visible">True</property>
                 <property name="n_rows">3</property>
-                <child>
-                  <widget class="GtkDrawingArea" id="drawingarea">
-                    <property name="app_paintable">True</property>
-                    <signal name="map" handler="dmap"/>
-                    <signal name="unmap" handler="dunmap"/>
-                  </widget>
-                  <packing>
-                    <property name="top_attach">1</property>
-                    <property name="bottom_attach">2</property>
-                    <property name="y_options">GTK_EXPAND | GTK_SHRINK | GTK_FILL</property>
-                  </packing>
-                </child>
                 <child>
                   <widget class="GtkHBox" id="hbox7">
                     <property name="height_request">100</property>
@@ -248,6 +234,9 @@
                     <property name="y_options">GTK_FILL</property>
                   </packing>
                 </child>
+                <child>
+                  <placeholder/>
+                </child>
               </widget>
               <packing>
                 <property name="position">1</property>
@@ -268,7 +257,6 @@ view</property>
             <child>
               <widget class="GtkVBox" id="vbox4">
                 <property name="visible">True</property>
-                <property name="orientation">vertical</property>
                 <child>
                   <widget class="GtkLabel" id="label_cache_title">
                     <property name="visible">True</property>
@@ -469,7 +457,6 @@ view</property>
                     <child>
                       <widget class="GtkVBox" id="vbox5">
                         <property name="visible">True</property>
-                        <property name="orientation">vertical</property>
                         <child>
                           <widget class="GtkLabel" id="label13">
                             <property name="visible">True</property>
@@ -514,7 +501,6 @@ view</property>
                     <child>
                       <widget class="GtkVBox" id="vbox6">
                         <property name="visible">True</property>
-                        <property name="orientation">vertical</property>
                         <child>
                           <widget class="GtkScrolledWindow" id="scrolledwindow_image">
                             <property name="visible">True</property>
@@ -555,7 +541,7 @@ view</property>
                             <property name="visible">True</property>
                             <child>
                               <widget class="GtkButton" id="button_image_zoom">
-                                <property name="label" translatable="yes">gtk-zoom-in</property>
+                                <property name="label">gtk-zoom-in</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
@@ -568,7 +554,7 @@ view</property>
                             </child>
                             <child>
                               <widget class="GtkButton" id="button_image_next">
-                                <property name="label" translatable="yes">gtk-go-forward</property>
+                                <property name="label">gtk-go-forward</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
@@ -605,7 +591,6 @@ view</property>
                     <child>
                       <widget class="GtkVBox" id="vbox7">
                         <property name="visible">True</property>
-                        <property name="orientation">vertical</property>
                         <child>
                           <widget class="GtkScrolledWindow" id="scrolledwindow3">
                             <property name="visible">True</property>
@@ -741,7 +726,6 @@ note</property>
                     <child>
                       <widget class="GtkVBox" id="vbox3">
                         <property name="visible">True</property>
-                        <property name="orientation">vertical</property>
                         <child>
                           <widget class="GtkScrolledWindow" id="scrolledwindow2">
                             <property name="visible">True</property>
@@ -846,7 +830,6 @@ note</property>
             <child>
               <widget class="GtkVBox" id="vbox_search">
                 <property name="visible">True</property>
-                <property name="orientation">vertical</property>
                 <child>
                   <widget class="GtkTable" id="table4">
                     <property name="visible">True</property>
@@ -1022,7 +1005,7 @@ note</property>
                     <property name="homogeneous">True</property>
                     <child>
                       <widget class="GtkButton" id="button3">
-                        <property name="label" translatable="yes">gtk-revert-to-saved</property>
+                        <property name="label">gtk-revert-to-saved</property>
                         <property name="height_request">50</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -1036,7 +1019,7 @@ note</property>
                     </child>
                     <child>
                       <widget class="GtkButton" id="button_advanced_search">
-                        <property name="label" translatable="yes">gtk-find</property>
+                        <property name="label">gtk-find</property>
                         <property name="height_request">50</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
@@ -1074,7 +1057,6 @@ note</property>
             <child>
               <widget class="GtkVBox" id="vbox8">
                 <property name="visible">True</property>
-                <property name="orientation">vertical</property>
                 <child>
                   <widget class="GtkFrame" id="frame2">
                     <property name="visible">True</property>
@@ -1087,7 +1069,6 @@ note</property>
                         <child>
                           <widget class="GtkVBox" id="vbox10">
                             <property name="visible">True</property>
-                            <property name="orientation">vertical</property>
                             <child>
                               <widget class="GtkLabel" id="label30">
                                 <property name="visible">True</property>
@@ -1103,7 +1084,7 @@ note</property>
                             </child>
                             <child>
                               <widget class="GtkButton" id="button1">
-                                <property name="label" translatable="yes">gtk-ok</property>
+                                <property name="label">gtk-ok</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
@@ -1160,7 +1141,6 @@ note</property>
                         <child>
                           <widget class="GtkVBox" id="vbox9">
                             <property name="visible">True</property>
-                            <property name="orientation">vertical</property>
                             <child>
                               <widget class="GtkCheckButton" id="check_download_visible">
                                 <property name="label" translatable="yes">only visible caches</property>
@@ -1275,7 +1255,7 @@ note</property>
                             </child>
                             <child>
                               <widget class="GtkButton" id="button_download_now">
-                                <property name="label" translatable="yes">gtk-ok</property>
+                                <property name="label">gtk-ok</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
