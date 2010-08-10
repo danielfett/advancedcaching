@@ -35,19 +35,21 @@ import geo
 import geocaching
 import gobject
 import gtk
+
+import logging
+logger = logging.getLogger('simplegui')
+
 try:
     import gtk.glade
     import extListview
 except (ImportError):
-    print "Please install glade if you're NOT on the maemo platform."
+    logger.info( "Please install glade if you're NOT on the maemo platform.")
 import pango
 from os import path, extsep
 import re
 from cachedownloader import HTMLManipulations
 from gtkmap import *
 from gui import Gui
-import logging
-logger = logging.getLogger('simplegui')
 
 
 class SimpleGui(Gui):
@@ -96,6 +98,7 @@ class SimpleGui(Gui):
         'options_show_name',
         'download_noimages',
         'options_hide_found',
+        'options_map_double_size',
     ]
     SETTINGS_INPUTS = [
         'download_output_dir',
@@ -121,6 +124,7 @@ class SimpleGui(Gui):
         self.core.connect('error', lambda caller, message: self.show_error(message))
         self.core.connect('progress', lambda caller, fraction, text: self.set_progress(fraction, text))
         self.core.connect('hide-progress', lambda caller: self.hide_progress())
+        self.core.connect('fieldnotes-changed', self._on_fieldnotes_changed)
 
         self.settings = {}
 
@@ -201,6 +205,7 @@ class SimpleGui(Gui):
         self.button_track = xml.get_widget('togglebutton_track')
         self.check_result_marked = xml.get_widget('check_result_marked')
         self.label_fieldnotes = xml.get_widget('label_fieldnotes')
+        self.button_upload_fieldnotes = xml.get_widget('button_fieldnotes')
                 
         self.label_bearing = xml.get_widget('label_bearing')
         self.label_dist = xml.get_widget('label_dist')
@@ -372,12 +377,6 @@ class SimpleGui(Gui):
         self.core.on_destroy()
         gtk.main_quit()
 
-    def do_events(self):
-        while gtk.events_pending():
-            gtk.main_iteration()
-
-
-
     def _get_best_coordinate(self, start=None):
         if start != None:
             c = start
@@ -483,7 +482,7 @@ class SimpleGui(Gui):
         try:
             sun_angle = self.astral.get_sun_azimuth_from_fix(self.gps_data)
         except Exception, e:
-            print e
+            logger.exception("Couldn't get sun angle: %s" % e)
             sun_angle = None
             
         if sun_angle != None:
@@ -673,7 +672,6 @@ class SimpleGui(Gui):
         self.gps_target_distance = distance
         self.gps_target_bearing = bearing
         self._draw_arrow()
-        #self.do_events()
         self.update_gps_display()
         
     def on_image_next_clicked(self, something):
@@ -689,15 +687,15 @@ class SimpleGui(Gui):
         self.image_zoomed = not self.image_zoomed
         self._update_cache_image()
 
-    def on_label_fieldnotes_mapped(self, widget):
-        if (widget == None):
-            widget = self.label_fieldnotes
+    def _on_fieldnotes_changed(self, caller):
+        widget = self.label_fieldnotes
         self._check_notes_save()
         l = self.core.get_new_fieldnotes_count()
         if l > 0:
             widget.set_text("you have created %d fieldnotes" % l)
         else:
             widget.set_text("you have not created any new fieldnotes")
+
                 
     def on_list_marked_clicked(self, widget):
         self.core.on_start_search_advanced(marked=True)
@@ -735,11 +733,11 @@ class SimpleGui(Gui):
         self.cache_elements['log_date'].set_text('fieldnote date: %s' % logdate)
         self.current_cache.logas = log
         self.current_cache.logdate = logdate
-        self.core.save_fieldnote()
+        self.core.save_fieldnote(self.current_cache)
 
     def on_save_config(self, something):
         if not self.block_changes:
-            self.core.on_config_changed(self.read_settings())
+            self._on_save_settings(self.core)
 
     def on_search_action_center_clicked(self, widget):
         (index, cache) = self._get_search_selected_cache()
@@ -925,34 +923,8 @@ class SimpleGui(Gui):
             self.image_cache_caption.set_text("<b>%d</b> %s" % (self.image_no, caption))
             self.image_cache_caption.set_use_markup(True)
         except Exception, e:
-            print "Error loading image: %s" % e
+            logger.exception("Error loading image: %s" % e)
                         
-                
-    def read_settings(self):
-        c = self.map.get_center()
-        settings = {\
-            'map_position_lat': c.lat, \
-            'map_position_lon': c.lon, \
-            'map_zoom': self.map.get_zoom() \
-        }
-        if self.core.current_target != None:
-            settings['last_target_lat'] = self.core.current_target.lat
-            settings['last_target_lon'] = self.core.current_target.lon
-            settings['last_target_name'] = self.core.current_target.name
-                        
-        for x in self.SETTINGS_CHECKBOXES:
-            w = xml.get_widget('check_%s' % x)
-            if w != None:
-                settings[x] = w.get_active()
-                
-        for x in self.SETTINGS_INPUTS:
-            w = xml.get_widget('input_%s' % x)
-            if w != None:
-                settings[x] = w.get_text()
-                
-        self.settings = settings
-                
-        return settings
                        
     @staticmethod 
     def replace_image_tag(m):
@@ -980,11 +952,9 @@ class SimpleGui(Gui):
         return self.marks_layer.get_follow_position()
                 
     def set_progress(self, fraction, text):
-        gtk.gdk.threads_enter()
         self.progressbar.show()
         self.progressbar.set_text(text)
         self.progressbar.set_fraction(fraction)
-        gtk.gdk.threads_leave()
 
 
     def set_target(self, cache):
@@ -1053,9 +1023,6 @@ class SimpleGui(Gui):
         # Set View
         self.notebook_cache.set_current_page(0)
         self.notebook_all.set_current_page(2)
-
-        # Update view here for fast user feedback
-        #self.do_events()
 
         # logs
         logs = cache.get_logs()
@@ -1226,26 +1193,13 @@ class SimpleGui(Gui):
             #self.osd_string = "<span gravity='west' size='xx-large'>No Fix </span>"
         
                 
-    def write_settings(self, settings):
-        self.settings = settings
-        self.block_changes = True
-        self.map.set_zoom(self.settings['map_zoom'])
-        self.set_center(geo.Coordinate(self.settings['map_position_lat'], self.settings['map_position_lon']))
-                
-        if 'last_target_lat' in self.settings:
-            self.set_target(geo.Coordinate(self.settings['last_target_lat'], self.settings['last_target_lon'], self.settings['last_target_name']))
-
+    def _on_settings_changed_gui(self, settings):
         for x in self.SETTINGS_CHECKBOXES:
             if x in self.settings:
                 w = xml.get_widget('check_%s' % x)
                 if w == None:
                     continue
                 w.set_active(self.settings[x])
-            elif x in self.DEFAULT_SETTINGS:
-                w = xml.get_widget('check_%s' % x)
-                if w == None:
-                    continue
-                w.set_active(self.DEFAULT_SETTINGS[x])
         
         for x in self.SETTINGS_INPUTS:
             if x in self.settings:
@@ -1253,15 +1207,6 @@ class SimpleGui(Gui):
                 if w == None:
                     continue
                 w.set_text(str(self.settings[x]))
-            elif x in self.DEFAULT_SETTINGS:
-                w = xml.get_widget('input_%s' % x)
-                if w == None:
-                    continue
-                w.set_text(self.DEFAULT_SETTINGS[x])
-                                        
-        self.block_changes = False
-        self.build_tile_loaders()
-                
 
     @staticmethod
     def shorten_name(s, chars):
@@ -1289,6 +1234,7 @@ class SimpleGui(Gui):
 
 
     def _on_settings_changed(self, caller, settings, source):
+        logger.debug("Got settings from %s, len() = %d, source = %s" % (caller, len(settings), source))
         #if source == self:
         #    return
         self.settings.update(settings)
@@ -1313,8 +1259,9 @@ class SimpleGui(Gui):
             cache = self.core.get_geocache_by_name(settings['last_selected_geocache'])
             if cache != None:
                 self.set_current_cache(cache)
-
+        self._on_settings_changed_gui(settings)
         self.block_changes = False
+
 
 
     def _on_save_settings(self, caller):
@@ -1328,8 +1275,19 @@ class SimpleGui(Gui):
         if self.current_cache != None:
             settings['last_selected_geocache'] = self.current_cache.name
 
-        for i in ['options_username', 'options_password', 'download_noimages', 'options_show_name', 'options_hide_found', 'options_show_html_description', 'options_map_double_size']:
-            settings[i] = self.settings[i]
+        for x in self.SETTINGS_CHECKBOXES:
+            w = xml.get_widget('check_%s' % x)
+            if w != None:
+                settings[x] = w.get_active()
+            else:
+                logger.info("Couldn't find widget: check_%s" % x)
+
+        for x in self.SETTINGS_INPUTS:
+            w = xml.get_widget('input_%s' % x)
+            if w != None:
+                settings[x] = w.get_text()
+            else:
+                logger.info("Couldn't find widget: input_%s" % x)
         caller.save_settings(settings, self)
 
 class Updown():

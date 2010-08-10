@@ -491,7 +491,7 @@ class GeocacheLayer(AbstractGeocacheLayer):
         coords = self.get_geocaches_callback(self.map.get_visible_area(), self.MAX_NUM_RESULTS_SHOW)
 
         if self.map.get_zoom() < self.CACHES_ZOOM_LOWER_BOUND:
-            self.map.set_osd_message('Too many geocaches to display.')
+            self.map.set_osd_message('Zoom in to see geocaches.')
             self.visualized_geocaches = []
             self.result = surface
             return

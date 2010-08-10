@@ -1427,7 +1427,7 @@ list</property>
                               </packing>
                             </child>
                             <child>
-                              <widget class="GtkButton" id="button1">
+                              <widget class="GtkButton" id="button_upload_fieldnotes">
                                 <property name="label">gtk-ok</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
@@ -1712,7 +1712,7 @@ list</property>
                     <child>
                       <widget class="GtkTable" id="table5">
                         <property name="visible">True</property>
-                        <property name="n_rows">11</property>
+                        <property name="n_rows">12</property>
                         <property name="n_columns">2</property>
                         <child>
                           <widget class="GtkLabel" id="label25">
@@ -1909,7 +1909,7 @@ after first download)</property>
                         </child>
                         <child>
                           <widget class="GtkCheckButton" id="check_options_show_name">
-                            <property name="label" translatable="yes">show cache id on map</property>
+                            <property name="label" translatable="yes">show geocache name on map</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="receives_default">False</property>
@@ -1936,6 +1936,22 @@ after first download)</property>
                             <property name="right_attach">2</property>
                             <property name="top_attach">10</property>
                             <property name="bottom_attach">11</property>
+                            <property name="y_options">GTK_FILL</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkCheckButton" id="check_options_map_double_size">
+                            <property name="label" translatable="yes">show map in double size</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">False</property>
+                            <property name="draw_indicator">True</property>
+                            <signal name="toggled" handler="on_save_config"/>
+                          </widget>
+                          <packing>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">11</property>
+                            <property name="bottom_attach">12</property>
                             <property name="y_options">GTK_FILL</property>
                           </packing>
                         </child>

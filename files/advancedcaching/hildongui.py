@@ -45,8 +45,6 @@ import pango
 from portrait import FremantleRotation
 from simplegui import SimpleGui
 from simplegui import UpdownRows
-from simplegui import GeocacheLayer
-from simplegui import MarksLayer
 from xml.sax.saxutils import escape as my_gtk_label_escape
 from gtkmap import Map, OsdLayer, SingleMarkLayer
 from coordfinder import CalcCoordinate
@@ -524,7 +522,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
                              'options_map_double_size': check_map_double_size.get_active(),
                              'options_hide_found': check_hide_found.get_active(),
                              })
-        self._on_save_settings(None)
+        self.core.save_settings(self.settings)
  
     def make_rearranging_table(self, elements, dialog, columns = 2):
         count = len(elements)
@@ -638,7 +636,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
                              #'options_rotate_screen': rotate_get_result(),
                              #'tts_interval':tts_get_result(),
                              })
-        self._on_save_settings(None)
+        self.core.save_settings(self.settings)
         #self.core.on_userdata_changed(self.settings['options_username'], self.settings['options_password'])
 
     def _get_tts_settings(self):
@@ -1554,6 +1552,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             self.banner.show_all()
         else:
             self.banner.set_text(text)
+        gtk.gdk.threads_leave()
         
 
 
@@ -1615,8 +1614,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         #
         ##############################################
 
-    def _on_settings_changed(self, caller, settings, source):
-        SimpleGui._on_settings_changed(self, caller, settings, source)
+    def _on_settings_changed_gui(self, settings):
         if 'options_rotate_screen' in settings:
             self.rotation_manager.set_mode(settings['options_rotate_screen'])
         

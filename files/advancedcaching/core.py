@@ -193,6 +193,8 @@ class Core(gobject.GObject):
 
 
         self.gui.show()
+        if not '--profile' in argv:
+            exit()
 
     ##############################################
     #
@@ -416,7 +418,8 @@ class Core(gobject.GObject):
         filename = path.join(self.SETTINGS_DIR, 'config')
         logger.debug("Writing settings to %s" % filename)
         f = file(filename, 'w')
-        f.write(dumps(self.settings, sort_keys=True, indent=4))
+        config = dumps(self.settings, sort_keys=True, indent=4)
+        f.write(config)
 
 
     ##############################################
@@ -600,7 +603,7 @@ class Core(gobject.GObject):
 
             cd.connect("finished-overview", same_thread)
             t = Thread(target=cd.get_geocaches, args=[location])
-            t.daemon = False
+            t.daemon = True
             t.start()
             return False
         else:
@@ -648,7 +651,7 @@ class Core(gobject.GObject):
                 return False
             cd.connect("finished-single", same_thread)
             t = Thread(target=cd.update_coordinate, args=[cache])
-            t.daemon = False
+            t.daemon = True
             t.start()
             #t.join()
             return False
@@ -711,11 +714,11 @@ class Core(gobject.GObject):
             gobject.idle_add(self.on_download_progress, arg1, arg2, arg3, arg4)
             return False
 
-        cd.connect('progress', same_thread_progress)
-        cd.connect('finished-multiple', same_thread)
+        cd.connect('progress', self.on_download_progress)
+        cd.connect('finished-multiple', self.on_download_descriptions_complete)
 
         t = Thread(target=cd.update_coordinates, args=[caches])
-        t.daemon = False
+        t.daemon = True
         t.start()
 
 
@@ -792,7 +795,7 @@ class Core(gobject.GObject):
         for c in caches:
             fn.add_fieldnote(c)
         t = Thread(target=fn.upload)
-        t.daemon = False
+        t.daemon = True
         t.start()
         
     def on_upload_fieldnotes_finished(self, widget, caches):
