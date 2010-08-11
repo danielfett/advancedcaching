@@ -44,7 +44,7 @@ class AbstractMap():
         Map.tile_loaders = []
 
         for name, params in map_providers:
-            tl = openstreetmap.get_tile_loader( ** params)
+            tl = openstreetmap.get_tile_loader( ** dict([(str(a), b) for a, b in params.items()]))
             tl.noimage_loading = Map.noimage_loading
             tl.noimage_cantload = Map.noimage_cantload
             tl.base_dir = map_path
