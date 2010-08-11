@@ -170,7 +170,7 @@ class Core(gobject.GObject):
         actor_tts.connect('error', lambda caller, msg: self.emit('error', msg))
         #actor_notify = Notify(self)
         self.emit('settings-changed', self.settings, self)
-
+        self.emit('fieldnotes-changed')  
  
 
         if '--sim' in argv:

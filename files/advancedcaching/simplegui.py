@@ -205,7 +205,7 @@ class SimpleGui(Gui):
         self.button_track = xml.get_widget('togglebutton_track')
         self.check_result_marked = xml.get_widget('check_result_marked')
         self.label_fieldnotes = xml.get_widget('label_fieldnotes')
-        self.button_upload_fieldnotes = xml.get_widget('button_fieldnotes')
+        self.button_upload_fieldnotes = xml.get_widget('button_upload_fieldnotes')
                 
         self.label_bearing = xml.get_widget('label_bearing')
         self.label_dist = xml.get_widget('label_dist')
@@ -693,8 +693,10 @@ class SimpleGui(Gui):
         l = self.core.get_new_fieldnotes_count()
         if l > 0:
             widget.set_text("you have created %d fieldnotes" % l)
+            self.button_upload_fieldnotes.set_sensitive(True)
         else:
             widget.set_text("you have not created any new fieldnotes")
+            self.button_upload_fieldnotes.set_sensitive(False)
 
                 
     def on_list_marked_clicked(self, widget):
@@ -869,7 +871,6 @@ class SimpleGui(Gui):
 
     def on_upload_fieldnotes(self, something):
         self.core.on_upload_fieldnotes()
-        self.on_label_fieldnotes_mapped(None)
         
     def on_waypoint_clicked(self, listview, event, element):
         if event.type != gtk.gdk._2BUTTON_PRESS or element == None:
