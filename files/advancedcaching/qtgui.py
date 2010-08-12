@@ -15,9 +15,10 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-#        Author: Daniel Fett advancedcaching@fragcom.de
+#   Author: Daniel Fett agtl@danielfett.de
+#   Jabber: fett.daniel@jaber.ccc.de
+#   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
-
 
 import logging
 logger = logging.getLogger('qtgui')

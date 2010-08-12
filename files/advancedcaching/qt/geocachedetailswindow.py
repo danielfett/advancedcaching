@@ -15,7 +15,9 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-#        Author: Daniel Fett advancedcaching@fragcom.de
+#   Author: Daniel Fett agtl@danielfett.de
+#   Jabber: fett.daniel@jaber.ccc.de
+#   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
 import logging
@@ -35,6 +37,8 @@ logger = logging.getLogger('qtgeocachewindow')
 
 class QtGeocacheDetailsWindow(QMainWindow, Ui_GeocacheDetailsWindow):
 
+    download_details = pyqtSignal()
+
     ICONS = {
         geocaching.GeocacheCoordinate.LOG_TYPE_FOUND: 'emoticon_grin',
         geocaching.GeocacheCoordinate.LOG_TYPE_NOTFOUND: 'cross',
@@ -52,9 +56,18 @@ class QtGeocacheDetailsWindow(QMainWindow, Ui_GeocacheDetailsWindow):
         QMainWindow.__init__(self, parent)
         self.core = core
         self.setupUi(self)
+        self.actionDownload_Details.triggered.connect(self.__download_details)
+        self.core.connect('cache-changed', self.__cache_changed)
+
+    def __download_details(self):
+        self.core.update_coordinates([self.current_geocache])
+
+    def __cache_changed(self, caller, geocache):
+        if geocache.name == self.current_geocache.name:
+            self.show_geocache(geocache)
 
     def show_geocache(self, geocache):
-
+        self.current_geocache = geocache
         # window title
         self.setWindowTitle("Geocache Details: %s" % d(geocache.title))
 
@@ -100,6 +113,7 @@ class QtGeocacheDetailsWindow(QMainWindow, Ui_GeocacheDetailsWindow):
 
         # images
 
+        self.listWidgetImages.clear()
         images = geocache.get_images()
         if len(images) > 0:
             i = 0
