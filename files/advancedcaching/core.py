@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-#        Copyright (C) 2009 Daniel Fett
+#        Copyright (C) 2010 Daniel Fett
 #         This program is free software: you can redistribute it and/or modify
 #   it under the terms of the GNU General Public License as published by
 #   the Free Software Foundation, either version 3 of the License, or
@@ -15,7 +15,9 @@
 #   You should have received a copy of the GNU General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-#        Author: Daniel Fett advancedcaching@fragcom.de
+#   Author: Daniel Fett agtl@danielfett.de
+#   Jabber: fett.daniel@jaber.ccc.de
+#   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
 from __future__ import with_statement
@@ -715,7 +717,7 @@ class Core(gobject.GObject):
             return False
 
         cd.connect('progress', self.on_download_progress)
-        cd.connect('finished-multiple', self.on_download_descriptions_complete)
+        cd.connect('finished-multiple', same_thread)
 
         t = Thread(target=cd.update_coordinates, args=[caches])
         t.daemon = True
