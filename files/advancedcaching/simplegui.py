@@ -1494,16 +1494,16 @@ class GeocacheLayer(MapLayer):
         coords = self.pointprovider.get_points_filter(self.map.get_visible_area(), self.show_found, self.MAX_NUM_RESULTS_SHOW)
 
         if self.map.get_zoom() < self.CACHES_ZOOM_LOWER_BOUND:
-            self.map.set_osd_message('Too many geocaches to display.')
+            self.map.set_osd_message('Zoom in to see geocaches.')
             self.visualized_geocaches = []
             self.result = surface
             return
         elif len(coords) >= self.MAX_NUM_RESULTS_SHOW:
-            self.map.set_osd_message('Too many geocaches to display.')
+            self.map.set_osd_message('%d geocaches, too much to display.' len(coords))
             self.visualized_geocaches = []
             self.result = surface
             return
-        self.map.set_osd_message(None)
+        self.map.set_osd_message('%d geocaches.' len(coords))
         self.visualized_geocaches = coords
         draw_short = (len(coords) > self.TOO_MANY_POINTS)
 
