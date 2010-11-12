@@ -21,8 +21,8 @@
 #
 
 
-VERSION = 3
-VERSION_DATE = '2010-07-21'
+VERSION = 4
+VERSION_DATE = '2010-11-10'
 
 try:
     import json
@@ -256,30 +256,34 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
     def _get_overview(self, location):
         c1, c2 = location
-        url = 'http://www.geocaching.com/map/default.aspx?lat=49&lng=6'
-        values = {'eo_cb_id':'ctl00_ContentBody_cbAjax',
+        url = 'http://www.geocaching.com//map/default.aspx/MapAction?lat=49&lng=6'
+        '''values = {'eo_cb_id':'ctl00_ContentBody_cbAjax',
             'eo_cb_param':'{"c": 1, "m": "", "d": "%f|%f|%f|%f"}' % (max(c1.lat, c2.lat), min(c1.lat, c2.lat), max(c1.lon, c2.lon), min(c1.lon, c2.lon)),
             'eo_version':'5.0.51.2'
-        }
+        }'''
+        data = ('application/json', '{"dto":{"data":{"c":1,"m":"","d":"%f|%f|%f|%f"},"ut":""}}' % (max(c1.lat, c2.lat), min(c1.lat, c2.lat), max(c1.lon, c2.lon), min(c1.lon, c2.lon)))
 
         try:
-            response = self.downloader.get_reader(url, values)
+            response = self.downloader.get_reader(url, data = data)
             the_page = response.read()
 
-            extractor = re.compile('<ExtraData><!\[CDATA\[(.*)\]\]>', re.DOTALL)
-            match = extractor.search(the_page)
-            if match == None:
-                raise Exception('Could not load map of geocaches')
+            #extractor = re.compile('<ExtraData><!\[CDATA\[(.*)\]\]>', re.DOTALL)
+            #match = extractor.search(the_page)
+            #if match == None:
+            #    logger.debug(the_page)
+            #    raise Exception('Could not load map of geocaches')
         except Exception, e:
             CacheDownloader.lock.release()
             self.emit('download-error', e)
             return None
-        return match.group(1)
+        return the_page
 
     def _parse_overview(self, content, location, rec_depth = 0):
         c1, c2 = location
-        text = content.replace("\\'", "'")
-        a = json.loads(text.replace('\t', ' '))
+        #text = content.replace('\\"', '"')
+        #text = text.replace('\t', ' ')
+        full = json.loads(content)
+        a = json.loads(full['d'])
         points = []
         if not 'cc' in a['cs']:
             if 'count' in a['cs'] and 'count' != 0:
@@ -523,7 +527,7 @@ if __name__ == '__main__':
         a = GeocachingComCacheDownloader(downloader.FileDownloader('dummy', 'dummy', '/tmp/cookies'), '/tmp/', True)
     else: # cachedownloader.py username password
         name, password = sys.argv[1:3]
-        a = GeocachingComCacheDownloader(downloader.FileDownloader(name, password, '/tmp/cookies'), '/tmp/', True)
+        a = GeocachingComCacheDownloader(downloader.FileDownloader(name, password, '/tmp/cookies', GeocachingComCacheDownloader.login_callback(name, password)), '/tmp/', True)
 
         print "Using Username %s" % name
 
