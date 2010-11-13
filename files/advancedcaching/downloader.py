@@ -76,9 +76,11 @@ class FileDownloader():
                 if 'You are logged in as' in line:
                     self.logged_in = True
                     logger.info("Seems as we're still logged in")
+                    page.close()
                     return
                 elif 'You are not logged in.' in line:
                     logger.info("Nope, not logged in anymore")
+                    page.close()
                     break
         
         logger.info("Logging in")

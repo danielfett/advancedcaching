@@ -21,8 +21,8 @@
 #
 
 
-VERSION = 5
-VERSION_DATE = '2010-11-10'
+VERSION = 6
+VERSION_DATE = '2010-11-13'
 
 try:
     import json
@@ -230,6 +230,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
     MAX_DOWNLOAD_NUM = 20
 
+    user_token = None
 
     CTIDS = {
         2:GeocacheCoordinate.TYPE_REGULAR,
@@ -255,13 +256,15 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
 
     def _get_overview(self, location):
+        if self.user_token == None:
+            self._get_user_token()
         c1, c2 = location
-        url = 'http://www.geocaching.com/map/default.aspx/MapAction?lat=49&lng=6'
+        url = 'http://www.geocaching.com/map/default.aspx/MapAction?lat=9&lng=6'
         '''values = {'eo_cb_id':'ctl00_ContentBody_cbAjax',
             'eo_cb_param':'{"c": 1, "m": "", "d": "%f|%f|%f|%f"}' % (max(c1.lat, c2.lat), min(c1.lat, c2.lat), max(c1.lon, c2.lon), min(c1.lon, c2.lon)),
             'eo_version':'5.0.51.2'
         }'''
-        data = ('application/json', '{"dto":{"data":{"c":1,"m":"","d":"%f|%f|%f|%f"},"ut":""}}' % (max(c1.lat, c2.lat), min(c1.lat, c2.lat), max(c1.lon, c2.lon), min(c1.lon, c2.lon)))
+        data = ('application/json', '{"dto":{"data":{"c":1,"m":"","d":"%f|%f|%f|%f"},"ut":"%s"}}' % (max(c1.lat, c2.lat), min(c1.lat, c2.lat), max(c1.lon, c2.lon), min(c1.lon, c2.lon), self.user_token))
 
         try:
             response = self.downloader.get_reader(url, data = data)
@@ -277,6 +280,16 @@ class GeocachingComCacheDownloader(CacheDownloader):
             self.emit('download-error', e)
             return None
         return the_page
+        
+    def _get_user_token(self):
+        page = self.downloader.get_reader('http://www.geocaching.com/map/default.aspx?lat=6&lng=9')
+        for line in page:
+            if line.startswith('var uvtoken'):
+                self.user_token = re.compile("userToken[ =]+'([^']+)'").search(line).group(1)
+                page.close()
+                return
+        raise Exception("Website contents unexpected. Please check connection.")
+        
 
     def _parse_overview(self, content, location, rec_depth = 0):
         c1, c2 = location
