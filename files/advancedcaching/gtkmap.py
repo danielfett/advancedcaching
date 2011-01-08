@@ -788,7 +788,7 @@ class MarksLayer(AbstractMarksLayer):
 
         if self.gps_data != None and self.gps_has_fix:
             position = (self.map.map_width - self.OSD_BORDER_LEFTRIGHT, self.OSD_BORDER_TOPBOTTOM)
-            layout = self.map.create_pango_layout(geo.Coordinate._format_distance(self.gps_target_distance))
+            layout = self.map.create_pango_layout(geo.Coordinate.format_distance(self.gps_target_distance))
             layout.set_font_description(self.DISTANCE_DRAW_FONT)
             width, height = layout.get_pixel_size()
             cr.set_source_color(self.DISTANCE_DRAW_FONT_COLOR)
