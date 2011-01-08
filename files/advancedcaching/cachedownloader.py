@@ -21,7 +21,7 @@
 #
 
 
-VERSION = 4
+VERSION = 5
 VERSION_DATE = '2010-11-10'
 
 try:
@@ -256,7 +256,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
     def _get_overview(self, location):
         c1, c2 = location
-        url = 'http://www.geocaching.com/map/default.aspx/MapAction?lat=49&lng=6'
+        url = 'http://www.geocaching.com//map/default.aspx/MapAction?lat=49&lng=6'
         '''values = {'eo_cb_id':'ctl00_ContentBody_cbAjax',
             'eo_cb_param':'{"c": 1, "m": "", "d": "%f|%f|%f|%f"}' % (max(c1.lat, c2.lat), min(c1.lat, c2.lat), max(c1.lon, c2.lon), min(c1.lon, c2.lon)),
             'eo_version':'5.0.51.2'
