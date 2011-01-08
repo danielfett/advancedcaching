@@ -1,7 +1,9 @@
 - check version number in core.py
 - check version number in cachedownloader.py
 - check version number in fieldnotesuploader.py
+- update changelog
 - commit new version
 - tag new version
 - push with --tags
+- build
 
