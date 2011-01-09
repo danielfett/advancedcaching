@@ -363,8 +363,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
             elif section == 'images' and line.startswith('<h3>'):
                 section = 'after-images'
             elif section == 'after-images' and line.startswith('<table class="LogsTable Table">'):
-                logs = line
-                break
+                section = 'logs'
+            
 
             if section != prev_section:
                 logger.debug("Now in Section '%s', with line %s" % (section, line[:20:]))
@@ -382,6 +382,10 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 waypoints = "%s%s  " % (waypoints, line)
             elif section == 'images':
                 images = "%s%s " % (images, line)
+            elif section == 'logs':
+                logs = "%s%s" % (logs, line)
+                if line.endswith('</tr></table>'):
+                    break
                 
         logger.debug('finished parsing')
 
@@ -489,8 +493,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
         for l in lines:
             #lines = [re.sub("\w+", ' ', HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(x, True)), '').sub('[ view this log ]') for x in lines[2:]]
             m = re.match(r"""<td[^>]+><strong><img src='http://www\.geocaching\.com/images/icons/(?:icon_(?P<icon>[a-z]+)|(?P<icon2>coord_update))\.gif'[^>]*/>""" +
-                r"""&nbsp;(?P<month>[^ ]+) (?P<day>\d+)(, (?P<year>\d+))? by <a[^>]+>(?P<finder>[^<]+)</a></strong>&nbsp;\(\d+ found\)<br/><br/>(?P<text>.+)""" +
-                r"""<br /><br /><small>""", l, re.DOTALL)
+                r"""&nbsp;(?P<month>[^ ]+) (?P<day>\d+)(, (?P<year>\d+))? by <a[^>]+>(?P<finder>[^<]+)</a></strong>&nbsp;\(\d+ found\)<br ?/><br ?/>(?P<text>.+)""" +
+                r"""<br ?/><br ?/><small>""", l, re.DOTALL)
             if m == None:
                 #print "Could not parse Log-Line:\nBEGIN\n%s\nEND\n\n This can be normal." % l
                 logger.debug("Ignoring following log line:-----\n%s\n------" % l)
