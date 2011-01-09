@@ -372,13 +372,13 @@ class AbstractMarksLayer(AbstractMapLayer):
 
     @staticmethod
     def _get_arrow_transformed(root_x, root_y, width, height, angle):
-        multiply = height / (2 * (2-SimpleGui.ARROW_OFFSET))
+        multiply = height / (2 * (2-AbstractMarksLayer.ARROW_OFFSET))
         offset_x = width / 2
         offset_y = height / 2
         s = multiply * math.sin(math.radians(angle))
         c = multiply * math.cos(math.radians(angle))
         arrow_transformed = [(int(x * c + offset_x - y * s) + root_x,
-                              int(y * c + offset_y + x * s) + root_y) for x, y in SimpleGui.ARROW_SHAPE]
+                              int(y * c + offset_y + x * s) + root_y) for x, y in AbstractMarksLayer.ARROW_SHAPE]
         return arrow_transformed
                 
 
