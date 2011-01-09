@@ -22,7 +22,7 @@
 
 from __future__ import with_statement
 
-VERSION = "0.7.0.2"
+VERSION = "0.8.0.0"
    
 
 import logging
