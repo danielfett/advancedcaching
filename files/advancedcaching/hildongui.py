@@ -524,7 +524,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
                              'options_map_double_size': check_map_double_size.get_active(),
                              'options_hide_found': check_hide_found.get_active(),
                              })
-        self.core.save_settings(self.settings)
+        self.core.save_settings(self.settings, self)
  
     def make_rearranging_table(self, elements, dialog, columns = 2):
         count = len(elements)
