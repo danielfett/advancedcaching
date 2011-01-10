@@ -607,7 +607,7 @@ Author: Daniel Fett advancedcaching@fragcom.de'''
 
     def _try_parser_update(self):
         try:
-            self.set_download_progress(0.5)
+            self.set_progress(0.5)
             updates = self.core.try_update()
         except Exception, e:
             self.hide_progress()
