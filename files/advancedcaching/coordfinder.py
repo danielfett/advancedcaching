@@ -232,6 +232,7 @@ class CalcCoordinate():
         text = re.sub(ur'''(?u)\s[^\W\d_]{2,}\s''', ' | ', text)
         text = re.sub(ur'''(?u)\b[^\W\d_]{4,}\b''', ' | ', text)
         text = text.replace('°', '|')
+        text = text.decode('utf-8', 'replace').encode('utf-8')
         text = text.replace(unichr(160), ' ')
         text = re.sub(ur''' +''', ' ', text)
         matches = re.findall(ur'''(?<![a-zA-Z])([NSns])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s['`\s,/]+([EOWeow])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s[\s'`]*(?![a-zA-Z])''' % {'calc' : CalcCoordinate.SINGLE_CALC_PART}, text)
