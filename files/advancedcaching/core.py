@@ -628,7 +628,11 @@ class Core(gobject.GObject):
 
     # called on signal by downloading thread
     def on_already_downloading_error(self, something, error):
-        self.emit('error', error)
+        def same_thread(error):
+            self.emit('error', error)
+            return False
+        gobject.idle_add(same_thread, error)
+        #self.emit('error', error)
 
     # called on signal by downloading thread
     def on_download_error(self, something, error):
