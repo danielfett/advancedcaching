@@ -516,15 +516,15 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         dialog.run()
         dialog.hide()
 
-        self._set_track_mode(button_track.get_active())
         logger.debug("Setting 'Hide Found Geocaches' to %s" % check_hide_found.get_active())
-        self.settings.update({
-                             'tts_interval': tts_get_result(),
-                             'options_rotate_screen': rotate_get_result(),
-                             'options_map_double_size': check_map_double_size.get_active(),
-                             'options_hide_found': check_hide_found.get_active(),
-                             })
-        self.core.save_settings(self.settings, self)
+        update = {
+            'tts_interval': tts_get_result(),
+            'options_rotate_screen': rotate_get_result(),
+            'options_map_double_size': check_map_double_size.get_active(),
+            'options_hide_found': check_hide_found.get_active(),
+        }
+        self.settings.update(update)
+        self.core.save_settings(update, self)
  
     def make_rearranging_table(self, elements, dialog, columns = 2):
         count = len(elements)
