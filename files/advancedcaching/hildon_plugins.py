@@ -606,14 +606,8 @@ Author: Daniel Fett advancedcaching@fragcom.de'''
 
 
     def _try_parser_update(self):
-        try:
-            self.set_progress(0.5)
-            updates = self.core.try_update()
-        except Exception, e:
-            self.hide_progress()
-            self.show_error(e)
-        else:
-            self.hide_progress()
+        updates = self.core.try_update()
+        if updates != None:
             self.show_success("%d modules upgraded. There's no need to restart AGTL." % updates)
             
 

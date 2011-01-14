@@ -287,56 +287,74 @@ class Core(gobject.GObject):
 
     def try_update(self):
         from urllib import urlretrieve
+        from urllib2 import HTTPError
         import tempfile
         import hashlib
         from shutil import copyfile
         self.create_recursive(self.UPDATE_DIR)
         baseurl = 'http://www.danielfett.de/files/agtl-updates/%s' % VERSION
         url = "%s/updates" % baseurl
+        self.emit('progress', 0.5, "Checking for updates...")
         try:
-            reader = self.downloader.get_reader(url, login=False)
-        except Exception, e:
-            logging.exception(e)
-            raise Exception("No updates were found. (Could not download index file.)")
-
-        try:
-            files = []
-            for line in reader:
-                md5, name = line.strip().split('  ')
-                handle, temp = tempfile.mkstemp()
-                files.append((md5, name, temp))
-        except Exception, e:
-            logging.exception(e)
-            raise Exception("No updates were found. (Could not process index file.)")
-
-        if len(files) == 0:
-            raise Exception("There are no updates available.")
-
-        for md5sum, name, temp in files:
-            url = '%s/%s' % (baseurl, name)
             try:
-                urlretrieve(url, temp)
+                reader = self.downloader.get_reader(url, login=False)
+            except HTTPError, e:
+                logging.exception(e)
+                raise Exception("No updates available.")
             except Exception, e:
                 logging.exception(e)
-                raise Exception("Could not download file '%s'" % name)
+                raise Exception("Could not connect to update server.")
 
-            hash = hashlib.md5(open(temp).read()).hexdigest()
-            if hash != md5sum:
-                raise Exception("There was an error downloading the file. (MD5 sum mismatch in  %s)" % name)
-
-        for md5sum, name, temp in files:
-            file = path.join(self.UPDATE_DIR, name)
             try:
-                copyfile(temp, file)
+                files = []
+                for line in reader:
+                    md5, name = line.strip().split('  ')
+                    handle, temp = tempfile.mkstemp()
+                    files.append((md5, name, temp))
             except Exception, e:
                 logging.exception(e)
-                raise Exception("The update process was stopped while copying files. AGTL may run or not. If not, delete all *.py files in %s." % self.UPDATE_DIR)
-            finally:
+                raise Exception("No updates were found. (Could not process index file.)")
+
+            if len(files) == 0:
+                raise Exception("No updates available.")
+
+            for md5sum, name, temp in files:
+                url = '%s/%s' % (baseurl, name)
                 try:
-                    remove(tmpfile)
-                except Exception:
-                    pass
+                    urlretrieve(url, temp)
+                except Exception, e:
+                    logging.exception(e)
+                    raise Exception("Could not download file '%s'" % name)
 
+                hash = hashlib.md5(open(temp).read()).hexdigest()
+                if hash != md5sum:
+                    raise Exception("There was an error downloading the file. (MD5 sum mismatch in %s)" % name)
+
+            for md5sum, name, temp in files:
+                file = path.join(self.UPDATE_DIR, name)
+                try:
+                    copyfile(temp, file)
+                except Exception, e:
+                    logging.exception(e)
+                    raise Exception("The update process was stopped while copying files. AGTL may run or not. If not, delete all *.py files in %s." % self.UPDATE_DIR)
+                finally:
+                    try:
+                        remove(tmpfile)
+                    except Exception:
+                        pass
+        except Exception, e:
+            logging.exception(e)
+            def same_thread(error):
+                self.emit('hide-progress')
+                self.emit('error', error)
+                return False
+            gobject.idle_add(same_thread, e)
+            return None
+            
+        def same_thread():
+            self.emit('hide-progress')
+            return False
+        gobject.idle_add(same_thread)
         return self._install_updates()
 
 

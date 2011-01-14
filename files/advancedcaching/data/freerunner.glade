@@ -1,4 +1,4 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <glade-interface>
   <!-- interface-requires gtk+ 2.16 -->
   <!-- interface-naming-policy project-wide -->
@@ -111,7 +111,7 @@
                 <child>
                   <widget class="GtkLabel" id="label_bearing">
                     <property name="visible">True</property>
-                    <property name="label" translatable="yes">343&#xB0;</property>
+                    <property name="label" translatable="yes">343°</property>
                   </widget>
                   <packing>
                     <property name="left_attach">2</property>
@@ -1170,7 +1170,7 @@ max
                           <widget class="GtkEntry" id="entry_search_name">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="invisible_char">&#x25CF;</property>
+                            <property name="invisible_char">●</property>
                             <property name="primary_icon_stock">gtk-find</property>
                             <property name="primary_icon_tooltip_text">suchen...</property>
                           </widget>
@@ -1550,7 +1550,7 @@ list</property>
                                         <property name="sensitive">False</property>
                                         <property name="can_focus">True</property>
                                         <property name="no_show_all">True</property>
-                                        <property name="invisible_char">&#x25CF;</property>
+                                        <property name="invisible_char">●</property>
                                         <signal name="changed" handler="save_config"/>
                                       </widget>
                                       <packing>
@@ -1644,7 +1644,7 @@ list</property>
                               <widget class="GtkEntry" id="input_export_path">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="invisible_char">&#x25CF;</property>
+                                <property name="invisible_char">●</property>
                               </widget>
                               <packing>
                                 <property name="position">1</property>
@@ -1712,7 +1712,7 @@ list</property>
                     <child>
                       <widget class="GtkTable" id="table5">
                         <property name="visible">True</property>
-                        <property name="n_rows">12</property>
+                        <property name="n_rows">14</property>
                         <property name="n_columns">2</property>
                         <child>
                           <widget class="GtkLabel" id="label25">
@@ -1744,7 +1744,7 @@ list</property>
                             <property name="width_request">150</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="invisible_char">&#x25CF;</property>
+                            <property name="invisible_char">●</property>
                             <signal name="changed" handler="on_save_config"/>
                           </widget>
                           <packing>
@@ -1761,7 +1761,7 @@ list</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="visibility">False</property>
-                            <property name="invisible_char">&#x25CF;</property>
+                            <property name="invisible_char">●</property>
                             <signal name="changed" handler="on_save_config"/>
                           </widget>
                           <packing>
@@ -1792,7 +1792,7 @@ changing)</property>
                             <property name="width_request">150</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="invisible_char">&#x25CF;</property>
+                            <property name="invisible_char">●</property>
                             <signal name="changed" handler="on_save_config"/>
                           </widget>
                           <packing>
@@ -1822,7 +1822,7 @@ after first download)</property>
                             <property name="width_request">150</property>
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="invisible_char">&#x25CF;</property>
+                            <property name="invisible_char">●</property>
                             <signal name="changed" handler="on_save_config"/>
                           </widget>
                           <packing>
@@ -1952,6 +1952,36 @@ after first download)</property>
                             <property name="right_attach">2</property>
                             <property name="top_attach">11</property>
                             <property name="bottom_attach">12</property>
+                            <property name="y_options">GTK_FILL</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="label30">
+                            <property name="visible">True</property>
+                            <property name="xalign">0.05000000074505806</property>
+                            <property name="label" translatable="yes">&lt;b&gt;check for updates&lt;/b&gt;</property>
+                            <property name="use_markup">True</property>
+                          </widget>
+                          <packing>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">12</property>
+                            <property name="bottom_attach">13</property>
+                            <property name="y_options">GTK_FILL</property>
+                            <property name="y_padding">10</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkButton" id="button_check_updates">
+                            <property name="label" translatable="yes">check for website parser update</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="receives_default">True</property>
+                            <signal name="clicked" handler="on_button_check_updates_clicked"/>
+                          </widget>
+                          <packing>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">13</property>
+                            <property name="bottom_attach">14</property>
                             <property name="y_options">GTK_FILL</property>
                           </packing>
                         </child>

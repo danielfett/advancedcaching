@@ -208,6 +208,7 @@ class SimpleGui(Gui):
         self.check_result_marked = xml.get_widget('check_result_marked')
         self.label_fieldnotes = xml.get_widget('label_fieldnotes')
         self.button_upload_fieldnotes = xml.get_widget('button_upload_fieldnotes')
+        self.button_check_updates = xml.get_widget('button_check_updates')
                 
         self.label_bearing = xml.get_widget('label_bearing')
         self.label_dist = xml.get_widget('label_dist')
@@ -1292,6 +1293,12 @@ class SimpleGui(Gui):
             else:
                 logger.info("Couldn't find widget: input_%s" % x)
         caller.save_settings(settings, self)
+        
+    def on_button_check_updates_clicked(self, caller):
+        updates = self.core.try_update()
+        if updates != None:
+            gobject.idle_add(self.show_success, "%d modules upgraded. There's no need to restart AGTL." % updates)
+        return False
 
 class Updown():
     def __init__(self, table, position, small):
