@@ -211,14 +211,22 @@ class CacheDownloader(gobject.GObject):
             return
         # don't recurse indefinitely
         if rec_depth > self.MAX_REC_DEPTH:
-            self.emit('download-error', Exception("Please select a smaller part of the map."))
+            raise Exception("Please select a smaller part of the map.")
             CacheDownloader.lock.release()
             return []
 
         content = self._get_overview(location)
         if content == None:
             return []
-        points = self._parse_overview(content, location, rec_depth)
+        try:
+            points = self._parse_overview(content, location, rec_depth)
+        except Exception, e:
+            if rec_depth == 0:
+                self.emit('download-error', e)
+                CacheDownloader.lock.release()
+                return []
+            else:
+                raise e
 
         self.emit('finished-overview', points)
         CacheDownloader.lock.release()
