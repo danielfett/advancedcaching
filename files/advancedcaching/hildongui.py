@@ -813,19 +813,20 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
                 widget_description.set_size_request(self.window.size_request()[0] - 10, -1)
                 p.add_with_viewport(widget_description)
 
-                text_shortdesc = self._strip_html(cache.shortdesc).strip()
+                text_shortdesc = my_gtk_label_escape(self._strip_html(cache.shortdesc).strip())
+                text_longdesc = my_gtk_label_escape(self._strip_html(text_longdesc).strip())
+                
                 if cache.status == geocaching.GeocacheCoordinate.STATUS_DISABLED:
                     text_shortdesc = '<u>This Cache is not available!</u>\n%s' % text_shortdesc
-                text_longdesc = self._strip_html(text_longdesc).strip()
 
                 if text_longdesc != '' and text_shortdesc != '':
-                    showdesc = "<b>%s</b>\n\n%s" % (my_gtk_label_escape(text_shortdesc), my_gtk_label_escape(text_longdesc))
+                    showdesc = "<b>%s</b>\n\n%s" % (text_shortdesc, text_longdesc)
                 elif text_longdesc == '' and text_shortdesc == '':
                     showdesc = "<i>No description available</i>"
                 elif text_longdesc == '':
-                    showdesc = my_gtk_label_escape(text_shortdesc)
+                    showdesc = text_shortdesc
                 else:
-                    showdesc = my_gtk_label_escape(text_longdesc)
+                    showdesc = text_longdesc
                     
                 widget_description.set_markup(showdesc)
                 events.append(self.window.connect('configure-event', self._on_configure_label, widget_description))
