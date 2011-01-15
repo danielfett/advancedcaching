@@ -25,13 +25,13 @@ It downloads geocaches including their description, hints, difficulty levels and
 - GPS view - shows the distance and direction to the selected geocache.
 - Cache details - all necessary details are available even in offline mode.
 - Paperless geocaching features - take notes for a geocache on the go, see the hints and spoiler images, check the latest logs.
-- Fieldnotes support - Ever came home after a long tour and wondered which of those geocaches you found? Never again: Log your find in the field and upload notes and log text when you're at home. Review them on the geocaching website and post the logs.
-- Text-to-Speech-Feature! - Select a target, activate TTS and put your earplugs in to enjoy completely stealth geocaching. 
-- Download map tiles for selected zoom levels - for offline use
 - Multicache calculation help - Let your phone do the math for you. Working for the most multi-stage geocaches, AGTL finds the coordinate calculations and let you enter the missing variables.
+- Fieldnotes support - Ever came home after a long tour and asked yourself which geocaches you found? Never again: Log your find in the field and upload notes and log text when you're at home. Review them on the geocaching website and post the logs.
+- Text-to-Speech-Feature! - Select a target, activate TTS and put your headphones on to enjoy completely stealth geocaching. 
+- Download map tiles for selected zoom levels - for offline use.
 - Advanced waypoint handling - AGTL finds waypoints in the geocache descriptions, in the list of waypoints and even in your notes. For your convenience, they're displayed on the map as well - see where you have to go next.
-- Search for cities - in the geonames.org database to navigate quickly
-- Sun compass - Compensates the lack of a magnetic compass
+- Search for places - in the geonames.org database to navigate quickly.
+- Sun compass - Compensates the lack of a magnetic compass.
 - Instant update feature - Follow web site updates as soon as possible.
 .
 AGTL is Open source and in active development.'''
@@ -55,8 +55,8 @@ AGTL is Open source and in active development.'''
  #  p.preremove="""#!/bin/sh
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your pre remove script
  version = "0.8.0.1"
- build = "0"###################################### for the first build of this version of your software. Increment for later re-builds of the same version of your software.
-                             #Text with changelog information to be displayed in the package "Details" tab of the Maemo Application Manager
+ build = "0"    # for the first build of this version of your software. Increment for later re-builds of the same version of your software.
+                # Text with changelog information to be displayed in the package "Details" tab of the Maemo Application Manager
  changeloginformation = """
 Bug fix release for 0.8.0.0:
 - Fix settings saving

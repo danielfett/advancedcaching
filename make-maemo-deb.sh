@@ -29,7 +29,7 @@ rm -r $PKGROOT/opt/advancedcaching/build
 rm -r $PKGROOT/opt/advancedcaching/dist
 
 sed -i -e "s/version = \".*\"/version = \"$VERSION\"/" $PKGROOT/../build_myapp.py
-sed -i -e "s/build = \".*\"/build = \"$BUILD\"#/" $PKGROOT/../build_myapp.py
+sed -i -e "s/build = \".*\"/build = \"$BUILD\"/" $PKGROOT/../build_myapp.py
 cd $PKGROOT
 cd ..
 python2.5 build_myapp.py

@@ -7,3 +7,4 @@
 - push with --tags
 - build
 
+for python: cd files; python setup.py bdist_egg upload; make sure new directories are contained in the setup.py file
