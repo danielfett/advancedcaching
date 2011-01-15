@@ -92,6 +92,7 @@ class GpsReader():
 
             self.gpsd_connection = socket(AF_INET, SOCK_STREAM)
             self.gpsd_connection.connect((self.HOST, self.PORT))
+            self.gpsd_connection.setblocking(False)
             self.status = "connected"
             self.connected = True
         except:
