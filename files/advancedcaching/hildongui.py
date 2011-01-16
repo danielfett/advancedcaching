@@ -174,16 +174,14 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
             out[key] = gtk.gdk.pixbuf_new_from_file(p % (name, 'png'))
         self.icon_pixbufs = out
 
-        self.image_icon_add = gtk.image_new_from_file(self.ICONPATH % {'size' : 64, 'name':'general_add'})
-        self.image_icon_add_2 = gtk.image_new_from_file(self.ICONPATH % {'size' : 64, 'name':'general_add'})
-        self.image_icon_add_3 = gtk.image_new_from_file(self.ICONPATH % {'size' : 64, 'name':'general_add'})
+        self.image_icon_add = self.ICONPATH % {'size' : 64, 'name':'general_add'}
         self.image_zoom_in = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'pdf_zoomin'})
         self.image_zoom_out = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'pdf_zoomout'})
         self.image_action = gtk.image_new_from_file(self.ICONPATH % {'size' : 64, 'name':'keyboard_menu'})
         self.image_preferences = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'camera_camera_setting'})
         self.image_info = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'general_information'})
-        self.image_left = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'general_back'})
-        self.image_right = gtk.image_new_from_file(self.ICONPATH % {'size' : 48, 'name':'general_forward'})
+        self.image_left = self.ICONPATH % {'size' : 48, 'name':'general_back'}
+        self.image_right = self.ICONPATH % {'size' : 48, 'name':'general_forward'}
 
 
     def _open_browser(self, widget, link):
@@ -943,7 +941,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
         button = hildon.Button(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL	)
         button.set_title("Add Waypoint")
-        button.set_image(self.image_icon_add)
+        button.set_image(gtk.image_new_from_file(self.image_icon_add))
         button.connect("clicked", self._on_add_waypoint_clicked)
 
         p = gtk.VBox()
@@ -962,7 +960,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
                 notebook.prev_page()
         for label, fwd in ((self.image_left, False), (self.image_right, True)):
             nb = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
-            nb.set_image(label)
+            nb.set_image(gtk.image_new_from_file(label))
             nb.connect('clicked', switch_nb, fwd)
             notebook_switcher.pack_start(nb)
         details = gtk.VBox()
@@ -1041,7 +1039,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
     def build_coordinates(self, cache, p):
         button = hildon.Button(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
         button.set_title("Add Coordinate")
-        button.set_image(self.image_icon_add_2)
+        button.set_image(gtk.image_new_from_file(self.image_icon_add))
         button.connect("clicked", lambda caller, cache: self._add_waypoint_to_user_coordinates_list(cache), cache)
         p.pack_start(button, False)
         def show_details(widget_coords, stuff, clist):
@@ -1176,7 +1174,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         # add button
         button = hildon.Button(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL	)
         button.set_title("Add Calculation")
-        button.set_image(self.image_icon_add_3)
+        button.set_image(gtk.image_new_from_file(self.image_icon_add))
         button.connect("clicked", self._on_edit_user_coordinate, cache)
         p.pack_start(button, False)
 
