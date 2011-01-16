@@ -559,7 +559,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         
     def _on_show_settings_dialog(self, widget, data):
         dialog = gtk.Dialog("Settings", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-        dialog.set_size_request(800, 800)
+        dialog.set_size_request(800, 480)
 
         p = hildon.PannableArea()
         list = gtk.VBox()
