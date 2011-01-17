@@ -215,7 +215,13 @@ class CacheDownloader(gobject.GObject):
             CacheDownloader.lock.release()
             return []
 
-        content = self._get_overview(location)
+        try:
+            content = self._get_overview(location)
+        except Exception, e:
+            self.emit('download-error', e)
+            CacheDownloader.lock.release()
+            return []
+                            
         if content == None:
             return []
         try:
