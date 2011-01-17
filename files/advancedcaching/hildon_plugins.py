@@ -102,6 +102,11 @@ class HildonFieldnotes(object):
         return button
 
     def _on_show_log_fieldnote_dialog(self, widget, data):
+    
+        from time import gmtime
+        from time import localtime
+        from time import strftime
+        
         if self.current_cache == None:
             return
 
@@ -115,10 +120,11 @@ class HildonFieldnotes(object):
         cache = self.current_cache
         dialog = gtk.Dialog("Write Fieldnote", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 
+        text = strftime(self.settings['options_default_log_text'], localtime()) % {'machine': 'N900'} if cache.logdate == '' else cache.fieldnotes
 
-        fieldnotes = hildon.TextView()
-        fieldnotes.set_placeholder("Your fieldnote text...")
-        fieldnotes.get_buffer().set_text(cache.fieldnotes)
+        fieldnotes = gtk.TextView()
+        #fieldnotes.set_placeholder("Your fieldnote text...")
+        fieldnotes.get_buffer().set_text(text)
 
 
         fieldnotes_log_as_selector = hildon.TouchSelector(text=True)
@@ -143,8 +149,6 @@ class HildonFieldnotes(object):
         if result != gtk.RESPONSE_ACCEPT:
             logger.debug('Not logging this fieldnote')
             return
-        from time import gmtime
-        from time import strftime
 
         cache.logas = statuses[fieldnotes_log_as_selector.get_selected_rows(0)[0][0]][1]
         cache.logdate = strftime('%Y-%m-%d', gmtime())

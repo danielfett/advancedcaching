@@ -141,7 +141,8 @@ class Core(gobject.GObject):
         ],
         'options_map_double_size': False,
         'options_rotate_screen': 0,
-        'tts_interval': 0
+        'tts_interval': 0,
+        'options_default_log_text' : 'TFTC!\n\nLogged at %X from my %(machine)s using AGTL.',
     }
             
     def __init__(self, guitype, root):
