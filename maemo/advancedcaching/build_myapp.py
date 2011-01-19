@@ -58,15 +58,15 @@ AGTL is Open source and in active development.'''
  build = "0"    # for the first build of this version of your software. Increment for later re-builds of the same version of your software.
                 # Text with changelog information to be displayed in the package "Details" tab of the Maemo Application Manager
  changeloginformation = """
-Bug fix release for 0.8.0.0:
-- Fix settings saving
-- Fix crash when trying to start a 2nd download
-- Fix error message when trying online update without updates available
-Changes from 0.8.0.0:
-- Fix downloading bug after November 2010 website change
-- Rewritten coordinate handling
-- Support editing and adding of coordinate calculation strings
-- Faster map display
+Bug fix release and new feature 'fieldnotes default text'.
+- Include settings dialog to set the default text for fieldnotes
+- Fix follow position setting (N900)
+- Fix configure username/password message on GTK interface
+- Fix size of options dialog
+- Set correct openstreetmap tile server
+- Fix disappearing icons in portrait mode
+- Set gpsd connection to nonblocking on GTK interface
+- Online updates for GTK interface
 """
  dir_name = "src"            #Name of the subfolder containing your package source files (e.g. usr\share\icons\hicolor\scalable\myappicon.svg, usr\lib\myapp\somelib.py). We suggest to leave it named src in all projects and will refer to that in the wiki article on maemo.org
  #Thanks to DareTheHair from talk.maemo.org for this snippet that recursively builds the file list 
