@@ -614,8 +614,11 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         check_dl_images.set_active(self.settings['download_noimages'])
         list.pack_start(check_dl_images)
 
-
-
+        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_label("Change default fieldnote text")
+        button.connect("clicked", self._show_default_log_text_settings, None)
+        #button.connect("clicked", lambda caller: dialog.hide())
+        list.pack_start(button)
         
         dialog.show_all()
         result = dialog.run()
@@ -625,20 +628,47 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         if self.settings['options_show_html_description'] != check_show_html_description.get_active():
             self.old_cache_window = None
             
-        self.settings.update({
-                             'options_username': username.get_text(),
-                             'options_password': password.get_text(),
-                             'download_noimages': check_dl_images.get_active(),
-                             'options_show_name': check_show_cache_id.get_active(),
-                             #'options_map_double_size': check_map_double_size.get_active(),
-                             #'options_hide_found': check_hide_found.get_active(),
-                             'options_show_html_description': check_show_html_description.get_active(),
-                             #'options_rotate_screen': rotate_get_result(),
-                             #'tts_interval':tts_get_result(),
-                             })
-        self.core.save_settings(self.settings)
+        update = {
+                 'options_username': username.get_text(),
+                 'options_password': password.get_text(),
+                 'download_noimages': check_dl_images.get_active(),
+                 'options_show_name': check_show_cache_id.get_active(),
+                 #'options_map_double_size': check_map_double_size.get_active(),
+                 #'options_hide_found': check_hide_found.get_active(),
+                 'options_show_html_description': check_show_html_description.get_active(),
+                 #'options_rotate_screen': rotate_get_result(),
+                 #'tts_interval':tts_get_result(),
+                 }
+        self.settings.update(update)
+        self.core.save_settings(update, self)
         #self.core.on_userdata_changed(self.settings['options_username'], self.settings['options_password'])
-
+    
+    def _show_default_log_text_settings(self, widget, data):
+        dialog = gtk.Dialog("Default Fieldnote Text", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        dialog.set_size_request(800, 480)
+        dialog.vbox.pack_start(gtk.Label('Default Fieldnote Text'))
+        default_log_text = hildon.TextView()
+        default_log_text.get_buffer().set_text(self.settings['options_default_log_text'])
+        #default_log_text.set_size_request(self.window.size_request()[0] - 10, -1)
+        dialog.vbox.pack_start(default_log_text)
+        l = gtk.Label()
+        l.set_alignment(0, 0.5)
+        l.set_markup("<b>Placeholders:</b>\n%(machine)s = device name\n%c = Date and Time, %x = Date, %X = Time\nand more, just search the web for <i>strftime</i>.")
+        #l.set_size_request(self.window.size_request()[0] - 10, -1)
+        dialog.vbox.pack_start(l)
+        dialog.show_all()
+        result = dialog.run()
+        dialog.hide()
+        
+        if result != gtk.RESPONSE_ACCEPT:
+            return
+        text = default_log_text.get_buffer().get_text(default_log_text.get_buffer().get_start_iter(), default_log_text.get_buffer().get_end_iter())
+        update = {'options_default_log_text' : text}
+        self.settings.update(update)
+        self.core.save_settings(update, self)
+        
+            
+            
     def _get_tts_settings(self):
         tts_settings = (
                         (0, 'Off'),
