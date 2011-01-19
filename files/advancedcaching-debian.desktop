@@ -1,0 +1,15 @@
+
+[Desktop Entry]
+Name=AGTL Geocaching Tool
+Comment=Advanced Geocaching Tool For Linux
+Encoding=UTF-8
+Version=0.0
+Type=Application
+Exec=/usr/lib/site-python/advancedcaching/core.py --simple
+Icon=advancedcaching
+Terminal=false
+Categories=Office;Geography;
+SingleInstance=true
+StartupNotify=true
+Comment[de_DE.UTF-8]=Ein Geocaching-Werkzeug
+Name[de_DE]=AGTL Geocaching-Werkzeug
