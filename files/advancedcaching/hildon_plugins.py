@@ -126,7 +126,7 @@ class HildonFieldnotes(object):
             except ValueError, e:
                 text = self.settings['options_default_log_text']
         else:
-            cache.fieldnotes
+            text = cache.fieldnotes
 
         fieldnotes = gtk.TextView()
         #fieldnotes.set_placeholder("Your fieldnote text...")
