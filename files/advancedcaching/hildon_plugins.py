@@ -120,7 +120,13 @@ class HildonFieldnotes(object):
         cache = self.current_cache
         dialog = gtk.Dialog("Write Fieldnote", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 
-        text = strftime(self.settings['options_default_log_text'], localtime()) % {'machine': 'N900'} if cache.logdate == '' else cache.fieldnotes
+        if cache.logdate == '':
+            try:
+                text = strftime(self.settings['options_default_log_text'], localtime()) % {'machine': 'N900'}
+            except ValueError, e:
+                text = self.settings['options_default_log_text']
+        else:
+            cache.fieldnotes
 
         fieldnotes = gtk.TextView()
         #fieldnotes.set_placeholder("Your fieldnote text...")

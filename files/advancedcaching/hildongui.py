@@ -645,16 +645,12 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
     
     def _show_default_log_text_settings(self, widget, data):
         dialog = gtk.Dialog("Default Fieldnote Text", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-        dialog.set_size_request(800, 480)
-        dialog.vbox.pack_start(gtk.Label('Default Fieldnote Text'))
         default_log_text = hildon.TextView()
         default_log_text.get_buffer().set_text(self.settings['options_default_log_text'])
-        #default_log_text.set_size_request(self.window.size_request()[0] - 10, -1)
         dialog.vbox.pack_start(default_log_text)
         l = gtk.Label()
         l.set_alignment(0, 0.5)
         l.set_markup("<b>Placeholders:</b>\n%(machine)s = device name\n%c = Date and Time, %x = Date, %X = Time\nand more, just search the web for <i>strftime</i>.")
-        #l.set_size_request(self.window.size_request()[0] - 10, -1)
         dialog.vbox.pack_start(l)
         dialog.show_all()
         result = dialog.run()
