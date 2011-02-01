@@ -21,8 +21,8 @@
 #
 
 
-VERSION = 8
-VERSION_DATE = '2011-01-09'
+VERSION = 9
+VERSION_DATE = '2011-02-01'
 
 try:
     import json
@@ -429,8 +429,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
         else:
             logger.warning("Size not known: %s" % sizestring)
             size = 5
-        diff = float(re.compile('(?s)Difficulty:</strong>.*?<img src="http://www.geocaching.com/images/stars/stars[0-9_]+\\.gif" alt="([0-9.]+) out').search(head).group(1))*10
-        terr = float(re.compile('(?s)Terrain:</strong>.*?<img src="http://www.geocaching.com/images/stars/stars[0-9_]+\\.gif" alt="([0-9.]+) out').search(head).group(1))*10
+        diff = float(re.compile('(?s)Difficulty:\\s+</.*?<img src="http://www.geocaching.com/images/stars/stars[0-9_]+\\.gif" alt="([0-9.]+) out').search(head).group(1))*10
+        terr = float(re.compile('(?s)Terrain:\\s+</.*?<img src="http://www.geocaching.com/images/stars/stars[0-9_]+\\.gif" alt="([0-9.]+) out').search(head).group(1))*10
         owner = HTMLManipulations._decode_htmlentities(re.compile("\\sby <[^>]+>([^<]+)</a>", re.MULTILINE).search(head).group(1))
         coords = re.compile('lat=([0-9.-]+)&amp;lon=([0-9.-]+)&amp;').search(head)
         lat = float(coords.group(1))
