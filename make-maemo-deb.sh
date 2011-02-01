@@ -1,5 +1,4 @@
 #!/bin/sh
-#IPKG='../ipkg-utils-1.7/ipkg-build'
 PKGROOT='maemo/advancedcaching/src/'
 VERSION=$1
 BUILD=$2

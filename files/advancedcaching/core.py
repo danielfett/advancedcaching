@@ -22,7 +22,7 @@
 
 from __future__ import with_statement
 
-VERSION = "0.8.0.3"
+VERSION = "0.8.0.4"
    
 
 import logging
@@ -655,10 +655,11 @@ class Core(gobject.GObject):
 
     # called on signal by downloading thread
     def on_download_error(self, something, error):
+        extra_message = "Please try the online update in the about menu. Error:\n%s" % error
         logging.exception(error)
         def same_thread(error):
             self.emit('hide-progress')
-            self.emit('error', error)
+            self.emit('error', extra_message)
             return False
         gobject.idle_add(same_thread, error)
 
