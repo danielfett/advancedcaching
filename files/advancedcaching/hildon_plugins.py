@@ -520,7 +520,7 @@ class HildonAboutDialog(object):
 
     def plugin_init(self):
         logger.info("Using About Dialog plugin")
-        updates = self.core.try_update()
+        updates = self.core.try_update(silent = True)
         if updates != None:
             self.show_success("Cache parser updated." % updates)
 
