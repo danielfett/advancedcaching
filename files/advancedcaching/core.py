@@ -282,7 +282,7 @@ class Core(gobject.GObject):
                         reload(m)
                         updated_modules += 1
                     else:
-                        logging.info("Not reloading Module '%s', current version number: %d, version number of update file: %d" % (m.__name__, v_dict['VERSION'], m.VERSION))
+                        logging.info("Not reloading Module '%s', current version number: %d, version number of update file: %d" % (m.__name__, m.VERSION, v_dict['VERSION']))
                 else:
                     logging.info("Skipping nonexistant update from" + path.join(self.UPDATE_DIR, "%s%spy" % (m.__name__, extsep)))
         return updated_modules
