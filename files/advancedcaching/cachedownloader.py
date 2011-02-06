@@ -237,7 +237,7 @@ class CacheDownloader(gobject.GObject):
         self.emit('finished-overview', points)
         CacheDownloader.lock.release()
         return points
-
+        
 class GeocachingComCacheDownloader(CacheDownloader):
     
     MAX_REC_DEPTH = 2
@@ -349,26 +349,30 @@ class GeocachingComCacheDownloader(CacheDownloader):
     def _parse_cache_page(self, cache_page, coordinate):
         section = ''
         prev_section = ''
-        shortdesc = desc = hints = waypoints = images = logs = owner = head = ''
+        shortdesc = desc = coords = hints = waypoints = images = logs = owner = head = ''
         logger.debug("Start parsing...")
         for line in cache_page:
             line = line.strip()
             
-            if section == '' and line.startswith('<div id="doc3" class="yui-t1">'):
+            if section == '' and 'meta name="og:site_name"' in line:
                 section = 'head'
-            elif section == 'head' and line.startswith('<span id="ctl00_ContentBody_ShortDescription">'):
+            elif section == 'head' and line.startswith('<form name="aspnetForm"'):
+                section = 'after-head'
+            elif section == 'after-head' and line.startswith('<a id="ctl00_ContentBody_lnkConversions"'):
+                coords = line
+            elif section == 'after-head' and line.startswith('<span id="ctl00_ContentBody_ShortDescription">'):
                 section = 'shortdesc'
-            elif (section == 'head' or section == 'shortdesc') and line.startswith('<span id="ctl00_ContentBody_LongDescription">'):
+            elif (section == 'after-head' or section == 'shortdesc') and line.startswith('<span id="ctl00_ContentBody_LongDescription">'):
                 section = 'desc'
             elif (section == 'desc' or section == 'shortdesc') and line.startswith('<div class="CacheDetailNavigationWidget">'):
                 section = 'after-desc'
-            elif section == 'after-desc' and line.startswith('<div id="div_hint" class="HalfLeft">'):
+            elif section == 'after-desc' and line.startswith('&nbsp;</p><div id="div_hint" class="HalfLeft">'):
                 section = 'hints'
-            elif section == 'hints' and line.startswith('</div>'):
+            elif section == 'hints' and line.startswith('<span id="ctl00_ContentBody_EncryptionKey">'):
                 section = 'after-hints'
             elif (section == 'after-hints' or section == 'after-desc') and line.startswith('<div id="ctl00_ContentBody_uxlrgMap" class="fr">'):
                 section = 'pre-waypoints'
-            elif (section == 'after-hints' or section == 'pre-waypoints') and line.startswith('<span id="ctl00_ContentBody_WaypointsInfo"'):
+            elif (section == 'after-hints' or section == 'pre-waypoints') and line.startswith('<table class="Table" id="ctl00_ContentBody_Waypoints">'):
                 section = 'waypoints'
             elif section == 'waypoints' and line.startswith('</tbody> </table>'):
                 section = 'after-waypoints'
@@ -403,7 +407,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 
         logger.debug('finished parsing')
 
-        coordinate.size, coordinate.difficulty, coordinate.terrain, coordinate.owner, coordinate.lat, coordinate.lon = self.__parse_head(head)
+        coordinate.size, coordinate.difficulty, coordinate.terrain, coordinate.owner, coordinate.lat, coordinate.lon = self.__parse_head(head, coords)
         coordinate.shortdesc = self.__treat_shortdesc(shortdesc)
         coordinate.desc = self.__treat_desc(desc)
         coordinate.hints = self.__treat_hints(hints)
@@ -414,8 +418,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 
         return coordinate
                 
-    def __parse_head(self, head):
-        sizestring = re.compile('<img src="/images/icons/container/([a-z_]+)\\.gif" alt="Size:').search(head).group(1)
+    def __parse_head(self, head, coords):
+        size_diff_terr = re.compile('was created by (?P<owner>.+?) on .+? a (?P<size>[a-zA-Z ]+) size geocache, with difficulty of (?P<diff>[0-9.]+?), terrain of (?P<terr>[0-9.]+?). ').search(head)
+        sizestring = size_diff_terr.group('size').lower()
         if sizestring == 'micro':
             size = 1
         elif sizestring == 'small':
@@ -424,15 +429,15 @@ class GeocachingComCacheDownloader(CacheDownloader):
             size = 3
         elif sizestring == 'large' or sizestring == 'big':
             size = 4
-        elif sizestring == 'not_chosen' or sizestring == 'other':
+        elif sizestring == 'not chosen' or sizestring == 'other':
             size = 5
         else:
             logger.warning("Size not known: %s" % sizestring)
             size = 5
-        diff = float(re.compile('(?s)Difficulty:\\s+</.*?<img src="http://www.geocaching.com/images/stars/stars[0-9_]+\\.gif" alt="([0-9.]+) out').search(head).group(1))*10
-        terr = float(re.compile('(?s)Terrain:\\s+</.*?<img src="http://www.geocaching.com/images/stars/stars[0-9_]+\\.gif" alt="([0-9.]+) out').search(head).group(1))*10
-        owner = HTMLManipulations._decode_htmlentities(re.compile("\\sby <[^>]+>([^<]+)</a>", re.MULTILINE).search(head).group(1))
-        coords = re.compile('lat=([0-9.-]+)&amp;lon=([0-9.-]+)&amp;').search(head)
+        diff = float(size_diff_terr.group('diff'))*10
+        terr = float(size_diff_terr.group('terr'))*10
+        owner = HTMLManipulations._decode_htmlentities(size_diff_terr.group('owner'))
+        coords = re.compile('lat=([0-9.-]+)&amp;lon=([0-9.-]+)&amp;').search(coords)
         lat = float(coords.group(1))
         lon = float(coords.group(2))
         return size, diff, terr, owner, lat, lon
@@ -443,6 +448,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         hints = HTMLManipulations._strip_html(HTMLManipulations._replace_br(hints)).strip()
         hints = self._rot13(hints)
         hints = re.sub(r'\[([^\]]+)\]', lambda match: self._rot13(match.group(0)), hints)
+        hints = hints.replace('&aofc;', '').strip()
         return hints
 
     def __treat_desc(self, desc):
@@ -472,12 +478,14 @@ class GeocachingComCacheDownloader(CacheDownloader):
         return (float(decimal) + (float(minutes) / 60.0)) * sign
 
     def __treat_waypoints(self, data):
+        logger.debug('Waypoints: %s' % data)
         data.replace('</td>', '')
         data.replace('</tr>', '')
         lines = data.split('<tr')
         waypoints = []
         for line in lines:
             tds = re.split('<td[^>]*>', line)
+            logger.debug('TDs: %s' % repr(tds))
             if len(tds) <= 1:
                 continue
             elif len(tds) > 4:
