@@ -21,8 +21,8 @@
 #
 
 
-VERSION = 9
-VERSION_DATE = '2011-02-01'
+VERSION = 10
+VERSION_DATE = '2011-02-06'
 
 try:
     import json
@@ -169,7 +169,7 @@ class CacheDownloader(gobject.GObject):
         i = 0
         c = []
         if len(coordinates) > self.MAX_DOWNLOAD_NUM:
-            self.emit("download-error", Exception("Downloading of more than %d descriptions is not supported. (We do not want to knock out our beloved geocaching website.)" % self.MAX_DOWNLOAD_NUM))
+            self.emit("download-error", Exception("Downloading of more than %d descriptions is not supported." % self.MAX_DOWNLOAD_NUM))
             return
         for cache in coordinates:
             self.emit("progress", cache.name, i, len(coordinates))

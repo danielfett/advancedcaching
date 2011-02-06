@@ -613,6 +613,12 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         check_dl_images.set_label("Don't Download Images")
         check_dl_images.set_active(self.settings['download_noimages'])
         list.pack_start(check_dl_images)
+        
+        
+        auto_update = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
+        auto_update.set_label("Update cache parser on startup")
+        auto_update.set_active(self.settings['options_auto_update'])
+        list.pack_start(cauto_update)
 
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_label("Change default fieldnote text")
@@ -633,6 +639,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
                  'options_password': password.get_text(),
                  'download_noimages': check_dl_images.get_active(),
                  'options_show_name': check_show_cache_id.get_active(),
+                 'options_auto_update': auto_update.get_active(),
                  #'options_map_double_size': check_map_double_size.get_active(),
                  #'options_hide_found': check_hide_found.get_active(),
                  'options_show_html_description': check_show_html_description.get_active(),

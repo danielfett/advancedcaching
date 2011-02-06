@@ -22,7 +22,7 @@
 
 from __future__ import with_statement
 
-VERSION = "0.8.0.4"
+VERSION = "0.8.0.5"
    
 
 import logging
@@ -143,6 +143,7 @@ class Core(gobject.GObject):
         'options_rotate_screen': 0,
         'tts_interval': 0,
         'options_default_log_text' : 'TFTC!\n\nLogged at %X from my %(machine)s using AGTL.',
+        'options_auto_update': True,
     }
             
     def __init__(self, guitype, root):
@@ -286,7 +287,7 @@ class Core(gobject.GObject):
                     logging.info("Skipping nonexistant update from" + path.join(self.UPDATE_DIR, "%s%spy" % (m.__name__, extsep)))
         return updated_modules
 
-    def try_update(self):
+    def try_update(self, silent = False):
         from urllib import urlretrieve
         from urllib2 import HTTPError
         import tempfile
@@ -349,7 +350,8 @@ class Core(gobject.GObject):
                 self.emit('hide-progress')
                 self.emit('error', error)
                 return False
-            gobject.idle_add(same_thread, e)
+            if not silent:
+                gobject.idle_add(same_thread, e)
             return None
             
         def same_thread():
@@ -655,7 +657,7 @@ class Core(gobject.GObject):
 
     # called on signal by downloading thread
     def on_download_error(self, something, error):
-        extra_message = "Please try the online update in the about menu. Error:\n%s" % error
+        extra_message = "Error:\n%s" % error
         logging.exception(error)
         def same_thread(error):
             self.emit('hide-progress')
