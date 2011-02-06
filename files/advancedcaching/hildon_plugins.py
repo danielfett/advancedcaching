@@ -520,9 +520,20 @@ class HildonAboutDialog(object):
 
     def plugin_init(self):
         logger.info("Using About Dialog plugin")
-        updates = self.core.try_update(silent = True)
-        if updates != None:
-            self.show_success("Cache parser updated." % updates)
+        logger.debug("trying update")
+        
+        import gobject
+        def try_update():
+            if 'options_auto_update' in self.settings and not self.settings['options_auto_update']:
+                return False
+            from time import sleep
+            
+            updates = self.core.try_update(silent = True)
+            
+            if updates != None:
+                self.show_success("Parser update installed.")
+            return False
+        gobject.timeout_add(5000, try_update)
 
     def _get_about_button(self):
         button = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)

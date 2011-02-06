@@ -348,10 +348,10 @@ class Core(gobject.GObject):
             logging.exception(e)
             def same_thread(error):
                 self.emit('hide-progress')
-                self.emit('error', error)
+                if not silent:
+                    self.emit('error', error)
                 return False
-            if not silent:
-                gobject.idle_add(same_thread, e)
+            gobject.idle_add(same_thread, e)
             return None
             
         def same_thread():

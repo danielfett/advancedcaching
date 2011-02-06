@@ -154,7 +154,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.plugin_init()
 
     def plugin_init(self):
-        for x in (HildonSearchGeocaches, HildonSearchPlace, HildonFieldnotes):
+        for x in (HildonSearchGeocaches, HildonSearchPlace, HildonFieldnotes, HildonAboutDialog):
             x.plugin_init(self)
 
     def on_window_destroy(self, target, more=None, data=None):
@@ -618,7 +618,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         auto_update = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         auto_update.set_label("Update cache parser on startup")
         auto_update.set_active(self.settings['options_auto_update'])
-        list.pack_start(cauto_update)
+        list.pack_start(auto_update)
 
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_label("Change default fieldnote text")
