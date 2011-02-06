@@ -765,10 +765,6 @@ class HildonDownloadMap(object):
                     gtk.main_iteration()
                 if stopped[0]:
                     return
-
-
-
-        
         
         import time
         import threading
@@ -791,3 +787,204 @@ class HildonDownloadMap(object):
         finally:
             logger.info("Closing")
             dialog.hide()
+            
+
+class HildonToolsDialog(object):
+
+    def plugin_init(self):
+        logger.info("Using Tools Dialog plugin")
+
+        
+    def _get_tools_button(self):
+        button1 = hildon.Button(gtk.HILDON_SIZE_AUTO, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button1.set_title("Tools")
+        button1.connect("clicked", self._on_show_tools)
+        return button1
+        
+    def _on_show_tools(self, caller, data = None):
+        dialog = gtk.Dialog("Tools", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        #dialog.set_size_request(800, 480)
+
+        list = dialog.vbox
+
+        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_label("ROT13")
+        button.connect("clicked", self._show_tool_rot13, None)
+        button.connect("clicked", lambda caller: dialog.hide())
+        list.pack_start(button)
+        
+        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_label("Roman Numbers")
+        button.connect("clicked", self._show_tool_romans, None)
+        button.connect("clicked", lambda caller: dialog.hide())
+        list.pack_start(button)
+        
+        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_label("Heading Calculation")
+        button.connect("clicked", self._show_tool_heading, None)
+        button.connect("clicked", lambda caller: dialog.hide())
+        list.pack_start(button)
+        
+        dialog.show_all()
+        result = dialog.run()
+        
+    def _show_tool_rot13(self, caller, data = None):
+        dialog = gtk.Dialog("ROT13", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ())
+        dialog.set_size_request(800, 480)
+        
+        source = hildon.TextView()
+        dialog.vbox.pack_start(source)
+        destination = hildon.TextView()
+        dialog.vbox.pack_start(destination)
+        
+        def do_rot(widget):
+            import cachedownloader
+            try:
+                text = cachedownloader.CacheDownloader._rot13(source.get_buffer().get_text(source.get_buffer().get_start_iter(), source.get_buffer().get_end_iter()))
+            except Exception, e:
+                text = ''
+                
+            destination.get_buffer().set_text(text)
+        
+        source.get_buffer().connect('changed', do_rot)
+        
+        dialog.show_all()
+        result = dialog.run()
+        
+    def _show_tool_romans(self, caller, data = None):
+        dialog = gtk.Dialog("Roman Numbers", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ())
+        #dialog.set_size_request(800, 480)
+        
+        source = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+        source.set_property("hildon-input-mode", gtk.HILDON_GTK_INPUT_MODE_NUMERIC)
+        dialog.vbox.pack_start(hildon.Caption(None, "Arabic", source, None, 0))
+        destination = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+        dialog.vbox.pack_start(hildon.Caption(None, "Roman", destination, None, 0))
+        
+        inhibit = [False]
+        
+        def to_roman(widget):
+            if inhibit[0] == True:
+                return
+            try:
+                text = HildonToolsDialog._int_to_roman(int(source.get_text()))
+            except ValueError, e:
+                text = ''
+            inhibit[0] = True
+            destination.set_text(text)
+            inhibit[0] = False
+            
+        
+        def to_arabic(widget):
+            if inhibit[0] == True:
+                return
+            try:
+                text = str(HildonToolsDialog._roman_to_int(destination.get_text()))
+            except ValueError, e:
+                text = ''
+            inhibit[0] = True
+            source.set_text(text)
+            inhibit[0] = False
+        
+        source.get_buffer().connect('changed', to_roman)
+        destination.get_buffer().connect('changed', to_arabic)
+        
+        dialog.show_all()
+        result = dialog.run()
+        dialog.hide()
+    NUMERAL_MAP = zip(
+        (1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1),
+        ('M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I')
+    )
+    
+    def _show_tool_heading(self, caller, data = None):
+        RESULT_WPT, RESULT_TARGET = range(2)
+        dialog = gtk.Dialog("Heading Calculation", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ("as target", RESULT_TARGET))
+        if self.current_cache != None:
+            dialog.add_button("add waypoint", RESULT_WPT)
+        #dialog.set_size_request(800, 480)
+        
+        
+        def select_origin(widget, data = None):
+            start = self._get_best_coordinate() if origin[0] == None else origin[0]
+            new = self._show_target_input_list(start, show_current = True)
+            if new != None:
+                origin[0] = new
+                text = new.get_latlon()
+                button.set_value(text)
+                recalc(None)
+        
+        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_title("Select Origin")
+        button.set_value("current Target")
+        button.connect("clicked", select_origin, None)
+        dialog.vbox.pack_start(button)
+        
+        origin = [self.core.current_target]
+        
+        direction = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+        direction.set_property("hildon-input-mode", gtk.HILDON_GTK_INPUT_MODE_NUMERIC)
+        
+        dialog.vbox.pack_start(hildon.Caption(None, "Heading in Degrees", direction, None, 0))
+        
+        distance = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+        distance.set_property("hildon-input-mode", gtk.HILDON_GTK_INPUT_MODE_NUMERIC)
+        dialog.vbox.pack_start(hildon.Caption(None, "Distance in Meters", distance, None, 0))
+        
+        result = gtk.Label()
+        dialog.vbox.pack_start(hildon.Caption(None, "Resulting Point", result, None, 0))
+        
+        resulting_coordinate = [None]
+        
+        def recalc(widget):
+            try:
+                res = origin[0].transform(-float(direction.get_text()), float(distance.get_text()))
+                text = res.get_latlon()
+            except Exception, e:
+                res = None
+                text = 'enter values...'
+            resulting_coordinate[0] = res
+            result.set_text(text)
+            
+        direction.connect('changed', recalc)
+        distance.connect('changed', recalc)    
+        
+                
+        dialog.show_all()
+        res = dialog.run()
+        dialog.hide()
+        if res == RESULT_WPT:
+            if resulting_coordinate[0] == None:
+                return
+            distance = resulting_coordinate[0].format_distance(float(distance.get_text()))
+            heading = int(direction.get_text())
+            name = "hdg %s, %d deg from %s" % (distance, heading, origin[0].get_latlon())
+            self.current_cache.get_user_coordinates(None)
+            self.current_cache.set_user_coordinate(geocaching.GeocacheCoordinate.USER_TYPE_COORDINATE, (resulting_coordinate[0].lat, resulting_coordinate[0].lon), name)
+            self.core.save_cache_attribute(self.current_cache, 'user_coordinates')
+            self._on_cache_changed(None, self.current_cache)
+            #self.update_coords()
+        elif res == RESULT_TARGET:
+            if resulting_coordinate[0] == None:
+                return
+            self.set_target(resulting_coordinate[0])
+        
+    @staticmethod
+    def _int_to_roman(i):
+        result = []
+        for integer, numeral in HildonToolsDialog.NUMERAL_MAP:
+            count = int(i / integer)
+            result.append(numeral * count)
+            i -= integer * count
+        return ''.join(result)
+
+    @staticmethod
+    def _roman_to_int(n):
+        n = unicode(n).upper()
+
+        i = result = 0
+        for integer, numeral in HildonToolsDialog.NUMERAL_MAP:
+            while n[i:i + len(numeral)] == numeral:
+                result += integer
+                i += len(numeral)
+        return result

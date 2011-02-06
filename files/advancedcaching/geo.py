@@ -140,7 +140,7 @@ class Coordinate(object):
     re_to_dm_array = re.compile('^(\d?)(\d)(\d) (\d)(\d)\.(\d)(\d)(\d)$')
     re_to_d_array = re.compile('^(\d?)(\d)(\d).(\d)(\d)(\d)(\d)(\d)$')
     
-    def __init__(self, lat, lon, name="No Name"):
+    def __init__(self, lat, lon, name=""):
         self.lat = lat
         self.lon = lon
         self.name = name

@@ -43,6 +43,7 @@ from hildon_plugins import HildonSearchPlace
 from hildon_plugins import HildonSearchGeocaches
 from hildon_plugins import HildonAboutDialog
 from hildon_plugins import HildonDownloadMap
+from hildon_plugins import HildonToolsDialog
 import pango
 from portrait import FremantleRotation
 from simplegui import SimpleGui
@@ -55,7 +56,7 @@ from coordfinder import CalcCoordinate
 import logging
 logger = logging.getLogger('simplegui')
 
-class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, HildonAboutDialog, HildonDownloadMap, SimpleGui):
+class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, HildonAboutDialog, HildonDownloadMap, SimpleGui):
 
     USES = ['locationgpsprovider', 'geonames']
 
@@ -154,7 +155,7 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         self.plugin_init()
 
     def plugin_init(self):
-        for x in (HildonSearchGeocaches, HildonSearchPlace, HildonFieldnotes, HildonAboutDialog):
+        for x in (HildonSearchGeocaches, HildonSearchPlace, HildonFieldnotes, HildonAboutDialog, HildonToolsDialog):
             x.plugin_init(self)
 
     def on_window_destroy(self, target, more=None, data=None):
@@ -405,6 +406,8 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         menu.append(self._get_about_button())
 
         menu.append(self._get_download_map_button())
+        
+        menu.append(self._get_tools_button())
 
     
         
@@ -723,19 +726,29 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
 
     def _on_show_dialog_change_target(self, widget, data):
         c = self._get_best_coordinate(self.core.current_target)
-
+        res = self._show_target_input_list(c)
+        if res != None: 
+            self.set_target(res)
+        
+    def _show_target_input_list(self, start, show_current = False):
         dialog = gtk.Dialog("change target", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-
+        
+        RESPONSE_CURRENT = 2
+        current = None
+        if self.gps_data != None and self.gps_data.position != None:
+            current = self.gps_data.position
+            dialog.add_button("current position", RESPONSE_CURRENT)    
+            
         bar_label = gtk.Label("Lat/Lon: ")
         bar_entry = hildon.Entry(gtk.HILDON_SIZE_AUTO)
         bar_entry.set_property('hildon-input-mode', gtk.HILDON_GTK_INPUT_MODE_ALPHA | gtk.HILDON_GTK_INPUT_MODE_SPECIAL | gtk.HILDON_GTK_INPUT_MODE_TELE)
-        bar_entry.set_text(c.get_latlon(self.format))
+        bar_entry.set_text(start.get_latlon(self.format))
 
         def show_coord_input(widget):
             try:
                 m = geo.try_parse_coordinate(bar_entry.get_text())
             except Exception:
-                m = c
+                m = start
             m_new = self.show_coordinate_input(m)
             bar_entry.set_text(m_new.get_latlon(self.format))
 
@@ -764,7 +777,11 @@ class HildonGui(HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, Hild
         result = dialog.run()
         dialog.hide()
         if result == gtk.RESPONSE_ACCEPT:
-            self.set_target(geo.try_parse_coordinate(bar_entry.get_text()))
+            return geo.try_parse_coordinate(bar_entry.get_text())
+        elif result == RESPONSE_CURRENT and current != None:
+            return current
+        return None
+        
 
     def show_cache(self, cache, select=True):
         if cache == None:

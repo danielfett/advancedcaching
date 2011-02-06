@@ -613,32 +613,37 @@ class GeocacheLayer(AbstractGeocacheLayer):
 
         # draw additional waypoints
         # --> print description!
-        if self.current_cache != None and self.current_cache.get_waypoints() != None:
+        if self.current_cache != None:
             cr.set_source_color(self.COLOR_WAYPOINTS)
             cr.set_line_width(1)
             radius = 5
             num = 0
-            for w in self.current_cache.get_waypoints():
-                if w['lat'] != -1 and w['lon'] != -1:
-                    num = num + 1
-                    p = self.map.coord2point(geo.Coordinate(w['lat'], w['lon']))
-                    if not self.map.point_in_screen(p):
-                        continue
-                    cr.move_to(p[0], p[1] - radius)
-                    cr.line_to(p[0], p[1] + radius) #  |
-                    #cr.stroke()
-                    cr.move_to(p[0] - radius, p[1])
-                    cr.line_to(p[0] + radius, p[1]) # ---
-                    #cr.stroke()
-                    cr.arc(p[0], p[1], radius, 0, math.pi * 2)
-                    layout = self.map.create_pango_layout('')
-                    layout.set_markup('<i>%s</i>' % (w['id']))
-                    layout.set_font_description(self.CACHE_DRAW_FONT)
+            seen = ["%9.6f %9.6f" % (self.current_cache.lat, self.current_cache.lon)]
+            
+            for w in self.current_cache.get_collected_coordinates(format = self.current_cache.FORMAT_DM, include_unknown = False).values():
+                text = "%9.6f %9.6f" % (w.lat, w.lon)
+                if text in seen:
+                    continue
+                seen.append(text)
+                num = num + 1
+                p = self.map.coord2point(w)
+                if not self.map.point_in_screen(p):
+                    continue
+                cr.move_to(p[0], p[1] - radius)
+                cr.line_to(p[0], p[1] + radius) #  |
+                #cr.stroke()
+                cr.move_to(p[0] - radius, p[1])
+                cr.line_to(p[0] + radius, p[1]) # ---
+                #cr.stroke()
+                cr.arc(p[0], p[1], radius, 0, math.pi * 2)
+                layout = self.map.create_pango_layout('')
+                layout.set_markup('<i>%s</i>' % (self.shorten_name(w.display_text, 25)))
+                layout.set_font_description(self.CACHE_DRAW_FONT)
 
-                    cr.move_to(p[0] + 3 + radius, p[1] - 3 - radius)
-                    #cr.set_line_width(1)
-                    cr.set_source_color(self.COLOR_WAYPOINTS)
-                    cr.show_layout(layout)
+                cr.move_to(p[0] + 3 + radius, p[1] - 3 - radius)
+                #cr.set_line_width(1)
+                cr.set_source_color(self.COLOR_WAYPOINTS)
+                cr.show_layout(layout)
             cr.stroke()
         self.result = surface
 
