@@ -850,6 +850,7 @@ class HildonToolsDialog(object):
         
         dialog.show_all()
         result = dialog.run()
+        dialog.hide()
         
     def _show_tool_romans(self, caller, data = None):
         dialog = gtk.Dialog("Roman Numbers", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ())
@@ -886,8 +887,8 @@ class HildonToolsDialog(object):
             source.set_text(text)
             inhibit[0] = False
         
-        source.get_buffer().connect('changed', to_roman)
-        destination.get_buffer().connect('changed', to_arabic)
+        source.connect('changed', to_roman)
+        destination.connect('changed', to_arabic)
         
         dialog.show_all()
         result = dialog.run()
