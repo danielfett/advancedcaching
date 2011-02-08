@@ -354,6 +354,7 @@ class Core(gobject.GObject):
                         pass
         except Exception, e:
             def same_thread(error):
+                logging.exception(e)
                 self.emit('hide-progress')
                 if not silent:
                     self.emit('error', error)

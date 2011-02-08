@@ -530,7 +530,7 @@ class HildonAboutDialog(object):
             
             updates = self.core.try_update(silent = True)
             
-            if updates != None:
+            if updates not in [None, False]:
                 self.show_success("Parser update installed.")
             return False
         gobject.timeout_add(5000, try_update)
@@ -631,7 +631,7 @@ Author: Daniel Fett advancedcaching@fragcom.de'''
 
     def _try_parser_update(self):
         updates = self.core.try_update()
-        if updates != None:
+        if updates not in [None, False]:
             self.show_success("%d modules upgraded. There's no need to restart AGTL." % updates)
             
 
@@ -806,6 +806,12 @@ class HildonToolsDialog(object):
         #dialog.set_size_request(800, 480)
 
         list = dialog.vbox
+        
+        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+        button.set_label("Coordinate Projection")
+        button.connect("clicked", self._show_tool_heading, None)
+        button.connect("clicked", lambda caller: dialog.hide())
+        list.pack_start(button)
 
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_label("ROT13")
@@ -816,12 +822,6 @@ class HildonToolsDialog(object):
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_label("Roman Numbers")
         button.connect("clicked", self._show_tool_romans, None)
-        button.connect("clicked", lambda caller: dialog.hide())
-        list.pack_start(button)
-        
-        button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        button.set_label("Heading Calculation")
-        button.connect("clicked", self._show_tool_heading, None)
         button.connect("clicked", lambda caller: dialog.hide())
         list.pack_start(button)
         
@@ -900,7 +900,7 @@ class HildonToolsDialog(object):
     
     def _show_tool_heading(self, caller, data = None):
         RESULT_WPT, RESULT_TARGET = range(2)
-        dialog = gtk.Dialog("Heading Calculation", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ("as target", RESULT_TARGET))
+        dialog = gtk.Dialog("Coordinate Projection", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ("as target", RESULT_TARGET))
         if self.current_cache != None:
             dialog.add_button("add waypoint", RESULT_WPT)
         #dialog.set_size_request(800, 480)
