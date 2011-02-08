@@ -355,6 +355,7 @@ class GeocacheCoordinate(geo.Coordinate):
         cache.comment = "Original coordinate given in the cache description."
         cache.user_coordinate_id = None
         clist = {0: cache}
+        check_double = []
         i = 1
         # waypoints
         for w in self.get_waypoints():
@@ -368,6 +369,7 @@ class GeocacheCoordinate(geo.Coordinate):
                 coord = geo.Coordinate(None, None, w['name'])
                 coord.comment = htmlcallback(w['comment'])
                 latlon = '???'
+            check_double.append(latlon)
             coord.user_coordinate_id = None
             coord.display_text = "%s - %s - %s\n%s" % (w['name'], latlon, w['id'], shorten_callback(htmlcallback(w['comment'])))
             clist[i] = coord
@@ -408,7 +410,10 @@ class GeocacheCoordinate(geo.Coordinate):
                 else:
                     source_string = source
                     coord.user_coordinate_id = None
-                coord.display_text = "%s: %s" % (source_string, coord.get_latlon(format))
+                latlon = coord.get_latlon(format)
+                if latlon in check_double:
+                    continue
+                coord.display_text = "%s: %s" % (source_string, latlon)
                 coord.comment = "Found in %s." % source_string
                 clist[i] = coord
                 i += 1
