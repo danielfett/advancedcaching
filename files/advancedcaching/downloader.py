@@ -23,6 +23,7 @@
 
 import logging
 logger = logging.getLogger('downloader')
+import connection
 
 class FileDownloader():
     USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; U; Linux i686; de; rv:1.9.0.12) Gecko/2009070811  Windows NT Firefox/3.1'
@@ -52,6 +53,8 @@ class FileDownloader():
 
 
     def login(self):
+        if connection.offline:
+            raise Exception("Can't connect in offline mode.")
         if self.username == '' or self.password == '':
             raise Exception("Please configure your username/password and restart the application")
         logger.info("Checking Login status")
@@ -106,6 +109,8 @@ class FileDownloader():
 
 
     def get_reader(self, url, values=None, data=None, login = True):
+        if connection.offline:
+            raise Exception("Can't connect in offline mode.")
         from urllib import urlencode
         from urllib2 import Request, urlopen
         if login and not self.logged_in:

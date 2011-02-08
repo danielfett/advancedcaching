@@ -24,7 +24,6 @@ from __future__ import with_statement
 
 VERSION = "0.8.0.5"
    
-
 import logging
 logging.basicConfig(level=logging.WARNING,
                     format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s',
@@ -49,6 +48,8 @@ import cachedownloader
 import fieldnotesuploader
 from actors.tts import TTS
 #from actors.notify import Notify
+
+import connection
 
 if len(argv) == 1:
     import cli
@@ -161,14 +162,15 @@ class Core(gobject.GObject):
         self.connect('save-settings', self.__on_save_settings)
         self.create_recursive(self.settings['download_output_dir'])
         self.create_recursive(self.settings['download_map_path'])
-                
+     
+        connection.init()
 
         self.downloader = downloader.FileDownloader(self.settings['options_username'], self.settings['options_password'], self.COOKIE_FILE, cachedownloader.GeocachingComCacheDownloader.login_callback)
                 
         self.pointprovider = provider.PointProvider(self.CACHES_DB, geocaching.GeocacheCoordinate, 'geocaches')
 
         self.gui = guitype(self, self.dataroot)
-
+        
         
         actor_tts = TTS(self)
         actor_tts.connect('error', lambda caller, msg: self.emit('error', msg))
@@ -256,7 +258,7 @@ class Core(gobject.GObject):
             return "%d MiB" % (size / (1024 * 1024))
         else:
             return "%d GiB" % (size / (1024 * 1024 * 1024))
-
+            
 
     ##############################################
     #
@@ -288,6 +290,12 @@ class Core(gobject.GObject):
         return updated_modules
 
     def try_update(self, silent = False):
+        if connection.offline:
+            if not silent:
+                self.emit('error', Exception("Can't update in offline mode."))
+            return False
+            
+            
         from urllib import urlretrieve
         from urllib2 import HTTPError
         import tempfile
@@ -345,7 +353,6 @@ class Core(gobject.GObject):
                     except Exception:
                         pass
         except Exception, e:
-            logging.exception(e)
             def same_thread(error):
                 self.emit('hide-progress')
                 if not silent:

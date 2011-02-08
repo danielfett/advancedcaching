@@ -29,9 +29,16 @@ from os import path, mkdir, extsep, remove
 from threading import Semaphore
 from urllib import urlretrieve
 from socket import setdefaulttimeout
+import connection
 setdefaulttimeout(30)
-
+   
+    
 CONCURRENT_THREADS = 10
+
+
+
+
+    
 
 def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, file_type = 'png', size = 256):
     class TileLoader():
@@ -122,33 +129,8 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
 
         def get_no_image(self, default):
             return (default, None)
-            '''
-            if self.my_noimage != None:
-                return self.my_noimage
-            size, tile = self.TILE_SIZE, self.tile
-            # we have no image available. so what do now?
-            # first, check if we've the "supertile" available (zoomed out)
-            supertile_zoom = self.download_zoom - 1
-            supertile_x = int(tile[0]/2)
-            supertile_y = int(tile[1]/2)
-            supertile_path = self.TPL_LOCAL_PATH % (self.base_dir, supertile_zoom, supertile_x)
-            supertile_name = self.TPL_LOCAL_FILENAME % (supertile_path, supertile_y)
-            #supertile_name = path.join(TileLoader.base_dir, self.PREFIX, str(supertile_zoom), str(supertile_x), "%d%s%s" % (supertile_y, extsep, self.FILE_TYPE))
-            if not self.undersample and path.exists(supertile_name):
-                off_x = (tile[0]/2.0 - supertile_x) * size
-                off_y = (tile[1]/2.0 - supertile_y) * size
-                #pbuf = gtk.gdk.pixbuf_new_from_file(supertile_name)
-                #dest = gtk.gdk.Pixbuf(pbuf.get_colorspace(), pbuf.get_has_alpha(), pbuf.get_bits_per_sample(), size, size)
-                #pbuf.scale(dest, 0, 0, 256, 256, -off_x*2, -off_y*2, 2, 2, gtk.gdk.INTERP_BILINEAR)
-                self.pbuf = (surface, (off_x, off_y))
-                self.my_noimage = surface
-                return dest
-            else:
-                self.my_noimage = default
-                return default
-            '''
-
-        def load(self, tryno=0):
+            
+        def load(self, tryno=0):                
             # load the pixbuf to memory
             if self.stop:
                 return True
@@ -190,11 +172,11 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
 
 
         def __download(self, remote, local):
+            
             if path.exists(local):
                 return True
-            #import time
-            #time.sleep(10)
-            #return False
+            if connection.offline:
+                return False    
             with TileLoader.semaphore:
                 try:
                     if self.stop:
