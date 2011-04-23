@@ -289,7 +289,7 @@ class Core(gobject.GObject):
                     logging.info("Skipping nonexistant update from" + path.join(self.UPDATE_DIR, "%s%spy" % (m.__name__, extsep)))
         return updated_modules
 
-    def try_update(self, silent = False):
+    def try_update(self, silent = False, sync = False):
         if connection.offline:
             if not silent:
                 self.emit('error', Exception("Can't update in offline mode."))
@@ -353,6 +353,8 @@ class Core(gobject.GObject):
                     except Exception:
                         pass
         except Exception, e:
+            if sync:
+                raise e
             def same_thread(error):
                 logging.exception(e)
                 self.emit('hide-progress')
@@ -361,11 +363,14 @@ class Core(gobject.GObject):
                 return False
             gobject.idle_add(same_thread, e)
             return None
-            
-        def same_thread():
+
+        if sync:
             self.emit('hide-progress')
-            return False
-        gobject.idle_add(same_thread)
+        else:
+            def same_thread():
+                self.emit('hide-progress')
+                return False
+            gobject.idle_add(same_thread)
         return self._install_updates()
 
 
@@ -400,11 +405,12 @@ class Core(gobject.GObject):
     '''
     def __on_save_settings(self, caller):
         logger.debug("Assembling update for settings, on behalf of %s" % caller)
-        settings = {
-            'last_target_lat': self.current_target.lat,
-            'last_target_lon': self.current_target.lon
-        }
-        caller.save_settings(settings, self)
+        if self.current_target != None:
+            settings = {
+                'last_target_lat': self.current_target.lat,
+                'last_target_lon': self.current_target.lon
+            }
+            caller.save_settings(settings, self)
     
     def __del__(self):
         logger.debug("Somebody is trying to kill me, saving the settings.")
@@ -638,7 +644,7 @@ class Core(gobject.GObject):
             t.start()
             return False
         else:
-            return self.on_download_complete(None, cd.get_geocaches(location))
+            return self.on_download_complete(None, cd.get_geocaches(location), True)
 
     # called on signal by downloading thread
     def on_download_complete(self, something, caches, sync=False):

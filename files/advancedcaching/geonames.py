@@ -53,7 +53,9 @@ class Geonames():
 
     def search(self, search, nearest_street=False):
         logger.info("Trying to search geonames for %s" % search)
-        page = self.downloader.get_reader(url=self.URL % {'query': self.my_quote(search), 'max_rows': 1}, login=False).read()
+        qurl = self.URL % {'query': self.my_quote(search), 'max_rows': 1}
+        logger.debug("Query URL: %s" % qurl)
+        page = self.downloader.get_reader(url=qurl, login=False).read()
         values = json.loads(page)
         if int(values['totalResultsCount']) == 0:
             raise Exception('No Record found for query "%s"' % search)
@@ -66,7 +68,9 @@ class Geonames():
 
     def search_all(self, search, max_results=15, name_string="%(name)s, %(countryCode)s"):
         logger.info("Trying to search geonames for %s" % search)
-        page = self.downloader.get_reader(url=self.URL % {'query': self.my_quote(search), 'max_rows': max_results}, login=False).read()
+        qurl = self.URL % {'query': self.my_quote(search), 'max_rows': max_results}
+        logger.debug("Query URL: %s" % qurl)
+        page = self.downloader.get_reader(url=qurl, login=False).read()
         logger.debug("Result:\n%s\n" % page)
         values = json.loads(page)
         return [geo.Coordinate(float(res['lat']), float(res['lng']), name_string % res) for res in values['geonames'] if 'countryCode' in res]

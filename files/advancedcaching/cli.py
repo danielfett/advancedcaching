@@ -35,6 +35,8 @@ If you want to use the gui:
     Full User Interface, for desktop usage (not implemented yet)
 
 If you don't like your mouse:
+%(name)s update
+        Search and install a new listing parser.
 %(name)s set [options]
         Change the configuration.
 %(name)s import [importactions]
@@ -152,10 +154,12 @@ class Cli():
         self.caches = None
         self.new_caches = []
         self.pointprovider = core.pointprovider
-        pass
+        core.connect('progress', lambda caller, fraction, text: self.show_progress(fraction, text))
+        core.connect('hide-progress', lambda caller: self.show_done())
+        core.connect('error', lambda caller, message: self.show_error(message))
         
-    def write_settings(self, settings):
-        self.settings = settings
+    #def write_settings(self, settings):
+    #    self.settings = settings
         
     def show(self):
         print "$ The command line interface is not fully implemented yet, feel"
@@ -172,6 +176,14 @@ class Cli():
         except RunError, e:
             print "# Execution Error at token '%s': " % sys.argv[self.nt - 1]
             print "# %s" % e.msg
+
+    def show_progress(self, fraction, text):
+        print "$ %3d%% %s" % (fraction * 100, text)
+        return False
+
+    def show_done(self):
+        print "$ done"
+        return False
             
             
     def check_caches_retrieved(self):
@@ -184,7 +196,7 @@ class Cli():
         while self.has_next():
             if sys.argv[self.nt] == 'set':
                 self.parse_set()
-            if sys.argv[self.nt] == 'import':
+            elif sys.argv[self.nt] == 'import':
                 self.parse_import()
             elif sys.argv[self.nt] == 'sql':
                 self.parse_sql()
@@ -192,9 +204,14 @@ class Cli():
                 self.parse_filter()
             elif sys.argv[self.nt] == 'do':
                 self.parse_actions()
+            elif sys.argv[self.nt] == 'update':
+                self.perform_update()
+            elif sys.argv[self.nt] == '-v':
+                self.nt += 1
             else: 
                 raise ParseError("Expected 'import', 'sql', 'filter' or 'do'", self.nt - 1)
 
+        self.core.on_destroy()
 
     def parse_set(self):
         self.nt += 1
@@ -211,8 +228,8 @@ class Cli():
                 self.set_username(username)
             else:
                 raise ParseError("I don't understand '%s'" % token)
-        print "* Finished setting options. Exiting."
-        sys.exit()
+        print "* Finished setting options."
+        
         
     def parse_import(self):
         self.nt += 1
@@ -341,7 +358,22 @@ class Cli():
                 self.action_command(cmd)
             else:
                 raise ParseError("Unknown export action: %s" % token)
-                
+
+    def perform_update(self):
+        try:
+            updated = self.core.try_update(False, True)
+        except Exception, e:
+            self.show_error(e)
+        else:
+            if updated > 0:
+                print "$ Successfully updated %d module(s)." % updated
+            else:
+                print "$ No updates available."
+        self.nt += 1
+
+    def show_error(self, message):
+        print "# Failed: %s" % message
+
     def has_next(self):
         # if we have 5 tokens
         # then 1..4 are valid tokens (0 is command)
@@ -439,12 +471,12 @@ class Cli():
             raise ParseError("Could not parse '%s' as a valid number." % text)
 
     def set_username(self, string):
-        self.settings['options_username'] = string
-        self.core.on_config_changed(self.settings)
+        new_settings = {'options_username': string,}
+        self.core.save_settings(new_settings, self)
 
     def set_password(self, string):
-        self.settings['options_password'] = string
-        self.core.on_config_changed(self.settings)
+        new_settings = {'options_password': string,}
+        self.core.save_settings(new_settings, self)
         
     def import_points(self, c1, c2):
         if isinstance(c2, geo.Coordinate):
@@ -457,7 +489,7 @@ class Cli():
             new_c2 = c1.transform(-45 + 180, c2 * 1000 * math.sqrt(2))
             print "* Downloading Caches in %d km distance to %s" % (c2, c1)
             print "* Approximation: Caches between %s and %s" % (new_c1, new_c2)
-            self.caches, self.new_caches = self.core.on_download((new_c1, new_c2))
+            self.caches, self.new_caches = self.core.on_download((new_c1, new_c2), sync=True)
 
     def import_points_route(self, c1, c2, r):
         print "* Querying OpenRouteService for route from startpoint to endpoint"
