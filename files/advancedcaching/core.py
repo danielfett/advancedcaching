@@ -22,7 +22,7 @@
 
 from __future__ import with_statement
 
-VERSION = "0.8.0.5"
+VERSION = "0.8.0.6"
    
 import logging
 logging.basicConfig(level=logging.WARNING,
