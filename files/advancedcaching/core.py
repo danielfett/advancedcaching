@@ -39,7 +39,6 @@ from sys import path as sys_path
 
 import downloader
 import geocaching
-import gobject
 import gpsreader
 from os import path, mkdir, extsep, remove, walk
 import provider
@@ -50,6 +49,12 @@ from actors.tts import TTS
 #from actors.notify import Notify
 
 import connection
+
+
+try:
+    import gobject
+except:
+    logging.debug("No gobject support")
 
 if len(argv) == 1:
     import cli
