@@ -283,15 +283,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         try:
             response = self.downloader.get_reader(url, data = data)
             the_page = response.read()
-            with file('/tmp/output.txt', 'w') as x:
-                x.write(the_page)
 
-
-            #extractor = re.compile('<ExtraData><!\[CDATA\[(.*)\]\]>', re.DOTALL)
-            #match = extractor.search(the_page)
-            #if match == None:
-            #    logger.debug(the_page)
-            #    raise Exception('Could not load map of geocaches')
         except Exception, e:
             CacheDownloader.lock.release()
             self.emit('download-error', e)
