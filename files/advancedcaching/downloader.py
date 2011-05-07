@@ -60,6 +60,7 @@ class FileDownloader():
         logger.info("Checking Login status")
         from cookielib import LWPCookieJar
         cj = LWPCookieJar(self.cookiefile)
+        cj.load()
         if not self.opener_installed:
             from urllib2 import build_opener, install_opener, HTTPCookieProcessor
             opener = build_opener(HTTPCookieProcessor(cj))
@@ -76,12 +77,12 @@ class FileDownloader():
             url = 'http://www.geocaching.com/seek/nearest.aspx'
             page = self.get_reader(url, login = False)
             for line in page:
-                if 'You are logged in as' in line:
+                if 'Hello, ' in line:
                     self.logged_in = True
                     logger.info("Seems as we're still logged in")
                     page.close()
                     return
-                elif 'You are not logged in.' in line:
+                elif 'Welcome, Visitor!' in line:
                     logger.info("Nope, not logged in anymore")
                     page.close()
                     break
@@ -92,9 +93,10 @@ class FileDownloader():
         page = self.get_reader(url, values, login = False)
 
         for line in page:
+            print line
             if 'You are logged in as' in line:
                 break
-            elif 'You are not logged in.' in line or 'combination does not match' in line:
+            elif 'Welcome, Visitor!' in line or 'combination does not match' in line:
                 raise Exception("Wrong password or username!")
         else:
             logger.info("Seems as if the language is set to something other than english")

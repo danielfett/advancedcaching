@@ -357,7 +357,7 @@ class Cli():
                 cmd = self.parse_string()
                 self.action_command(cmd)
             else:
-                raise ParseError("Unknown export action: %s" % token)
+                raise ParseError("Unknown action: %s" % token)
 
     def perform_update(self):
         try:
@@ -584,7 +584,7 @@ class Cli():
         i = 1 
         for c in self.caches:
             print "* (%d of %d)\tDownloading '%s'" % (i, len(self.caches), c.title)
-            self.core.on_download_cache(c)
+            self.core.on_download_cache(c, sync=True)
             i += 1
     
     def action_export(self, format, folder):

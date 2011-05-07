@@ -21,8 +21,8 @@
 #
 
 
-VERSION = 10
-VERSION_DATE = '2011-02-06'
+VERSION = 14
+VERSION_DATE = '2011-05-07'
 
 try:
     import json
@@ -258,11 +258,11 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
     @staticmethod
     def login_callback(username, password):
-        url = 'http://www.geocaching.com/Default.aspx'
-        values = {'ctl00$MiniProfile$loginUsername': username,
-            'ctl00$MiniProfile$loginPassword': password,
-            'ctl00$MiniProfile$uxRememberMe': 'on',
-            'ctl00$MiniProfile$LoginBtn': 'Go',
+        url = 'http://www.geocaching.com/login/default.aspx'
+        values = {'ctl00$SiteContent$tbUsername': username,
+            'ctl00$SiteContent$tbPassword': password,
+            'ctl00$SiteContent$cbRememberMe': 'on',
+            'ctl00$SiteContent$btnSignIn': 'Login',
             '__EVENTTARGET': '',
             '__EVENTARGUMENT': ''
         }
@@ -283,6 +283,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
         try:
             response = self.downloader.get_reader(url, data = data)
             the_page = response.read()
+            with file('/tmp/output.txt', 'w') as x:
+                x.write(the_page)
+
 
             #extractor = re.compile('<ExtraData><!\[CDATA\[(.*)\]\]>', re.DOTALL)
             #match = extractor.search(the_page)
@@ -352,9 +355,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
         shortdesc = desc = coords = hints = waypoints = images = logs = owner = head = ''
         logger.debug("Start parsing...")
         for line in cache_page:
-            line = line.strip()
+            line = unicode(line.strip(), 'utf-8')
             
-            if section == '' and 'meta name="og:site_name"' in line:
+            if section == '' and line.startswith('<meta name="og:site_name" '):
                 section = 'head'
             elif section == 'head' and line.startswith('<form name="aspnetForm"'):
                 section = 'after-head'
@@ -364,25 +367,22 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 section = 'shortdesc'
             elif (section == 'after-head' or section == 'shortdesc') and line.startswith('<span id="ctl00_ContentBody_LongDescription">'):
                 section = 'desc'
-            elif (section == 'desc' or section == 'shortdesc') and line.startswith('<div class="CacheDetailNavigationWidget">'):
+            elif (section == 'desc' or section == 'shortdesc') and line.startswith('Additional Hints'):
                 section = 'after-desc'
-            elif section == 'after-desc' and line.startswith('&nbsp;</p><div id="div_hint" class="HalfLeft">'):
+            elif section == 'after-desc' and line.startswith('<div id="div_hint" class="HalfLeft">'):
                 section = 'hints'
-            elif section == 'hints' and line.startswith('<span id="ctl00_ContentBody_EncryptionKey">'):
+            elif section == 'hints' and line.startswith("<div id='dk'"):
                 section = 'after-hints'
-            elif (section == 'after-hints' or section == 'after-desc') and line.startswith('<div id="ctl00_ContentBody_uxlrgMap" class="fr">'):
+            elif (section == 'after-hints' or section == 'after-desc') and line.startswith('<div class="CacheDetailNavigationWidget">'):
                 section = 'pre-waypoints'
-            elif (section == 'after-hints' or section == 'pre-waypoints') and line.startswith('<table class="Table" id="ctl00_ContentBody_Waypoints">'):
+            elif section == 'pre-waypoints' and line.startswith('<table class="Table" id="ctl00_ContentBody_Waypoints">'):
                 section = 'waypoints'
             elif section == 'waypoints' and line.startswith('</tbody> </table>'):
                 section = 'after-waypoints'
             elif (section == 'pre-waypoints' or section == 'after-waypoints') and line.startswith('<span id="ctl00_ContentBody_Images">'):
                 section = 'images'
-            elif section == 'images' and line.startswith('<h3>'):
-                section = 'after-images'
-            elif section == 'after-images' and line.startswith('<table class="LogsTable Table">'):
-                section = 'logs'
-            
+            elif section == 'images' and line.startswith('<table class="LogsTable'):
+                section = 'logs'            
 
             if section != prev_section:
                 logger.debug("Now in Section '%s', with line %s" % (section, line[:20:]))
@@ -492,7 +492,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 id = ''.join(HTMLManipulations._strip_html(x).strip() for x in tds[4:6])
                 name = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(tds[6])).strip()
             
-                m = re.compile(r'''(\?\?\?|(?P<lat_sign>N|S) (?P<lat_d>\d+)° (?P<lat_m>[0-9\.]+) (?P<lon_sign>E|W) (?P<lon_d>\d+)° (?P<lon_m>[0-9\.]+))''').search(tds[7])
+                m = re.compile(ur'''(\?\?\?|(?P<lat_sign>N|S) (?P<lat_d>\d+)° (?P<lat_m>[0-9\.]+) (?P<lon_sign>E|W) (?P<lon_d>\d+)° (?P<lon_m>[0-9\.]+))''').search(tds[7])
                 lat = self.__from_dm(m.group('lat_sign'), m.group('lat_d'), m.group('lat_m'))
                 lon = self.__from_dm(m.group('lon_sign'), m.group('lon_d'), m.group('lon_m'))
             else:
@@ -514,7 +514,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         output = []
         for l in lines:
             #lines = [re.sub("\w+", ' ', HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(x, True)), '').sub('[ view this log ]') for x in lines[2:]]
-            m = re.match(r"""<td[^>]+><strong><img src='http://www\.geocaching\.com/images/icons/(?:icon_(?P<icon>[a-z]+)|(?P<icon2>coord_update))\.gif'[^>]*/>""" +
+            m = re.match(r"""<td[^>]+><strong><img src="http://www\.geocaching\.com/images/icons/(?:icon_(?P<icon>[a-z]+)|(?P<icon2>coord_update))\.gif"[^>]*/>""" +
                 r"""&nbsp;(?P<month>[^ ]+) (?P<day>\d+)(, (?P<year>\d+))? by <a[^>]+>(?P<finder>[^<]+)</a></strong>&nbsp;\(\d+ found\)<br ?/><br ?/>(?P<text>.+)""" +
                 r"""<br ?/><br ?/><small>""", l, re.DOTALL)
             if m == None:
@@ -534,7 +534,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         return output
 
     def __replace_images(self, data):
-        return re.sub(r'''(?is)(<img[^>]+src=\n?["']?)([^ >"']+)([^>]+?/?>)''', self.__replace_image_callback, data)
+        return re.sub(ur'''(?is)(<img[^>]+src=\n?["']?)([^ >"']+)([^>]+?/?>)''', self.__replace_image_callback, data)
 
     def __replace_image_callback(self, m):
         url = m.group(2)
