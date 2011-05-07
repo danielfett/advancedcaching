@@ -343,7 +343,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         shortdesc = desc = coords = hints = waypoints = images = logs = owner = head = ''
         logger.debug("Start parsing...")
         for line in cache_page:
-            line = unicode(line.strip(), 'utf-8')
+            line = line.strip()
             
             if section == '' and line.startswith('<meta name="og:site_name" '):
                 section = 'head'
@@ -393,7 +393,14 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 if line.endswith('</tr></table>'):
                     break
                 
-        logger.debug('finished parsing')
+        logger.debug('finished parsing, converting...')
+        head = unicode(head, 'utf-8', errors='ignore')
+        shortdesc = unicode(shortdesc, 'utf-8', errors='ignore')
+        hints = unicode(hints, 'utf-8', errors='ignore')
+        waypoints = unicode(waypoints, 'utf-8', errors='ignore')
+        logs = unicode(logs, 'utf-8', errors='ignore')
+        images = unicode(images, 'utf-8', errors='ignore')
+        logger.debug('finished converting, reading...')
 
         coordinate.size, coordinate.difficulty, coordinate.terrain, coordinate.owner, coordinate.lat, coordinate.lon = self.__parse_head(head, coords)
         coordinate.shortdesc = self.__treat_shortdesc(shortdesc)
@@ -403,7 +410,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         coordinate.set_logs(self.__treat_logs(logs))
         self.__treat_images(images)
         coordinate.set_images(self.images)
-                
+        logger.debug('finished reading.')
         return coordinate
                 
     def __parse_head(self, head, coords):
