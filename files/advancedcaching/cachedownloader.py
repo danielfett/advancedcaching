@@ -110,11 +110,7 @@ class CacheDownloader(gobject.GObject):
 
     @staticmethod
     def _rot13(text):
-        import string
-        trans = string.maketrans(
-             'nopqrstuvwxyzabcdefghijklmNOPQRSTUVWXYZABCDEFGHIJKLM',
-             'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ')
-        return text.translate(trans)
+        return text.encode('rot13')
 
     def __init__(self, downloader, path, download_images, resize = None):
         gobject.GObject.__init__(self)

@@ -93,7 +93,6 @@ class FileDownloader():
         page = self.get_reader(url, values, login = False)
 
         for line in page:
-            print line
             if 'You are logged in as' in line:
                 break
             elif 'Welcome, Visitor!' in line or 'combination does not match' in line:
