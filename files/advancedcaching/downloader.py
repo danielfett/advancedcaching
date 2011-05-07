@@ -60,7 +60,7 @@ class FileDownloader():
         logger.info("Checking Login status")
         from cookielib import LWPCookieJar
         cj = LWPCookieJar(self.cookiefile)
-        cj.load()
+
         if not self.opener_installed:
             from urllib2 import build_opener, install_opener, HTTPCookieProcessor
             opener = build_opener(HTTPCookieProcessor(cj))
@@ -70,7 +70,7 @@ class FileDownloader():
         try:
             cj.load()
             logger.info("Loaded cookie file")
-        except:
+        except IOError, e:
             logger.info("Couldn't load cookie file")
         else:
             logger.info("Checking if still logged in...")
