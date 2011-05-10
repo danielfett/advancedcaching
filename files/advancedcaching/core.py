@@ -22,7 +22,7 @@
 
 from __future__ import with_statement
 
-VERSION = "0.8.0.6"
+VERSION = "0.8.0.7"
    
 import logging
 logging.basicConfig(level=logging.WARNING,
@@ -50,11 +50,7 @@ from actors.tts import TTS
 
 import connection
 
-
-try:
-    import gobject
-except:
-    logging.debug("No gobject support")
+import gobject
 
 if len(argv) == 1:
     import cli

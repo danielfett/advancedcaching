@@ -54,16 +54,11 @@ AGTL is Open source and in active development.'''
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your pre install script
  #  p.preremove="""#!/bin/sh
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your pre remove script
- version = "0.8.0.5"
+ version = "0.8.0.7"
  build = "0"    # for the first build of this version of your software. Increment for later re-builds of the same version of your software.
                 # Text with changelog information to be displayed in the package "Details" tab of the Maemo Application Manager
  changeloginformation = """
-- Automatic updates: AGTL connects to search for parser updates on each startup. To disable this, go to options. No personal data is being transferred.
-- New Tools Menu: Roman numbers, ROT13 and heading calculation (aka. coordinate projection)
-- Improve waypoint display on the map
-- Add connection detection: Faster map display in offline mode
-- Fix parsing for multicaches
-- Filter double coordinates from some lists
+- Fix after website update in May
 
 """
  dir_name = "src"            #Name of the subfolder containing your package source files (e.g. usr\share\icons\hicolor\scalable\myappicon.svg, usr\lib\myapp\somelib.py). We suggest to leave it named src in all projects and will refer to that in the wiki article on maemo.org
