@@ -357,7 +357,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 section = 'desc'
             elif (section == 'desc' or section == 'shortdesc') and line.startswith('Additional Hints'):
                 section = 'after-desc'
-            elif section == 'after-desc' and line.startswith('<div id="div_hint" class="HalfLeft">'):
+            elif section == 'after-desc' and line.startswith('<div id="div_hint"'):
                 section = 'hints'
             elif section == 'hints' and line.startswith("<div id='dk'"):
                 section = 'after-hints'

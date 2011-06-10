@@ -54,6 +54,7 @@ from gtkmap import *
 from gui import Gui
 
 
+
 class SimpleGui(Gui):
     USES = ['gpsprovider']
     XMLFILE = "freerunner.glade"
