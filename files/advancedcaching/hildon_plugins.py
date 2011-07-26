@@ -827,6 +827,7 @@ class HildonToolsDialog(object):
         
         dialog.show_all()
         result = dialog.run()
+        dialog.hide()
         
     def _show_tool_rot13(self, caller, data = None):
         dialog = gtk.Dialog("ROT13", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ())
