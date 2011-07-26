@@ -1234,6 +1234,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
 
         # add list vbox
         a = hildon.PannableArea()
+        a.set_property('mov-mode', hildon.MOVEMENT_MODE_BOTH)
         self.cache_calc_vbox = gtk.VBox()
         a.add_with_viewport(self.cache_calc_vbox)
         p.pack_start(a, True)
