@@ -835,6 +835,7 @@ class HildonToolsDialog(object):
         source = hildon.TextView()
         dialog.vbox.pack_start(source)
         destination = hildon.TextView()
+        destination.set_editable(False)    
         dialog.vbox.pack_start(destination)
         
         def do_rot(widget):
