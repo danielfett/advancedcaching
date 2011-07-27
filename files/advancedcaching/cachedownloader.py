@@ -21,8 +21,8 @@
 #
 
 
-VERSION = 14
-VERSION_DATE = '2011-05-07'
+VERSION = 16
+VERSION_DATE = '2011-07-27'
 
 try:
     import json
