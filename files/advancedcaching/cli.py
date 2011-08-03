@@ -244,12 +244,12 @@ class Cli():
             self.import_points(coord1, coord2)
         elif token == '--around':
             coord1 = self.parse_coord()
-            radius = self.parse_int()
+            radius = self.parse_float()
             self.import_points(coord1, radius)
         elif token == '--at-route':
             coord1 = self.parse_coord()
             coord2 = self.parse_coord()
-            radius = self.parse_int()
+            radius = self.parse_float()
             self.import_points_route(coord1, coord2, radius)
         else:
             # undo what we did.
@@ -414,6 +414,13 @@ class Cli():
         self.nt += 1
         return int(text)
         
+    def parse_float(self):
+        if not self.has_next():
+            raise ParseError("Expected a float, found nothing.", self.nt-1)
+        text = sys.argv[self.nt]
+        self.nt += 1
+        return float(text)
+        
     def parse_size(self):
         if not self.has_next():
             raise ParseError("Expected a size (1..4/micro/small/regular/huge/other), found nothing.", self.nt-1)
@@ -481,13 +488,13 @@ class Cli():
     def import_points(self, c1, c2):
         if isinstance(c2, geo.Coordinate):
             print "* Downloading Caches between %s and %s" % (c1, c2)
-            self.caches, self.new_caches = self.core.on_download((c1, c2))
+            self.caches, self.new_caches = self.core.on_download((c1, c2), sync=True)
         else:
             # try to calculate some points northwest and southeast to the
             # given point with approximately correct distances
             new_c1 = c1.transform(-45, c2 * 1000 * math.sqrt(2))
             new_c2 = c1.transform(-45 + 180, c2 * 1000 * math.sqrt(2))
-            print "* Downloading Caches in %d km distance to %s" % (c2, c1)
+            print "* Downloading Caches in %.3f km distance to %s" % (c2, c1)
             print "* Approximation: Caches between %s and %s" % (new_c1, new_c2)
             self.caches, self.new_caches = self.core.on_download((new_c1, new_c2), sync=True)
 
