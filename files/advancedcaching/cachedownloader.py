@@ -110,7 +110,14 @@ class CacheDownloader(gobject.GObject):
 
     @staticmethod
     def _rot13(text):
-        return text.encode('rot13')
+        def _r13(char):
+            source = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' 
+            target = 'NOPQRSTUVWXYZABCDEFGHIJKLMnopqrstuvwxyzabcdefghijklm'
+            if char in source:
+                return target[source.find(char)]
+            else:
+                return char
+        return ''.join(_r13(char) for char in text)
 
     def __init__(self, downloader, path, download_images, resize = None):
         gobject.GObject.__init__(self)
