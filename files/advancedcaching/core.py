@@ -779,7 +779,7 @@ class Core(gobject.GObject):
 
     # called on signal by downloading thread
     def on_download_progress(self, something, cache_name, i, max_i):
-        self.emit('progress', float(i) / float(max_i), "Downloading %s (%d of %d)..." % (cache_name, i, max_i))
+        self.emit('progress', float(i) / float(max_i), "Downloading %s (%d of %d)..." % (cache_name, i+1, max_i))
         return False
 
     ##############################################
