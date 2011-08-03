@@ -1195,9 +1195,9 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         for x in p.get_children():
             p.remove(x)
         count = len(cache.calc.requires)
-        # create table with n columns.
+        # create table with n rows.
         cols = 7
-        rows = int(ceil(float(count) / float(cols)))
+        rows = max(int(ceil(float(count) / float(cols))), 1)
         table = gtk.Table(rows, cols)
         i = 0
         requires_sort = list(cache.calc.requires)
@@ -1234,6 +1234,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
 
         # add list vbox
         a = hildon.PannableArea()
+        a.set_property('mov-mode', hildon.MOVEMENT_MODE_BOTH)
         self.cache_calc_vbox = gtk.VBox()
         a.add_with_viewport(self.cache_calc_vbox)
         p.pack_start(a, True)

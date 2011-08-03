@@ -827,6 +827,7 @@ class HildonToolsDialog(object):
         
         dialog.show_all()
         result = dialog.run()
+        dialog.hide()
         
     def _show_tool_rot13(self, caller, data = None):
         dialog = gtk.Dialog("ROT13", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ())
@@ -835,6 +836,7 @@ class HildonToolsDialog(object):
         source = hildon.TextView()
         dialog.vbox.pack_start(source)
         destination = hildon.TextView()
+        destination.set_editable(False)    
         dialog.vbox.pack_start(destination)
         
         def do_rot(widget):
