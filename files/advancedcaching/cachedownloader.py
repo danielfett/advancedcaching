@@ -110,14 +110,7 @@ class CacheDownloader(gobject.GObject):
 
     @staticmethod
     def _rot13(text):
-        def _r13(char):
-            source = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz' 
-            target = 'NOPQRSTUVWXYZABCDEFGHIJKLMnopqrstuvwxyzabcdefghijklm'
-            if char in source:
-                return target[source.find(char)]
-            else:
-                return char
-        return ''.join(_r13(char) for char in text)
+        return text.encode('rot13')
 
     def __init__(self, downloader, path, download_images, resize = None):
         gobject.GObject.__init__(self)
@@ -503,7 +496,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         return waypoints
 
     def __treat_images(self, data):
-        finder = re.finditer('<a href="([^"]+)" rel="lightbox" class="lnk"><img src="/images/stockholm/16x16/images.gif" />(.+?)</a><br /><br />', data)
+        finder = re.finditer('<a href="([^"]+?)"[^>]*?>.+?<span>(.+?)</span>', data)
         for m in finder:
             if m.group(1) == None:
                 continue
