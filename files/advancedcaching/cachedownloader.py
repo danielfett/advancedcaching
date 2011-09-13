@@ -21,8 +21,8 @@
 #
 
 
-VERSION = 14
-VERSION_DATE = '2011-05-07'
+VERSION = 17
+VERSION_DATE = '2011-09-13'
 
 try:
     import json
@@ -515,17 +515,14 @@ class GeocachingComCacheDownloader(CacheDownloader):
         lines = logs.split('<tr>') # lines 0 and 1 are useless!
         output = []
         for l in lines:
-            #lines = [re.sub("\w+", ' ', HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(x, True)), '').sub('[ view this log ]') for x in lines[2:]]
-            m = re.match(r"""<td[^>]+><strong><img src="http://www\.geocaching\.com/images/icons/(?:icon_(?P<icon>[a-z]+)|(?P<icon2>coord_update))\.gif"[^>]*/>""" +
-                r"""&nbsp;(?P<month>[^ ]+) (?P<day>\d+)(, (?P<year>\d+))? by <a[^>]+>(?P<finder>[^<]+)</a></strong>&nbsp;\(\d+ found\)<br ?/><br ?/>(?P<text>.+)""" +
-                r"""<br ?/><br ?/><small>""", l, re.DOTALL)
+            m = re.match(r""".*<a href="/profile[^>]*?>(?P<finder>[^<]+?)</a></strong></p>.*div[^>]+?><strong><img src="http://www\.geocaching\.com/images/icons/(?:icon_(?P<icon>[a-z]+?)|(?P<icon2>coord_update))\.gif"[^>]*?/>&nbsp;[^<]*?</strong></div><div class="HalfRight AlignRight"><span class="minorDetails LogDate">(?P<month>[^/]+?)/(?P<day>[^/]+?)/(?P<year>[^<]+?)</span></div><div class=[^>]*?><p class="LogText">(?P<text>.+?)</p>""" , l, re.DOTALL)
             if m == None:
                 #print "Could not parse Log-Line:\nBEGIN\n%s\nEND\n\n This can be normal." % l
                 logger.debug("Ignoring following log line:-----\n%s\n------" % l)
                 pass
             else:
                 type = m.group('icon') if m.group('icon') != None else m.group('icon2')
-                month = self.__month_to_number(m.group('month'))
+                month = m.group('month') 
                 day = m.group('day')
                 year = m.group('year')
                 if year == '' or year == None:
@@ -553,14 +550,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
         if ((id in self.images and len(description) > len(self.images[id]))
             or id not in self.images):
             self.images[id] = description
-
-    @staticmethod
-    def __month_to_number(text):
-        months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-        if text in months:
-            return months.index(text) + 1
-        logger.warning("Unknown month: " + text)
-        return 0
 
 if __name__ == '__main__':
     import sys
