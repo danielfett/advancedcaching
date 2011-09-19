@@ -412,7 +412,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         return coordinate
 
     def _get_logs(self, usertoken, count):
-        logs = self.downloader.get_reader('http://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=1&num=%d&decrypt=true' % (count, usertoken))
+        logs = self.downloader.get_reader('http://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=1&num=%d&decrypt=true' % (usertoken, count))
         try:
             r = json.loads(logs.read())
         except Exception, e:
