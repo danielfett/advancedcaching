@@ -161,7 +161,7 @@ class CacheDownloader(gobject.GObject):
         self.current_image += 1
         return id
 
-    def update_coordinates(self, coordinates):
+    def update_coordinates(self, coordinates, num_logs = 20):
         i = 0
         c = []
         if len(coordinates) > self.MAX_DOWNLOAD_NUM:
@@ -169,13 +169,13 @@ class CacheDownloader(gobject.GObject):
             return
         for cache in coordinates:
             self.emit("progress", cache.name, i, len(coordinates))
-            u = self.update_coordinate(cache)
+            u = self.update_coordinate(cache, num_logs = num_logs)
             c.append(u)
             i += 1
         self.emit("finished-multiple", c)
         return c
                 
-    def update_coordinate(self, coordinate, outfile = None):
+    def update_coordinate(self, coordinate, num_logs = 20, outfile = None):
         if not CacheDownloader.lock.acquire(False):
             self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
             return
@@ -190,7 +190,7 @@ class CacheDownloader(gobject.GObject):
                 f.write(response.read())
                 f.close()
                 response = open(outfile)
-            u = self._parse_cache_page(response, coordinate)
+            u = self._parse_cache_page(response, coordinate, num_logs)
         except Exception, e:
             CacheDownloader.lock.release()
             self.emit('download-error', e)
@@ -333,7 +333,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         return self.downloader.get_reader('http://www.geocaching.com/seek/cache_details.aspx?wp=%s' % cacheid)
 
                 
-    def _parse_cache_page(self, cache_page, coordinate):
+    def _parse_cache_page(self, cache_page, coordinate, num_logs):
         section = ''
         prev_section = ''
         shortdesc = desc = coords = hints = waypoints = images = logs = owner = head = ''
@@ -404,16 +404,15 @@ class GeocachingComCacheDownloader(CacheDownloader):
         coordinate.shortdesc = self.__treat_shortdesc(shortdesc)
         coordinate.desc = self.__treat_desc(desc)
         coordinate.hints = self.__treat_hints(hints)
-        print coordinate.hints
         coordinate.set_waypoints(self.__treat_waypoints(waypoints))
-        coordinate.set_logs(self._get_logs(usertoken))
+        coordinate.set_logs(self._get_logs(usertoken, num_logs))
         self.__treat_images(images)
         coordinate.set_images(self.images)
         logger.debug('finished reading.')
         return coordinate
 
-    def _get_logs(self, usertoken):
-        logs = self.downloader.get_reader('http://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=1&num=20&decrypt=true' % usertoken)
+    def _get_logs(self, usertoken, count):
+        logs = self.downloader.get_reader('http://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=1&num=%d&decrypt=true' % (count, usertoken))
         try:
             r = json.loads(logs.read())
         except Exception, e:

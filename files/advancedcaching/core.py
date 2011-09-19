@@ -146,6 +146,7 @@ class Core(gobject.GObject):
         'tts_interval': 0,
         'options_default_log_text' : 'TFTC!\n\nLogged at %X from my %(machine)s using AGTL.',
         'options_auto_update': True,
+        'download_num_logs': 20,
     }
             
     def __init__(self, guitype, root):
@@ -693,13 +694,13 @@ class Core(gobject.GObject):
                 gobject.idle_add(self.on_download_cache_complete, arg1, arg2)
                 return False
             cd.connect("finished-single", same_thread)
-            t = Thread(target=cd.update_coordinate, args=[cache])
+            t = Thread(target=cd.update_coordinate, args=[cache, self.settings['download_num_logs']])
             t.daemon = True
             t.start()
             #t.join()
             return False
         else:
-            full = cd.update_coordinate(cache)
+            full = cd.update_coordinate(cache, self.settings['download_num_logs'])
             return full
 
     # called on signal by downloading thread
@@ -760,7 +761,7 @@ class Core(gobject.GObject):
         cd.connect('progress', self.on_download_progress)
         cd.connect('finished-multiple', same_thread)
 
-        t = Thread(target=cd.update_coordinates, args=[caches])
+        t = Thread(target=cd.update_coordinates, args=[caches, self.settings['download_num_logs']])
         t.daemon = True
         t.start()
 
