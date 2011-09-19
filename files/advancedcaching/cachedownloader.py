@@ -21,8 +21,8 @@
 #
 
 
-VERSION = 17
-VERSION_DATE = '2011-09-13'
+VERSION = 18
+VERSION_DATE = '2011-09-19'
 
 try:
     import json
@@ -110,7 +110,7 @@ class CacheDownloader(gobject.GObject):
 
     @staticmethod
     def _rot13(text):
-        return text.encode('rot13')
+        return text.encode('rot13').decode('iso-8859-1', 'replace')
 
     def __init__(self, downloader, path, download_images, resize = None):
         gobject.GObject.__init__(self)
@@ -270,10 +270,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
             self._get_user_token()
         c1, c2 = location
         url = 'http://www.geocaching.com/map/default.aspx/MapAction?lat=9&lng=6'
-        '''values = {'eo_cb_id':'ctl00_ContentBody_cbAjax',
-            'eo_cb_param':'{"c": 1, "m": "", "d": "%f|%f|%f|%f"}' % (max(c1.lat, c2.lat), min(c1.lat, c2.lat), max(c1.lon, c2.lon), min(c1.lon, c2.lon)),
-            'eo_version':'5.0.51.2'
-        }'''
         data = ('application/json', '{"dto":{"data":{"c":1,"m":"","d":"%f|%f|%f|%f"},"ut":"%s"}}' % (max(c1.lat, c2.lat), min(c1.lat, c2.lat), max(c1.lon, c2.lon), min(c1.lon, c2.lon), self.user_token))
 
         try:
@@ -367,10 +363,13 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 section = 'waypoints'
             elif section == 'waypoints' and line.startswith('</tbody> </table>'):
                 section = 'after-waypoints'
-            elif (section == 'pre-waypoints' or section == 'after-waypoints') and line.startswith('<span id="ctl00_ContentBody_Images">'):
+            elif (section == 'pre-waypoints' or section == 'after-waypoints') and line.startswith('<span id="ctl00_ContentBody_MapLinks_MapLinks">'):
                 section = 'images'
-            elif section == 'images' and line.startswith('<table class="LogsTable'):
-                section = 'logs'            
+            elif section == 'images' and line.startswith('<div class="InformationWidget'):
+                section = 'after-images'            
+            elif section == 'after-images' and line.startswith('userToken = '):
+                section = 'token'
+                
 
             if section != prev_section:
                 logger.debug("Now in Section '%s', with line %s" % (section, line[:20:]))
@@ -388,10 +387,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 waypoints = "%s%s  " % (waypoints, line)
             elif section == 'images':
                 images = "%s%s " % (images, line)
-            elif section == 'logs':
-                logs = "%s%s" % (logs, line)
-                if line.endswith('</tr></table>'):
-                    break
+            elif section == 'token':
+                usertoken = line.replace("userToken = '", '').replace("';", '').strip()
+                break
                 
         logger.debug('finished parsing, converting...')
         head = unicode(head, 'utf-8', errors='ignore')
@@ -406,12 +404,37 @@ class GeocachingComCacheDownloader(CacheDownloader):
         coordinate.shortdesc = self.__treat_shortdesc(shortdesc)
         coordinate.desc = self.__treat_desc(desc)
         coordinate.hints = self.__treat_hints(hints)
+        print coordinate.hints
         coordinate.set_waypoints(self.__treat_waypoints(waypoints))
-        coordinate.set_logs(self.__treat_logs(logs))
+        coordinate.set_logs(self._get_logs(usertoken))
         self.__treat_images(images)
         coordinate.set_images(self.images)
         logger.debug('finished reading.')
         return coordinate
+
+    def _get_logs(self, usertoken):
+        logs = self.downloader.get_reader('http://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=1&num=20&decrypt=true' % usertoken)
+        try:
+            r = json.loads(logs.read())
+        except Exception, e:
+            logger.exception('Could not json-parse logs!')
+        if not 'status' in r or r['status'] != 'success':
+            logger.error('Could not read logs, status is "%s"' % r['status'])
+            logger.debug('r is %s' % r)
+        data = r['data']
+
+        output = []
+        for l in data:
+            tpe = l['LogTypeImage'].replace('.gif', '').replace('icon_', '')
+            month = l['Visited'][0:2]
+            day = l['Visited'][3:5]
+            year = l['Visited'][6:10]
+            finder = "%s (found %s)" % (l['UserName'], l['GeocacheFindCount'])
+            text = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(l['LogText'])))
+            output.append(dict(type=tpe, month=month, day=day, year=year, finder=finder, text=text))
+        return output
+
+            
                 
     def __parse_head(self, head, coords):
         size_diff_terr = re.compile('was created by (?P<owner>.+?) on .+? a (?P<size>[a-zA-Z ]+) size geocache, with difficulty of (?P<diff>[0-9.]+?), terrain of (?P<terr>[0-9.]+?). ').search(head)
@@ -440,7 +463,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         
     
     def __treat_hints(self, hints):
-        hints = HTMLManipulations._strip_html(HTMLManipulations._replace_br(hints)).strip()
+        hints = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(hints))).strip()
         hints = self._rot13(hints)
         hints = re.sub(r'\[([^\]]+)\]', lambda match: self._rot13(match.group(0)), hints)
         hints = hints.replace('&aofc;', '').strip()
@@ -503,28 +526,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
             id = self._download_image(url = m.group(1))
             if id != None:
                 self.__add_image(id, HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(m.group(2))))
-
-    def __treat_logs(self, logs):
-        lines = logs.split('<tr>') # lines 0 and 1 are useless!
-        output = []
-        for l in lines:
-            m = re.match(r""".*<a href="/profile[^>]*?>(?P<finder>[^<]+?)</a></strong></p>.*div[^>]+?><strong><img src="http://www\.geocaching\.com/images/icons/(?:icon_(?P<icon>[a-z]+?)|(?P<icon2>coord_update))\.gif"[^>]*?/>&nbsp;[^<]*?</strong></div><div class="HalfRight AlignRight"><span class="minorDetails LogDate">(?P<month>[^/]+?)/(?P<day>[^/]+?)/(?P<year>[^<]+?)</span></div><div class=[^>]*?><p class="LogText">(?P<text>.+?)</p>""" , l, re.DOTALL)
-            if m == None:
-                #print "Could not parse Log-Line:\nBEGIN\n%s\nEND\n\n This can be normal." % l
-                logger.debug("Ignoring following log line:-----\n%s\n------" % l)
-                pass
-            else:
-                type = m.group('icon') if m.group('icon') != None else m.group('icon2')
-                month = m.group('month') 
-                day = m.group('day')
-                year = m.group('year')
-                if year == '' or year == None:
-                    year = datetime.datetime.now().year
-                finder = m.group('finder')
-                text = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(m.group('text')), True))
-                output.append(dict(type=type, month=month, day=day, year=year, finder=finder, text=text))
-        return output
-
     def __replace_images(self, data):
         return re.sub(ur'''(?is)(<img[^>]+src=\n?["']?)([^ >"']+)([^>]+?/?>)''', self.__replace_image_callback, data)
 
