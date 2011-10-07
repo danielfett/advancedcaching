@@ -21,8 +21,8 @@
 #
 
 
-VERSION = 18
-VERSION_DATE = '2011-09-19'
+VERSION = 19
+VERSION_DATE = '2011-10-07'
 
 try:
     import json
@@ -255,10 +255,10 @@ class GeocachingComCacheDownloader(CacheDownloader):
     @staticmethod
     def login_callback(username, password):
         url = 'http://www.geocaching.com/login/default.aspx'
-        values = {'ctl00$SiteContent$tbUsername': username,
-            'ctl00$SiteContent$tbPassword': password,
-            'ctl00$SiteContent$cbRememberMe': 'on',
-            'ctl00$SiteContent$btnSignIn': 'Login',
+        values = {'ctl00$ContentBody$tbUsername': username,
+            'ctl00$ContentBody$tbPassword': password,
+            'ctl00$ContentBody$cbRememberMe': 'on',
+            'ctl00$ContentBody$btnSignIn': 'Login',
             '__EVENTTARGET': '',
             '__EVENTARGUMENT': ''
         }

@@ -95,7 +95,7 @@ class FileDownloader():
         for line in page:
             if 'You are logged in as' in line:
                 break
-            elif 'Welcome, Visitor!' in line or 'combination does not match' in line:
+            elif 'combination does not match' in line:
                 raise Exception("Wrong password or username!")
         else:
             logger.info("Seems as if the language is set to something other than english")
