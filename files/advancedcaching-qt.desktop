@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=AGTL
+Comment=Advanced Geocaching Tool For Linux
+Encoding=UTF-8
+Version=1.0.0
+Type=Application
+Exec=python2.6 /opt/advancedcaching/core.py --qt
+Icon=advancedcaching
+X-Icon-path=/usr/share/icons
+X-Window-Icon=advancedcaching
