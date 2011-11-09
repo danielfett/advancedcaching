@@ -24,8 +24,8 @@ import logging
 import geocaching
 import re
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PySide.QtCore import *
+from PySide.QtGui import *
 from showimagedialog import QtShowImageDialog
 from ui_geocachedetailswindow import Ui_GeocacheDetailsWindow
 from os import path, extsep
@@ -37,7 +37,7 @@ logger = logging.getLogger('qtgeocachewindow')
 
 class QtGeocacheDetailsWindow(QMainWindow, Ui_GeocacheDetailsWindow):
 
-    download_details = pyqtSignal()
+    download_details = Signal()
 
     ICONS = {
         geocaching.GeocacheCoordinate.LOG_TYPE_FOUND: 'emoticon_grin',

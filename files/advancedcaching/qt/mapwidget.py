@@ -24,9 +24,9 @@ import logging
 import math
 from threading import Lock
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4.QtOpenGL import *
+from PySide.QtCore import *
+from PySide.QtGui import *
+from PySide.QtOpenGL import *
 from abstractmap import AbstractGeocacheLayer
 from abstractmap import AbstractMap
 from abstractmap import AbstractMapLayer
@@ -42,11 +42,11 @@ logger.debug("Using pyqt bindings")
 
 class QtMap(QGLWidget, AbstractMap):
 
-    tileLoaderChanged = pyqtSignal()
-    mapDragged = pyqtSignal()
-    zoomChanged = pyqtSignal()
-    centerChanged = pyqtSignal()
-    tileFinished = pyqtSignal(tuple)
+    tileLoaderChanged = Signal()
+    mapDragged = Signal()
+    zoomChanged = Signal()
+    centerChanged = Signal()
+    tileFinished = Signal(tuple)
 
     def __init__(self, parent, center, zoom, tile_loader=None):
         QGLWidget.__init__(self, QGLFormat(QGL.SampleBuffers | QGL.DoubleBuffer | QGL.Rgba | QGL.DirectRendering))

@@ -22,8 +22,8 @@
 
 import logging
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PySide.QtCore import *
+from PySide.QtGui import *
 import geocaching
 from searchresultsdialog import QtSearchResultsDialog
 from ui_searchgeocachesdialog import Ui_SearchGeocachesDialog

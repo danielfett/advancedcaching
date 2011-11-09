@@ -22,8 +22,8 @@
 
 import logging
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PySide.QtCore import *
+from PySide.QtGui import *
 import geo
 from ui_searchdialog import Ui_SearchDialog
 
@@ -32,7 +32,7 @@ logger = logging.getLogger('qtsearchdialog')
 
 class QtSearchDialog(Ui_SearchDialog, QDialog):
 
-    locationSelected = pyqtSignal(geo.Coordinate)
+    locationSelected = Signal(geo.Coordinate)
 
     def __init__(self, core, parent=None):
         QDialog.__init__(self, parent)

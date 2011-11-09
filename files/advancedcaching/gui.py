@@ -21,5 +21,5 @@
 #
 
 
-class Gui():
+class Gui(object):
     USES = []

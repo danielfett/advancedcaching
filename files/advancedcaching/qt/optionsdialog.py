@@ -22,8 +22,8 @@
 
 import logging
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PySide.QtCore import *
+from PySide.QtGui import *
 from ui_optionsdialog import Ui_OptionsDialog
 logger = logging.getLogger('qtoptionsdialog')
 
@@ -31,7 +31,7 @@ d = lambda x: x.decode('utf-8')
 
 class QtOptionsDialog(Ui_OptionsDialog, QDialog):
 
-    saveSettings = pyqtSignal()
+    saveSettings = Signal()
 
     TTS_SETTINGS = (
                 (0, 'Off'),

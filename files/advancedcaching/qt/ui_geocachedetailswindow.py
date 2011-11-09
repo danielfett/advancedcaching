@@ -3,11 +3,11 @@
 # Form implementation generated from reading ui file 'files/qt/GeocacheDetailsWindow.ui'
 #
 # Created: Wed Aug  4 14:54:49 2010
-#      by: PyQt4 UI code generator 4.7.2
+#      by: PySide UI code generator 4.7.2
 #
 # WARNING! All changes made in this file will be lost!
 
-from PyQt4 import QtCore, QtGui
+from PySide import QtCore, QtGui
 
 class Ui_GeocacheDetailsWindow(object):
     def setupUi(self, GeocacheDetailsWindow):

@@ -22,8 +22,8 @@
 
 import logging
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PySide.QtCore import *
+from PySide.QtGui import *
 from ui_showimagedialog import Ui_ShowImageDialog
 logger = logging.getLogger('qtshowimagedialog')
 

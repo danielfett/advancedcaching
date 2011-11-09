@@ -22,8 +22,8 @@
 
 import logging
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PySide.QtCore import *
+from PySide.QtGui import *
 import geo
 from qt.mapwidget import QtGeocacheLayer
 from qt.mapwidget import QtMap, QtOsdLayer

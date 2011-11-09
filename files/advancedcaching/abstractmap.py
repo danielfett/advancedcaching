@@ -31,7 +31,7 @@ import math
 
 
 
-class AbstractMap():
+class AbstractMap(object):
     MAP_FACTOR = 0
     RADIUS_EARTH = 6371000.0
 
