@@ -365,19 +365,19 @@ class QtSingleMarkLayer(AbstractQtLayer):
         radius_c = 10
         p.setPen(QtSingleMarkLayer.PEN_SHADOW_TARGET)
         p.drawLines(
-                    QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
+                    (QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
                     QLineF(t[0] + radius_o, t[1], t[0] + radius_i, t[1]),
                     QLineF(t[0], t[1] + radius_o, t[0], t[1] + radius_i),
-                    QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i)
+                    QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i))
                     )
         p.drawArc(QRectF(t[0] - radius_c / 2, t[1] - radius_c / 2, radius_c, radius_c), 0, 16 * 360)
 
         p.setPen(QtSingleMarkLayer.PEN_TARGET)
         p.drawLines(
-                    QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
+                    (QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
                     QLineF(t[0] + radius_o, t[1], t[0] + radius_i, t[1]),
                     QLineF(t[0], t[1] + radius_o, t[0], t[1] + radius_i),
-                    QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i)
+                    QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i))
                     )
         p.drawArc(QRectF(t[0] - radius_c / 2, t[1] - radius_c / 2, radius_c, radius_c), 0, 16 * 360)
         p.end()
@@ -604,8 +604,8 @@ class QtGeocacheLayer(AbstractQtLayer, AbstractGeocacheLayer):
             p.setPen(self.CENTER_CROSS_PEN)
             s = self.CENTER_CROSS_SIZE
             p.drawLines(
-                QLineF(loc[0] - s, loc[1] - s, loc[0] + s, loc[1] + s),
-                QLineF(loc[0] - s, loc[1] + s, loc[0] + s, loc[1] - s)
+                (QLineF(loc[0] - s, loc[1] - s, loc[0] + s, loc[1] + s),
+                QLineF(loc[0] - s, loc[1] + s, loc[0] + s, loc[1] - s))
                 )
 
 
@@ -623,8 +623,8 @@ class QtGeocacheLayer(AbstractQtLayer, AbstractGeocacheLayer):
                 pos_y = loc[1] + radius - (dist * count) + dist
                 desc_pen.setColor(color)
                 p.setPen(desc_pen)
-                lines = (QLine(pos_x, pos_y + dist * i, pos_x + width, pos_y + dist * i) for i in xrange(count))
-                p.drawLines(*lines)
+                lines = list(QLine(pos_x, pos_y + dist * i, pos_x + width, pos_y + dist * i) for i in xrange(count))
+                p.drawLines(lines)
 
             # if this cache is the active cache
             if self.current_cache != None and c.name == self.current_cache.name:
@@ -717,19 +717,19 @@ class QtMarksLayer(AbstractQtLayer, AbstractMarksLayer):
                 radius_c = 10
                 p.setPen(QtSingleMarkLayer.PEN_SHADOW_TARGET)
                 p.drawLines(
-                            QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
+                            (QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
                             QLineF(t[0] + radius_o, t[1], t[0] + radius_i, t[1]),
                             QLineF(t[0], t[1] + radius_o, t[0], t[1] + radius_i),
-                            QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i)
+                            QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i))
                             )
                 p.drawArc(QRectF(t[0] - radius_c / 2, t[1] - radius_c / 2, radius_c, radius_c), 0, 16 * 360)
 
                 p.setPen(QtSingleMarkLayer.PEN_TARGET)
                 p.drawLines(
-                            QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
+                            (QLineF(t[0] - radius_o, t[1], t[0] - radius_i, t[1]),
                             QLineF(t[0] + radius_o, t[1], t[0] + radius_i, t[1]),
                             QLineF(t[0], t[1] + radius_o, t[0], t[1] + radius_i),
-                            QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i)
+                            QLineF(t[0], t[1] - radius_o, t[0], t[1] - radius_i))
                             )
                 p.drawArc(QRectF(t[0] - radius_c / 2, t[1] - radius_c / 2, radius_c, radius_c), 0, 16 * 360)
 
