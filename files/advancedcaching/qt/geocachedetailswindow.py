@@ -30,7 +30,8 @@ from showimagedialog import QtShowImageDialog
 from ui_geocachedetailswindow import Ui_GeocacheDetailsWindow
 from os import path, extsep
 
-d = lambda x: x.decode('utf-8')
+# @type x str
+d = lambda x: x #x.decode('ascii', 'replace')
 logger = logging.getLogger('qtgeocachewindow')
 
 
