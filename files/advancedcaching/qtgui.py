@@ -23,8 +23,8 @@
 import logging
 logger = logging.getLogger('qtgui')
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
+from PySide.QtCore import *
+from PySide.QtGui import *
 from qt.ui_mainwindow import Ui_MainWindow
 from qt.geocachedetailswindow import QtGeocacheDetailsWindow
 from qt.searchgeocachesdialog import QtSearchGeocachesDialog
