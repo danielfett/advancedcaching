@@ -72,6 +72,9 @@ elif '--desktop' in argv:
 elif '--qt' in argv:
     import qtgui
     gui = qtgui.QtGui
+elif '--qml' in argv:
+    import qmlgui
+    gui = qmlgui.QmlGui
 elif '--hildon' in argv:
     import hildongui
     gui = hildongui.HildonGui
