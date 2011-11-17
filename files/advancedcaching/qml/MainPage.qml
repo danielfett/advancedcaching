@@ -14,7 +14,7 @@ Page {
         Page {
             id: tabCompass
 
-            Flow {
+            Column {
                 spacing: 10
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.verticalCenter: parent.verticalCenter
@@ -35,25 +35,50 @@ Page {
                     height: 300
                     fillMode: Image.PreserveAspectFit
                 }
-                InfoLabel {
-                    name: "Distance"
-                    value: "256 m"
+                Row {
+                    InfoLabel {
+                        name: "Distance"
+                        value: "256 m"
+                    }
+                    InfoLabel {
+                        name: "Travel Direction"
+                        value: "43°"
+                    }
                 }
-                InfoLabel {
-                    name: "Bearing"
-                    value: "43°"
+                Row {
+                    InfoLabel {
+                        name: "Altitude"
+                        value: "190 m"
+                    }
+                    InfoLabel {
+                        name: "Accuracy"
+                        value: "± 5 m"
+                    }
                 }
-                InfoLabel {
-                    name: "Altitude"
-                    value: "190 m"
+                Row {
+                    InfoLabel {
+                        name: "Compass Bearing"
+                        value: "118°"
+                    }
+                    InfoLabel {
+                        name: "Compass Accuracy"
+                        value: "100%"
+                    }
                 }
+
                 InfoLabel {
                     name: "Current Position"
                     value: "N49° 44.123 E6° 23.541"
                 }
-                InfoLabel {
-                    name: "Accuracy"
-                    value: "± 5 m"
+
+                Row {
+                    InfoLabel {
+                        name: "Current Target"
+                        value: "N119° 44.123 E6° 23.541"
+                    }
+                    Button {
+                        text: "change"
+                    }
                 }
 
             }

@@ -42,6 +42,7 @@ Rectangle {
         map.offsetY -= dy;
         var changed = false;
         var threshold = parent.tileSize;
+        console.log("OffsetX: " + map.offsetX + " OffsetY: " + map.offsetY)
         if (map.offsetX < -threshold) {
             map.offsetX += threshold;
             cornerTileX += 1;
