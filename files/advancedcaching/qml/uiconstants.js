@@ -8,3 +8,5 @@ var COLOR_HIGHLIGHT_TEXT = "white"
 var COLOR_BACKGROUND = "#101010"
 var COLOR_FONT = "lightgrey"
 var COLOR_INFOLABEL = "grey"
+
+var WIDTH_SELECTOR = 50;

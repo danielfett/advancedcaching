@@ -3,6 +3,7 @@ import com.nokia.meego 1.0
 import "uiconstants.js" as UI
 import QtWebKit 1.0
 
+
 Page {
     id: listPage
     //anchors.margins: rootWindow.pageMargin
@@ -115,15 +116,23 @@ Page {
         }
         Page {
             id: tabSettings
-            Column {
-                spacing: 10
-
-                Text {
-                    text: "This is a single page 3"
+            Button {
+                text: "open"
+                onClicked: {
+                    var component = Qt.createComponent("CoordinateSelector.qml")
+                    if (component.status == Component.Ready) {
+                        var dialog = component.createObject(tabSettings)
+                        dialog.open()
+                    }
+                    else
+                        console.log("Error loading component:", component.errorString());
                 }
             }
+
         }
     }
+
+
 
     DetailsDefaultPage {
         id: pageDetailsDefault
