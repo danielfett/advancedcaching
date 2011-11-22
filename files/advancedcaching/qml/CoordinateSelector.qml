@@ -8,19 +8,30 @@ QueryDialog {
     id: test
     //content: [CoordinateSelector{ anchors.centerIn: parent }]
     anchors.centerIn: parent
-    //title: [Text{ text: "Test!"; font.pixelSize: UI.FONT_LARGE; color: "white"} ]
-    titleText: "Testtext"
+    acceptButtonText: "OK"
+    rejectButtonText: "cancel"
+    titleText: "Edit Coordinate"
+    // todo: Gesamtwert berechnen
 
-    content: [Column {
+    content: [
+        MouseArea {
+            anchors.fill: selectColumn
+            onClicked: {  }
+            }, 
+        Column {
+        id: selectColumn
+        spacing: 10
         // Longitude
+    	Button {
+    	    value: 1
+            text: (value > 0) ? "N" : "S"
+            font.pixelSize: UI.FONT_LARGE
+            onClicked: { value =  -value }
+            //anchors.verticalCenter: parent.verticalCenter
+            width: UI.WIDTH_SELECTOR
+        }
         Row {
-            Button {
-                text: "N"
-                font.pixelSize: UI.FONT_LARGE
-                onClicked: { text = ((text == "N") ? "S" : "N") }
-                anchors.verticalCenter: parent.verticalCenter
-                width: UI.WIDTH_SELECTOR
-            }
+            
             UpDownSelect {
                 id: lon1
                 max: 1
@@ -37,6 +48,7 @@ QueryDialog {
                 text: "."
                 font.pixelSize:  UI.FONT_LARGE
                 anchors.verticalCenter: parent.verticalCenter
+                color: "white"
             }
 
             UpDownSelect {
@@ -65,14 +77,14 @@ QueryDialog {
                 id: lon8
             }
         }
+        Button {
+            text: (value > 0) ? "E" : "W"
+            font.pixelSize: UI.FONT_LARGE
+            onClicked: { value = -value }
+            width: UI.WIDTH_SELECTOR
+            //anchors.verticalCenter: parent.verticalCenter
+        }
         Row {
-            Button {
-                text: "W"
-                font.pixelSize: UI.FONT_LARGE
-                onClicked: { text = ((text == "W") ? "E" : "W") }
-                width: UI.WIDTH_SELECTOR
-                anchors.verticalCenter: parent.verticalCenter
-            }
             UpDownSelect {
                 id: lat1
                 max: 1
@@ -85,6 +97,8 @@ QueryDialog {
             Text {
                 text: "."
                 font.pixelSize:  UI.FONT_LARGE
+                color: "white"
+                anchors.verticalCenter: parent.verticalCenter
             }
 
             UpDownSelect {

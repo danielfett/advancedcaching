@@ -1,8 +1,10 @@
 import QtQuick 1.1
 import com.nokia.meego 1.0
 import "uiconstants.js" as UI
+import QtMobility.sensors 1.2
 
 PageStackWindow {
+    //platformStyle.screenOrientation: "portrait";
     id: rootWindow
     //property int pageMargin: 16
 
@@ -15,5 +17,13 @@ PageStackWindow {
     //platformStyle: PageStackWindowStyle {
     //    background: COLOR_BACKGROUND
     //}
+    
+    Compass {
+        id: compass
+        onReadingChanged: {azimuth = compass.reading.azimuth; calibration = compass.reading.calibrationLevel; }
+        property real azimuth: 0
+        property real calibration: 0
+        active: true
+    } 
 
 }

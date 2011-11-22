@@ -24,11 +24,11 @@ Page {
 
                 Image {
                     id: compass
-                    source: "arrow-large.png"
+                    source: "../data/windrose.svg"
                     transform: Rotation {
                         origin.x: compass.width/2
                         origin.y: compass.height/2
-                        angle:45
+                        angle: compass.azimuth
                     }
                     //anchors.fill: parent
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -139,6 +139,9 @@ Page {
     }
     DescriptionPage {
         id: pageDescription
+    }
+    LogsPage {
+        id: pageLogs
     }
 
 
