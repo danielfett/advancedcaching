@@ -8,12 +8,12 @@ Page {
     id: listPage
     //anchors.margins: rootWindow.pageMargin
     tools: commonTools
-
     TabGroup {
         id: tabGroup
         currentTab: tabMap
         Page {
             id: tabCompass
+            orientationLock: PageOrientation.LockPortrait
 
             Column {
                 spacing: 10
@@ -21,64 +21,124 @@ Page {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.fill: parent
                 anchors.topMargin: 16
+                anchors.leftMargin: 16
+                anchors.rightMargin: 16
+                id: compassColumn
 
                 Image {
-                    id: compass
+                    id: compassImage
                     source: "../data/windrose.svg"
-                    transform: Rotation {
-                        origin.x: compass.width/2
-                        origin.y: compass.height/2
-                        angle: compass.azimuth
-                    }
+                    transform: [Rotation {
+                            origin.x: compassImage.width/2
+                            origin.y: compassImage.height/2
+                            angle: -compass.azimuth
+                        },/*
+                        Rotation {
+                            origin.x: compassImage.width/2
+                            origin.y: compassImage.height/2
+                            axis {x: 0; y: 0; z: 1}
+                            angle: accelerometer.x
+                        }
+                        ,
+                        Rotation {
+                            origin.x: compassImage.width/2
+                            origin.y: compassImage.height/2
+                            axis {x: 0; y: 1; z: 0}
+                            angle: -accelerometer.x
+                        },
+                        Rotation {
+                            origin.x: compassImage.width/2
+                            origin.y: compassImage.height/2
+                            axis {x: 1; y: 0; z: 0}
+                            angle: -accelerometer.y
+                        }*/]
                     //anchors.fill: parent
                     anchors.horizontalCenter: parent.horizontalCenter
                     smooth: true
-                    height: 300
+                    width: compassColumn.width * 0.9
                     fillMode: Image.PreserveAspectFit
+                    z: 2
+
+                    Image {
+                        property int angle: 90
+                        property int radius: (compassImage.width/2) - 20
+                        id: sunImage
+                        source: "image://theme/icon-m-weather-sunny"
+                        x: compassImage.x + compassImage.paintedWidth/2 - sunImage.width + radius*Math.sin((angle * Math.PI)/180)
+                        y: -compassImage.y + compassImage.paintedHeight/2 - sunImage.width/2 + radius*Math.cos((angle * Math.PI)/180)
+                        z: 1
+                    }
+                    Image {
+                        property int angle: 90
+                        id: arrowImage
+                        source: "../data/arrow_target.svg"
+                        width: (compassImage.paintedWidth / compassImage.sourceSize.width)*sourceSize.width
+                        fillMode: Image.PreserveAspectFit
+                        x: compassImage.width/2 - width/2
+                        y: 50
+                        z: 3
+                        transform: Rotation {
+                           origin.y: compassImage.height/2 - 50
+                           origin.x: arrowImage.width/2
+                           angle: arrowImage.angle
+                       }
+                    }
                 }
+
+
                 Row {
                     InfoLabel {
                         name: "Distance"
                         value: "256 m"
-                    }
-                    InfoLabel {
-                        name: "Travel Direction"
-                        value: "43°"
-                    }
-                }
-                Row {
-                    InfoLabel {
-                        name: "Altitude"
-                        value: "190 m"
+                        width: compassColumn.width/3.0
                     }
                     InfoLabel {
                         name: "Accuracy"
                         value: "± 5 m"
+                        width: compassColumn.width/3.0
+                    }
+                    InfoLabel {
+                        name: "Altitude"
+                        value: "190 m"
+                        width: compassColumn.width/3.0
                     }
                 }
                 Row {
                     InfoLabel {
-                        name: "Compass Bearing"
-                        value: "118°"
+                        name: "Travel Direction"
+                        value: "43°"
+                        width: compassColumn.width/3
                     }
                     InfoLabel {
-                        name: "Compass Accuracy"
-                        value: "100%"
+                        name: "Comp. Heading"
+                        value: compass.azimuth + "°"
+                        width: compassColumn.width/3
+                    }
+                    InfoLabel {
+                        name: "Comp. Accuracy"
+                        value: (compass.calibration * 100) + "%"
+                        width: compassColumn.width/3
                     }
                 }
 
                 InfoLabel {
                     name: "Current Position"
                     value: "N49° 44.123 E6° 23.541"
+                    width: compassColumn.width
                 }
 
                 Row {
                     InfoLabel {
+                        id: currentTarget
                         name: "Current Target"
                         value: "N119° 44.123 E6° 23.541"
+                        width: compassColumn.width - changeTargetButton.width
                     }
                     Button {
-                        text: "change"
+                        id: changeTargetButton
+                        width: compassColumn.width/5
+                        anchors.bottom: currentTarget.bottom
+                        iconSource: "image://theme/icon-m-toolbar-edit"
                     }
                 }
 
@@ -133,16 +193,6 @@ Page {
     }
 
 
-
-    DetailsDefaultPage {
-        id: pageDetailsDefault
-    }
-    DescriptionPage {
-        id: pageDescription
-    }
-    LogsPage {
-        id: pageLogs
-    }
 
 
     ToolBarLayout {
