@@ -6,11 +6,14 @@ Rectangle {
     property double centerLatitude: 49;
     property double centerLongitude: 6;
     property int zoomLevel: 10;
+    property int maxZoomLevel: 17;
+    property int minZoomLevel: 2;
     property int tileSize: 256;
     property int cornerTileX: 32;
     property int cornerTileY: 21;
     property int numTilesX: Math.ceil(width/tileSize) + 4;
     property int numTilesY: Math.ceil(height/tileSize) + 4;
+    property alias model: geocacheDisplay.model
 
     Component.onCompleted: {
         setZoomLevel(zoomLevel);
@@ -22,14 +25,22 @@ Rectangle {
     }
 
     function setZoomLevel(z) {
-        setZoomLevelPoint(pinchmap.width/2, pinchmap.height/2);
+        setZoomLevelPoint(z, pinchmap.width/2, pinchmap.height/2);
+    }
+
+    function zoomIn() {
+        setZoomLevel(pinchmap.zoomLevel + 1)
+    }
+
+    function zoomOut() {
+        setZoomLevel(pinchmap.zoomLevel - 1)
     }
 
     function setZoomLevelPoint(z, x, y) {
         if (z == zoomLevel) {
             return;
         }
-        if (z < 1 || z > 17) {
+        if (z < pinchmap.minZoomLevel || z > pinchmap.maxZoomLevel) {
             return;
         }
         var p = getCoordFromScreenpoint(x, y);
@@ -40,9 +51,11 @@ Rectangle {
     function pan(dx, dy) {
         map.offsetX -= dx;
         map.offsetY -= dy;
+    }
+
+    function panEnd() {
         var changed = false;
-        var threshold = parent.tileSize;
-        console.log("OffsetX: " + map.offsetX + " OffsetY: " + map.offsetY)
+        var threshold = pinchmap.tileSize;
         if (map.offsetX < -threshold) {
             map.offsetX += threshold;
             cornerTileX += 1;
@@ -65,8 +78,13 @@ Rectangle {
         if (changed) {
             populate();
         }
+
     }
+
     function populate() {
+        var start = num2deg(cornerTileX, cornerTileY)
+        var end = num2deg(cornerTileX + numTilesX, cornerTileY + numTilesY)
+
         var i = 0;
         var maxTileNo = Math.pow(2, zoomLevel) - 1;
         for (i = 0; i < (numTilesX * numTilesY); i++) {
@@ -83,6 +101,7 @@ Rectangle {
                 map.children[i].source = "http://a.tile2.opencyclemap.org/transport/" + zoomLevel + "/" + tx + "/" + ty + ".png";
             }
         }
+        controller.mapViewChanged(start[0], start[1], end[0], end[1])
     }
     function deg2rad(deg) {
         return deg * (Math.PI /180.0);
@@ -122,6 +141,22 @@ Rectangle {
         var realTileY = cornerTileY + realY / tileSize;
         return num2deg(realTileX, realTileY);
     }
+    function getScreenpointFromCoord(lat, lon) {
+        var tile = deg2num(lat, lon)
+        var realX = (tile[0] - cornerTileX) * tileSize
+        var realY = (tile[1] - cornerTileY) * tileSize
+        var x = realX + map.rootX + map.offsetX
+        var y = realY + map.rootY + map.offsetY
+        return [x, y]
+    }
+    function getMappointFromCoord(lat, lon) {
+        var tile = deg2num(lat, lon)
+        var realX = (tile[0] - cornerTileX) * tileSize
+        var realY = (tile[1] - cornerTileY) * tileSize
+        return [realX, realY]
+    }
+
+
     function getCenter() {
         return getCoordFromScreenpoint(pinchmap.width/2, pinchmap.height/2);
     }
@@ -200,7 +235,22 @@ Rectangle {
         //origin.x: map.width/2
         //origin.y: map.height/2
         }*/
+        Item {
+            id: geocacheDisplayContainer
+            //anchors.fill:  parent
+            Repeater {
+                id: geocacheDisplay
+                model: geocacheList
+                delegate: Geocache {
+                    cache: model.geocache
+                    targetPoint: getMappointFromCoord(model.geocache.lat, model.geocache.lon)
+                    drawSimple: zoomLevel < 12
+                }// Text { text: "Geocache: " + model.geocache.title }
+
+            }
+        }
     }
+
     PinchArea {
         id: pincharea;
 
@@ -243,6 +293,10 @@ Rectangle {
         property bool __isPanning: false;
         property int __lastX: -1;
         property int __lastY: -1;
+        property int __firstX: -1;
+        property int __firstY: -1;
+        property bool __wasClick: false;
+        property int maxClickDistance: 100;
 
         anchors.fill : parent;
 
@@ -250,11 +304,23 @@ Rectangle {
             __isPanning = true;
             __lastX = mouse.x;
             __lastY = mouse.y;
-
+            __firstX = mouse.x;
+            __firstY = mouse.y;
+            __wasClick = true;
         }
 
         onReleased: {
             __isPanning = false;
+            if (! __wasClick) {
+                panEnd();
+            } else {
+                var n = mousearea.mapToItem(geocacheDisplayContainer, mouse.x, mouse.y)
+                var g = geocacheDisplayContainer.childAt(n.x, n.y)
+                if (g != null) {
+                    controller.geocacheSelected(g.cache)
+                }
+            }
+
         }
 
         onPositionChanged: {
@@ -264,6 +330,9 @@ Rectangle {
                 pan(-dx, -dy);
                 __lastX = mouse.x;
                 __lastY = mouse.y;
+                if (Math.pow(mouse.x - __firstX, 2) + Math.pow(mouse.y - __firstY, 2) > maxClickDistance) {
+                    __wasClick = false;
+                }
             }
         }
 

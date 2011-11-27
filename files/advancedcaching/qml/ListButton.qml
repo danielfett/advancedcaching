@@ -1,15 +1,27 @@
 import QtQuick 1.0
 import "uiconstants.js" as UI
 
-Rectangle {
+Item {
     property alias text: label.text
 
     width: parent.width
-    height: label.height + 2*16
+    height: label.height + 16
     signal clicked
+
+
+    BorderImage {
+         id: background
+         anchors.fill: parent
+         // Fill page borders
+         anchors.leftMargin: -16
+         anchors.rightMargin: -16
+         visible: mouse.pressed
+         source: "image://theme/meegotouch-list-background-pressed-center"
+     }
 
     Text{
         id: label
+        font.weight: Font.Bold
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
         anchors.leftMargin: 16
@@ -17,7 +29,7 @@ Rectangle {
         text: "Click me"
     }
     Image {
-        source: "image://theme/icon-s-common-next"
+        source: "image://theme/icon-m-common-drilldown-arrow" + (theme.inverted ? "-inverse" : "")
         anchors.right: parent.right
         anchors.verticalCenter: parent.verticalCenter
         anchors.rightMargin: 16
@@ -27,6 +39,4 @@ Rectangle {
         anchors.fill:  parent
         onClicked: parent.clicked()
     }
-
-    color: mouse.pressed ? "#c0c0c0" : "transparent"
 }

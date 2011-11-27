@@ -11,11 +11,13 @@ Item {
         font.pixelSize: 20
         y: 0
         color: UI.COLOR_INFOLABEL
+        font.weight: Font.Bold
     }
     Text {
         id: value
         font.pixelSize: UI.FONT_DEFAULT
         y: 32
+        font.weight: Font.Light
     }
 
     height: 40 + 26 // Defined by StarRating's height

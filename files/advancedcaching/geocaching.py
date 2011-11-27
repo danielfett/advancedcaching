@@ -371,7 +371,7 @@ class GeocacheCoordinate(geo.Coordinate):
                 latlon = '???'
             check_double.append(latlon)
             coord.user_coordinate_id = None
-            coord.display_text = "%s - %s - %s\n%s" % (w['name'], latlon, w['id'], shorten_callback(htmlcallback(w['comment'])))
+            coord.display_text = "%s - %s - %s\n%s" % (w['name'], latlon.decode('utf-8'), w['id'], shorten_callback(htmlcallback(w['comment'])))
             clist[i] = coord
             i += 1
 

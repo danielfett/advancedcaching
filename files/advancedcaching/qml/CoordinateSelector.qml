@@ -6,7 +6,6 @@ import "uiconstants.js" as UI
 
 QueryDialog {
     id: test
-    //content: [CoordinateSelector{ anchors.centerIn: parent }]
     anchors.centerIn: parent
     acceptButtonText: "OK"
     rejectButtonText: "cancel"
@@ -23,11 +22,11 @@ QueryDialog {
         spacing: 10
         // Longitude
     	Button {
-    	    value: 1
-            text: (value > 0) ? "N" : "S"
+            id: lonButton
+            property int value: 1
+            text: (lonButton.value > 0) ? "N" : "S"
             font.pixelSize: UI.FONT_LARGE
-            onClicked: { value =  -value }
-            //anchors.verticalCenter: parent.verticalCenter
+            onClicked: { lonButton.value = -lonButton.value }
             width: UI.WIDTH_SELECTOR
         }
         Row {
@@ -78,11 +77,12 @@ QueryDialog {
             }
         }
         Button {
-            text: (value > 0) ? "E" : "W"
+            id: latButton
+            property int value
+            text: (latButton.value > 0) ? "E" : "W"
             font.pixelSize: UI.FONT_LARGE
-            onClicked: { value = -value }
+            onClicked: { latButton.value = -latButton.value }
             width: UI.WIDTH_SELECTOR
-            //anchors.verticalCenter: parent.verticalCenter
         }
         Row {
             UpDownSelect {

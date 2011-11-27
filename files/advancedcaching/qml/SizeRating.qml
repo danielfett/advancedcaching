@@ -9,6 +9,7 @@ Item {
         font.pixelSize: 20
         y: 0
         color: UI.COLOR_INFOLABEL
+        font.weight: Font.Bold
     }
     Image {
         id: micro

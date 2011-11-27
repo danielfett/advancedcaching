@@ -27,6 +27,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.margins: 16
+        font.weight: Font.Light
     }
     anchors.top: parent.top
     anchors.left: parent.left
