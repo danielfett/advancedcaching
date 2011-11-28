@@ -12,7 +12,7 @@ Page {
     Text {
         wrapMode: Text.Wrap
         font.pixelSize: UI.FONT_DEFAULT
-        text: currentGeocache.title
+        text: currentGeocache ? currentGeocache.title : "None selected"
         width: parent.width
         anchors.left: parent.left
         anchors.right: parent.right

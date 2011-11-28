@@ -9,7 +9,7 @@ Rectangle {
     property bool drawSimple
     x: targetPoint[0] - width/2
     y: targetPoint[1] - height/2
-    color: (cache == currentGeocache) ? "#88ff0000" : "#88ffffff"
+    color: (cache.name == currentGeocache.name) ? "#88ff0000" : "#88ffffff"
     border.width: 4
     border.color: (cache.type == 'regular' ? "green" :
                    cache.type == 'multi' ? "orange" :

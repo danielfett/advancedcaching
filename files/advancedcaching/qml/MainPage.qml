@@ -20,8 +20,10 @@ Page {
             PinchMap {
                 id: pinchmap
                 anchors.fill: parent
-                //mapType: Map.StreetMap
                 model: geocacheList
+                centerLatitude: gps.lastGoodFix.lat;
+                centerLongitude: gps.lastGoodFix.lon;
+                zoomLevel: 11
             }
             Row {
                 anchors.bottom: pinchmap.bottom

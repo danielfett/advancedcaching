@@ -4,7 +4,7 @@ import "uiconstants.js" as UI
 
 Page {
     Header{
-        text: "Geocache <b>" + currentGeocache.name + "</b>"
+        text: "Geocache <b>" + (currentGeocache ? currentGeocache.name : "(none)") + "</b>"
         id: header
     }
 
@@ -22,7 +22,7 @@ Page {
         Text {
             wrapMode: Text.Wrap
             font.pixelSize: UI.FONT_DEFAULT
-            text: currentGeocache.title
+            text: currentGeocache ? currentGeocache.title : ""
             width: parent.width
         }
 
@@ -43,12 +43,12 @@ Page {
                 spacing: 16
                 StarRating{
                     id: rating1
-                    rating: currentGeocache.terrain
+                    rating: currentGeocache.terrain || -1
                     text: "Terrain"
                 }
                 SizeRating {
                     id: rating3
-                    size: currentGeocache.size
+                    size: currentGeocache.size || -1
                     text: "Size"
                 }
             }
@@ -59,7 +59,7 @@ Page {
                 spacing: 16
                 StarRating{
                     id: rating2
-                    rating: currentGeocache.difficulty
+                    rating: currentGeocache.difficulty || -1
                     text: "Difficulty"
                 }
                 InfoLabel {
@@ -82,11 +82,11 @@ Page {
         }
 
         ProgressBar {
-            id: downloadProgress
+            id: downloadProgressBar
             maximumValue: 1
             minimumValue: 0
             value: downloadProgress
-            visible: downloadShowProgess
+            visible: downloadShowProgress
             width: col1.width
         }
 

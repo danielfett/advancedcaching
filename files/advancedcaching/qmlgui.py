@@ -31,6 +31,7 @@ import os
 import sys
 import geo
 import re
+import gpsreader
 from os import path
 from gui import Gui
 
@@ -71,10 +72,125 @@ class Controller(QtCore.QObject):
         x = [CoordinateWrapper(x) for x in wrapper._geocache.get_collected_coordinates(format = geo.Coordinate.FORMAT_DM).values()]
         self.view.rootObject().setCurrentGeocache(wrapper, CoordinateListModel(self.core, x))
 
-    @QtCore.Slot(float, float, float, float)
-    def mapViewChanged(self, lat_start, lon_start, lat_end, lon_end):
+    @QtCore.Slot(QtCore.QObject, float, float, float, float)
+    def mapViewChanged(self, map, lat_start, lon_start, lat_end, lon_end):
         #logger.debug("Map view changed to %f-%f, %f-%f." % (lat_start, lon_start, lat_end, lon_end))
-        self.view.rootObject().setGeocacheList(GeocacheListModel(self.core, lat_start, lon_start, lat_end, lon_end))
+        if self.view.rootObject() != None:
+            self.view.rootObject().setGeocacheList(map, GeocacheListModel(self.core, lat_start, lon_start, lat_end, lon_end))
+
+    @QtCore.Slot(QtCore.QObject)
+    def setAsTarget(self, coordinate):
+        self.core.set_target(coordinate._coordinate)
+
+class FixWrapper(QtCore.QObject):
+
+    def __init__(self, fix):
+        QtCore.QObject.__init__(self)
+        self.data = fix
+
+    changed = QtCore.Signal()
+    
+    def update(self, fix):
+        self.data = fix
+        self.changed.emit()
+
+    def _lat(self):
+        if self.data.position != None:
+            return self.data.position.lat
+        else:
+            return -1
+
+    def _lon(self):
+        if self.data.position != None:
+            return self.data.position.lon
+        else:
+            return -1
+
+    def _altitude(self):
+        return self.data.altitude
+
+    def _bearing(self):
+        return self.data.bearing
+
+    def _speed(self):
+        return self.data.speed
+
+    def _sats(self):
+        return self.data.sats
+
+    def _sats_known(self):
+        return self.data.sats_known
+
+    def _error(self):
+        return self.data.error
+
+    lat = QtCore.Property(float, _lat, notify=changed)
+    lon = QtCore.Property(float, _lon, notify=changed)
+    altitude = QtCore.Property(float, _altitude, notify=changed)
+    bearing = QtCore.Property(float, _bearing, notify=changed)
+    speed = QtCore.Property(float, _speed, notify=changed)
+    sats = QtCore.Property(int, _sats, notify=changed)
+    sats_known = QtCore.Property(int, _sats_known, notify=changed)
+    error = QtCore.Property(float, _error, notify=changed)
+
+
+
+class GPSDataWrapper(QtCore.QObject):
+
+    changed = QtCore.Signal()
+
+    def __init__(self, core):
+        QtCore.QObject.__init__(self)
+        self.core = core
+        self.core.connect('good-fix', self._on_good_fix)
+        self.core.connect('no-fix', self._on_no_fix)
+        self.gps_data = FixWrapper(gpsreader.Fix())
+        self.gps_last_good_fix = FixWrapper(gpsreader.Fix())
+        self.gps_target_distance = -1
+        self.gps_target_bearing = -1
+        self.gps_status = ''
+
+
+    def _on_good_fix(self, core, gps_data, distance, bearing):
+        self.gps_data.update(gps_data)
+        self.gps_last_good_fix.update(gps_data)
+        self.gps_has_fix = True
+        self.gps_target_distance = distance
+        self.gps_target_bearing = bearing
+        self.changed.emit()
+
+    def _on_no_fix(self, caller, gps_data, status):
+        self.gps_data.update(gps_data)
+        self.gps_has_fix = False
+        self.gps_status = status
+        
+        self.changed.emit()
+
+    def _gps_data(self):
+        return self.gps_data
+
+    def _gps_last_good_fix(self):
+        return self.gps_last_good_fix
+
+    def _gps_has_fix(self):
+        return self.gps_has_fix
+
+    def _gps_target_distance(self):
+        return self.gps_target_distance
+
+    def _gps_target_bearing(self):
+        return self.gps_target_bearing
+
+    def _gps_status(self):
+        return self.gps_status
+
+    data = QtCore.Property(QtCore.QObject, _gps_data, notify=changed)
+    lastGoodFix = QtCore.Property(QtCore.QObject, _gps_last_good_fix, notify=changed)
+    hasFix = QtCore.Property(bool, _gps_has_fix, notify=changed)
+    targetDistance = QtCore.Property(float, _gps_target_distance, notify=changed)
+    targetBearing = QtCore.Property(float, _gps_target_bearing, notify=changed)
+    status = QtCore.Property(str, _gps_status, notify=changed)
+
 
 class SettingsWrapper(QtCore.QObject):
     def __init__(self, core):
@@ -118,10 +234,10 @@ class CoordinateWrapper(QtCore.QObject):
         return self._coordinate.lon
 
     def _display_text(self):
-        return self._coordinate.display_text
+        return d(self._coordinate.display_text)
 
     def _comment(self):
-        return self._coordinate.comment
+        return d(self._coordinate.comment)
 
     def _user_coordinate_id(self):
         return self._coordinate.user_coordinate_id
@@ -131,8 +247,8 @@ class CoordinateWrapper(QtCore.QObject):
     name = QtCore.Property(str, _name, notify=changed)
     lat = QtCore.Property(float, _lat, notify=changed)
     lon = QtCore.Property(float, _lon, notify=changed)
-    display_text = QtCore.Property(unicode, _display_text, notify=changed)
-    comment = QtCore.Property(unicode, _comment, notify=changed)
+    display_text = QtCore.Property(str, _display_text, notify=changed)
+    comment = QtCore.Property(str, _comment, notify=changed)
     user_coordinate_id = QtCore.Property(unicode, _user_coordinate_id, notify=changed)
 
 class GeocacheWrapper(QtCore.QObject):
@@ -227,7 +343,7 @@ class GeocacheListModel(QtCore.QAbstractListModel):
         self._geocaches = [GeocacheWrapper(x, core) for x in core.pointprovider.get_points(geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end))[0:100]]
         self.setRoleNames(dict(enumerate(GeocacheListModel.COLUMNS)))
 
-        logger.debug("Loaded %d geocaches" % len(self._geocaches))
+        logger.debug("Loaded %d geocaches for %f-%f %f-%f" % (len(self._geocaches), lat_start, lon_start, lat_end, lon_end))
 
     def rowCount(self, parent=QtCore.QModelIndex()):
         return len(self._geocaches)
@@ -276,6 +392,7 @@ class QmlGui(Gui):
         rc = self.view.rootContext()
         rc.setContextProperty('controller', controller)
         rc.setContextProperty('settings', settings)
+        rc.setContextProperty('gps', GPSDataWrapper(self.core))
         #rc.setContextProperty('geocacheList', geocacheList)
         #rc.setContextProperty('geocacheList', 42)
 

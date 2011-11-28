@@ -3,8 +3,8 @@ import QtMobility.location 1.2
 
 Rectangle {
     id: pinchmap;
-    property double centerLatitude: 49;
-    property double centerLongitude: 6;
+    property double centerLatitude: 0;
+    property double centerLongitude: 0;
     property int zoomLevel: 10;
     property int maxZoomLevel: 17;
     property int minZoomLevel: 2;
@@ -14,13 +14,40 @@ Rectangle {
     property int numTilesX: Math.ceil(width/tileSize) + 4;
     property int numTilesY: Math.ceil(height/tileSize) + 4;
     property alias model: geocacheDisplay.model
+    property bool showTargetIndicator: false
+    property double showTargetAtLat: 0;
+    property double showTargetAtLon: 0;
 
     Component.onCompleted: {
+        populate()
+        setCenterLatLon(centerLatitude, centerLongitude);
         setZoomLevel(zoomLevel);
-        setCenterLatLon(centerLatitude, centerLongitude)
+        timer.start()
+    }
+
+
+    Timer {
+        id: timer
+        interval: 500
+        repeat: true
+        running: false
+        triggeredOnStart: false
+        onTriggered: {
+            if (populate()) {
+                timer.stop()
+            }
+        }
+    }
+
+
+    onNumTilesXChanged: {
+        timer.start()
     }
 
     onCenterLongitudeChanged: {
+        setCenterLatLon(centerLatitude, centerLongitude);
+    }
+    onCenterLatitudeChanged: {
         setCenterLatLon(centerLatitude, centerLongitude);
     }
 
@@ -56,21 +83,24 @@ Rectangle {
     function panEnd() {
         var changed = false;
         var threshold = pinchmap.tileSize;
-        if (map.offsetX < -threshold) {
+
+        while (map.offsetX < -threshold) {
             map.offsetX += threshold;
             cornerTileX += 1;
             changed = true;
-        } else if (map.offsetX > threshold) {
+        }
+        while (map.offsetX > threshold) {
             map.offsetX -= threshold;
             cornerTileX -= 1;
             changed = true;
         }
 
-        if (map.offsetY < -threshold) {
+        while (map.offsetY < -threshold) {
             map.offsetY += threshold;
             cornerTileY += 1;
             changed = true;
-        } else if (map.offsetY > threshold) {
+        }
+        while (map.offsetY > threshold) {
             map.offsetY -= threshold;
             cornerTileY -= 1;
             changed = true;
@@ -78,15 +108,21 @@ Rectangle {
         if (changed) {
             populate();
         }
-
     }
 
     function populate() {
         var start = num2deg(cornerTileX, cornerTileY)
         var end = num2deg(cornerTileX + numTilesX, cornerTileY + numTilesY)
 
+        console.debug("start = " + start[0] + "." + start[1] + ", end = " + end[0] + "-" + end[1])
+
         var i = 0;
         var maxTileNo = Math.pow(2, zoomLevel) - 1;
+        if (tiles.count != numTilesX * numTilesY) {
+            console.log("Not populating right now. Children# " + tiles.count + " exp. " + ( numTilesX * numTilesY))
+            return false;
+        }
+
         for (i = 0; i < (numTilesX * numTilesY); i++) {
             var tx = cornerTileX + (i % numTilesX);
             var ty = cornerTileY + Math.floor(i / numTilesX);
@@ -95,13 +131,19 @@ Rectangle {
             } else if (tx > maxTileNo - 1) {
                 tx -= maxTileNo + 1;
             }
-            if (ty < 0 || ty > maxTileNo -1) {
-                map.children[i].source = "../data/noimage.png";
-            } else {
-                map.children[i].source = "http://a.tile2.opencyclemap.org/transport/" + zoomLevel + "/" + tx + "/" + ty + ".png";
+            try {
+                if (ty < 0 || ty > maxTileNo -1) {
+                    map.children[i].source = "../data/noimage.png";
+                } else {
+                    map.children[i].source = "http://a.tile2.opencyclemap.org/transport/" + zoomLevel + "/" + tx + "/" + ty + ".png";
+                }
+            } catch (e) {
+                console.debug("Error on assigning child #"+i+": "+e)
+                return false;
             }
         }
-        controller.mapViewChanged(start[0], start[1], end[0], end[1])
+        controller.mapViewChanged(pinchmap, start[0], start[1], end[0], end[1])
+        return true;
     }
     function deg2rad(deg) {
         return deg * (Math.PI /180.0);
@@ -115,6 +157,8 @@ Rectangle {
         return [xtile, ytile];
     }
     function setLatLon(lat, lon, x, y) {
+        var oldCornerTileX = cornerTileX
+        var oldCornerTileY = cornerTileY
         var tile = deg2num(lat, lon);
         var cornerTileFloatX = tile[0] + (map.rootX - x) / tileSize // - numTilesX/2.0;
         var cornerTileFloatY = tile[1] + (map.rootY - y) / tileSize // - numTilesY/2.0;
@@ -122,8 +166,9 @@ Rectangle {
         cornerTileY = Math.floor(cornerTileFloatY);
         map.offsetX = -(cornerTileFloatX - Math.floor(cornerTileFloatX)) * tileSize;
         map.offsetY = -(cornerTileFloatY - Math.floor(cornerTileFloatY)) * tileSize;
-
-        populate();
+        if (cornerTileX != oldCornerTileX || cornerTileY != oldCornerTileY) {
+            populate();
+        }
     }
     function setCoord(c, x, y) {
         setLatLon(c[0], c[1], x, y);
@@ -187,7 +232,17 @@ Rectangle {
         x: rootX + offsetX;
         y: rootY + offsetY;
 
+
         Repeater {
+            id: tiles
+            /*onCountChanged: {
+                if (numTilesX * numTilesY == count &&  map.children.length == 2* count) {
+                    console.log("Now pop because " + count + " == " + numTilesX*numTilesY + " and num children is " + map.children.length);
+                    populate()
+                }
+            }*/
+
+
             model: (pinchmap.numTilesX * pinchmap.numTilesY);
             Rectangle {
                 property alias source: img.source;
@@ -197,8 +252,6 @@ Rectangle {
                     height: 16;
                     width: parent.width - 32;
                     anchors.centerIn: img;
-                    anchors.left: parent.left;
-                    anchors.right: parent.right;
                     color: "#c0c0c0";
                     border.width: 1;
                     border.color: "#000000";
@@ -211,6 +264,16 @@ Rectangle {
                         color: "#000000";
                     }
                 }
+                Text {
+                    anchors.left: parent.left
+                    anchors.leftMargin: 16
+                    y: parent.height/2 - 32
+                    text: (img.status == Image.Ready ? "Ready" :
+                           img.status == Image.Null ? "Not Set" :
+                           img.status == Image.Error ? "Error" :
+                            "Loading...")
+                }
+
                 Image {
                     id: img;
                     anchors.fill: parent;
@@ -240,7 +303,7 @@ Rectangle {
             //anchors.fill:  parent
             Repeater {
                 id: geocacheDisplay
-                model: geocacheList
+                //model: geocacheList
                 delegate: Geocache {
                     cache: model.geocache
                     targetPoint: getMappointFromCoord(model.geocache.lat, model.geocache.lon)
@@ -248,6 +311,17 @@ Rectangle {
                 }// Text { text: "Geocache: " + model.geocache.title }
 
             }
+        }
+
+        Image {
+            source: "../data/target_indicator.svg"
+            width: 50
+            height: 50
+            smooth: true
+            property variant target: getMappointFromCoord(showTargetAtLat, showTargetAtLon)
+            x: target[0] - width/2
+            y: target[1] - height/2
+            visible: showTargetIndicator
         }
     }
 

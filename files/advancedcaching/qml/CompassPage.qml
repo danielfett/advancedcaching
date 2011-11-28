@@ -5,6 +5,7 @@ import "uiconstants.js" as UI
 Page {
     orientationLock: PageOrientation.LockPortrait
 
+
     Column {
         spacing: 10
         anchors.horizontalCenter: parent.horizontalCenter
@@ -20,6 +21,7 @@ Page {
             id: compassImage
             source: "../data/windrose.svg"
             transform: [Rotation {
+                    id: azCompass
                     origin.x: compassImage.width/2
                     origin.y: compassImage.height/2
                     angle: -compass.azimuth
@@ -51,7 +53,7 @@ Page {
             z: 2
 
             Image {
-                property int angle: compass.azimuth
+                property int angle: 90
                 property int outerMargin: 15
                 id: sunImage
                 source: "image://theme/icon-m-weather-sunny"
@@ -65,7 +67,7 @@ Page {
                }
             }
             Image {
-                property int angle: 90
+                property int angle: gps.targetBearing
                 property int outerMargin: 50
                 id: arrowImage
                 source: "../data/arrow_target.svg"
@@ -86,7 +88,7 @@ Page {
         Row {
             InfoLabel {
                 name: "Travel Direction"
-                value: "43°"
+                value: gps.lastGoodFix.bearing + "°"
                 width: compassColumn.width/3
             }
             InfoLabel {
@@ -104,24 +106,24 @@ Page {
         Row {
             InfoLabel {
                 name: "Distance"
-                value: "256 m"
+                value: gps.targetDistance + " m"
                 width: compassColumn.width/3.0
             }
             InfoLabel {
                 name: "Accuracy"
-                value: "± 5 m"
+                value: "± " + gps.lastGoodFix.error + " m"
                 width: compassColumn.width/3.0
             }
             InfoLabel {
                 name: "Altitude"
-                value: "190 m"
+                value: gps.lastGoodFix.altitude + " m"
                 width: compassColumn.width/3.0
             }
         }
 
         InfoLabel {
             name: "Current Position"
-            value: "N49° 44.123 E6° 23.541"
+            value: gps.lastGoodFix.lat + "-" + gps.lastGoodFix.lon//"N49° 44.123 E6° 23.541"
             width: compassColumn.width
         }
 

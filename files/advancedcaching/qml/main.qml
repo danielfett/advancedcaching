@@ -6,9 +6,9 @@ import QtMobility.sensors 1.2
 
 PageStackWindow {
     //property variant controller
-    property variant geocacheList
-    property variant currentGeocache
-    property variant currentGeocacheCoordinates
+    property variant geocacheList: 0
+    property variant currentGeocache: 0
+    property variant currentGeocacheCoordinates: 0
     property real downloadProgress: 0.5
     property bool downloadShowProgress: false
     property string downloadText: ""
@@ -29,8 +29,8 @@ PageStackWindow {
         downloadShowProgress = false
     }
 
-    function setGeocacheList (list) {
-        geocacheList = list
+    function setGeocacheList (map, list) {
+        map.model = list
     }
 
     function setCurrentGeocache(geocache, coordinates) {
@@ -92,5 +92,9 @@ PageStackWindow {
     }*/
     CoordinateSelector {
         id: coordinateSelectorDialog
+        property real gpspos: gps.data.lat
+        onGpsposChanged: {
+            console.log(gpspos)
+        }
     }
 }

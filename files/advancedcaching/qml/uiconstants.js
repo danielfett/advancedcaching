@@ -9,5 +9,5 @@ var COLOR_BACKGROUND = "#101010"
 var COLOR_FONT = "lightgrey"
 var COLOR_INFOLABEL = "grey"
 var COLOR_DESCRIPTION = "mediumblue" //"#cc6633"
-
+var COLOR_DIALOG_TEXT = "white"
 var WIDTH_SELECTOR = 50;
