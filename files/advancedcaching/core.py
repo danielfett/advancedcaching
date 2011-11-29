@@ -194,7 +194,9 @@ class Core(gobject.GObject):
             gobject.timeout_add(1000, self.__read_gps)
         elif 'locationgpsprovider' in self.gui.USES:
             self.gps_thread = gpsreader.LocationGpsReader(self.__read_gps_cb_error, self.__read_gps_cb_changed)
-            gobject.idle_add(self.gps_thread.start)  
+            gobject.idle_add(self.gps_thread.start)
+        elif 'qmllocationprovider' in self.gui.USES:
+            self.gui.get_gps(self.__read_gps)
         if 'geonames' in self.gui.USES:
             import geonames
             self.geonames = geonames.Geonames(self.downloader)
@@ -487,8 +489,9 @@ class Core(gobject.GObject):
             bearing = None
         return distance, bearing
 
-    def __read_gps(self):
-        fix = self.gps_thread.get_data()
+    def __read_gps(self, fix = None):
+        if fix == None:
+            fix = self.gps_thread.get_data()
 
         if fix.position != None:
             self.current_position = fix.position

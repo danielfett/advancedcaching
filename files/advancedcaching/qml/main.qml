@@ -3,6 +3,7 @@ import com.nokia.meego 1.0
 import com.nokia.extras 1.0
 import "uiconstants.js" as UI
 import QtMobility.sensors 1.2
+import QtMobility.location 1.1
 
 PageStackWindow {
     //property variant controller
@@ -58,6 +59,15 @@ PageStackWindow {
         property real azimuth: 0
         property real calibration: 0
         active: true
+    }
+
+    PositionSource {
+        id: gpsSource
+        active: true
+        updateInterval: 500
+        onPositionChanged: {
+            controller.positionChanged(position)
+        }
     }
 
     DetailsDefaultPage {

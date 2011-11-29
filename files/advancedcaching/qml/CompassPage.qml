@@ -1,6 +1,7 @@
 import QtQuick 1.1
 import com.nokia.meego 1.0
 import "uiconstants.js" as UI
+import "functions.js" as F
 
 Page {
     orientationLock: PageOrientation.LockPortrait
@@ -88,12 +89,12 @@ Page {
         Row {
             InfoLabel {
                 name: "Travel Direction"
-                value: gps.lastGoodFix.bearing + "°"
+                value: F.formatBearing(gps.lastGoodFix.bearing)
                 width: compassColumn.width/3
             }
             InfoLabel {
                 name: "Comp. Heading"
-                value: compass.azimuth + "°"
+                value: F.formatBearing(compass.azimuth)
                 width: compassColumn.width/3
             }
             InfoLabel {
@@ -106,24 +107,24 @@ Page {
         Row {
             InfoLabel {
                 name: "Distance"
-                value: gps.targetDistance + " m"
+                value: F.formatDistance(gps.targetDistance, controller)
                 width: compassColumn.width/3.0
             }
             InfoLabel {
                 name: "Accuracy"
-                value: "± " + gps.lastGoodFix.error + " m"
+                value: "± " + F.formatDistance(gps.lastGoodFix.error, controller)
                 width: compassColumn.width/3.0
             }
             InfoLabel {
                 name: "Altitude"
-                value: gps.lastGoodFix.altitude + " m"
+                value: F.formatDistance(gps.lastGoodFix.altitude, controller)
                 width: compassColumn.width/3.0
             }
         }
 
         InfoLabel {
             name: "Current Position"
-            value: gps.lastGoodFix.lat + "-" + gps.lastGoodFix.lon//"N49° 44.123 E6° 23.541"
+            value: F.formatCoordinate(gps.lastGoodFix.lat, gps.lastGoodFix.lon, controller)
             width: compassColumn.width
         }
 
@@ -131,7 +132,7 @@ Page {
             InfoLabel {
                 id: currentTarget
                 name: "Current Target"
-                value: "N119° 44.123 E6° 23.541"
+                value: gps.hasTarget ? F.formatCoordinate(gps.targetLat, gps.targetLon, controller) : "none set"
                 width: compassColumn.width - changeTargetButton.width
             }
             Button {

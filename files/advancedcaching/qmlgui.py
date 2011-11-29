@@ -47,6 +47,10 @@ class Controller(QtCore.QObject):
         self.core.connect('hide-progress', self.hide_progress)
         self.core.connect('cache-changed', self.cache_changed)
         self.core.connect('error', self.show_message)
+        self._callback_gps = None
+
+    def get_gps(self, callback):
+        self._callback_gps = callback
 
     def show_message(self, caller, message):
         self.view.rootObject().showMessage(message)
@@ -81,6 +85,40 @@ class Controller(QtCore.QObject):
     @QtCore.Slot(QtCore.QObject)
     def setAsTarget(self, coordinate):
         self.core.set_target(coordinate._coordinate)
+
+    @QtCore.Slot(QtCore.QObject)
+    def positionChanged(self, pos):
+        if self._callback_gps == None:
+            return
+        if pos.latitudeValid and pos.longitudeValid:
+            p = geo.Coordinate(pos.coordinate.latitude, pos.coordinate.longitude)
+        else:
+            p = None
+
+        a = gpsreader.Fix(position = p,
+            altitude = pos.coordinate.altitude if pos.altitudeValid else None,
+            bearing = None,
+            speed = pos.speed if pos.speedValid else None,
+            sats = 0,
+            sats_known = 0,
+            dgps = False,
+            quality = 0,
+            error = horizontalAccuracy,
+            error_bearing = 0,
+            timestamp = None)
+        return a
+
+
+    def _distance_unit(self):
+        return "m"
+
+    def _coordinate_format(self):
+        return "DM"
+
+    changed = QtCore.Signal()
+
+    distanceUnit = QtCore.Property(str, _distance_unit, notify=changed)
+    coordinateFormat = QtCore.Property(str, _coordinate_format, notify=changed)
 
 class FixWrapper(QtCore.QObject):
 
@@ -138,17 +176,21 @@ class FixWrapper(QtCore.QObject):
 class GPSDataWrapper(QtCore.QObject):
 
     changed = QtCore.Signal()
+    changed_target = QtCore.Signal()
+    changed_distance_bearing = QtCore.Signal()
 
     def __init__(self, core):
         QtCore.QObject.__init__(self)
         self.core = core
         self.core.connect('good-fix', self._on_good_fix)
         self.core.connect('no-fix', self._on_no_fix)
+        self.core.connect('target-changed', self._on_target_changed)
         self.gps_data = FixWrapper(gpsreader.Fix())
         self.gps_last_good_fix = FixWrapper(gpsreader.Fix())
         self.gps_target_distance = -1
         self.gps_target_bearing = -1
         self.gps_status = ''
+        self._target = CoordinateWrapper(geo.Coordinate(0, 0))
 
 
     def _on_good_fix(self, core, gps_data, distance, bearing):
@@ -157,14 +199,30 @@ class GPSDataWrapper(QtCore.QObject):
         self.gps_has_fix = True
         self.gps_target_distance = distance
         self.gps_target_bearing = bearing
+
+        self.changed_distance_bearing.emit()
         self.changed.emit()
 
     def _on_no_fix(self, caller, gps_data, status):
         self.gps_data.update(gps_data)
         self.gps_has_fix = False
         self.gps_status = status
-        
+
+        self.changed_distance_bearing.emit()
         self.changed.emit()
+
+    def _on_target_changed(self, caller, target, distance, bearing):
+        self._target = CoordinateWrapper(target)
+        self.gps_target_distance = distance
+        self.gps_target_bearing = bearing
+        self.changed_distance_bearing.emit()
+        self.changed_target.emit()
+
+    def _target(self):
+        return self._target
+
+    def _has_target(self):
+        return self._target != None
 
     def _gps_data(self):
         return self.gps_data
@@ -187,6 +245,8 @@ class GPSDataWrapper(QtCore.QObject):
     data = QtCore.Property(QtCore.QObject, _gps_data, notify=changed)
     lastGoodFix = QtCore.Property(QtCore.QObject, _gps_last_good_fix, notify=changed)
     hasFix = QtCore.Property(bool, _gps_has_fix, notify=changed)
+    hasTarget = QtCore.Property(bool, _has_target, notify=changed_target)
+    target = QtCore.Property(QtCore.QObject, _target, notify=changed_target)
     targetDistance = QtCore.Property(float, _gps_target_distance, notify=changed)
     targetBearing = QtCore.Property(float, _gps_target_bearing, notify=changed)
     status = QtCore.Property(str, _gps_status, notify=changed)
