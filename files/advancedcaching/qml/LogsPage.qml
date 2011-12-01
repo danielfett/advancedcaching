@@ -5,17 +5,12 @@ import "uiconstants.js" as UI
 Page {
     
     Header{
-        text: "Geocache <b>GCEZ71U</b>"
+        text: "Geocache <b>"  + (currentGeocache.name || "(none)") + "</b>"
         id: listHeader
     }
 
     ListModel {
-        id: listModel
-        ListElement {
-            user: "webhamster"
-            date: "2011-10-31"
-            description: "Leicht gefundenes Fressen. Lorem ipsum Dolor sit amet, in consectuum consequat. Toller Geocache, gerne wieder, schnell verschickt.<br><br>TFTC!"
-        }
+        id: emptyList
     }
 
     ListView {
@@ -25,7 +20,7 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom:  parent.bottom
-        model: listModel
+        model: currentGeocacheLogs || emptyList
         delegate: Column {
             height: rw.height + description.height + 16
             spacing: 16
@@ -39,7 +34,7 @@ Page {
                 }
 
                 Text {
-                    text: "<b>Found by " + model.user + "<br>on " + model.date + "</b>"
+                    text: "<b>" + model.type + " by " + model.finder + "<br>on " + model.year + "-" + model.month + "-" + model.day + "</b>"
                     font.weight: Font.Bold
                     font.pixelSize: UI.FONT_SMALL
                     id: logTitle
@@ -49,7 +44,7 @@ Page {
             Text {
                 id: description
                 font.weight: Font.Light
-                text: model.description
+                text: model.text
                 wrapMode: Text.Wrap
                 font.pixelSize: UI.FONT_SMALL
                 color: UI.COLOR_DESCRIPTION

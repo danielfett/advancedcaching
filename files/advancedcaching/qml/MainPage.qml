@@ -17,12 +17,13 @@ Page {
 
         Page {
             id: tabMap
+            property int buttonSize: 72
             PinchMap {
                 id: pinchmap
                 anchors.fill: parent
                 model: geocacheList
-                centerLatitude: gps.lastGoodFix.lat;
-                centerLongitude: gps.lastGoodFix.lon;
+                centerLatitude: (followPositionButton.checked && gps.lastGoodFix.valid) ? gps.lastGoodFix.lat : Null
+                centerLongitude: (followPositionButton.checked && gps.lastGoodFix.valid) ? gps.lastGoodFix.lon : Null
                 zoomLevel: 11
             }
             Row {
@@ -31,18 +32,17 @@ Page {
                 anchors.right: pinchmap.right
                 anchors.rightMargin: 16
                 spacing: 16
-                property int buttonSize: 72
                 Button {
                     iconSource: "image://theme/icon-m-common-add"
                     onClicked: {pinchmap.zoomIn() }
-                    width: parent.buttonSize
-                    height: parent.buttonSize
+                    width: parent.parent.buttonSize
+                    height: parent.parent.buttonSize
                 }
                 Button {
                     iconSource: "image://theme/icon-m-common-remove"
                     onClicked: {pinchmap.zoomOut() }
-                    width: parent.buttonSize
-                    height: parent.buttonSize
+                    width: parent.parent.buttonSize
+                    height: parent.parent.buttonSize
                 }
             }
             Row {
@@ -51,13 +51,24 @@ Page {
                 anchors.left: pinchmap.left
                 anchors.leftMargin: 16
                 spacing: 16
-                property int buttonSize: 72
                 Button {
+                    id: followPositionButton
                     iconSource: "image://theme/icon-m-common-location"
-                    onClicked: {pinchmap.setCenterLatLon(48.85568,2.386093) }
-                    width: parent.buttonSize
-                    height: parent.buttonSize
+                    //onClicked: {pinchmap.setCenterLatLon(48.85568,2.386093) }
+                    width: parent.parent.buttonSize
+                    height: parent.parent.buttonSize
                     checkable: true
+
+                }
+                Button {
+                    id: refreshGeocachesButton
+                    iconSource: "image://theme/icon-m-toolbar-refresh"
+                    width: parent.parent.buttonSize
+                    height: parent.parent.buttonSize
+                    onClicked: {
+                        pinchmap.requestUpdate()
+
+                    }
 
                 }
             }

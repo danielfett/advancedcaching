@@ -81,14 +81,7 @@ Page {
             }
         }
 
-        ProgressBar {
-            id: downloadProgressBar
-            maximumValue: 1
-            minimumValue: 0
-            value: downloadProgress
-            visible: downloadShowProgress
-            width: col1.width
-        }
+
 
     }
 

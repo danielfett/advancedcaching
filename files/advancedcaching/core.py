@@ -177,8 +177,8 @@ class Core(gobject.GObject):
         self.gui = guitype(self, self.dataroot)
         
         
-        actor_tts = TTS(self)
-        actor_tts.connect('error', lambda caller, msg: self.emit('error', msg))
+        #actor_tts = TTS(self)
+        #actor_tts.connect('error', lambda caller, msg: self.emit('error', msg))
         #actor_notify = Notify(self)
         self.emit('settings-changed', self.settings, self)
         self.emit('fieldnotes-changed')  
@@ -197,6 +197,7 @@ class Core(gobject.GObject):
             gobject.idle_add(self.gps_thread.start)
         elif 'qmllocationprovider' in self.gui.USES:
             self.gui.get_gps(self.__read_gps)
+            self.gps_thread = None
         if 'geonames' in self.gui.USES:
             import geonames
             self.geonames = geonames.Geonames(self.downloader)
@@ -496,9 +497,11 @@ class Core(gobject.GObject):
         if fix.position != None:
             self.current_position = fix.position
             distance, bearing = self.__get_target_distance_bearing()
+            logger.debug("Sending good fix for fix %r" % fix)
             self.emit('good-fix', fix, distance, bearing)
         else:
-            self.emit('no-fix', fix, self.gps_thread.status)
+            logger.debug("Sending bad fix for fix %r" % fix)
+            self.emit('no-fix', fix, self.gps_thread.status if self.gps_thread != None else "")
         return True
 
     def __read_gps_cb_error(self, control, error):

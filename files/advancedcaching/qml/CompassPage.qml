@@ -87,11 +87,11 @@ Page {
 
 
         Row {
-            InfoLabel {
+            /*InfoLabel {
                 name: "Travel Direction"
-                value: F.formatBearing(gps.lastGoodFix.bearing)
+                value: gps.lastGoodFix.valid ? F.formatBearing(gps.lastGoodFix.bearing) : "-"
                 width: compassColumn.width/3
-            }
+            }*/
             InfoLabel {
                 name: "Comp. Heading"
                 value: F.formatBearing(compass.azimuth)
@@ -107,24 +107,26 @@ Page {
         Row {
             InfoLabel {
                 name: "Distance"
-                value: F.formatDistance(gps.targetDistance, controller)
+                value: gps.targetDistanceValid ? F.formatDistance(gps.targetDistance, controller) : "-"
                 width: compassColumn.width/3.0
             }
             InfoLabel {
                 name: "Accuracy"
-                value: "± " + F.formatDistance(gps.lastGoodFix.error, controller)
+                value: gps.lastGoodFix.valid ? ("± " + F.formatDistance(gps.lastGoodFix.error, controller)) : "-"
                 width: compassColumn.width/3.0
             }
             InfoLabel {
                 name: "Altitude"
-                value: F.formatDistance(gps.lastGoodFix.altitude, controller)
+                value: gps.lastGoodFix.altitudeValid ? F.formatDistance(gps.lastGoodFix.altitude, controller) : "-"
                 width: compassColumn.width/3.0
             }
         }
 
         InfoLabel {
-            name: "Current Position"
-            value: F.formatCoordinate(gps.lastGoodFix.lat, gps.lastGoodFix.lon, controller)
+            name: gps.data.valid ? "Current Position" : "Last Known Position"
+            value: gps.data.valid
+                   ? F.formatCoordinate(gps.data.lat, gps.data.lon, controller)
+                   : (gps.lastGoodFix.valid ? F.formatCoordinate(gps.lastGoodFix.lat, gps.lastGoodFix.lon, controller) : "...there is none.")
             width: compassColumn.width
         }
 
@@ -132,16 +134,21 @@ Page {
             InfoLabel {
                 id: currentTarget
                 name: "Current Target"
-                value: gps.hasTarget ? F.formatCoordinate(gps.targetLat, gps.targetLon, controller) : "none set"
+                value: gps.targetValid ? F.formatCoordinate(gps.target.lat, gps.target.lon, controller) : "not set"
                 width: compassColumn.width - changeTargetButton.width
             }
             Button {
                 id: changeTargetButton
-                width: compassColumn.width/5
+                width: compassColumn.width/6
                 anchors.bottom: currentTarget.bottom
                 iconSource: "image://theme/icon-m-toolbar-edit"
                 onClicked: {
                     //coordinateSelectorDialog.parent = tabCompass
+                    coordinateSelectorDialog.accepted.connect(function() {
+                                                                  var res = coordinateSelectorDialog.getValue();
+                                                                  controller.setTarget(res[0], res[1])
+                    })
+
                     coordinateSelectorDialog.open()
                 }
             }

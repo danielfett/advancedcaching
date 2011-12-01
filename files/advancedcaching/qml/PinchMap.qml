@@ -23,6 +23,7 @@ Rectangle {
         setCenterLatLon(centerLatitude, centerLongitude);
         setZoomLevel(zoomLevel);
         timer.start()
+        controller.marksChanged.connect(populate)
     }
 
 
@@ -45,10 +46,14 @@ Rectangle {
     }
 
     onCenterLongitudeChanged: {
-        setCenterLatLon(centerLatitude, centerLongitude);
+        if (centerLatitude != Null) {
+            setCenterLatLon(centerLatitude, centerLongitude);
+        }
     }
     onCenterLatitudeChanged: {
-        setCenterLatLon(centerLatitude, centerLongitude);
+        if (centerLongitude != Null) {
+            setCenterLatLon(centerLatitude, centerLongitude);
+        }
     }
 
     function setZoomLevel(z) {
@@ -110,7 +115,15 @@ Rectangle {
         }
     }
 
+    function requestUpdate() {
+        var start = num2deg(cornerTileX, cornerTileY)
+        var end = num2deg(cornerTileX + numTilesX, cornerTileY + numTilesY)
+        controller.updateGeocaches(start[0], start[1], end[0], end[1])
+        console.debug("Update requested.")
+    }
+
     function populate() {
+        console.debug("Populate called.")
         var start = num2deg(cornerTileX, cornerTileY)
         var end = num2deg(cornerTileX + numTilesX, cornerTileY + numTilesY)
 

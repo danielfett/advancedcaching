@@ -574,7 +574,9 @@ class Astral(object):
 
         return degrees(atan2(tananum, tanadenom))
 
-    def get_sun_azimuth_from_fix(self, fix):
+    def get_sun_azimuth_from_fix(self, fix, time = None):
+        if time != None:
+            fix.timestamp = time
         if self.sun_cache_time == None or abs((fix.timestamp - self.sun_cache_time).seconds) > SUN_POSITION_CACHE_DURATION:
             self.sun_cache_time = fix.timestamp
             sunrise = self.sunrise_utc(fix.timestamp, fix.position.lat, -fix.position.lon)

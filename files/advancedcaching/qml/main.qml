@@ -1,6 +1,5 @@
 import QtQuick 1.1
 import com.nokia.meego 1.0
-import com.nokia.extras 1.0
 import "uiconstants.js" as UI
 import QtMobility.sensors 1.2
 import QtMobility.location 1.1
@@ -10,9 +9,9 @@ PageStackWindow {
     property variant geocacheList: 0
     property variant currentGeocache: 0
     property variant currentGeocacheCoordinates: 0
-    property real downloadProgress: 0.5
-    property bool downloadShowProgress: false
+    property variant currentGeocacheLogs: 0
     property string downloadText: ""
+
 
     function showMessage (message) {
         banner.text = message
@@ -20,25 +19,25 @@ PageStackWindow {
     }
 
     function showProgress (progress, message) {
-        downloadProgress = progress
-        downloadShowProgress = true
-        downloadText = message
-        showMessage(message)
+        progressBanner.text = message
+        progressBanner.value = progress
+        progressBanner.show()
     }
 
     function hideProgress () {
-        downloadShowProgress = false
+        progressBanner.hide()
     }
 
     function setGeocacheList (map, list) {
         map.model = list
     }
 
-    function setCurrentGeocache(geocache, coordinates) {
+    function setCurrentGeocache(geocache, coordinates, logs) {
         currentGeocache = geocache;
         currentGeocacheCoordinates = coordinates; //currentGeocache.coordinates;
+        currentGeocacheLogs = logs;
         //console.log(coordinates)
-        console.debug("Current Cache size "+geocache.size+" terrain "+geocache.terrain+" difficulty "+geocache.difficulty+" owner "+geocache.owner+" and has "+currentGeocacheCoordinates.count + " WPs")
+        //console.debug("Current Cache size "+geocache.size+" terrain "+geocache.terrain+" difficulty "+geocache.difficulty+" owner "+geocache.owner+" and has "+currentGeocacheCoordinates.count + " WPs")
     }
 
     id: rootWindow
@@ -51,6 +50,10 @@ PageStackWindow {
 
     InfoBanner {
         id: banner
+    }
+
+    ProgressBanner {
+        id: progressBanner
     }
 
     Compass {
@@ -66,7 +69,10 @@ PageStackWindow {
         active: true
         updateInterval: 500
         onPositionChanged: {
-            controller.positionChanged(position)
+            console.log("Changed!");
+            console.log("pos: " + gpsSource.position.latitudeValid + " and " + position.coordinate.latitude);
+            console.log(position.latitudeValid +" | "+ position.coordinate.latitude+" | "+ position.coordinate.longitude+" | "+ position.altitudeValid+" | "+ position.coordinate.altitude+" | "+ position.speedValid+" | "+ position.speed+" | "+ position.horizontalAccuracy)
+            controller.positionChanged(position.latitudeValid, position.coordinate.latitude, position.coordinate.longitude, position.altitudeValid, position.coordinate.altitude, position.speedValid, position.speed, position.horizontalAccuracy, position.timestamp);
         }
     }
 
@@ -102,9 +108,5 @@ PageStackWindow {
     }*/
     CoordinateSelector {
         id: coordinateSelectorDialog
-        property real gpspos: gps.data.lat
-        onGpsposChanged: {
-            console.log(gpspos)
-        }
     }
 }
