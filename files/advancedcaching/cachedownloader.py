@@ -559,7 +559,7 @@ if __name__ == '__main__':
         inp = open(sys.argv[1])
         m = GeocacheCoordinate(0, 0, 'GC1N8G6')
         a = GeocachingComCacheDownloader(downloader.FileDownloader('dummy', 'dummy', '/tmp/cookies'), '/tmp/', True)
-    else: # cachedownloader.py username password
+    elif len(sys.argv) == 3: # cachedownloader.py username password
         name, password = sys.argv[1:3]
         a = GeocachingComCacheDownloader(downloader.FileDownloader(name, password, '/tmp/cookies', GeocachingComCacheDownloader.login_callback), '/tmp/', True)
 
@@ -585,6 +585,15 @@ if __name__ == '__main__':
         if len(sys.argv) == 4:
             print "Writing to File %s" % sys.argv[3]
             outfile = sys.argv[3]
+    elif len(sys.argv) == 4: # cachedownloader.py geocache username password
+        geocache, name, password = sys.argv[1:4]
+        a = GeocachingComCacheDownloader(downloader.FileDownloader(name, password, '/tmp/cookies', GeocachingComCacheDownloader.login_callback), '/tmp/', True)
+
+        print "Using Username %s" % name
+        m = GeocacheCoordinate(0, 0, geocache)
+    else:
+        print "I don't know what you want to do..."
+        sys.exit()
     res = a.update_coordinate(m, outfile)
     print res
     c = res
