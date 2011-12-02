@@ -394,6 +394,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         logger.debug('finished parsing, converting...')
         head = unicode(head, 'utf-8', errors='ignore')
         shortdesc = unicode(shortdesc, 'utf-8', errors='ignore')
+        desc = unicode(desc, 'utf-8', errors='ignore')
         hints = unicode(hints, 'utf-8', errors='ignore')
         waypoints = unicode(waypoints, 'utf-8', errors='ignore')
         logs = unicode(logs, 'utf-8', errors='ignore')
@@ -547,6 +548,10 @@ class GeocachingComCacheDownloader(CacheDownloader):
 if __name__ == '__main__':
     import sys
     import downloader
+    logger.setLevel(logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG,
+                    format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s',
+                    )
 
     outfile = None
     if len(sys.argv) == 2: # cachedownloder.py filename
@@ -556,7 +561,7 @@ if __name__ == '__main__':
         a = GeocachingComCacheDownloader(downloader.FileDownloader('dummy', 'dummy', '/tmp/cookies'), '/tmp/', True)
     else: # cachedownloader.py username password
         name, password = sys.argv[1:3]
-        a = GeocachingComCacheDownloader(downloader.FileDownloader(name, password, '/tmp/cookies', GeocachingComCacheDownloader.login_callback(name, password)), '/tmp/', True)
+        a = GeocachingComCacheDownloader(downloader.FileDownloader(name, password, '/tmp/cookies', GeocachingComCacheDownloader.login_callback), '/tmp/', True)
 
         print "Using Username %s" % name
 
@@ -576,12 +581,14 @@ if __name__ == '__main__':
             
         else:
             print "# Didn't find my own geocache :-("
+            m = GeocacheCoordinate(0, 0, 'GC1N8G6')
         if len(sys.argv) == 4:
             print "Writing to File %s" % sys.argv[3]
             outfile = sys.argv[3]
     res = a.update_coordinate(m, outfile)
     print res
     c = res
+    
     if c.owner != 'webhamster':
         print "Owner doesn't match ('%s', expected webhamster)" % c.owner
     if c.title != 'Druidenpfad':
@@ -602,6 +609,6 @@ if __name__ == '__main__':
     if len(c.get_logs()) < 2:
         print "Expected at least 2 logs, got %d" % len(c.get_logs())
     print c.get_logs()
-    print "Owner:%s\nTitle:%s\nTerrain:%s\nDifficulty:%s\nDescription:%s\nShortdesc:%s\nHints:%s" % (c.owner, c.title, c.get_terrain(), c.get_difficulty(), c.desc, c.shortdesc, c.hints)
+    print "Owner:%s (type %s)\nTitle:%s (type %s)\nTerrain:%s\nDifficulty:%s\nDescription:%s (type %s)\nShortdesc:%s (type %s)\nHints:%s (type %s)" % (c.owner, type(c.owner), c.title, type(c.title), c.get_terrain(), c.get_difficulty(), c.desc, type(c.desc), c.shortdesc, type(c.shortdesc), c.hints, type(c.hints))
     print c.get_waypoints()
 
