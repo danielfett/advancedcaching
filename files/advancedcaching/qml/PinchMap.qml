@@ -18,18 +18,31 @@ Rectangle {
     property double showTargetAtLat: 0;
     property double showTargetAtLon: 0;
 
+    property bool rotationEnabled: false
+
+    property double latitude: 0
+    property double longitude: 0
+
+    transform: Rotation {
+        angle: 0
+        origin.x: pinchmap.width/2
+        origin.y: pinchmap.height/2
+        id: rot
+    }
+
     Component.onCompleted: {
         populate()
         setCenterLatLon(centerLatitude, centerLongitude);
         setZoomLevel(zoomLevel);
         timer.start()
         controller.marksChanged.connect(populate)
+        updateCenter();
     }
 
 
     Timer {
         id: timer
-        interval: 500
+        interval: 1000
         repeat: true
         running: false
         triggeredOnStart: false
@@ -46,12 +59,12 @@ Rectangle {
     }
 
     onCenterLongitudeChanged: {
-        if (centerLatitude != Null) {
+        if (centerLatitude != null) {
             setCenterLatLon(centerLatitude, centerLongitude);
         }
     }
     onCenterLatitudeChanged: {
-        if (centerLongitude != Null) {
+        if (centerLongitude != null) {
             setCenterLatLon(centerLatitude, centerLongitude);
         }
     }
@@ -113,6 +126,13 @@ Rectangle {
         if (changed) {
             populate();
         }
+        updateCenter();
+    }
+
+    function updateCenter() {
+        var l = getCenter()
+        latitude = l[0]
+        longitude = l[1]
     }
 
     function requestUpdate() {
@@ -127,7 +147,7 @@ Rectangle {
         var start = num2deg(cornerTileX, cornerTileY)
         var end = num2deg(cornerTileX + numTilesX, cornerTileY + numTilesY)
 
-        console.debug("start = " + start[0] + "." + start[1] + ", end = " + end[0] + "-" + end[1])
+        //console.debug("start = " + start[0] + "." + start[1] + ", end = " + end[0] + "-" + end[1])
 
         var i = 0;
         var maxTileNo = Math.pow(2, zoomLevel) - 1;
@@ -155,6 +175,7 @@ Rectangle {
                 return false;
             }
         }
+        console.debug("start = " + start[0] + "  " + start[1] + ", end = " + end[0] + "  " + end[1])
         controller.mapViewChanged(pinchmap, start[0], start[1], end[0], end[1])
         return true;
     }
@@ -163,9 +184,9 @@ Rectangle {
     }
 
     function deg2num(lat, lon) {
-        var rad = deg2rad(lat);
+        var rad = deg2rad(lat % 90);
         var n = Math.pow(2, zoomLevel);
-        var xtile = (lon + 180.0) / 360.0 * n;
+        var xtile = ((lon % 180.0) + 180.0) / 360.0 * n;
         var ytile = (1.0 - Math.log(Math.tan(rad) + (1.0 / Math.cos(rad))) / Math.PI) / 2.0 * n;
         return [xtile, ytile];
     }
@@ -182,6 +203,7 @@ Rectangle {
         if (cornerTileX != oldCornerTileX || cornerTileY != oldCornerTileY) {
             populate();
         }
+        updateCenter();
     }
     function setCoord(c, x, y) {
         setLatLon(c[0], c[1], x, y);
@@ -230,7 +252,7 @@ Rectangle {
         var lon_deg = xtile / n * 360.0 - 180;
         var lat_rad = Math.atan(sinh(Math.PI * (1 - 2 * ytile / n)));
         var lat_deg = lat_rad * 180.0 / Math.PI;
-        return [lat_deg, lon_deg];
+        return [lat_deg % 90.0, lon_deg % 180.0];
     }
 
     Grid {
@@ -298,6 +320,7 @@ Rectangle {
             }
 
         }
+
         /*transform: Scale {
         id: scalemap
         function setScale (sc, screenpointX, screenpointY) {
@@ -327,14 +350,29 @@ Rectangle {
         }
 
         Image {
-            source: "../data/target_indicator.svg"
-            width: 50
-            height: 50
+            id: targetIndicator
+            source: "../data/red-target.png"
             smooth: true
             property variant target: getMappointFromCoord(showTargetAtLat, showTargetAtLon)
             x: target[0] - width/2
             y: target[1] - height/2
             visible: showTargetIndicator
+            transform: Rotation {
+                id: rotationTarget
+                origin.x: targetIndicator.width/2
+                origin.y: targetIndicator.height/2
+            }
+
+            NumberAnimation {
+                running: true
+                target: rotationTarget;
+                property: "angle";
+                from: 0;
+                to: 359;
+                duration: 2000
+                loops: Animation.Infinite
+            }
+
         }
     }
 
@@ -358,7 +396,7 @@ Rectangle {
             //console.log("Now, __oldZoom is " + __oldZoom + " and Map is at " + pinchmap.zoomLevel)
              */
             pinchmap.setZoomLevelPoint(Math.round((Math.log(p.scale)/Math.log(2)) + __oldZoom), p.center.x, p.center.y);
-
+            rot.angle = p.rotation
             pan(p.previousCenter.x - p.center.x, p.previousCenter.y - p.center.y);
         }
 

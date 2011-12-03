@@ -44,31 +44,64 @@ class Controller(QtCore.QObject):
         self.view = view
         self.core = core
         self.current_cache = None
-        self.core.connect('progress', self.show_progress)
-        self.core.connect('hide-progress', self.hide_progress)
-        self.core.connect('cache-changed', self.cache_changed)
-        self.core.connect('error', self.show_message)
-        self.core.connect('map-marks-changed', self.map_marks_changed)
+        self.core.connect('progress', self._show_progress)
+        self.core.connect('hide-progress', self._hide_progress)
+        self.core.connect('cache-changed', self._cache_changed)
+        self.core.connect('error', self._show_message)
+        self.core.connect('map-marks-changed', self._map_marks_changed)
+        self.core.connect('settings-changed', self._settings_changed)
+        self.core.connect('save-settings', self._save_settings)
         self.callback_gps = None
+        self.settings = {}
+        self.c = None
 
     marksChanged = QtCore.Signal()
+    settingsChanged = QtCore.Signal()
 
-    def map_marks_changed(self, caller):
+    # Handle gobject signal from Core
+    def _map_marks_changed(self, caller):
         self.marksChanged.emit()
 
-    def show_message(self, caller, message):
+    # Handle gobject signal from Core
+    def _show_message(self, caller, message):
         self.view.rootObject().showMessage(message)
 
-    def cache_changed(self, caller, cache):
+    # Handle gobject signal from Core
+    def _cache_changed(self, caller, cache):
         if self.current_cache != None and self.current_cache.name == cache.name:
-            self.current_cache._geocache = cache
-            self.current_cache.changed.emit()
+            self.current_cache.update(cache)
 
-    def hide_progress(self, caller):
+    # Handle gobject signal from Core
+    def _hide_progress(self, caller):
         self.view.rootObject().hideProgress()
 
-    def show_progress(self, caller, progress, message):
+    # Handle gobject signal from Core
+    def _show_progress(self, caller, progress, message):
         self.view.rootObject().showProgress(progress, message)
+
+    # Handle gobject signal from Core
+    def _save_settings(self, caller):
+        caller.save_settings(self.settings, self)
+
+    # Handle gobject signal from Core
+    def _settings_changed(self, caller, settings, source):
+        if source == self:
+            return
+        logger.debug("Got settings from %s, len() = %d, source = %s" % (caller, len(settings), source))
+        self.settings.update(settings)
+
+        if 'last_selected_geocache' in settings:
+            c = self.core.pointprovider.get_by_name(settings['last_selected_geocache'])
+            if c != None:
+                self.geocacheSelected(GeocacheWrapper(c, self.core))
+        #if 'last_target_lat' in settings:
+        #    self.setTarget(settings['last_target_lat'], settings['last_target_lon'])
+
+        self.settingsChanged.emit()
+
+    @QtCore.Slot(str, str)
+    def updateSetting(self, name, value):
+        self.settings[name] = value
 
     @QtCore.Slot(QtCore.QObject)
     def geocacheDownloadDetailsClicked(self, wrapper):
@@ -77,12 +110,12 @@ class Controller(QtCore.QObject):
     @QtCore.Slot(QtCore.QObject)
     def geocacheSelected(self, wrapper):
         self.current_cache = wrapper
-        x = [CoordinateWrapper(x) for x in wrapper._geocache.get_collected_coordinates(format = geo.Coordinate.FORMAT_DM).values()]
-        self.view.rootObject().setCurrentGeocache(wrapper, CoordinateListModel(self.core, x), wrapper._logs())
+        self.view.rootObject().setCurrentGeocache(wrapper)
+        self.updateSetting('last_selected_geocache', wrapper._name())
 
     @QtCore.Slot(QtCore.QObject, float, float, float, float)
     def mapViewChanged(self, map, lat_start, lon_start, lat_end, lon_end):
-        #logger.debug("Map view changed to %f-%f, %f-%f." % (lat_start, lon_start, lat_end, lon_end))
+        #logger.debug("Map view changed to %r-%r, %r-%r." % (lat_start, lon_start, lat_end, lon_end))
         if self.view.rootObject() != None:
             self.view.rootObject().setGeocacheList(map, GeocacheListModel(self.core, lat_start, lon_start, lat_end, lon_end))
 
@@ -92,6 +125,7 @@ class Controller(QtCore.QObject):
 
     @QtCore.Slot(float, float)
     def setTarget(self, lat, lon):
+        self.settings['last_target_lat'], self.settings['last_target_lon'] = lat, lon
         logger.debug("Setting target to %f, %f" % (lat, lon))
         self.core.set_target(geo.Coordinate(lat, lon))
 
@@ -123,6 +157,10 @@ class Controller(QtCore.QObject):
         logger.debug("Position changed, new fix is %r" % a)
         self.callback_gps(a)
 
+    def _setting(self, s, t):
+        x = t(self.settings[s]) if s in self.settings else 0
+        logger.debug("Giving out value %r for setting %s" % (s, x))
+        return x
 
     def _distance_unit(self):
         return "m"
@@ -130,8 +168,12 @@ class Controller(QtCore.QObject):
     def _coordinate_format(self):
         return "DM"
 
+
     changed = QtCore.Signal()
 
+    mapPositionLat = QtCore.Property(float, lambda x: x._setting('map_position_lat', float), notify=settingsChanged)
+    mapPositionLon = QtCore.Property(float, lambda x: x._setting('map_position_lon', float), notify=settingsChanged)
+    mapZoom = QtCore.Property(int, lambda x: x._setting('map_zoom', int), notify=settingsChanged)
     distanceUnit = QtCore.Property(str, _distance_unit, notify=changed)
     coordinateFormat = QtCore.Property(str, _coordinate_format, notify=changed)
 
@@ -164,7 +206,7 @@ class FixWrapper(QtCore.QObject):
         return self.data.altitude if self.data.altitude != None else 0
 
     def _speed(self):
-        return self.data.speed if self.data.altitude != None else 0
+        return self.data.speed if self.data.speed != None else 0
 
     def _error(self):
         return float(self.data.error)
@@ -202,8 +244,8 @@ class GPSDataWrapper(QtCore.QObject):
         self.core.connect('target-changed', self._on_target_changed)
         self.gps_data = FixWrapper(gpsreader.Fix())
         self.gps_last_good_fix = FixWrapper(gpsreader.Fix())
-        self.gps_target_distance = -1.0
-        self.gps_target_bearing = -1.0
+        self.gps_target_distance = None
+        self.gps_target_bearing = None
         self.gps_status = ''
         self._target_valid = False
         self._target = CoordinateWrapper(geo.Coordinate(0, 0))
@@ -336,11 +378,45 @@ class CoordinateWrapper(QtCore.QObject):
     comment = QtCore.Property(str, _comment, notify=changed)
     user_coordinate_id = QtCore.Property(unicode, _user_coordinate_id, notify=changed)
 
+class CoordinateListModel(QtCore.QAbstractListModel):
+    COLUMNS = ('coordinate',)
+
+    def __init__(self, core, coordinates = []):
+        QtCore.QAbstractListModel.__init__(self)
+        #self._geocaches = [GeocacheWrapper(x, core) for x in core.pointprovider.get_points(geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end))[0:100]]
+        self._coordinates = coordinates
+        self.setRoleNames(dict(enumerate(CoordinateListModel.COLUMNS)))
+
+    #def add_many(self, coordinates):
+#        self._coordinates += coordinates
+
+    def update(self, new):
+        self._coordinates = new
+        QtCore.QAbstractListModel.dataChanged(self)
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        return len(self._coordinates)
+
+    def data(self, index, role):
+        if index.isValid() and role == CoordinateListModel.COLUMNS.index('coordinate'):
+            return self._coordinates[index.row()]
+        return None
+
+
+
 class GeocacheWrapper(QtCore.QObject):
     def __init__(self, geocache, core):
         QtCore.QObject.__init__(self)
         self._geocache = geocache
         self.core = core
+        self._coordinate_list = None
+        self._logs_list = None
+
+    def update(self, geocache):
+        self._geocache = geocache
+        self._coordinate_list = None
+        self._logs_list = None
+        self.changed.emit()
         
     def _name(self):
         return self._geocache.name
@@ -371,7 +447,9 @@ class GeocacheWrapper(QtCore.QObject):
         return showdesc
 
     def _logs(self):
-        return LogsListModel(self._geocache.logs)
+        if self._logs_list == None:
+            self._logs_list = LogsListModel(self._geocache.get_logs())
+        return self._logs_list
 
     def get_path_to_image(self, image):
         return path.join(self.core.settings['download_output_dir'], image)
@@ -394,8 +472,13 @@ class GeocacheWrapper(QtCore.QObject):
     def _found(self):
         return self._geocache.found
 
-    #def _waypoints(self):
-    #    return self._geocache.owner
+    def _coordinates(self):
+        logger.debug("Preparing coordinate list...")
+        if self._coordinate_list == None:
+            z = [CoordinateWrapper(x) for x in self._geocache.get_collected_coordinates(format = geo.Coordinate.FORMAT_DM).values()]
+            self._coordinate_list = CoordinateListModel(self.core, z)
+        return self._coordinate_list
+        #return []
 
     def _images(self):
         return self._geocache.get_images()
@@ -420,8 +503,8 @@ class GeocacheWrapper(QtCore.QObject):
     found = QtCore.Property(bool, _found, notify=changed)
     images = QtCore.Property(QtCore.QObject, _images, notify=changed)
     status = QtCore.Property(int, _status, notify=changed)
-    #logs = QtCore.Property(QtCore.QObject, _logs, notify=changed)
-    #coordinates = QtCore.Property("QVariant", _coordinates, notify=changed)
+    logs = QtCore.Property(QtCore.QObject, _logs, notify=changed)
+    coordinates = QtCore.Property(QtCore.QObject, _coordinates, notify=changed)
 
 class GeocacheListModel(QtCore.QAbstractListModel):
     COLUMNS = ('geocache',)
@@ -440,27 +523,6 @@ class GeocacheListModel(QtCore.QAbstractListModel):
         if index.isValid() and role == GeocacheListModel.COLUMNS.index('geocache'):
             return self._geocaches[index.row()]
         return None
-
-class CoordinateListModel(QtCore.QAbstractListModel):
-    COLUMNS = ('coordinate',)
-
-    def __init__(self, core, coordinates = []):
-        QtCore.QAbstractListModel.__init__(self)
-        #self._geocaches = [GeocacheWrapper(x, core) for x in core.pointprovider.get_points(geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end))[0:100]]
-        self._coordinates = coordinates
-        self.setRoleNames(dict(enumerate(CoordinateListModel.COLUMNS)))
-
-    def add_many(self, coordinates):
-        self._coordinates += coordinates
-
-    def rowCount(self, parent=QtCore.QModelIndex()):
-        return len(self._coordinates)
-
-    def data(self, index, role):
-        if index.isValid() and role == CoordinateListModel.COLUMNS.index('coordinate'):
-            return self._coordinates[index.row()]
-        return None
-
 
 
 class LogsListModel(QtCore.QAbstractListModel):

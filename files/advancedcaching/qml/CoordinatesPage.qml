@@ -5,7 +5,7 @@ import "uiconstants.js" as UI
 Page {
     id: listPage
     Header{
-        text: "Geocache <b>"+currentGeocache.name+"</b>"
+        text: "Geocache <b>"+(currentGeocache.name || "undefined") + "</b>"
         id: listHeader
     }
 
@@ -16,7 +16,8 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom:  parent.bottom
-        model: currentGeocacheCoordinates
+        model: currentGeocache.coordinates || emptyList
+
         id: list
         delegate: Item {
             BorderImage {
@@ -76,6 +77,7 @@ Page {
                  onClicked: {
                      //listPage.openFile(page)
                      showDescription.coordinate = model.coordinate
+                     map.setCenterLatLon(showDescription.coordinate.lat, showDescription.coordinate.lon)
                      showDescription.open()
                  }
              }
@@ -118,15 +120,17 @@ Page {
                     font.pixelSize: UI.FONT_SMALL
                 }
                 PinchMap {
-                    centerLatitude: showDescription.coordinate ? showDescription.coordinate.lat : 49
-                    centerLongitude: showDescription.coordinate ? showDescription.coordinate.lon : 6
-                    showTargetIndicator: true
-                    showTargetAtLat: showDescription.coordinate ? showDescription.coordinate.lat : 49
-                    showTargetAtLon: showDescription.coordinate ? showDescription.coordinate.lon : 6
+                    id: map
                     zoomLevel: 13
                     width: showDescription.width
                     height: 300
                     clip: true
+                    centerLatitude: showDescription.coordinate.lat || 49
+                    centerLongitude: showDescription.coordinate.lon || 6
+                    showTargetIndicator: true
+                    showTargetAtLat: showDescription.coordinate.lat || 49
+                    showTargetAtLon: showDescription.coordinate.lon || 6
+
                 }
             }
 

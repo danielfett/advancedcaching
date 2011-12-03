@@ -9,9 +9,6 @@ Page {
         id: listHeader
     }
 
-    ListModel {
-        id: emptyList
-    }
 
     ListView {
         anchors.top: listHeader.bottom
@@ -20,7 +17,7 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom:  parent.bottom
-        model: currentGeocacheLogs || emptyList
+        model: currentGeocache.logs || emptyList
         delegate: Column {
             height: rw.height + description.height + 16
             spacing: 16

@@ -8,10 +8,12 @@ PageStackWindow {
     //property variant controller
     property variant geocacheList: 0
     property variant currentGeocache: 0
-    property variant currentGeocacheCoordinates: 0
-    property variant currentGeocacheLogs: 0
     property string downloadText: ""
 
+
+    function setGeocacheList(map, l) {
+        map.model = l
+    }
 
     function showMessage (message) {
         banner.text = message
@@ -28,16 +30,8 @@ PageStackWindow {
         progressBanner.hide()
     }
 
-    function setGeocacheList (map, list) {
-        map.model = list
-    }
-
-    function setCurrentGeocache(geocache, coordinates, logs) {
+    function setCurrentGeocache(geocache) {
         currentGeocache = geocache;
-        currentGeocacheCoordinates = coordinates; //currentGeocache.coordinates;
-        currentGeocacheLogs = logs;
-        //console.log(coordinates)
-        //console.debug("Current Cache size "+geocache.size+" terrain "+geocache.terrain+" difficulty "+geocache.difficulty+" owner "+geocache.owner+" and has "+currentGeocacheCoordinates.count + " WPs")
     }
 
     id: rootWindow
@@ -47,6 +41,10 @@ PageStackWindow {
         id: mainPage
     }
 
+
+    ListModel {
+        id: emptyList
+    }
 
     InfoBanner {
         id: banner
@@ -76,19 +74,18 @@ PageStackWindow {
         }
     }
 
+    function showDetailsPage(page) {
+        mainPage.showDetailsPage(page)
+    }
+
     DetailsDefaultPage {
         id: pageDetailsDefault
     }
-    DescriptionPage {
-        id: pageDescription
-    }
-    LogsPage {
-        id: pageLogs
-    }
 
+    /*
     CoordinatesPage {
         id: pageCoordinates
-    }
+    }*/
 
     /*
     Accelerometer {

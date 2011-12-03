@@ -8,8 +8,6 @@ Page {
         id: header
     }
 
-    signal buttonClicked (string target)
-
     Column {
         id: col1
         anchors.top: header.bottom
@@ -92,8 +90,15 @@ Page {
 
         ListButton {
             text: "Description"
+            property variant pageDescription: null
             onClicked: {
-                parent.parent.buttonClicked("DescriptionPage")
+                if (pageDescription == null) {
+                    var component = Qt.createComponent("DescriptionPage.qml");
+                    if (component.status == Component.Ready) {
+                        var pageDescription = component.createObject(rootWindow);
+                    }
+                }
+                showDetailsPage(pageDescription)
             }
 
         }
@@ -101,8 +106,15 @@ Page {
 
         ListButton {
             text: "Coordinates"
+            property variant pageCoordinates: null
             onClicked: {
-                parent.parent.buttonClicked("CoordinatesPage")
+                if (pageCoordinates == null) {
+                    var component = Qt.createComponent("CoordinatesPage.qml");
+                    if (component.status == Component.Ready) {
+                        var pageCoordinates = component.createObject(rootWindow);
+                    }
+                }
+                showDetailsPage(pageCoordinates)
             }
         }
 
@@ -110,15 +122,22 @@ Page {
             text: "Logs (3)"
             // todo: Add Icons of Logs here
 
+            property variant pageLogs: null
             onClicked: {
-                parent.parent.buttonClicked("LogsPage")
+                if (pageLogs == null) {
+                    var component = Qt.createComponent("LogsPage.qml");
+                    if (component.status == Component.Ready) {
+                        var pageLogs = component.createObject(rootWindow);
+                    }
+                }
+                showDetailsPage(pageLogs)
             }
         }
-
+/* todo...
         ListButton {
             text: "Images (4)"
             onClicked: {
-                parent.parent.buttonClicked("ImagesPage")
+                //parent.parent.buttonClicked("ImagesPage")
             }
         }
 
@@ -126,9 +145,9 @@ Page {
             text: "CacheCalc"
 
             onClicked: {
-                parent.parent.buttonClicked("CacheCalcPage.qml")
+                //parent.parent.buttonClicked("CacheCalcPage.qml")
             }
-        }
+        }*/
 
     }
 }

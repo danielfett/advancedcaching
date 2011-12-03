@@ -17,6 +17,34 @@ Page {
         anchors.rightMargin: 16
         id: compassColumn
 
+        Row {
+            InfoLabel {
+                name: "Distance"
+                value: gps.targetDistanceValid ? F.formatDistance(gps.targetDistance, controller) : "-"
+                width: compassColumn.width/2.0
+            }
+            Column {
+                width: compassColumn.width/2.0
+                Text {
+                    id: t0
+                    font.pixelSize: 20
+                    color: UI.COLOR_INFOLABEL
+                    font.weight: Font.Bold
+                    text: "Accuracy"
+                    anchors.right: parent.right
+                }
+
+                Text {
+                    id: t1
+                    text: gps.lastGoodFix.valid ? ("± " + F.formatDistance(gps.lastGoodFix.error, controller)) : "-"
+                    font.pixelSize: UI.FONT_DEFAULT
+                    font.weight: Font.Light
+                    anchors.right: parent.right
+                }
+            }
+            anchors.left: parent.left
+            anchors.right: parent.right
+        }
 
         Image {
             id: compassImage
@@ -47,12 +75,13 @@ Page {
                     angle: -accelerometer.y
                 }*/]
             //anchors.fill: parent
+            anchors.topMargin: -32
             anchors.horizontalCenter: parent.horizontalCenter
             smooth: true
             width: compassColumn.width * 0.9
             fillMode: Image.PreserveAspectFit
             z: 2
-
+            /*
             Image {
                 property int angle: 90
                 property int outerMargin: 15
@@ -66,10 +95,11 @@ Page {
                    origin.x: sunImage.width/2
                    angle: sunImage.angle
                }
-            }
+            }*/
             Image {
-                property int angle: gps.targetBearing
+                property int angle: gps.targetBearing || 0
                 property int outerMargin: 50
+                visible: gps.targetValid
                 id: arrowImage
                 source: "../data/arrow_target.svg"
                 width: (compassImage.paintedWidth / compassImage.sourceSize.width)*sourceSize.width
@@ -87,13 +117,13 @@ Page {
 
 
         Row {
-            /*InfoLabel {
-                name: "Travel Direction"
-                value: gps.lastGoodFix.valid ? F.formatBearing(gps.lastGoodFix.bearing) : "-"
-                width: compassColumn.width/3
-            }*/
             InfoLabel {
-                name: "Comp. Heading"
+                name: "Altitude"
+                value: gps.lastGoodFix.altitudeValid ? F.formatDistance(gps.lastGoodFix.altitude, controller) : "-"
+                width: compassColumn.width/3.0
+            }
+            InfoLabel {
+                name: "Bearing"
                 value: F.formatBearing(compass.azimuth)
                 width: compassColumn.width/3
             }
@@ -101,24 +131,6 @@ Page {
                 name: "Comp. Accuracy"
                 value: (compass.calibration * 100) + "%"
                 width: compassColumn.width/3
-            }
-        }
-
-        Row {
-            InfoLabel {
-                name: "Distance"
-                value: gps.targetDistanceValid ? F.formatDistance(gps.targetDistance, controller) : "-"
-                width: compassColumn.width/3.0
-            }
-            InfoLabel {
-                name: "Accuracy"
-                value: gps.lastGoodFix.valid ? ("± " + F.formatDistance(gps.lastGoodFix.error, controller)) : "-"
-                width: compassColumn.width/3.0
-            }
-            InfoLabel {
-                name: "Altitude"
-                value: gps.lastGoodFix.altitudeValid ? F.formatDistance(gps.lastGoodFix.altitude, controller) : "-"
-                width: compassColumn.width/3.0
             }
         }
 
