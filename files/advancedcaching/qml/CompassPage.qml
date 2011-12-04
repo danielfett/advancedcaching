@@ -154,13 +154,23 @@ Page {
                 width: compassColumn.width/6
                 anchors.bottom: currentTarget.bottom
                 iconSource: "image://theme/icon-m-toolbar-edit"
+                property variant coordinateSelectorDialog: null
                 onClicked: {
-                    //coordinateSelectorDialog.parent = tabCompass
-                    coordinateSelectorDialog.accepted.connect(function() {
-                                                                  var res = coordinateSelectorDialog.getValue();
-                                                                  controller.setTarget(res[0], res[1])
-                    })
-
+                    if (coordinateSelectorDialog == null) {
+                        var component = Qt.createComponent("CoordinateSelector.qml");
+                        if (component.status == Component.Ready) {
+                            coordinateSelectorDialog = component.createObject(tabCompass);                
+                            coordinateSelectorDialog.accepted.connect(function() {
+                                var res = coordinateSelectorDialog.getValue();
+                                controller.setTarget(res[0], res[1])
+                            })
+                        }
+                    }
+                    if (gps.targetValid) {
+                        coordinateSelectorDialog.setValue(gps.target.lat, gps.target.lon);
+                    } else if (gps.lastGoodFix.valid) {
+                        coordinateSelectorDialog.setValue(gps.lastGoodFix.lat, gps.lastGoodFix.lon);
+                    }
                     coordinateSelectorDialog.open()
                 }
             }

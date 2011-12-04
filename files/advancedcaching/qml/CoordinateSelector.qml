@@ -1,4 +1,3 @@
-
 import com.nokia.meego 1.0
 import QtQuick 1.1
 import "uiconstants.js" as UI
@@ -10,10 +9,9 @@ QueryDialog {
     acceptButtonText: "OK"
     rejectButtonText: "cancel"
     titleText: "Edit Coordinate"
-    // todo: Gesamtwert berechnen
 
     function setValue(lat, lon) {
-
+        console.log("Trying to set lat/lon to " + lat + " and " + lon);
         var v1 = F.getDM(lat)
         var v2 = F.getDM(lon)
         latButton.value = v1[0]

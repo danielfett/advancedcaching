@@ -18,7 +18,7 @@ Rectangle {
                    cache.type == 'earth' ? "darkgreen" :
                    "blue")
 
-    smooth: true
+    //smooth: true
     radius: 7
     Image {
         source: "../data/cross.svg"

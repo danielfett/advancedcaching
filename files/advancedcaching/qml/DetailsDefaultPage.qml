@@ -95,7 +95,7 @@ Page {
                 if (pageDescription == null) {
                     var component = Qt.createComponent("DescriptionPage.qml");
                     if (component.status == Component.Ready) {
-                        var pageDescription = component.createObject(rootWindow);
+                        pageDescription = component.createObject(rootWindow);
                     }
                 }
                 showDetailsPage(pageDescription)
@@ -111,7 +111,7 @@ Page {
                 if (pageCoordinates == null) {
                     var component = Qt.createComponent("CoordinatesPage.qml");
                     if (component.status == Component.Ready) {
-                        var pageCoordinates = component.createObject(rootWindow);
+                        pageCoordinates = component.createObject(rootWindow);
                     }
                 }
                 showDetailsPage(pageCoordinates)
@@ -127,7 +127,7 @@ Page {
                 if (pageLogs == null) {
                     var component = Qt.createComponent("LogsPage.qml");
                     if (component.status == Component.Ready) {
-                        var pageLogs = component.createObject(rootWindow);
+                        pageLogs = component.createObject(rootWindow);
                     }
                 }
                 showDetailsPage(pageLogs)

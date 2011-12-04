@@ -30,6 +30,8 @@ Page {
         showTargetIndicator: gps.targetValid;
         showTargetAtLat: gps.target.lat || 0
         showTargetAtLon: gps.target.lon || 0
+        // Rotating the map for fun and profit.
+        // angle: -compass.azimuth
 
     }
 
@@ -137,4 +139,13 @@ Page {
             }
         }
     }
+    Menu {
+         id: mapMenu
+         visualParent: tabMap
+
+         MenuLayout {
+             MenuItem { text: "Download Details for all visible Geocaches"; onClicked: { label.text = textField.text } }
+             MenuItem { text: "Reload Map"; onClicked: { textField.text = ""; label.text = "empty label" } }
+         }
+     }
 }

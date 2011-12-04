@@ -131,6 +131,7 @@ class Controller(QtCore.QObject):
 
     @QtCore.Slot(QtCore.QObject)
     def setAsTarget(self, coordinate):
+        self.settings['last_target_lat'], self.settings['last_target_lon'] = coordinate._coordinate.lat, coordinate._coordinate.lon
         self.core.set_target(coordinate._coordinate)
 
     @QtCore.Slot(bool, float, float, bool, float, bool, float, float, QtCore.QObject)
@@ -314,7 +315,7 @@ class GPSDataWrapper(QtCore.QObject):
     hasFix = QtCore.Property(bool, _gps_has_fix, notify=changed)
     targetValid = QtCore.Property(bool, _target_valid, notify=changed_target)
     target = QtCore.Property(QtCore.QObject, _target, notify=changed_target)
-    targetDistanceValid = QtCore.Property(bool, _gps_target_distance_valid, notify=changed_target)
+    targetDistanceValid = QtCore.Property(bool, _gps_target_distance_valid, notify=changed_distance_bearing)
     targetDistance = QtCore.Property(float, _gps_target_distance, notify=changed_distance_bearing)
     status = QtCore.Property(str, _gps_status, notify=changed)
 

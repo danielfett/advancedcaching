@@ -478,7 +478,7 @@ class Core(gobject.GObject):
         self.current_target = coordinate
         distance, bearing = self.__get_target_distance_bearing()
         self.emit('target-changed', coordinate, distance, bearing)
-        self.emit('map-marks-changed')
+        #self.emit('map-marks-changed')
 
 
     def __get_target_distance_bearing(self):

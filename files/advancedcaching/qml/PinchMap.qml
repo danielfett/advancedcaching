@@ -22,6 +22,8 @@ Rectangle {
 
     property double latitude: 0
     property double longitude: 0
+    
+    property alias angle: rot.angle
 
     transform: Rotation {
         angle: 0
@@ -175,7 +177,6 @@ Rectangle {
                 return false;
             }
         }
-        console.debug("start = " + start[0] + "  " + start[1] + ", end = " + end[0] + "  " + end[1])
         controller.mapViewChanged(pinchmap, start[0], start[1], end[0], end[1])
         return true;
     }
@@ -234,6 +235,7 @@ Rectangle {
         var realX = (tile[0] - cornerTileX) * tileSize
         var realY = (tile[1] - cornerTileY) * tileSize
         return [realX, realY]
+        
     }
 
 
@@ -334,6 +336,7 @@ Rectangle {
         //origin.x: map.width/2
         //origin.y: map.height/2
         }*/
+        
         Item {
             id: geocacheDisplayContainer
             //anchors.fill:  parent
@@ -348,21 +351,22 @@ Rectangle {
 
             }
         }
-
+    }
+    
         Image {
             id: targetIndicator
             source: "../data/red-target.png"
-            smooth: true
-            property variant target: getMappointFromCoord(showTargetAtLat, showTargetAtLon)
-            x: target[0] - width/2
-            y: target[1] - height/2
+            //smooth: true
+            x: map.x + getMappointFromCoord(showTargetAtLat, showTargetAtLon)[0] - width/2
+            y: map.y + getMappointFromCoord(showTargetAtLat, showTargetAtLon)[1] - height/2
+            
             visible: showTargetIndicator
             transform: Rotation {
                 id: rotationTarget
                 origin.x: targetIndicator.width/2
                 origin.y: targetIndicator.height/2
             }
-
+            
             NumberAnimation {
                 running: true
                 target: rotationTarget;
@@ -374,7 +378,6 @@ Rectangle {
             }
 
         }
-    }
 
     PinchArea {
         id: pincharea;
