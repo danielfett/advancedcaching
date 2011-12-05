@@ -35,6 +35,10 @@ Page {
             id: tabSettings
         }
 
+        VideoPage{
+            id: tabCamera
+        }
+
     }
 
     ToolBarLayout {
@@ -66,6 +70,10 @@ Page {
                 tab: tabSettings
                 iconSource: "image://theme/icon-m-toolbar-view-menu"
             }
+            /*TabButton {
+                tab: tabCamera
+                iconSource: "image://theme/icon-m-viewfinder-camera-selected"
+            }*/
         }
     }
 }

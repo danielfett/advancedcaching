@@ -4,9 +4,10 @@ import "uiconstants.js" as UI
 
 Item {
     property alias text: titleText.text
+    property alias color: rect.color
 
     Rectangle {
-        color: UI.COLOR_HIGHLIGHT
+        id: rect
         width: parent.width
         /*x: parent.x - 30
         height: 80

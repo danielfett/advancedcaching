@@ -4,8 +4,8 @@ import "uiconstants.js" as UI
 
 Page {
     
-    Header{
-        text: "Geocache <b>"  + (currentGeocache.name || "(none)") + "</b>"
+    GeocacheHeader{
+        cache: currentGeocache
         id: listHeader
     }
 

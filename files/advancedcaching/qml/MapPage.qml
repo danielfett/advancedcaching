@@ -32,6 +32,11 @@ Page {
         showTargetAtLon: gps.target.lon || 0
         // Rotating the map for fun and profit.
         // angle: -compass.azimuth
+        showCurrentPosition: true
+        currentPositionValid: gps.hasFix
+        currentPositionLat: gps.lastGoodFix.lat
+        currentPositionLon: gps.lastGoodFix.lon
+        currentPositionAzimuth: compass.azimuth
 
     }
 

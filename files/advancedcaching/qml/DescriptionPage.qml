@@ -4,8 +4,8 @@ import "uiconstants.js" as UI
 import QtWebKit 1.0
 
 Page {
-    Header{
-        text: "Description: <b>" + currentGeocache.name + "</b>"
+    GeocacheHeader{
+        cache: currentGeocache
         id: header
     }
     anchors.fill: parent
@@ -19,6 +19,7 @@ Page {
         anchors.top: header.bottom
         anchors.leftMargin: 16
         anchors.rightMargin: 16
+        anchors.topMargin: 8
         id: title
     }
 

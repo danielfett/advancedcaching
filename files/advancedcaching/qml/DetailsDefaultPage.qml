@@ -3,8 +3,8 @@ import com.nokia.meego 1.0
 import "uiconstants.js" as UI
 
 Page {
-    Header{
-        text: "Geocache <b>" + (currentGeocache ? currentGeocache.name : "(none)") + "</b>"
+    GeocacheHeader{
+        cache: currentGeocache
         id: header
     }
 
@@ -16,6 +16,7 @@ Page {
         anchors.right:  parent.right
         anchors.leftMargin: 16
         anchors.rightMargin: 16
+        anchors.topMargin: 8
 
         Text {
             wrapMode: Text.Wrap

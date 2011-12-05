@@ -1,4 +1,5 @@
 import QtQuick 1.0
+import "uiconstants.js" as UI
 
 Rectangle {
     id: geocacheRectangle
@@ -11,13 +12,7 @@ Rectangle {
     y: targetPoint[1] - height/2
     color: (cache.name == currentGeocache.name) ? "#88ff0000" : "#88ffffff"
     border.width: 4
-    border.color: (cache.type == 'regular' ? "green" :
-                   cache.type == 'multi' ? "orange" :
-                   cache.type == 'virtual' ? "blue" :
-                   cache.type == 'event' ? "red" :
-                   cache.type == 'earth' ? "darkgreen" :
-                   "blue")
-
+    border.color: UI.getCacheColor(cache)
     //smooth: true
     radius: 7
     Image {

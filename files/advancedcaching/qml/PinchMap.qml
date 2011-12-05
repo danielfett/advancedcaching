@@ -18,6 +18,12 @@ Rectangle {
     property double showTargetAtLat: 0;
     property double showTargetAtLon: 0;
 
+    property bool showCurrentPosition: false;
+    property bool currentPositionValid: false;
+    property double currentPositionLat: 0;
+    property double currentPositionLon: 0;
+    property double currentPositionAzimuth: 0;
+
     property bool rotationEnabled: false
 
     property double latitude: 0
@@ -353,31 +359,48 @@ Rectangle {
         }
     }
     
-        Image {
-            id: targetIndicator
-            source: "../data/red-target.png"
-            //smooth: true
-            x: map.x + getMappointFromCoord(showTargetAtLat, showTargetAtLon)[0] - width/2
-            y: map.y + getMappointFromCoord(showTargetAtLat, showTargetAtLon)[1] - height/2
-            
-            visible: showTargetIndicator
-            transform: Rotation {
-                id: rotationTarget
-                origin.x: targetIndicator.width/2
-                origin.y: targetIndicator.height/2
-            }
-            
-            NumberAnimation {
-                running: true
-                target: rotationTarget;
-                property: "angle";
-                from: 0;
-                to: 359;
-                duration: 2000
-                loops: Animation.Infinite
-            }
+    Image {
+        id: targetIndicator
+        source: "../data/red-target.png"
+        property variant t: getMappointFromCoord(showTargetAtLat, showTargetAtLon)
+        x: map.x + t[0] - width/2
+        y: map.y + t[1] - height/2
 
+        visible: showTargetIndicator
+        transform: Rotation {
+            id: rotationTarget
+            origin.x: targetIndicator.width/2
+            origin.y: targetIndicator.height/2
         }
+
+        NumberAnimation {
+            running: true
+            target: rotationTarget;
+            property: "angle";
+            from: 0;
+            to: 359;
+            duration: 2000
+            loops: Animation.Infinite
+        }
+
+    }
+
+
+    Image {
+        id: positionIndicator
+        source: currentPositionValid ? "../data/position-indicator.png" : "../data/position-indicator-red.png"
+        property variant t: getMappointFromCoord(currentPositionLat, currentPositionLon)
+        x: map.x + t[0] - width/2
+        y: map.y + t[1] - height/2
+        smooth: true
+
+        visible: showCurrentPosition
+        transform: Rotation {
+            origin.x: positionIndicator.width/2
+            origin.y: positionIndicator.height - positionIndicator.width/2
+            angle: currentPositionAzimuth
+        }
+    }
 
     PinchArea {
         id: pincharea;

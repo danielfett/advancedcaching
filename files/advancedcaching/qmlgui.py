@@ -178,6 +178,38 @@ class Controller(QtCore.QObject):
     distanceUnit = QtCore.Property(str, _distance_unit, notify=changed)
     coordinateFormat = QtCore.Property(str, _coordinate_format, notify=changed)
 
+class MapTypeWrapper(QtCore.QObject):
+    def __init__(self, name, url):
+        QtCore.QObject.__init__(self)
+        self._name = name
+        self._url = url
+
+    def _name(self):
+        return name
+
+    def _url(self):
+        return url
+
+    name = QtCore.Property(str, _name)
+    url = QtCore.Property(str, _url)
+
+class MapTypesList(QtCore.QAbstractListModel):
+    COLUMNS = ('maptype',)
+
+    def __init__(self, core, maptypes):
+        QtCore.QAbstractListModel.__init__(self)
+        self._maptypes = [MapTypeWrapper(name, data['remote_url']) for name, data in maptypes]
+        self.setRoleNames(dict(enumerate(MapTypesList.COLUMNS)))
+
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        return len(self._maptypes)
+
+    def data(self, index, role):
+        if index.isValid() and role == MapTypesList.COLUMNS.index('maptype'):
+            return self._maptypes[index.row()]
+        return None
+
 class FixWrapper(QtCore.QObject):
 
     def __init__(self, fix):
@@ -247,6 +279,7 @@ class GPSDataWrapper(QtCore.QObject):
         self.gps_last_good_fix = FixWrapper(gpsreader.Fix())
         self.gps_target_distance = None
         self.gps_target_bearing = None
+        self.gps_has_fix = False
         self.gps_status = ''
         self._target_valid = False
         self._target = CoordinateWrapper(geo.Coordinate(0, 0))

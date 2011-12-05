@@ -8,6 +8,7 @@ Page {
     Header {
         text: "Settings"
         id: header
+        color: "grey"
     }
 
     Column {
