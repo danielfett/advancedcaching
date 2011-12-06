@@ -150,6 +150,13 @@ Rectangle {
         console.debug("Update requested.")
     }
 
+    function requestUpdateDetails() {
+        var start = num2deg(cornerTileX, cornerTileY)
+        var end = num2deg(cornerTileX + numTilesX, cornerTileY + numTilesY)
+        controller.downloadGeocaches(start[0], start[1], end[0], end[1])
+        console.debug("Download requested.")
+    }
+
     function populate() {
         console.debug("Populate called.")
         var start = num2deg(cornerTileX, cornerTileY)

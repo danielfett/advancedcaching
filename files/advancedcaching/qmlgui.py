@@ -30,13 +30,15 @@ from PySide import QtCore
 import os
 import sys
 import geo
+geo.DEGREES = geo.DEGREES.decode('utf-8')
 import re
+import geocaching
 import gpsreader
 from os import path
 from gui import Gui
 from astral import Astral
 
-d = lambda x: x.decode('utf-8', 'replace')
+d = lambda x: x#.decode('utf-8', 'replace')
 
 class Controller(QtCore.QObject):
     def __init__(self, view, core):
@@ -54,6 +56,7 @@ class Controller(QtCore.QObject):
         self.callback_gps = None
         self.settings = {}
         self.c = None
+        self._map_types = MapTypesList(self.core.settings['map_providers'])
 
     marksChanged = QtCore.Signal()
     settingsChanged = QtCore.Signal()
@@ -94,6 +97,8 @@ class Controller(QtCore.QObject):
             c = self.core.pointprovider.get_by_name(settings['last_selected_geocache'])
             if c != None:
                 self.geocacheSelected(GeocacheWrapper(c, self.core))
+        if 'map_providers' in settings:
+            self._map_types = MapTypesList(settings['map_providers'])
         #if 'last_target_lat' in settings:
         #    self.setTarget(settings['last_target_lat'], settings['last_target_lon'])
 
@@ -123,6 +128,10 @@ class Controller(QtCore.QObject):
     def updateGeocaches(self, lat_start, lon_start, lat_end, lon_end):
         self.core.on_download([geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end)])
 
+    @QtCore.Slot(float, float, float, float)
+    def downloadGeocaches(self, lat_start, lon_start, lat_end, lon_end):
+        self.core.on_download_descriptions([geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end)])
+
     @QtCore.Slot(float, float)
     def setTarget(self, lat, lon):
         self.settings['last_target_lat'], self.settings['last_target_lon'] = lat, lon
@@ -133,6 +142,12 @@ class Controller(QtCore.QObject):
     def setAsTarget(self, coordinate):
         self.settings['last_target_lat'], self.settings['last_target_lon'] = coordinate._coordinate.lat, coordinate._coordinate.lon
         self.core.set_target(coordinate._coordinate)
+
+    @QtCore.Slot(QtCore.QObject)
+    def setMapType(self, maptype):
+        self._current_map_type = maptype#self._map_types.findIndexOf(maptype)
+        #if self._current_map_type == None:
+        #    logger.error("Could not find map type: %r" % self._current_map_type)
 
     @QtCore.Slot(bool, float, float, bool, float, bool, float, float, QtCore.QObject)
     def positionChanged(self, valid, lat, lon, altvalid, alt, speedvalid, speed, error, timestamp):
@@ -169,6 +184,15 @@ class Controller(QtCore.QObject):
     def _coordinate_format(self):
         return "DM"
 
+    def _map_type(self):
+        x = self._map_types.data(self._current_map_type, 'maptype')
+        if x == None:
+            return self._map_types.data(0)
+        return x
+
+    def _map_types(self):
+        logger.debug("Map types is %r" % self._map_types)
+        return self._map_types
 
     changed = QtCore.Signal()
 
@@ -177,6 +201,9 @@ class Controller(QtCore.QObject):
     mapZoom = QtCore.Property(int, lambda x: x._setting('map_zoom', int), notify=settingsChanged)
     distanceUnit = QtCore.Property(str, _distance_unit, notify=changed)
     coordinateFormat = QtCore.Property(str, _coordinate_format, notify=changed)
+    mapType = QtCore.Property(QtCore.QObject, _map_type, notify=settingsChanged)
+    mapTypes = QtCore.Property(QtCore.QObject, _map_types, notify=settingsChanged)
+
 
 class MapTypeWrapper(QtCore.QObject):
     def __init__(self, name, url):
@@ -196,7 +223,7 @@ class MapTypeWrapper(QtCore.QObject):
 class MapTypesList(QtCore.QAbstractListModel):
     COLUMNS = ('maptype',)
 
-    def __init__(self, core, maptypes):
+    def __init__(self, maptypes):
         QtCore.QAbstractListModel.__init__(self)
         self._maptypes = [MapTypeWrapper(name, data['remote_url']) for name, data in maptypes]
         self.setRoleNames(dict(enumerate(MapTypesList.COLUMNS)))
@@ -208,6 +235,14 @@ class MapTypesList(QtCore.QAbstractListModel):
     def data(self, index, role):
         if index.isValid() and role == MapTypesList.COLUMNS.index('maptype'):
             return self._maptypes[index.row()]
+        return None
+
+    def findIndexOf(self, m):
+        i = 0
+        for n in self._maptypes:
+            if n == m:
+                return i
+            i += 1
         return None
 
 class FixWrapper(QtCore.QObject):
@@ -384,15 +419,22 @@ class CoordinateWrapper(QtCore.QObject):
     def __init__(self, coordinate):
         QtCore.QObject.__init__(self)
         self._coordinate = coordinate
+        self._is_valid = (self._coordinate.lat != -1 or self._coordinate.lon != -1) and self._coordinate.lat != None
+        if self._is_valid:
+            try:
+                float(self._coordinate.lat)
+                float(self._coordinate.lon)
+            except ValueError:
+                self._is_valid = false
 
     def _name(self):
         return self._coordinate.name
 
     def _lat(self):
-        return self._coordinate.lat
+        return self._coordinate.lat if self._is_valid else -1
 
     def _lon(self):
-        return self._coordinate.lon
+        return self._coordinate.lon if self._is_valid else -1
 
     def _display_text(self):
         return d(self._coordinate.display_text)
@@ -403,6 +445,9 @@ class CoordinateWrapper(QtCore.QObject):
     def _user_coordinate_id(self):
         return self._coordinate.user_coordinate_id
 
+    def _is_valid_coordinate(self):
+        return self._is_valid
+
     changed = QtCore.Signal()
 
     name = QtCore.Property(str, _name, notify=changed)
@@ -411,6 +456,7 @@ class CoordinateWrapper(QtCore.QObject):
     display_text = QtCore.Property(str, _display_text, notify=changed)
     comment = QtCore.Property(str, _comment, notify=changed)
     user_coordinate_id = QtCore.Property(unicode, _user_coordinate_id, notify=changed)
+    valid = QtCore.Property(bool, _is_valid_coordinate, notify=changed)
 
 class CoordinateListModel(QtCore.QAbstractListModel):
     COLUMNS = ('coordinate',)
@@ -482,7 +528,9 @@ class GeocacheWrapper(QtCore.QObject):
 
     def _logs(self):
         if self._logs_list == None:
-            self._logs_list = LogsListModel(self._geocache.get_logs())
+            logs = self._geocache.get_logs()
+            self._logs_list = LogsListModel(logs)
+            logger.debug("Creating logs list... logs: %r" % logs)
         return self._logs_list
 
     def get_path_to_image(self, image):
@@ -578,6 +626,19 @@ class LogsListModel(QtCore.QAbstractListModel):
         return None
 
 class LogWrapper(QtCore.QObject):
+    ICONS = {
+        geocaching.GeocacheCoordinate.LOG_TYPE_FOUND: 'emoticon_grin',
+        geocaching.GeocacheCoordinate.LOG_TYPE_NOTFOUND: 'cross',
+        geocaching.GeocacheCoordinate.LOG_TYPE_NOTE: 'comment',
+        geocaching.GeocacheCoordinate.LOG_TYPE_MAINTENANCE: 'wrench',
+        geocaching.GeocacheCoordinate.LOG_TYPE_PUBLISHED: 'accept',
+        geocaching.GeocacheCoordinate.LOG_TYPE_DISABLED: 'delete',
+        geocaching.GeocacheCoordinate.LOG_TYPE_NEEDS_MAINTENANCE: 'error',
+        geocaching.GeocacheCoordinate.LOG_TYPE_WILLATTEND: 'calendar_edit',
+        geocaching.GeocacheCoordinate.LOG_TYPE_ATTENDED: 'group',
+        geocaching.GeocacheCoordinate.LOG_TYPE_UPDATE: 'asterisk_yellow',
+    }
+    
     changed = QtCore.Signal()
     def __init__(self, log):
         QtCore.QObject.__init__(self)
@@ -612,12 +673,16 @@ class LogWrapper(QtCore.QObject):
     def _text(self):
         return self._log['text']
 
+    def _icon_name(self):
+        return self.ICONS[self._log['type']] if self._log['type'] in self.ICONS else ""
+
     type = QtCore.Property(str, _type, notify=changed)
     finder = QtCore.Property(str, _finder, notify=changed)
     year = QtCore.Property(int, _year, notify=changed)
     month = QtCore.Property(int, _month, notify=changed)
     day = QtCore.Property(int, _day, notify=changed)
     text = QtCore.Property(str, _text, notify=changed)
+    iconName = QtCore.Property(str, _icon_name, notify=changed)
     
 
 class QmlGui(Gui):

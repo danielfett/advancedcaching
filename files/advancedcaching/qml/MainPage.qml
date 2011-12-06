@@ -45,30 +45,34 @@ Page {
         id: commonTools
         visible: true
         ToolIcon {
-            iconId: "toolbar-back"
+            iconId: "toolbar-back" + ((tabDetailsPageStack.depth < 2) ? "-dimmed" : "")
             onClicked: {
                 if (tabDetailsPageStack.depth > 1) tabDetailsPageStack.pop();
             }
+
         }
 
         ButtonRow {
             style: TabButtonStyle { }
             TabButton {
-                text: "Compass"
+                //text: "Compass"
+                iconSource: "../data/icon-m-toolbar-compass.png"
                 tab: tabCompass
             }
             TabButton {
-                text: "Map"
+                //text: "Map"
+                iconSource: "../data/icon-m-toolbar-map.png"
                 tab: tabMap
             }
             TabButton {
-                text: "Details"
+                //text: "Details"
                 tab: tabDetailsPageStack
+                iconSource: "image://theme/icon-m-toolbar-search"
             }
             TabButton {
                 //text: "Settings"
                 tab: tabSettings
-                iconSource: "image://theme/icon-m-toolbar-view-menu"
+                iconSource: "image://theme/icon-m-toolbar-settings"
             }
             /*TabButton {
                 tab: tabCamera

@@ -1,6 +1,7 @@
 import QtQuick 1.1
 import com.nokia.meego 1.0
 import "uiconstants.js" as UI
+import "functions.js" as F
 
 Page {
     id: listPage
@@ -36,7 +37,7 @@ Page {
 
                      Label {
                          id: mainText
-                         text: model.coordinate.display_text
+                         text: model.coordinate.name || "No Title"
                          font.weight: Font.Bold
                          font.pixelSize: 26
                          width: list.width - arrow.width
@@ -77,7 +78,12 @@ Page {
                  onClicked: {
                      //listPage.openFile(page)
                      showDescription.coordinate = model.coordinate
-                     map.setCenterLatLon(showDescription.coordinate.lat, showDescription.coordinate.lon)
+                     if (showDescription.coordinate.valid) {
+                         map.setCenterLatLon(showDescription.coordinate.lat, showDescription.coordinate.lon)
+                     } else {
+                         map.visible= false
+                     }
+
                      showDescription.open()
                  }
              }
@@ -96,13 +102,15 @@ Page {
         // todo: Gesamtwert berechnen
         content: [
             Column {
+                spacing: 8
                 Text {
-                    text: showDescription.coordinate ? (showDescription.coordinate.lat + "/" + showDescription.coordinate.lon) : "undefined"
+                    text: showDescription.coordinate.valid ? F.formatCoordinate(showDescription.coordinate.lat, showDescription.coordinate.lon, controller) : "undefined"
                     width: showDescription.width
                     font.weight: Font.Light
                     color: UI.COLOR_DIALOG_TEXT
                     wrapMode: Text.WordWrap
                     font.pixelSize: UI.FONT_DEFAULT
+                    visible: showDescription.coordinate.valid || false
                 }/*
                 Text {
                     text: showDescription.coordinate.display_text || "undefined"

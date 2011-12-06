@@ -60,6 +60,7 @@ PageStackWindow {
         property real azimuth: 0
         property real calibration: 0
         active: true
+        dataRate: 10
     }
 
     PositionSource {

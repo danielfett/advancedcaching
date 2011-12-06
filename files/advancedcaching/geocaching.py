@@ -360,7 +360,7 @@ class GeocacheCoordinate(geo.Coordinate):
         # waypoints
         for w in self.get_waypoints():
             if not (w['lat'] == -1 and w['lon'] == -1):
-                coord = geo.Coordinate(w['lat'], w['lon'], w['name'])
+                coord = geo.Coordinate(w['lat'], w['lon'], w['id'])
                 coord.comment = htmlcallback(w['comment'])
                 latlon = coord.get_latlon(format)
             elif not include_unknown:
@@ -371,7 +371,8 @@ class GeocacheCoordinate(geo.Coordinate):
                 latlon = '???'
             check_double.append(latlon)
             coord.user_coordinate_id = None
-            coord.display_text = "%s - %s - %s\n%s" % (w['name'], latlon.decode('utf-8'), w['id'], shorten_callback(htmlcallback(w['comment'])))
+            coord.title = w['name']
+            coord.display_text = "%s - %s - %s\n%s" % (w['name'], latlon, w['id'], shorten_callback(htmlcallback(w['comment'])))
             clist[i] = coord
             i += 1
 
@@ -380,6 +381,7 @@ class GeocacheCoordinate(geo.Coordinate):
             coord = geo.Coordinate(* local['value'])
             text = local['name'] if local['name'] != '' else 'manually entered'
             coord.display_text = "%s: %s" % (text, coord.get_latlon(format))
+            coord.title = "Entered"
             coord.comment = "This coordinate was manually entered."
             coord.user_coordinate_id = id
             clist[i] = coord
@@ -396,6 +398,7 @@ class GeocacheCoordinate(geo.Coordinate):
                 else:
                     source_string = source
                     coord.user_coordinate_id = None
+                coord.title = "Solution"
                 coord.display_text = "%s: %s = %s" % (source_string, coord.name, coord.get_latlon(format))
                 coord.comment = "From %s:\n%s = %s" % (source_string, coord.name, coord.get_latlon(format))
                 clist[i] = coord
@@ -413,6 +416,7 @@ class GeocacheCoordinate(geo.Coordinate):
                 latlon = coord.get_latlon(format)
                 if latlon in check_double:
                     continue
+                coord.title = "From Text"
                 coord.display_text = "%s: %s" % (source_string, latlon)
                 coord.comment = "Found in %s." % source_string
                 clist[i] = coord
@@ -420,6 +424,7 @@ class GeocacheCoordinate(geo.Coordinate):
 
         # parsed from notes
         for coord in geo.search_coordinates(self.notes):
+            coord.title = "From Notes"
             coord.display_text = "from notes: %s" % coord.get_latlon(format)
             coord.comment = "This coordinate was manually entered in the notes field."
             coord.user_coordinate_id = None

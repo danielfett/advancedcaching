@@ -97,7 +97,7 @@ Page {
             height: parent.parent.buttonSize
         }
     }
-    Row {
+    Column {
         id: buttonsLeft
         anchors.bottom: pinchmap.bottom
         anchors.bottomMargin: 16
@@ -120,9 +120,16 @@ Page {
             height: parent.parent.buttonSize
             onClicked: {
                 pinchmap.requestUpdate()
-
             }
-
+        }
+        Button {
+            id: settingsButton
+            iconSource: "image://theme/icon-m-toolbar-view-menu"
+            width: parent.parent.buttonSize
+            height: parent.parent.buttonSize
+            onClicked: {
+                mapMenu.open()
+            }
         }
     }
     ProgressBar {
@@ -149,8 +156,20 @@ Page {
          visualParent: tabMap
 
          MenuLayout {
-             MenuItem { text: "Download Details for all visible Geocaches"; onClicked: { label.text = textField.text } }
-             MenuItem { text: "Reload Map"; onClicked: { textField.text = ""; label.text = "empty label" } }
+             MenuItem { text: "Fetch Details for all in view"; onClicked: { pinchmap.requestUpdateDetails() } }
+             MenuItem { text: "Reload Map"; onClicked: { pinchmap.populate(); } }
+             MenuItem { text: "Select Map Style"; onClicked: {
+                     mapTypeSelector.open()
+                 }}
          }
      }
+
+    SelectionDialog {
+        id: mapTypeSelector
+        model: controller.mapTypes
+        titleText: "Select Map Type"
+        onAccepted: {
+            controller.setMapType(selectedIndex)
+        }
+    }
 }

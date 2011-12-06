@@ -25,13 +25,13 @@ Page {
                 id: rw
                 spacing: 16
                 Image {
-                    source: "../data/wrench.png"
+                    source: "../data/" + model.logs.iconName + ".png"
                     id: icon
                     anchors.top: logTitle.top
                 }
 
                 Text {
-                    text: "<b>" + model.type + " by " + model.finder + "<br>on " + model.year + "-" + model.month + "-" + model.day + "</b>"
+                    text: "<b> by " + model.logs.finder + "<br>on " + model.logs.year + "-" + model.logs.month + "-" + model.logs.day + "</b>"
                     font.weight: Font.Bold
                     font.pixelSize: UI.FONT_SMALL
                     id: logTitle
@@ -41,7 +41,7 @@ Page {
             Text {
                 id: description
                 font.weight: Font.Light
-                text: model.text
+                text: model.logs.text
                 wrapMode: Text.Wrap
                 font.pixelSize: UI.FONT_SMALL
                 color: UI.COLOR_DESCRIPTION

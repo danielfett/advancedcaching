@@ -120,7 +120,7 @@ Page {
         }
 
         ListButton {
-            text: "Logs (3)"
+            text: "Logs (" + (currentGeocache.logs.count || "-") + ")"
             // todo: Add Icons of Logs here
 
             property variant pageLogs: null

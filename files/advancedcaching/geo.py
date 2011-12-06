@@ -36,6 +36,8 @@ except Exception:
         return Coordinate.RADIUS_EARTH * c;
     distance_to = distance_to_manual
 
+DEGREES = "°"
+
 def try_parse_coordinate(text):
     
     text = text.strip()
@@ -229,9 +231,9 @@ class Coordinate(object):
         else:
             c = 'S'
         if format == self.FORMAT_D:
-            return "%s %.5f°" % (c, l)
+            return "%s %.5f%s" % (c, l, DEGREES)
         elif format == self.FORMAT_DM:
-            return "%s %d° %06.3f'" % (c, math.floor(l), (l - math.floor(l)) * 60)
+            return "%s %d%s %06.3f'" % (c, math.floor(l), DEGREES, (l - math.floor(l)) * 60)
 
     def get_lon(self, format):
         l = abs(self.lon)
@@ -240,9 +242,9 @@ class Coordinate(object):
         else:
             c = 'W'
         if format == self.FORMAT_D:
-            return "%s %.5f°" % (c, l)
+            return "%s %.5f%s" % (c, l, DEGREES)
         elif format == self.FORMAT_DM:
-            return "%s %d° %06.3f'" % (c, math.floor(l), (l - math.floor(l)) * 60)
+            return "%s %d%s %06.3f'" % (c, math.floor(l), DEGREES, (l - math.floor(l)) * 60)
 
     def get_latlon(self, format = 1): # that is FORMAT_DM
         return "%s %s" % (self.get_lat(format), self.get_lon(format))
