@@ -9,7 +9,7 @@ Page {
         id: header
     }
     anchors.fill: parent
-    Text {
+    Label {
         wrapMode: Text.Wrap
         font.pixelSize: UI.FONT_DEFAULT
         text: currentGeocache ? currentGeocache.title : "None selected"

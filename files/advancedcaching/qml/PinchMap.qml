@@ -1,5 +1,6 @@
 import QtQuick 1.1
 import QtMobility.location 1.2
+import com.nokia.meego 1.0
 
 Rectangle {
     id: pinchmap;
@@ -76,6 +77,7 @@ Rectangle {
             setCenterLatLon(centerLatitude, centerLongitude);
         }
     }
+
 
     function setZoomLevel(z) {
         setZoomLevelPoint(z, pinchmap.width/2, pinchmap.height/2);
@@ -314,7 +316,7 @@ Rectangle {
                         color: "#000000";
                     }
                 }
-                Text {
+                Label {
                     anchors.left: parent.left
                     anchors.leftMargin: 16
                     y: parent.height/2 - 32
@@ -360,7 +362,7 @@ Rectangle {
                     cache: model.geocache
                     targetPoint: getMappointFromCoord(model.geocache.lat, model.geocache.lon)
                     drawSimple: zoomLevel < 12
-                }// Text { text: "Geocache: " + model.geocache.title }
+                }// Label { text: "Geocache: " + model.geocache.title }
 
             }
         }
@@ -476,6 +478,7 @@ Rectangle {
                 var g = geocacheDisplayContainer.childAt(n.x, n.y)
                 if (g != null) {
                     controller.geocacheSelected(g.cache)
+                    showAndResetDetailsPage()
                 }
             }
 

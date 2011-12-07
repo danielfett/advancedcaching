@@ -27,7 +27,7 @@ Camera {
          delegate: Column {
              x: angleToScreenpoint(index * 10) - camera.offsetPixels
              y: 10
-             Text {
+             Label {
                  color: "#00ff00"
                  text: index*10 + camera.leftDegrees
                  font.pixelSize: 20

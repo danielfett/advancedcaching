@@ -79,6 +79,7 @@ PageStackWindow {
         mainPage.showDetailsPage(page)
     }
 
+
     DetailsDefaultPage {
         id: pageDetailsDefault
     }

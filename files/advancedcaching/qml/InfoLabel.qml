@@ -6,14 +6,14 @@ Item {
     property int size: 0
     property alias name: title.text
     property alias value: value.text
-    Text {
+    Label {
         id: title
         font.pixelSize: 20
         y: 0
         color: UI.COLOR_INFOLABEL
         font.weight: Font.Bold
     }
-    Text {
+    Label {
         id: value
         font.pixelSize: UI.FONT_DEFAULT
         y: 32

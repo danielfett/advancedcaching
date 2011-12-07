@@ -10,7 +10,7 @@ Column {
         width: UI.WIDTH_SELECTOR
         onClicked: { value = (value + 1) % (max + 1) }
     }
-    Text {
+    Label {
         id: valueText
         font.pixelSize: UI.FONT_LARGE
         text: value

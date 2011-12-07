@@ -19,7 +19,7 @@ Page {
         anchors.right: parent.right
 
         spacing: 16
-        Text {
+        Label {
             font.pixelSize: 20
             color: UI.COLOR_INFOLABEL
             text: "geocaching.com user data"
@@ -49,7 +49,7 @@ Page {
 
         ListView {
             model: geocacheList
-            delegate: Text {
+            delegate: Label {
                 text: "Geocache " + model.title + " bei lat " + model.lat
             }
         }

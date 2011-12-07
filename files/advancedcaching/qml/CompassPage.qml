@@ -25,7 +25,7 @@ Page {
             }
             Column {
                 width: compassColumn.width/2.0
-                Text {
+                Label {
                     id: t0
                     font.pixelSize: 20
                     color: UI.COLOR_INFOLABEL
@@ -34,7 +34,7 @@ Page {
                     anchors.right: parent.right
                 }
 
-                Text {
+                Label {
                     id: t1
                     text: gps.lastGoodFix.valid ? ("± " + F.formatDistance(gps.lastGoodFix.error, controller)) : "-"
                     font.pixelSize: UI.FONT_DEFAULT
@@ -99,7 +99,7 @@ Page {
             Image {
                 property int angle: gps.targetBearing || 0
                 property int outerMargin: 50
-                visible: gps.targetValid
+                visible: (gps.targetValid && gps.lastGoodFix.valid)
                 id: arrowImage
                 source: "../data/arrow_target.svg"
                 width: (compassImage.paintedWidth / compassImage.sourceSize.width)*sourceSize.width

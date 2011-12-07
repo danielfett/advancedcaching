@@ -17,7 +17,7 @@ Item {
         anchors.right: parent.right
         height: 66
     }
-    Text {
+    Label {
         id: titleText
         font.pixelSize: UI.FONT_LARGE
         wrapMode: Text.Wrap

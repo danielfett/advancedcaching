@@ -3,6 +3,7 @@ import com.nokia.meego 1.0
 import "uiconstants.js" as UI
 
 Page {
+    orientationLock: PageOrientation.LockPortrait
     GeocacheHeader{
         cache: currentGeocache
         id: header
@@ -18,7 +19,7 @@ Page {
         anchors.rightMargin: 16
         anchors.topMargin: 8
 
-        Text {
+        Label {
             wrapMode: Text.Wrap
             font.pixelSize: UI.FONT_DEFAULT
             text: currentGeocache ? currentGeocache.title : ""
@@ -121,6 +122,7 @@ Page {
 
         ListButton {
             text: "Logs (" + (currentGeocache.logs.count || "-") + ")"
+            //text: "Logs"
             // todo: Add Icons of Logs here
 
             property variant pageLogs: null

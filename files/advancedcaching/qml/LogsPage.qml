@@ -17,36 +17,44 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom:  parent.bottom
+        anchors.topMargin: 16
         model: currentGeocache.logs || emptyList
+        clip: true
         delegate: Column {
-            height: rw.height + description.height + 16
+            height: rw.height + description.height + 16 * 2
             spacing: 16
+            width: parent.width
             Row {
                 id: rw
-                spacing: 16
+                spacing: 8
                 Image {
-                    source: "../data/" + model.logs.iconName + ".png"
+                    source: "../data/" + model.log.iconBasename + ".png"
                     id: icon
-                    anchors.top: logTitle.top
+                    smooth: true
+                    width: sourceSize.width * 1.5
+                    height:sourceSize.height * 1.5
                 }
 
-                Text {
-                    text: "<b> by " + model.logs.finder + "<br>on " + model.logs.year + "-" + model.logs.month + "-" + model.logs.day + "</b>"
-                    font.weight: Font.Bold
-                    font.pixelSize: UI.FONT_SMALL
-                    id: logTitle
+                Label {
+                    text: model.log.year + "-" + model.log.month + "-" + model.log.day + " by " + model.log.finder
+                    font.weight: Font.Light
+                    font.pixelSize: 22
+                    visible: text != ""
+                    width: parent.parent.width - rw.spacing - icon.width
                 }
             }
 
-            Text {
+            Label {
                 id: description
                 font.weight: Font.Light
-                text: model.logs.text
+                text: model.log.text
                 wrapMode: Text.Wrap
-                font.pixelSize: UI.FONT_SMALL
+                font.pixelSize: 22
                 color: UI.COLOR_DESCRIPTION
                 width: parent.parent.width - 2*16
             }
+
+
         }
     }
 

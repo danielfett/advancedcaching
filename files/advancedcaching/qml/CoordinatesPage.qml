@@ -5,6 +5,7 @@ import "functions.js" as F
 
 Page {
     id: listPage
+    orientationLock: PageOrientation.LockPortrait
     GeocacheHeader{
         cache: currentGeocache
         id: listHeader
@@ -17,8 +18,9 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom:  parent.bottom
+        anchors.topMargin: 8
         model: currentGeocache.coordinates || emptyList
-
+        clip: true
         id: list
         delegate: Item {
             BorderImage {
@@ -103,7 +105,7 @@ Page {
         content: [
             Column {
                 spacing: 8
-                Text {
+                Label {
                     text: showDescription.coordinate.valid ? F.formatCoordinate(showDescription.coordinate.lat, showDescription.coordinate.lon, controller) : "undefined"
                     width: showDescription.width
                     font.weight: Font.Light
@@ -112,7 +114,7 @@ Page {
                     font.pixelSize: UI.FONT_DEFAULT
                     visible: showDescription.coordinate.valid || false
                 }/*
-                Text {
+                Label {
                     text: showDescription.coordinate.display_text || "undefined"
                     width: showDescription.width
                     font.weight: Font.Light
@@ -120,7 +122,7 @@ Page {
                     color: UI.COLOR_DIALOG_TEXT
                     font.pixelSize: UI.FONT_SMALL
                 }*/
-                Text {
+                Label {
                     text: showDescription.coordinate ? showDescription.coordinate.comment : "undefined"
                     width: showDescription.width
                     wrapMode: Text.WordWrap

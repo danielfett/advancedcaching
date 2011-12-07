@@ -1,10 +1,11 @@
 import QtQuick 1.1
 import "uiconstants.js" as UI
+import com.nokia.meego 1.0
 
 Item {
     property int size: 0
     property alias text: title.text
-    Text {
+    Label {
         id: title
         font.pixelSize: 20
         y: 0

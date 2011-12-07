@@ -56,7 +56,9 @@ class Controller(QtCore.QObject):
         self.callback_gps = None
         self.settings = {}
         self.c = None
+
         self._map_types = MapTypesList(self.core.settings['map_providers'])
+        view.rootContext().setContextProperty('mapTypes', self._map_types)
 
     marksChanged = QtCore.Signal()
     settingsChanged = QtCore.Signal()
@@ -190,10 +192,6 @@ class Controller(QtCore.QObject):
             return self._map_types.data(0)
         return x
 
-    def _map_types(self):
-        logger.debug("Map types is %r" % self._map_types)
-        return self._map_types
-
     changed = QtCore.Signal()
 
     mapPositionLat = QtCore.Property(float, lambda x: x._setting('map_position_lat', float), notify=settingsChanged)
@@ -202,7 +200,6 @@ class Controller(QtCore.QObject):
     distanceUnit = QtCore.Property(str, _distance_unit, notify=changed)
     coordinateFormat = QtCore.Property(str, _coordinate_format, notify=changed)
     mapType = QtCore.Property(QtCore.QObject, _map_type, notify=settingsChanged)
-    mapTypes = QtCore.Property(QtCore.QObject, _map_types, notify=settingsChanged)
 
 
 class MapTypeWrapper(QtCore.QObject):
@@ -227,6 +224,7 @@ class MapTypesList(QtCore.QAbstractListModel):
         QtCore.QAbstractListModel.__init__(self)
         self._maptypes = [MapTypeWrapper(name, data['remote_url']) for name, data in maptypes]
         self.setRoleNames(dict(enumerate(MapTypesList.COLUMNS)))
+        logger.debug("Creating new maptypes list with %d entries" % len(self._maptypes))
 
 
     def rowCount(self, parent=QtCore.QModelIndex()):
@@ -502,7 +500,7 @@ class GeocacheWrapper(QtCore.QObject):
         return self._geocache.name
 
     def _title(self):
-        return d(self._geocache.title)
+        return self._geocache.title
 
     def _lat(self):
         return self._geocache.lat
@@ -529,8 +527,8 @@ class GeocacheWrapper(QtCore.QObject):
     def _logs(self):
         if self._logs_list == None:
             logs = self._geocache.get_logs()
-            self._logs_list = LogsListModel(logs)
-            logger.debug("Creating logs list... logs: %r" % logs)
+            self._logs_list = LogsListModel(self.core, logs)
+            logger.debug("Creating logs list... logs: %d" % self._logs_list.rowCount())
         return self._logs_list
 
     def get_path_to_image(self, image):
@@ -608,12 +606,11 @@ class GeocacheListModel(QtCore.QAbstractListModel):
 
 
 class LogsListModel(QtCore.QAbstractListModel):
-    COLUMNS = ('logs',)
+    COLUMNS = ('log',)
 
     def __init__(self, core, logs = []):
         QtCore.QAbstractListModel.__init__(self)
         self._logs = [LogWrapper(x) for x in logs]
-        self._logs = logs
         self.setRoleNames(dict(enumerate(LogsListModel.COLUMNS)))
 
 
@@ -621,7 +618,7 @@ class LogsListModel(QtCore.QAbstractListModel):
         return len(self._logs)
 
     def data(self, index, role):
-        if index.isValid() and role == LogsListModel.COLUMNS.index('logs'):
+        if index.isValid() and role == LogsListModel.COLUMNS.index('log'):
             return self._logs[index.row()]
         return None
 
@@ -645,7 +642,7 @@ class LogWrapper(QtCore.QObject):
         self._log = log
 
     def _type(self):
-
+        logger.debug('type')
         if self._log['type'] == geocaching.GeocacheCoordinate.LOG_TYPE_FOUND:
             t = 'FOUND'
         elif self._log['type'] == geocaching.GeocacheCoordinate.LOG_TYPE_NOTFOUND:
@@ -659,30 +656,38 @@ class LogWrapper(QtCore.QObject):
         return t
 
     def _finder(self):
+        logger.debug('finder')
         return self._log['finder']
 
     def _year(self):
+        logger.debug('year')
         return self._log['year']
 
     def _month(self):
+        logger.debug('month')
         return self._log['month']
 
     def _day(self):
+        logger.debug('day')
         return self._log['day']
 
     def _text(self):
+        logger.debug('text')
         return self._log['text']
 
-    def _icon_name(self):
-        return self.ICONS[self._log['type']] if self._log['type'] in self.ICONS else ""
+    def _icon_basename(self):
+        r = self.ICONS[self._log['type']] if self._log['type'] in self.ICONS else ""
+        logger.debug("Log type is %r" % r)
+        return r
 
     type = QtCore.Property(str, _type, notify=changed)
     finder = QtCore.Property(str, _finder, notify=changed)
-    year = QtCore.Property(int, _year, notify=changed)
-    month = QtCore.Property(int, _month, notify=changed)
-    day = QtCore.Property(int, _day, notify=changed)
+    year = QtCore.Property(str, _year, notify=changed)
+    month = QtCore.Property(str, _month, notify=changed)
+    day = QtCore.Property(str, _day, notify=changed)
     text = QtCore.Property(str, _text, notify=changed)
-    iconName = QtCore.Property(str, _icon_name, notify=changed)
+    iconBasename = QtCore.Property(str, _icon_basename, notify=changed)
+    
     
 
 class QmlGui(Gui):

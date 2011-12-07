@@ -1,5 +1,6 @@
 import QtQuick 1.0
 import "uiconstants.js" as UI
+import com.nokia.meego 1.0
 
 Item {
     property alias text: label.text
@@ -19,7 +20,7 @@ Item {
          source: "image://theme/meegotouch-list-background-pressed-center"
      }
 
-    Text{
+    Label {
         id: label
         font.weight: Font.Bold
         anchors.verticalCenter: parent.verticalCenter

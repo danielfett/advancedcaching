@@ -1,11 +1,12 @@
 import QtQuick 1.1
 import "uiconstants.js" as UI
+import com.nokia.meego 1.0
 
 Item {
     property real rating: 0
     property real maxrating: 5
     property alias text: title.text
-    Text {
+    Label {
         id: title
         font.pixelSize: 20
         y: 0

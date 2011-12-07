@@ -62,7 +62,7 @@ Page {
             property int angle: gps.targetBearing || 0
             property int outerMargin: 0
             id: arrowImage
-            visible: gps.targetValid
+            visible: (gps.targetValid && gps.lastGoodFix.valid)
             source: "../data/arrow_target.svg"
             width: (compassImage.paintedWidth / compassImage.sourceSize.width)*sourceSize.width
             fillMode: Image.PreserveAspectFit

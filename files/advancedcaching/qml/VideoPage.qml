@@ -10,7 +10,7 @@ Page {
         anchors.fill: parent
     }
 
-    Text {
+    Label {
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
         text: compass.azimuth

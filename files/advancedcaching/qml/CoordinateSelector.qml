@@ -65,7 +65,7 @@ QueryDialog {
                 id: lat2
             }
 
-            Text {
+            Label {
                 text: "°"
                 font.pixelSize:  UI.FONT_LARGE
                 color: "white"
@@ -81,7 +81,7 @@ QueryDialog {
                 id: lat4
             }
 
-            Text {
+            Label {
                 text: "."
                 font.pixelSize:  UI.FONT_LARGE
                 anchors.verticalCenter: parent.verticalCenter
@@ -123,7 +123,7 @@ QueryDialog {
             UpDownSelect {
                 id: lon2
             }
-            Text {
+            Label {
                 text: "°"
                 font.pixelSize:  UI.FONT_LARGE
                 anchors.verticalCenter: parent.verticalCenter
@@ -139,7 +139,7 @@ QueryDialog {
                 id: lon4
             }
 
-            Text {
+            Label {
                 text: "."
                 font.pixelSize:  UI.FONT_LARGE
                 anchors.verticalCenter: parent.verticalCenter

@@ -12,6 +12,13 @@ Page {
         tabDetailsPageStack.push(page)
     }
 
+    function showAndResetDetailsPage() {
+        while (tabDetailsPageStack.depth > 1) {
+            tabDetailsPageStack.pop()
+        }
+        tabGroup.currentTab = tabDetailsPageStack
+    }
+
     TabGroup {
         id: tabGroup
         currentTab: tabMap
