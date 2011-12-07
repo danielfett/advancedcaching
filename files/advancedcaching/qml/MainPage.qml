@@ -21,7 +21,7 @@ Page {
 
     TabGroup {
         id: tabGroup
-        currentTab: tabMap
+        currentTab: tabCompass
         CompassPage {
             id: tabCompass
         }

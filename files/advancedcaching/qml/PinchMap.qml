@@ -1,6 +1,7 @@
 import QtQuick 1.1
 import QtMobility.location 1.2
 import com.nokia.meego 1.0
+import "functions.js" as F
 
 Rectangle {
     id: pinchmap;
@@ -14,6 +15,7 @@ Rectangle {
     property int cornerTileY: 21;
     property int numTilesX: Math.ceil(width/tileSize) + 4;
     property int numTilesY: Math.ceil(height/tileSize) + 4;
+    property int maxTileNo: Math.pow(2, zoomLevel) - 1;
     property alias model: geocacheDisplay.model
     property bool showTargetIndicator: false
     property double showTargetAtLat: 0;
@@ -31,6 +33,8 @@ Rectangle {
     property double longitude: 0
     
     property alias angle: rot.angle
+
+    property string url: controller.currentMapType.url
 
     transform: Rotation {
         angle: 0
@@ -146,15 +150,15 @@ Rectangle {
     }
 
     function requestUpdate() {
-        var start = num2deg(cornerTileX, cornerTileY)
-        var end = num2deg(cornerTileX + numTilesX, cornerTileY + numTilesY)
+        var start = getCoordFromScreenpoint(0,0)
+        var end = getCoordFromScreenpoint(pinchmap.width,pinchmap.height)
         controller.updateGeocaches(start[0], start[1], end[0], end[1])
         console.debug("Update requested.")
     }
 
     function requestUpdateDetails() {
-        var start = num2deg(cornerTileX, cornerTileY)
-        var end = num2deg(cornerTileX + numTilesX, cornerTileY + numTilesY)
+        var start = getCoordFromScreenpoint(0,0)
+        var end = getCoordFromScreenpoint(pinchmap.width,pinchmap.height)
         controller.downloadGeocaches(start[0], start[1], end[0], end[1])
         console.debug("Download requested.")
     }
@@ -163,35 +167,6 @@ Rectangle {
         console.debug("Populate called.")
         var start = num2deg(cornerTileX, cornerTileY)
         var end = num2deg(cornerTileX + numTilesX, cornerTileY + numTilesY)
-
-        //console.debug("start = " + start[0] + "." + start[1] + ", end = " + end[0] + "-" + end[1])
-
-        var i = 0;
-        var maxTileNo = Math.pow(2, zoomLevel) - 1;
-        if (tiles.count != numTilesX * numTilesY) {
-            console.log("Not populating right now. Children# " + tiles.count + " exp. " + ( numTilesX * numTilesY))
-            return false;
-        }
-
-        for (i = 0; i < (numTilesX * numTilesY); i++) {
-            var tx = cornerTileX + (i % numTilesX);
-            var ty = cornerTileY + Math.floor(i / numTilesX);
-            if (tx < 0) {
-                tx += maxTileNo + 1;
-            } else if (tx > maxTileNo - 1) {
-                tx -= maxTileNo + 1;
-            }
-            try {
-                if (ty < 0 || ty > maxTileNo -1) {
-                    map.children[i].source = "../data/noimage.png";
-                } else {
-                    map.children[i].source = "http://a.tile2.opencyclemap.org/transport/" + zoomLevel + "/" + tx + "/" + ty + ".png";
-                }
-            } catch (e) {
-                console.debug("Error on assigning child #"+i+": "+e)
-                return false;
-            }
-        }
         controller.mapViewChanged(pinchmap, start[0], start[1], end[0], end[1])
         return true;
     }
@@ -201,7 +176,7 @@ Rectangle {
 
     function deg2num(lat, lon) {
         var rad = deg2rad(lat % 90);
-        var n = Math.pow(2, zoomLevel);
+        var n = maxTileNo + 1;
         var xtile = ((lon % 180.0) + 180.0) / 360.0 * n;
         var ytile = (1.0 - Math.log(Math.tan(rad) + (1.0 / Math.cos(rad))) / Math.PI) / 2.0 * n;
         return [xtile, ytile];
@@ -259,10 +234,7 @@ Rectangle {
     }
     function sinh(aValue)
     {
-        var myTerm1 = Math.pow(Math.E, aValue);
-        var myTerm2 = Math.pow(Math.E, -aValue);
-
-        return (myTerm1-myTerm2)/2;
+        return (Math.pow(Math.E, aValue)-Math.pow(Math.E, -aValue))/2;
     }
     function num2deg(xtile, ytile) {
         var n = Math.pow(2, zoomLevel);
@@ -270,6 +242,15 @@ Rectangle {
         var lat_rad = Math.atan(sinh(Math.PI * (1 - 2 * ytile / n)));
         var lat_deg = lat_rad * 180.0 / Math.PI;
         return [lat_deg % 90.0, lon_deg % 180.0];
+    }
+
+    function tileUrl(tx, ty) {
+        if (ty < 0 || ty > maxTileNo) {
+            return "../data/noimage.png"
+        } else {
+            var x = F.getMapTile(url, tx, ty, zoomLevel);
+            return x
+        }
     }
 
     Grid {
@@ -330,6 +311,7 @@ Rectangle {
                     id: img;
                     anchors.fill: parent;
                     onProgressChanged: { progressBar.p = progress }
+                    source: tileUrl(cornerTileX + (index % numTilesX), cornerTileY + Math.floor(index / numTilesX));
                 }
                 width: tileSize;
                 height: tileSize;

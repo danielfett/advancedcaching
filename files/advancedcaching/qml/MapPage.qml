@@ -164,12 +164,19 @@ Page {
          }
      }
 
-    SelectionDialog {
+    /*SelectionDialogModified {
         id: mapTypeSelector
-        model: controller.mapTypes
-        titleText: "Select Map Type"
+        model: controller.mapTypes || emptyList
+        onModelChanged: {
+            console.debug("Me thinks, model is " + model)
+        }
+
+        titleText: "Select Map Style"
         onAccepted: {
             controller.setMapType(selectedIndex)
         }
-    }
+        delegate: Label {
+                    text: model.maptype.url
+            }
+    }*/
 }

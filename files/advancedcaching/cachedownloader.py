@@ -392,13 +392,13 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 break
                 
         logger.debug('finished parsing, converting...')
-        head = unicode(head, 'utf-8', errors='ignore')
-        shortdesc = unicode(shortdesc, 'utf-8', errors='ignore')
-        desc = unicode(desc, 'utf-8', errors='ignore')
-        hints = unicode(hints, 'utf-8', errors='ignore')
-        waypoints = unicode(waypoints, 'utf-8', errors='ignore')
-        logs = unicode(logs, 'utf-8', errors='ignore')
-        images = unicode(images, 'utf-8', errors='ignore')
+        head = unicode(head, 'utf-8', errors='replace')
+        shortdesc = unicode(shortdesc, 'utf-8', errors='replace')
+        desc = unicode(desc, 'utf-8', errors='replace')
+        hints = unicode(hints, 'utf-8', errors='replace')
+        waypoints = unicode(waypoints, 'utf-8', errors='replace')
+        logs = unicode(logs, 'utf-8', errors='replace')
+        images = unicode(images, 'utf-8', errors='replace')
         logger.debug('finished converting, reading...')
 
         coordinate.size, coordinate.difficulty, coordinate.terrain, coordinate.owner, coordinate.lat, coordinate.lon = self.__parse_head(head, coords)

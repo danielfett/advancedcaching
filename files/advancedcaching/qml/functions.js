@@ -61,3 +61,7 @@ function getLon(lon, controller) {
         return c + " " + Math.floor(l) + "° " + ((l - Math.floor(l)) * 60).toFixed(3) + "'"
     }
 }
+
+function getMapTile(url, x, y, zoom) {
+    return url.replace("%(x)d", x).replace("%(y)d", y).replace("%(zoom)d", zoom);
+}

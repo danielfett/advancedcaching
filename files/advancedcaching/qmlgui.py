@@ -41,6 +41,12 @@ from astral import Astral
 d = lambda x: x#.decode('utf-8', 'replace')
 
 class Controller(QtCore.QObject):
+
+    changed = QtCore.Signal()
+    progressChanged = QtCore.Signal()
+    marksChanged = QtCore.Signal()
+    settingsChanged = QtCore.Signal()
+    
     def __init__(self, view, core):
         QtCore.QObject.__init__(self)
         self.view = view
@@ -56,12 +62,13 @@ class Controller(QtCore.QObject):
         self.callback_gps = None
         self.settings = {}
         self.c = None
+        self._progress_visible = False
+        self._progress = 0
+        self._progress_message = ""
+        self._current_map_type = 0
 
-        self._map_types = MapTypesList(self.core.settings['map_providers'])
-        view.rootContext().setContextProperty('mapTypes', self._map_types)
+        self._map_types_list = MapTypesList(self.core.settings['map_providers'])
 
-    marksChanged = QtCore.Signal()
-    settingsChanged = QtCore.Signal()
 
     # Handle gobject signal from Core
     def _map_marks_changed(self, caller):
@@ -69,7 +76,7 @@ class Controller(QtCore.QObject):
 
     # Handle gobject signal from Core
     def _show_message(self, caller, message):
-        self.view.rootObject().showMessage(message)
+        self.view.rootObject().showMessage(str(message))
 
     # Handle gobject signal from Core
     def _cache_changed(self, caller, cache):
@@ -78,11 +85,18 @@ class Controller(QtCore.QObject):
 
     # Handle gobject signal from Core
     def _hide_progress(self, caller):
-        self.view.rootObject().hideProgress()
+        self._progress_visible = False
+        self.progressChanged.emit()
 
     # Handle gobject signal from Core
     def _show_progress(self, caller, progress, message):
-        self.view.rootObject().showProgress(progress, message)
+        #logger.debug("Show Progress")
+        #self.view.rootObject().showProgress(progress, str(message))
+        #logger.debug("Showed Progress")
+        self._progress_visible = True
+        self._progress = float(progress)
+        self._progress_message = str(message)
+        self.progressChanged.emit()
 
     # Handle gobject signal from Core
     def _save_settings(self, caller):
@@ -99,8 +113,10 @@ class Controller(QtCore.QObject):
             c = self.core.pointprovider.get_by_name(settings['last_selected_geocache'])
             if c != None:
                 self.geocacheSelected(GeocacheWrapper(c, self.core))
+        if 'last_target_lat' in settings and 'last_target_lon' in settings:
+            self.setTarget(settings['last_target_lat'], settings['last_target_lon'])
         if 'map_providers' in settings:
-            self._map_types = MapTypesList(settings['map_providers'])
+            self._map_types_list = MapTypesList(settings['map_providers'])
         #if 'last_target_lat' in settings:
         #    self.setTarget(settings['last_target_lat'], settings['last_target_lon'])
 
@@ -142,14 +158,16 @@ class Controller(QtCore.QObject):
 
     @QtCore.Slot(QtCore.QObject)
     def setAsTarget(self, coordinate):
-        self.settings['last_target_lat'], self.settings['last_target_lon'] = coordinate._coordinate.lat, coordinate._coordinate.lon
-        self.core.set_target(coordinate._coordinate)
+        if type(coordinate) == GeocacheWrapper:
+            c = coordinate._geocache
+        else:
+            c = coordinate._coordinate
+        self.settings['last_target_lat'], self.settings['last_target_lon'] = c.lat, c.lon
+        self.core.set_target(c)
 
     @QtCore.Slot(QtCore.QObject)
     def setMapType(self, maptype):
-        self._current_map_type = maptype#self._map_types.findIndexOf(maptype)
-        #if self._current_map_type == None:
-        #    logger.error("Could not find map type: %r" % self._current_map_type)
+        self._current_map_type = maptype
 
     @QtCore.Slot(bool, float, float, bool, float, bool, float, float, QtCore.QObject)
     def positionChanged(self, valid, lat, lon, altvalid, alt, speedvalid, speed, error, timestamp):
@@ -186,44 +204,60 @@ class Controller(QtCore.QObject):
     def _coordinate_format(self):
         return "DM"
 
-    def _map_type(self):
-        x = self._map_types.data(self._current_map_type, 'maptype')
-        if x == None:
-            return self._map_types.data(0)
-        return x
+    def _get_current_map_type(self):
+        return self._map_types_list.get_data_at(self._current_map_type)
 
-    changed = QtCore.Signal()
+    def _map_types(self):
+        return self._map_types_list
+
+    def _progress(self):
+        return self._progress
+
+    def _progress_visible(self):
+        return self._progress_visible
+
+    def _progress_message(self):
+        return self._progress_message
+
 
     mapPositionLat = QtCore.Property(float, lambda x: x._setting('map_position_lat', float), notify=settingsChanged)
     mapPositionLon = QtCore.Property(float, lambda x: x._setting('map_position_lon', float), notify=settingsChanged)
     mapZoom = QtCore.Property(int, lambda x: x._setting('map_zoom', int), notify=settingsChanged)
     distanceUnit = QtCore.Property(str, _distance_unit, notify=changed)
     coordinateFormat = QtCore.Property(str, _coordinate_format, notify=changed)
-    mapType = QtCore.Property(QtCore.QObject, _map_type, notify=settingsChanged)
+    currentMapType = QtCore.Property(QtCore.QObject, _get_current_map_type, notify=settingsChanged)
+    mapTypes = QtCore.Property(QtCore.QObject, _map_types, notify=settingsChanged)
+    progress = QtCore.Property(float, _progress, notify=progressChanged)
+    progressVisible = QtCore.Property(bool, _progress_visible, notify=progressChanged)
+    progressMessage = QtCore.Property(str, _progress_message, notify=progressChanged)
+
 
 
 class MapTypeWrapper(QtCore.QObject):
     def __init__(self, name, url):
         QtCore.QObject.__init__(self)
-        self._name = name
-        self._url = url
+        self._data_name = name
+        self._data_url = url
 
     def _name(self):
-        return name
+        return self._data_name
 
     def _url(self):
-        return url
+        return self._data_url
 
-    name = QtCore.Property(str, _name)
-    url = QtCore.Property(str, _url)
+    changed = QtCore.Signal()
+
+    name = QtCore.Property(str, _name, notify=changed)
+    url = QtCore.Property(str, _url, notify=changed)
 
 class MapTypesList(QtCore.QAbstractListModel):
     COLUMNS = ('maptype',)
 
     def __init__(self, maptypes):
         QtCore.QAbstractListModel.__init__(self)
-        self._maptypes = [MapTypeWrapper(name, data['remote_url']) for name, data in maptypes]
         self.setRoleNames(dict(enumerate(MapTypesList.COLUMNS)))
+        #self._maptypes = [{'name': name, 'url': data['remote_url']} for name, data in maptypes]
+        self._maptypes = [MapTypeWrapper(name, data['remote_url']) for name, data in maptypes]
         logger.debug("Creating new maptypes list with %d entries" % len(self._maptypes))
 
 
@@ -235,13 +269,8 @@ class MapTypesList(QtCore.QAbstractListModel):
             return self._maptypes[index.row()]
         return None
 
-    def findIndexOf(self, m):
-        i = 0
-        for n in self._maptypes:
-            if n == m:
-                return i
-            i += 1
-        return None
+    def get_data_at(self, i):
+        return self._maptypes[i]
 
 class FixWrapper(QtCore.QObject):
 
@@ -405,7 +434,6 @@ class SettingsWrapper(QtCore.QObject):
         self.changed.emit()
 
     def _setPassword(self, p):
-        logger.debug("Password is '%s'" % p)
         self.core.settings['options_password'] = p
         self.core.emit('settings-changed', self.core.settings, self)
         self.changed.emit()
@@ -461,7 +489,6 @@ class CoordinateListModel(QtCore.QAbstractListModel):
 
     def __init__(self, core, coordinates = []):
         QtCore.QAbstractListModel.__init__(self)
-        #self._geocaches = [GeocacheWrapper(x, core) for x in core.pointprovider.get_points(geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end))[0:100]]
         self._coordinates = coordinates
         self.setRoleNames(dict(enumerate(CoordinateListModel.COLUMNS)))
 
@@ -531,6 +558,9 @@ class GeocacheWrapper(QtCore.QObject):
             logger.debug("Creating logs list... logs: %d" % self._logs_list.rowCount())
         return self._logs_list
 
+    def _logs_count(self):
+        return self._logs().rowCount()
+
     def get_path_to_image(self, image):
         return path.join(self.core.settings['download_output_dir'], image)
 
@@ -558,6 +588,9 @@ class GeocacheWrapper(QtCore.QObject):
             z = [CoordinateWrapper(x) for x in self._geocache.get_collected_coordinates(format = geo.Coordinate.FORMAT_DM).values()]
             self._coordinate_list = CoordinateListModel(self.core, z)
         return self._coordinate_list
+
+    def _coordinates_count(self):
+        return self._coordinates().rowCount()
         #return []
 
     def _images(self):
@@ -584,7 +617,9 @@ class GeocacheWrapper(QtCore.QObject):
     images = QtCore.Property(QtCore.QObject, _images, notify=changed)
     status = QtCore.Property(int, _status, notify=changed)
     logs = QtCore.Property(QtCore.QObject, _logs, notify=changed)
+    logsCount = QtCore.Property(int, _logs_count, notify=changed)
     coordinates = QtCore.Property(QtCore.QObject, _coordinates, notify=changed)
+    coordinatesCount = QtCore.Property(int, _coordinates_count, notify=changed)
 
 class GeocacheListModel(QtCore.QAbstractListModel):
     COLUMNS = ('geocache',)
@@ -656,28 +691,22 @@ class LogWrapper(QtCore.QObject):
         return t
 
     def _finder(self):
-        logger.debug('finder')
         return self._log['finder']
 
     def _year(self):
-        logger.debug('year')
         return self._log['year']
 
     def _month(self):
-        logger.debug('month')
         return self._log['month']
 
     def _day(self):
-        logger.debug('day')
         return self._log['day']
 
     def _text(self):
-        logger.debug('text')
         return self._log['text']
 
     def _icon_basename(self):
         r = self.ICONS[self._log['type']] if self._log['type'] in self.ICONS else ""
-        logger.debug("Log type is %r" % r)
         return r
 
     type = QtCore.Property(str, _type, notify=changed)

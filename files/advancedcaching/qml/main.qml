@@ -18,16 +18,21 @@ PageStackWindow {
     function showMessage (message) {
         banner.text = message
         banner.show()
+        return;
     }
 
-    function showProgress (progress, message) {
-        progressBanner.text = message
-        progressBanner.value = progress
-        progressBanner.show()
-    }
-
-    function hideProgress () {
-        progressBanner.hide()
+    Connections {
+        target: controller
+        onProgressChanged: {
+            if (controller.progressVisible) {
+                progressBanner.show()
+            } else {
+                progressBanner.hide()
+            }
+        }
+        onSettingsChanged: {
+            console.debug("Map types is " + controller.mapTypes)
+        }
     }
 
     function setCurrentGeocache(geocache) {
@@ -52,6 +57,8 @@ PageStackWindow {
 
     ProgressBanner {
         id: progressBanner
+        text: controller.progressMessage
+        value: controller.progress
     }
 
     Compass {

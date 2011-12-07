@@ -129,7 +129,7 @@ Page {
             }
             InfoLabel {
                 name: "Comp. Accuracy"
-                value: (compass.calibration * 100) + "%"
+                value: Math.floor(compass.calibration * 100) + "%"
                 width: compassColumn.width/3
             }
         }

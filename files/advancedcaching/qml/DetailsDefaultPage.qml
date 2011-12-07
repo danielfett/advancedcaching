@@ -51,6 +51,14 @@ Page {
                     size: currentGeocache.size || -1
                     text: "Size"
                 }
+
+                Button {
+                    text: "Set as target"
+                    onClicked: {
+                        controller.setAsTarget(currentGeocache)
+                    }
+                    width: col1.width/2
+                }
             }
             Column {
                 id: col1col2
@@ -107,7 +115,7 @@ Page {
 
 
         ListButton {
-            text: "Coordinates"
+            text: "Coordinates (" + (currentGeocache.coordinatesCount || "-") + ")"
             property variant pageCoordinates: null
             onClicked: {
                 if (pageCoordinates == null) {
@@ -121,7 +129,7 @@ Page {
         }
 
         ListButton {
-            text: "Logs (" + (currentGeocache.logs.count || "-") + ")"
+            text: "Logs (" + (currentGeocache.logsCount || "-") + ")"
             //text: "Logs"
             // todo: Add Icons of Logs here
 
