@@ -45,6 +45,9 @@ except:
 import re
 import gobject
 
+#ugly workaround...
+user_token = [None]
+
 
 class HTMLManipulations(object):
     COMMENT_REGEX = re.compile('<!--.*?-->', re.DOTALL)
@@ -240,7 +243,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
     MAX_DOWNLOAD_NUM = 20
 
-    user_token = None
 
     CTIDS = {
         2:GeocacheCoordinate.TYPE_REGULAR,
@@ -254,7 +256,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
     @staticmethod
     def login_callback(username, password):
-        url = 'http://www.geocaching.com/login/default.aspx'
+        url = 'https://www.geocaching.com/login/default.aspx'
         values = {'ctl00$ContentBody$tbUsername': username,
             'ctl00$ContentBody$tbPassword': password,
             'ctl00$ContentBody$cbRememberMe': 'on',
@@ -266,11 +268,11 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
 
     def _get_overview(self, location):
-        if self.user_token == None:
+        if user_token[0] == None:
             self._get_user_token()
         c1, c2 = location
         url = 'http://www.geocaching.com/map/default.aspx/MapAction?lat=9&lng=6'
-        data = ('application/json', '{"dto":{"data":{"c":1,"m":"","d":"%f|%f|%f|%f"},"ut":"%s"}}' % (max(c1.lat, c2.lat), min(c1.lat, c2.lat), max(c1.lon, c2.lon), min(c1.lon, c2.lon), self.user_token))
+        data = ('application/json', '{"dto":{"data":{"c":1,"m":"","d":"%f|%f|%f|%f"},"ut":"%s"}}' % (max(c1.lat, c2.lat), min(c1.lat, c2.lat), max(c1.lon, c2.lon), min(c1.lon, c2.lon), user_token[0]))
 
         try:
             response = self.downloader.get_reader(url, data = data)
@@ -286,7 +288,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
         page = self.downloader.get_reader('http://www.geocaching.com/map/default.aspx?lat=6&lng=9')
         for line in page:
             if line.startswith('var uvtoken'):
-                self.user_token = re.compile("userToken[ =]+'([^']+)'").search(line).group(1)
+                user_token[0] = re.compile("userToken[ =]+'([^']+)'").search(line).group(1)
+                
                 page.close()
                 return
         raise Exception("Website contents unexpected. Please check connection.")
