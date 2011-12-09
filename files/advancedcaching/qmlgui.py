@@ -80,6 +80,7 @@ class Controller(QtCore.QObject):
     # Handle gobject signal from Core
     def _hide_progress(self, caller):
         self._progress_visible = False
+        logger.debug("Hide progress")
         self.progressChanged.emit()
 
     # Handle gobject signal from Core

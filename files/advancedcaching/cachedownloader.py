@@ -292,6 +292,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 
                 page.close()
                 return
+        logger.debug("Got this page: %r" % page)
         raise Exception("Website contents unexpected. Please check connection.")
         
 

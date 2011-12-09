@@ -370,7 +370,7 @@ Rectangle {
     
     Image {
         id: targetIndicator
-        source: "../data/red-target.png"
+        source: "../data/target-indicator-cross.png"
         property variant t: getMappointFromCoord(showTargetAtLat, showTargetAtLon)
         x: map.x + t[0] - width/2
         y: map.y + t[1] - height/2
@@ -381,7 +381,7 @@ Rectangle {
             origin.x: targetIndicator.width/2
             origin.y: targetIndicator.height/2
         }
-
+        /*
         NumberAnimation {
             running: true
             target: rotationTarget;
@@ -390,7 +390,7 @@ Rectangle {
             to: 359;
             duration: 2000
             loops: Animation.Infinite
-        }
+        }*/
 
     }
 
