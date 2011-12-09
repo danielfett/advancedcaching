@@ -31,10 +31,13 @@ Rectangle {
 
     property double latitude: 0
     property double longitude: 0
+    property variant scaleBarLength: getScaleBarLength(latitude);
     
     property alias angle: rot.angle
 
     property string url: controller.currentMapType.url
+
+    property int earthRadius: 6371000
 
     transform: Rotation {
         angle: 0
@@ -137,10 +140,10 @@ Rectangle {
             cornerTileY -= 1;
             changed = true;
         }
+        updateCenter();
         if (changed) {
             populate();
         }
-        updateCenter();
     }
 
     function updateCenter() {
@@ -170,6 +173,22 @@ Rectangle {
         controller.mapViewChanged(pinchmap, start[0], start[1], end[0], end[1])
         return true;
     }
+
+    function getScaleBarLength(lat) {
+        var destlength = width/5;
+        var mpp = getMetersPerPixel(lat);
+        var guess = mpp * destlength;
+        var base = 10 * -Math.floor(Math.log(guess)/Math.log(10) + 0.00001)
+        var length_meters = Math.round(guess/base)*base
+        var length_pixels = length_meters / mpp
+        console.debug(mpp+" | "+guess+" | "+base+" | "+length_meters+" | "+length_pixels+" | "+destlength)
+        return [length_pixels, length_meters]
+    }
+
+    function getMetersPerPixel(lat) {
+        return Math.cos(lat * Math.PI / 180.0) * 2.0 * Math.PI * earthRadius / (256 * (maxTileNo + 1))
+    }
+
     function deg2rad(deg) {
         return deg * (Math.PI /180.0);
     }
@@ -391,6 +410,30 @@ Rectangle {
             origin.y: positionIndicator.height - positionIndicator.width/2
             angle: currentPositionAzimuth
         }
+    }
+
+    Rectangle {
+        id: scaleBar
+        anchors.right: parent.right
+        anchors.rightMargin: 16
+        anchors.topMargin: 16
+        anchors.top: parent.top
+        color: "black"
+        border.width: 2
+        border.color: "white"
+        smooth: false
+        height: 4
+        width: scaleBarLength[0]
+    }
+
+    Text {
+        text: F.formatDistance(scaleBarLength[1], controller)
+        anchors.horizontalCenter: scaleBar.horizontalCenter
+        anchors.top: scaleBar.bottom
+        anchors.topMargin: 8
+        style: Text.Outline
+        styleColor: "white"
+        font.pixelSize: 24
     }
 
     PinchArea {
