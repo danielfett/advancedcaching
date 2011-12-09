@@ -13,7 +13,11 @@ var COLOR_DIALOG_TEXT = "white"
 var WIDTH_SELECTOR = 50;
 
 function getCacheColor(cache) {
-    return (cache.type == 'regular' ? "green" :
+    if (cache.found) {
+        "#80c0c0c0"
+    }
+
+    return (cache.type == 'regular' ? "chartreuse" :
             cache.type == 'multi' ? "darkorange" :
             cache.type == 'virtual' ? "blue" :
             cache.type == 'event' ? "red" :
@@ -23,7 +27,7 @@ function getCacheColor(cache) {
 }
 
 function getCacheColorBackground(cache) {
-    return (cache.type == 'regular' ? "green" :
+    return (cache.type == 'regular' ? "chartreuse" :
             cache.type == 'multi' ? "darkorange" :
             cache.type == 'virtual' ? "blue" :
             cache.type == 'event' ? "darkred" :
