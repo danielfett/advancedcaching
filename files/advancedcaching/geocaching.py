@@ -207,7 +207,10 @@ class GeocacheCoordinate(geo.Coordinate):
     def unserialize(self, data):
         ret = {}
         for key in self.ATTRS:
-            ret[key] = data[key]
+            d = data[key]
+            if type(d) == str:
+                d = d.decode('utf-8')
+            ret[key] = d
 
         if ret['notes'] == None:
             self.notes = ''

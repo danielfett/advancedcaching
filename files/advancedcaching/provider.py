@@ -21,7 +21,7 @@
 #
 
 from math import sqrt
-from sqlite3 import connect, Row
+from sqlite3 import connect, Row, register_converter
 
 from copy import copy
 
@@ -30,7 +30,6 @@ class PointProvider():
     MAX_RESULTS = 1000
 
     def __init__(self, filename, ctype, table):
-
         self.filterstack = []
         self.conn = connect(filename)
         self.conn.row_factory = Row
@@ -52,7 +51,6 @@ class PointProvider():
             'CREATE INDEX IF NOT EXISTS %(table)s_name ON %(table)s (name ASC);' \
             'CREATE INDEX IF NOT EXISTS %(table)s_fieldnote ON %(table)s (logas);' % {'table' : self.cache_table}
             )
-
 
         #c.execute('CREATE TABLE IF NOT EXISTS %s (%s)' % (self.cache_table, ', '.join(' '.join(m) for m in self.ctype.SQLROW.items())))
         #self.check_table()

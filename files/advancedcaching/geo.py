@@ -88,7 +88,7 @@ def search_coordinates(text):
 
     text = text.strip()
     # got some problems with the degree symbol in regexes.
-    text = text.replace('°', ' ')
+    text = text.replace(u'°', ' ')
     #
 
     output = []
