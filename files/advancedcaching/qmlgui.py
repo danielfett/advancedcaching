@@ -434,13 +434,13 @@ class SettingsWrapper(QtCore.QObject):
         return self.core.settings['options_password']
 
     def _setUsername(self, u):
-        self.core.settings['options_username'] = u
-        self.core.emit('settings-changed', self.core.settings, self)
+        s = {'options_username': u}
+        self.core.emit('settings-changed', s, self)
         self.changed.emit()
 
     def _setPassword(self, p):
-        self.core.settings['options_password'] = p
-        self.core.emit('settings-changed', self.core.settings, self)
+        s = {'options_password': u}
+        self.core.emit('settings-changed', s, self)
         self.changed.emit()
 
     username = QtCore.Property(str, _username, _setUsername, notify=changed)
