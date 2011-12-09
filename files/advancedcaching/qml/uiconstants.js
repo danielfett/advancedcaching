@@ -14,7 +14,7 @@ var WIDTH_SELECTOR = 50;
 
 function getCacheColor(cache) {
     if (cache.found) {
-        "#80c0c0c0"
+        return "#80c0c0c0"
     }
 
     return (cache.type == 'regular' ? "chartreuse" :

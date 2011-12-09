@@ -398,6 +398,7 @@ class SettingsWrapper(QtCore.QObject):
         return x
 
     def _set_setting(self, s, t):
+        logger.debug("Setting %s is now: %r" % (s, t))
         self.settings[s] = t
 
     # Handle gobject signal from Core

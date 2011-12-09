@@ -55,6 +55,7 @@ Page {
                     text: "Set as target"
                     onClicked: {
                         controller.setAsTarget(currentGeocache)
+                        showMessage("New Target set.")
                     }
                     width: col1.width/2
                 }

@@ -81,8 +81,9 @@ Page {
                      showDescription.coordinate = model.coordinate
                      if (showDescription.coordinate.valid) {
                          map.setCenterLatLon(showDescription.coordinate.lat, showDescription.coordinate.lon)
+                         map.visible = true;
                      } else {
-                         map.visible= false
+                         map.visible = false;
                      }
 
                      showDescription.open()
@@ -146,6 +147,7 @@ Page {
         ]
         onAccepted: {
             controller.setAsTarget(coordinate)
+            showMessage("New Target set.")
         }
     }
 }
