@@ -140,9 +140,8 @@ class Core(gobject.GObject):
         'options_show_error': True,
         'options_show_html_description': False,
         'map_providers': [
-            ('OpenStreetMaps', {'remote_url': "http://tile.openstreetmap.org/mapnik/%(zoom)d/%(x)d/%(y)d.png", 'prefix': 'OpenStreetMap I'}),
-            ('OpenCycleMaps', {'remote_url': 'http://andy.sandbox.cloudmade.com/tiles/cycle/%(zoom)d/%(x)d/%(y)d.png', 'prefix': 'OpenCycleMap'})
-
+            ('OpenStreetMaps', {'remote_url': "http://a.tile.openstreetmap.org/%(zoom)d/%(x)d/%(y)d.png", 'prefix': 'OpenStreetMap I'}),
+            ('OpenCycleMaps', {'remote_url': 'http://a.tile.opencyclemap.org/cycle/%(zoom)d/%(x)d/%(y)d.png', 'prefix': 'OpenCycleMap'})
         ],
         'options_map_double_size': False,
         'options_rotate_screen': 0,

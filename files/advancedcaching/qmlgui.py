@@ -165,7 +165,7 @@ class Controller(QtCore.QObject):
         self.settings['last_target_lat'], self.settings['last_target_lon'] = c.lat, c.lon
         self.core.set_target(c)
 
-    @QtCore.Slot(QtCore.QObject)
+    @QtCore.Slot(int)
     def setMapType(self, maptype):
         self._current_map_type = maptype
 
@@ -402,6 +402,10 @@ class GPSDataWrapper(QtCore.QObject):
         logger.debug("Target distance is %r" % self.gps_target_distance)
         return float(self.gps_target_distance) if self._gps_target_distance_valid()  else 0
 
+    def _gps_target_bearing(self):
+        logger.debug("Target bearing is %r" % self.gps_target_bearing)
+        return float(self.gps_target_bearing) if self._gps_target_bearing != None else 0
+
     def _gps_status(self):
         return self.gps_status
 
@@ -412,6 +416,7 @@ class GPSDataWrapper(QtCore.QObject):
     target = QtCore.Property(QtCore.QObject, _target, notify=changed_target)
     targetDistanceValid = QtCore.Property(bool, _gps_target_distance_valid, notify=changed_distance_bearing)
     targetDistance = QtCore.Property(float, _gps_target_distance, notify=changed_distance_bearing)
+    targetBearing = QtCore.Property(float, _gps_target_bearing, notify=changed_distance_bearing)
     status = QtCore.Property(str, _gps_status, notify=changed)
 
 

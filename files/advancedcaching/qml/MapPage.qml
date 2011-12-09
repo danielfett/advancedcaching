@@ -158,25 +158,10 @@ Page {
          MenuLayout {
              MenuItem { text: "Fetch Details for all in view"; onClicked: { pinchmap.requestUpdateDetails() } }
              MenuItem { text: "Reload Map"; onClicked: { pinchmap.populate(); } }
-             MenuItem { text: "Select Map Style"; onClicked: {
-                     mapTypeSelector.open()
+             MenuItem { text: "Use Center as Target"; onClicked: {
+                     var c = pinchmap.getCenter();
+                     controller.setTarget(c[0], c[1]);
                  }}
          }
      }
-
-    /*SelectionDialogModified {
-        id: mapTypeSelector
-        model: controller.mapTypes || emptyList
-        onModelChanged: {
-            console.debug("Me thinks, model is " + model)
-        }
-
-        titleText: "Select Map Style"
-        onAccepted: {
-            controller.setMapType(selectedIndex)
-        }
-        delegate: Label {
-                    text: model.maptype.url
-            }
-    }*/
 }
