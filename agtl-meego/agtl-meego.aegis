@@ -1,0 +1,9 @@
+<aegis>
+        <request policy="add">
+                <credential name="Location" />
+                <credential name="GRP::video" />
+		<credential name="GRP::pulse-access" />
+                <for path="/usr/bin/agtl-meego" />
+        </request>
+
+</aegis>

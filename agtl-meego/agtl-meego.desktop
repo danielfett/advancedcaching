@@ -1,0 +1,8 @@
+[Desktop Entry]
+Encoding=UTF-8
+Version=1.0
+Type=Application
+Name=AGTL
+Exec=invoker --single-instance --type=e -S /usr/share/agtl-meego/splash.png /usr/bin/agtl-meego
+Icon=/usr/share/icons/hicolor/64x64/apps/agtl-meego.png
+Categories=Development;

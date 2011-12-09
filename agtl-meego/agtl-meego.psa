@@ -1,0 +1,11 @@
+[Project]
+category = Development
+maintainer = daniel
+appname = PySide app
+section = development
+pyversion = 2.6
+project = agtl-meego
+email = email@example.com
+desc = A PySide example
+template = harmattan
+

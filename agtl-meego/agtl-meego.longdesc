@@ -1,0 +1,4 @@
+This file should contain a writeup describing what your application does,
+and how to use it. The content of this file goes into the long_description
+field of setup.py, which in turn becomes the long version of the Description
+field in the debian/control file of the project.

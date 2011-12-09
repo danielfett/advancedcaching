@@ -1,0 +1,3 @@
+#!/bin/sh
+cd /usr/share/agtl-meego
+python /usr/share/agtl-meego/core.py --qml -v  
