@@ -30,13 +30,11 @@ PageStackWindow {
                 progressBanner.hide()
             }
         }
-        onSettingsChanged: {
-            console.debug("Map types is " + controller.mapTypes)
-        }
     }
 
     function setCurrentGeocache(geocache) {
         currentGeocache = geocache;
+        settings.lastSelectedGeocache = geocache.name;
     }
 
     id: rootWindow

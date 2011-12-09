@@ -18,7 +18,6 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom:  parent.bottom
-        anchors.topMargin: 8
         model: currentGeocache.coordinates || emptyList
         clip: true
         id: list
@@ -106,7 +105,7 @@ Page {
             Column {
                 spacing: 8
                 Label {
-                    text: showDescription.coordinate.valid ? F.formatCoordinate(showDescription.coordinate.lat, showDescription.coordinate.lon, controller) : "undefined"
+                    text: showDescription.coordinate.valid ? F.formatCoordinate(showDescription.coordinate.lat, showDescription.coordinate.lon, settings) : "undefined"
                     width: showDescription.width
                     font.weight: Font.Light
                     color: UI.COLOR_DIALOG_TEXT

@@ -17,7 +17,6 @@ Page {
         anchors.right:  parent.right
         anchors.leftMargin: 16
         anchors.rightMargin: 16
-        anchors.topMargin: 8
 
         Label {
             wrapMode: Text.Wrap

@@ -19,7 +19,6 @@ Page {
         anchors.top: header.bottom
         anchors.leftMargin: 16
         anchors.rightMargin: 16
-        anchors.topMargin: 8
         id: title
     }
 

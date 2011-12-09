@@ -29,21 +29,21 @@ Page {
             placeholderText: "username"
             width: parent.width
             id: inputUsername
-            text: settings.username
+            text: settings.optionsUsername
         }
         TextField {
             placeholderText: "password"
             width: parent.width
             id: inputPassword
             echoMode: TextInput.PasswordEchoOnEdit
-            text: settings.password
+            text: settings.optionsPassword
         }
         Button {
             anchors.right: parent.right
             text: "save"
             onClicked: {
-                settings.password = inputPassword.text
-                settings.username = inputUsername.text
+                settings.optionsPassword = inputPassword.text
+                settings.optionsUsername = inputUsername.text
             }
         }
 

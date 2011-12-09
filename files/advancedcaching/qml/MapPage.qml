@@ -13,19 +13,19 @@ Page {
         id: pinchmap
         anchors.fill: parent
         model: geocacheList
-        centerLatitude: (followPositionButton.checked && gps.lastGoodFix.valid) ? gps.lastGoodFix.lat : controller.mapPositionLat
-        centerLongitude: (followPositionButton.checked && gps.lastGoodFix.valid) ? gps.lastGoodFix.lon : controller.mapPositionLon
-        zoomLevel: controller.mapZoom || 11
+        centerLatitude: (followPositionButton.checked && gps.lastGoodFix.valid) ? gps.lastGoodFix.lat : settings.mapPositionLat
+        centerLongitude: (followPositionButton.checked && gps.lastGoodFix.valid) ? gps.lastGoodFix.lon : settings.mapPositionLon
+        zoomLevel: settings.mapZoom || 11
         onLatitudeChanged: {
-            controller.updateSetting('map_position_lat', latitude.toString());
+            settings.mapPositionLat = latitude;
         }
 
         onLongitudeChanged: {
-            controller.updateSetting('map_position_lon', longitude.toString());
+            settings.mapPositionLon = longitude;
         }
 
         onZoomLevelChanged: {
-            controller.updateSetting('map_zoom', zoomLevel.toString());
+            settings.mapZoom = pinchmap.zoomLevel;
         }
         showTargetIndicator: gps.targetValid;
         showTargetAtLat: gps.target.lat || 0
@@ -79,7 +79,7 @@ Page {
 
 
     Text {
-        text: F.formatDistance(gps.targetDistance || 0, controller)
+        text: F.formatDistance(gps.targetDistance || 0, settings)
         anchors.horizontalCenter: compassImage.horizontalCenter
         anchors.top: compassImage.bottom
         anchors.topMargin: 8

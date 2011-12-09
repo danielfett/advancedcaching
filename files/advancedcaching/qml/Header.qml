@@ -33,6 +33,6 @@ Item {
     anchors.top: parent.top
     anchors.left: parent.left
     anchors.right: parent.right
-    height: titleText.height + 32
+    height: titleText.height + 40
     anchors.bottomMargin: 16
 }

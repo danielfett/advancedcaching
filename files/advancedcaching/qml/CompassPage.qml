@@ -20,7 +20,7 @@ Page {
         Row {
             InfoLabel {
                 name: "Distance"
-                value: gps.targetDistanceValid ? F.formatDistance(gps.targetDistance, controller) : "-"
+                value: gps.targetDistanceValid ? F.formatDistance(gps.targetDistance, settings) : "-"
                 width: compassColumn.width/2.0
             }
             Column {
@@ -36,7 +36,7 @@ Page {
 
                 Label {
                     id: t1
-                    text: gps.lastGoodFix.valid ? ("± " + F.formatDistance(gps.lastGoodFix.error, controller)) : "-"
+                    text: gps.lastGoodFix.valid ? ("± " + F.formatDistance(gps.lastGoodFix.error, settings)) : "-"
                     font.pixelSize: UI.FONT_DEFAULT
                     font.weight: Font.Light
                     anchors.right: parent.right
@@ -119,7 +119,7 @@ Page {
         Row {
             InfoLabel {
                 name: "Altitude"
-                value: gps.lastGoodFix.altitudeValid ? F.formatDistance(gps.lastGoodFix.altitude, controller) : "-"
+                value: gps.lastGoodFix.altitudeValid ? F.formatDistance(gps.lastGoodFix.altitude, settings) : "-"
                 width: compassColumn.width/3.0
             }
             InfoLabel {
@@ -137,8 +137,8 @@ Page {
         InfoLabel {
             name: gps.data.valid ? "Current Position" : "Last Known Position"
             value: gps.data.valid
-                   ? F.formatCoordinate(gps.data.lat, gps.data.lon, controller)
-                   : (gps.lastGoodFix.valid ? F.formatCoordinate(gps.lastGoodFix.lat, gps.lastGoodFix.lon, controller) : "...there is none.")
+                   ? F.formatCoordinate(gps.data.lat, gps.data.lon, settings)
+                   : (gps.lastGoodFix.valid ? F.formatCoordinate(gps.lastGoodFix.lat, gps.lastGoodFix.lon, settings) : "...there is none.")
             width: compassColumn.width
         }
 
@@ -146,7 +146,7 @@ Page {
             InfoLabel {
                 id: currentTarget
                 name: "Current Target"
-                value: gps.targetValid ? F.formatCoordinate(gps.target.lat, gps.target.lon, controller) : "not set"
+                value: gps.targetValid ? F.formatCoordinate(gps.target.lat, gps.target.lon, settings) : "not set"
                 width: compassColumn.width - changeTargetButton.width
             }
             Button {

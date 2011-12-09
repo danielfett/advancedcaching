@@ -45,7 +45,6 @@ class Controller(QtCore.QObject):
     changed = QtCore.Signal()
     progressChanged = QtCore.Signal()
     marksChanged = QtCore.Signal()
-    settingsChanged = QtCore.Signal()
     
     def __init__(self, view, core):
         QtCore.QObject.__init__(self)
@@ -58,16 +57,11 @@ class Controller(QtCore.QObject):
         self.core.connect('error', self._show_message)
         self.core.connect('map-marks-changed', self._map_marks_changed)
         self.core.connect('settings-changed', self._settings_changed)
-        self.core.connect('save-settings', self._save_settings)
         self.callback_gps = None
-        self.settings = {}
         self.c = None
         self._progress_visible = False
         self._progress = 0
         self._progress_message = ""
-        self._current_map_type = 0
-
-        self._map_types_list = MapTypesList(self.core.settings['map_providers'])
 
 
     # Handle gobject signal from Core
@@ -99,15 +93,10 @@ class Controller(QtCore.QObject):
         self.progressChanged.emit()
 
     # Handle gobject signal from Core
-    def _save_settings(self, caller):
-        caller.save_settings(self.settings, self)
-
-    # Handle gobject signal from Core
     def _settings_changed(self, caller, settings, source):
         if source == self:
             return
         logger.debug("Got settings from %s, len() = %d, source = %s" % (caller, len(settings), source))
-        self.settings.update(settings)
 
         if 'last_selected_geocache' in settings:
             c = self.core.pointprovider.get_by_name(settings['last_selected_geocache'])
@@ -115,16 +104,9 @@ class Controller(QtCore.QObject):
                 self.geocacheSelected(GeocacheWrapper(c, self.core))
         if 'last_target_lat' in settings and 'last_target_lon' in settings:
             self.setTarget(settings['last_target_lat'], settings['last_target_lon'])
-        if 'map_providers' in settings:
-            self._map_types_list = MapTypesList(settings['map_providers'])
         #if 'last_target_lat' in settings:
         #    self.setTarget(settings['last_target_lat'], settings['last_target_lon'])
 
-        self.settingsChanged.emit()
-
-    @QtCore.Slot(str, str)
-    def updateSetting(self, name, value):
-        self.settings[name] = value
 
     @QtCore.Slot(QtCore.QObject)
     def geocacheDownloadDetailsClicked(self, wrapper):
@@ -134,7 +116,7 @@ class Controller(QtCore.QObject):
     def geocacheSelected(self, wrapper):
         self.current_cache = wrapper
         self.view.rootObject().setCurrentGeocache(wrapper)
-        self.updateSetting('last_selected_geocache', wrapper._name())
+        #self.updateSetting('last_selected_geocache', wrapper._name())
 
     @QtCore.Slot(QtCore.QObject, float, float, float, float)
     def mapViewChanged(self, map, lat_start, lon_start, lat_end, lon_end):
@@ -152,7 +134,7 @@ class Controller(QtCore.QObject):
 
     @QtCore.Slot(float, float)
     def setTarget(self, lat, lon):
-        self.settings['last_target_lat'], self.settings['last_target_lon'] = lat, lon
+        #self.settings['last_target_lat'], self.settings['last_target_lon'] = lat, lon
         logger.debug("Setting target to %f, %f" % (lat, lon))
         self.core.set_target(geo.Coordinate(lat, lon))
 
@@ -162,12 +144,8 @@ class Controller(QtCore.QObject):
             c = coordinate._geocache
         else:
             c = coordinate._coordinate
-        self.settings['last_target_lat'], self.settings['last_target_lon'] = c.lat, c.lon
+        #self.settings['last_target_lat'], self.settings['last_target_lon'] = c.lat, c.lon
         self.core.set_target(c)
-
-    @QtCore.Slot(int)
-    def setMapType(self, maptype):
-        self._current_map_type = maptype
 
     @QtCore.Slot(bool, float, float, bool, float, bool, float, float, QtCore.QObject)
     def positionChanged(self, valid, lat, lon, altvalid, alt, speedvalid, speed, error, timestamp):
@@ -193,23 +171,6 @@ class Controller(QtCore.QObject):
         logger.debug("Position changed, new fix is %r" % a)
         self.callback_gps(a)
 
-    def _setting(self, s, t):
-        x = t(self.settings[s]) if s in self.settings else 0
-        logger.debug("Giving out value %r for setting %s" % (s, x))
-        return x
-
-    def _distance_unit(self):
-        return "m"
-
-    def _coordinate_format(self):
-        return "DM"
-
-    def _get_current_map_type(self):
-        return self._map_types_list.get_data_at(self._current_map_type)
-
-    def _map_types(self):
-        return self._map_types_list
-
     def _progress(self):
         return self._progress
 
@@ -219,14 +180,6 @@ class Controller(QtCore.QObject):
     def _progress_message(self):
         return self._progress_message
 
-
-    mapPositionLat = QtCore.Property(float, lambda x: x._setting('map_position_lat', float), notify=settingsChanged)
-    mapPositionLon = QtCore.Property(float, lambda x: x._setting('map_position_lon', float), notify=settingsChanged)
-    mapZoom = QtCore.Property(int, lambda x: x._setting('map_zoom', int), notify=settingsChanged)
-    distanceUnit = QtCore.Property(str, _distance_unit, notify=changed)
-    coordinateFormat = QtCore.Property(str, _coordinate_format, notify=changed)
-    currentMapType = QtCore.Property(QtCore.QObject, _get_current_map_type, notify=settingsChanged)
-    mapTypes = QtCore.Property(QtCore.QObject, _map_types, notify=settingsChanged)
     progress = QtCore.Property(float, _progress, notify=progressChanged)
     progressVisible = QtCore.Property(bool, _progress_visible, notify=progressChanged)
     progressMessage = QtCore.Property(str, _progress_message, notify=progressChanged)
@@ -404,7 +357,10 @@ class GPSDataWrapper(QtCore.QObject):
 
     def _gps_target_bearing(self):
         logger.debug("Target bearing is %r" % self.gps_target_bearing)
-        return float(self.gps_target_bearing) if self._gps_target_bearing != None else 0
+        try:
+            return float(self.gps_target_bearing)
+        except TypeError:
+            return 0
 
     def _gps_status(self):
         return self.gps_status
@@ -420,31 +376,80 @@ class GPSDataWrapper(QtCore.QObject):
     status = QtCore.Property(str, _gps_status, notify=changed)
 
 
+
+
+
 class SettingsWrapper(QtCore.QObject):
     def __init__(self, core):
         QtCore.QObject.__init__(self)
         self.core = core
+        self.core.connect('settings-changed', self._settings_changed)
+        self.core.connect('save-settings', self._save_settings)
+        self.settings = {}
+        self._current_map_type = 0
 
-    changed = QtCore.Signal()
+        self._map_types_list = MapTypesList(self.core.settings['map_providers'])
 
-    def _username(self):
-        return self.core.settings['options_username']
+    settingsChanged = QtCore.Signal()
 
-    def _password(self):
-        return self.core.settings['options_password']
+    def _setting(self, s, t):
+        x = t(self.settings[s]) if s in self.settings else 0
+        return x
 
-    def _setUsername(self, u):
-        s = {'options_username': u}
-        self.core.emit('settings-changed', s, self)
-        self.changed.emit()
+    def _set_setting(self, s, t):
+        self.settings[s] = t
 
-    def _setPassword(self, p):
-        s = {'options_password': u}
-        self.core.emit('settings-changed', s, self)
-        self.changed.emit()
+    # Handle gobject signal from Core
+    def _save_settings(self, caller):
+        caller.save_settings(self.settings, self)
 
-    username = QtCore.Property(str, _username, _setUsername, notify=changed)
-    password = QtCore.Property(str, _password, _setPassword, notify=changed)
+    @QtCore.Slot(int)
+    def setMapType(self, maptype):
+        self._current_map_type = maptype
+
+    # Handle gobject signal from Core
+    def _settings_changed(self, caller, settings, source):
+        if source == self:
+            return
+        logger.debug("Settings object got settings from %s, len() = %d, source = %s" % (caller, len(settings), source))
+        self.settings.update(settings)
+
+        if 'map_providers' in settings:
+            self._map_types_list = MapTypesList(settings['map_providers'])
+        #if 'last_target_lat' in settings:
+        #    self.setTarget(settings['last_target_lat'], settings['last_target_lon'])
+
+        self.settingsChanged.emit()
+
+
+
+    def _distance_unit(self):
+        return "m"
+
+    def _coordinate_format(self):
+        return "DM"
+
+    def _get_current_map_type(self):
+        return self._map_types_list.get_data_at(self._current_map_type)
+
+    def _map_types(self):
+        return self._map_types_list
+
+    def createSetting(name, type, signal):
+        return QtCore.Property(type, lambda x: x._setting(name, type), lambda x, m: x._set_setting(name, m), notify=signal)
+
+    mapPositionLat = createSetting('map_position_lat', float, settingsChanged)
+    mapPositionLon = createSetting('map_position_lon', float, settingsChanged)
+    mapZoom = createSetting('map_zoom', int, settingsChanged)
+    optionsUsername = createSetting('options_username', str, settingsChanged)
+    optionsPassword = createSetting('options_password', str, settingsChanged)
+    lastSelectedGeocache = createSetting('last_selected_geocache', str, settingsChanged)
+
+    currentMapType = QtCore.Property(QtCore.QObject, _get_current_map_type, notify=settingsChanged)
+    mapTypes = QtCore.Property(QtCore.QObject, _map_types, notify=settingsChanged)
+    distanceUnit = QtCore.Property(str, _distance_unit, notify=settingsChanged)
+    coordinateFormat = QtCore.Property(str, _coordinate_format, notify=settingsChanged)
+
 
 class CoordinateWrapper(QtCore.QObject):
     def __init__(self, coordinate):

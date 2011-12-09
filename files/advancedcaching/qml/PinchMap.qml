@@ -13,8 +13,8 @@ Rectangle {
     property int tileSize: 256;
     property int cornerTileX: 32;
     property int cornerTileY: 21;
-    property int numTilesX: Math.ceil(width/tileSize) + 4;
-    property int numTilesY: Math.ceil(height/tileSize) + 4;
+    property int numTilesX: Math.ceil(width/tileSize) + 2;
+    property int numTilesY: Math.ceil(height/tileSize) + 2;
     property int maxTileNo: Math.pow(2, zoomLevel) - 1;
     property alias model: geocacheDisplay.model
     property bool showTargetIndicator: false
@@ -35,7 +35,7 @@ Rectangle {
     
     property alias angle: rot.angle
 
-    property string url: controller.currentMapType.url
+    property string url: settings.currentMapType.url
 
     property int earthRadius: 6371000
 
@@ -426,7 +426,7 @@ Rectangle {
     }
 
     Text {
-        text: F.formatDistance(scaleBarLength[1], controller)
+        text: F.formatDistance(scaleBarLength[1], settings)
         anchors.horizontalCenter: scaleBar.horizontalCenter
         anchors.top: scaleBar.bottom
         anchors.topMargin: 8
