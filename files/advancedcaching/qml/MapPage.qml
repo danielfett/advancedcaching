@@ -1,7 +1,7 @@
 import QtQuick 1.1
 import com.nokia.meego 1.0
 import "uiconstants.js" as UI
-
+import "functions.js" as F
 
 Page {
     id: tabMap
@@ -75,6 +75,18 @@ Page {
                angle: arrowImage.angle
            }
         }
+    }
+
+
+    Text {
+        text: F.formatDistance(gps.targetDistance || 0, controller)
+        anchors.horizontalCenter: compassImage.horizontalCenter
+        anchors.top: compassImage.bottom
+        anchors.topMargin: 8
+        style: Text.Outline
+        styleColor: "white"
+        font.pixelSize: 32
+        visible: (gps.targetValid && gps.data.valid && gps.targetDistanceValid)
     }
 
     Row {

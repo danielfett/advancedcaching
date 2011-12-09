@@ -181,7 +181,6 @@ Rectangle {
         var base = 10 * -Math.floor(Math.log(guess)/Math.log(10) + 0.00001)
         var length_meters = Math.round(guess/base)*base
         var length_pixels = length_meters / mpp
-        console.debug(mpp+" | "+guess+" | "+base+" | "+length_meters+" | "+length_pixels+" | "+destlength)
         return [length_pixels, length_meters]
     }
 
