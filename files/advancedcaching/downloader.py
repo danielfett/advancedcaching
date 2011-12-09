@@ -110,6 +110,7 @@ class FileDownloader():
 
 
     def get_reader(self, url, values=None, data=None, login = True):
+        logger.debug("Sending request to %s" % url)
         if connection.offline:
             raise Exception("Can't connect in offline mode.")
         from urllib import urlencode
@@ -120,14 +121,14 @@ class FileDownloader():
         if values == None and data == None:
             req = Request(url)
             self.add_headers(req)
-            return urlopen(req)
+            resp = urlopen(req)
 
         elif data == None:
             if (isinstance(values, dict)):
                 values = urlencode( values)
             req = Request(url, values)
             self.add_headers(req)
-            return urlopen(req)
+            resp = urlopen(req)
         elif values == None:
             content_type, body = data
             req = Request(url)
@@ -135,8 +136,16 @@ class FileDownloader():
             req.add_header('Content-Length', len(str(body)))
             self.add_headers(req)
             req.add_data(body)
-            return urlopen(req)
-
+            resp = urlopen(req)
+        if resp.info().get('Content-Encoding') == 'gzip':
+            from StringIO import StringIO
+            import gzip
+            buf = StringIO(resp.read())
+            logger.debug("Got gzip encoded answer")
+            return gzip.GzipFile(fileobj=buf)
+        else:
+            logger.debug("Got unencoded answer")
+            return resp
     def encode_multipart_formdata(self, fields, files):
         """
         fields is a sequence of (name, value) elements for regular form fields.
@@ -172,3 +181,4 @@ class FileDownloader():
         req.add_header('User-Agent', self.USER_AGENT)
         req.add_header('Cache-Control', 'no-cache')
         req.add_header('Pragma', 'no-cache')
+        req.add_header('Accept-Encoding', 'gzip')
