@@ -464,6 +464,7 @@ class SettingsWrapper(QtCore.QObject):
     lastSelectedGeocache = createSetting('last_selected_geocache', str, settingsChanged)
     optionsMapRotation = createSetting('options_maprotation', bool, settingsChanged)
     optionsHideFound = createSetting('options_hide_found', bool, settingsChanged)
+    optionsShowPositionError = createSetting('options_show_position_error', bool, settingsChanged)
 
     currentMapType = QtCore.Property(QtCore.QObject, _get_current_map_type, _set_current_map_type, notify=settingsChanged)
     mapTypes = QtCore.Property(QtCore.QObject, _map_types, notify=settingsChanged)

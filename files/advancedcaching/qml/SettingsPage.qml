@@ -125,6 +125,24 @@ Page {
             }
         }
         
+        Row {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            Label {
+                 text: "Show position error on map"
+                 font.weight: Font.Bold
+                 font.pixelSize: 26
+            }
+            
+            Switch {
+                anchors.right: parent.right
+                onCheckedChanged: {
+                    settings.optionsShowPositionError = checked
+                }
+                checked: settings.optionsShowPositionError
+            }
+        }
+        
     }
 
 }

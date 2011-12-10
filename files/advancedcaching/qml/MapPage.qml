@@ -55,6 +55,7 @@ Page {
         currentPositionLat: gps.lastGoodFix.lat
         currentPositionLon: gps.lastGoodFix.lon
         currentPositionAzimuth: compass.azimuth
+        currentPositionError: gps.lastGoodFix.error
 
     }
 

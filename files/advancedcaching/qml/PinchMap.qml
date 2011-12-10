@@ -26,6 +26,7 @@ Rectangle {
     property double currentPositionLat: 0;
     property double currentPositionLon: 0;
     property double currentPositionAzimuth: 0;
+    property double currentPositionError: 0;
 
     property bool rotationEnabled: false
 
@@ -398,13 +399,25 @@ Rectangle {
 
     }
 
+    Rectangle {
+        id: positionErrorIndicator
+        visible: showCurrentPosition && settings.optionsShowPositionError
+        width: currentPositionError * (1/getMetersPerPixel(currentPositionLat)) * 2
+        height: width
+        color: "#300000ff"
+        border.width: 2
+        border.color: "#800000ff"
+        x: map.x + positionIndicator.t[0] - width/2
+        y: map.y + positionIndicator.t[1] - height/2
+        radius: width/2
+    }
 
     Image {
         id: positionIndicator
         source: currentPositionValid ? "../data/position-indicator.png" : "../data/position-indicator-red.png"
         property variant t: getMappointFromCoord(currentPositionLat, currentPositionLon)
         x: map.x + t[0] - width/2
-        y: map.y + t[1] - height/2
+        y: map.y + t[1] - height + positionIndicator.width/2
         smooth: true
 
         visible: showCurrentPosition
