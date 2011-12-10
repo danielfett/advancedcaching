@@ -163,6 +163,13 @@ Page {
             }
         }
     }
+    
+    
+    
+    function openMenu() {
+        menu.open();
+    }
+    
     Menu {
          id: menu
          visualParent: parent
@@ -174,6 +181,7 @@ Page {
                      var c = pinchmap.getCenter();
                      controller.setTarget(c[0], c[1]);
                  }}
+             MenuItem { text: "Settings"; onClicked: { showSettings(); } }
          }
      }
 }

@@ -178,12 +178,17 @@ Page {
 
     }
     
+    function openMenu() {
+        menu.open();
+    }
+    
     Menu {
          id: menu
          visualParent: parent
 
          MenuLayout {
              MenuItem { text: "Unset Target"; onClicked: { controller.setAsTarget(null); } }
+             MenuItem { text: "Settings"; onClicked: { showSettings(); } }
          }
      }
 }

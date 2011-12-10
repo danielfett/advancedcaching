@@ -7,7 +7,7 @@ import QtMobility.location 1.1
 PageStackWindow {
     //property variant controller
     property variant geocacheList: 0
-    property variant currentGeocache: 0
+    property variant currentGeocache: null
     property string downloadText: ""
 
 

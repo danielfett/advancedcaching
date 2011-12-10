@@ -18,6 +18,11 @@ Page {
         }
         tabGroup.currentTab = tabDetailsPageStack
     }
+    
+    function showSettings() {
+        tabGroup.currentTab = tabSettings
+    }
+        
 
     TabGroup {
         id: tabGroup
@@ -36,6 +41,11 @@ Page {
             Component.onCompleted: {
                 push(pageDetailsDefault)
             }
+            
+            function openMenu() {
+                currentPage.openMenu();
+            }
+            
         }
 
         SettingsPage{
@@ -76,18 +86,19 @@ Page {
                 tab: tabDetailsPageStack
                 iconSource: "image://theme/icon-m-toolbar-search"
             }
-            Button {
-                //text: "Menu"
-                //tab: tabSettings
-                iconSource: "image://theme/icon-m-toolbar-view-menu"
-                onClicked: {
-                    tabGroup.currentTab.menu.open()
-                }
-            }
             /*TabButton {
                 tab: tabCamera
                 iconSource: "image://theme/icon-m-viewfinder-camera-selected"
             }*/
+        }
+        
+        
+        ToolIcon {
+            iconId: "toolbar-view-menu"
+            onClicked: {
+                tabGroup.currentTab.openMenu();
+            }
+
         }
     }
 }

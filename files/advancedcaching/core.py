@@ -531,8 +531,6 @@ class Core(gobject.GObject):
     def get_coord_by_name(self, query):
         return self.geonames.search(query)
 
-
-
     def search_place(self, search):
         return self.geonames.search_all(search)
 

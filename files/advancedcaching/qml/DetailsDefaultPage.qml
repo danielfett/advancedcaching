@@ -17,6 +17,7 @@ Page {
         anchors.right:  parent.right
         anchors.leftMargin: 16
         anchors.rightMargin: 16
+        visible: currentGeocache != null
 
         Label {
             wrapMode: Text.Wrap
@@ -97,6 +98,7 @@ Page {
         anchors.bottom: parent.bottom
         spacing: 0
         width: parent.parent.width
+        visible: currentGeocache != null
 
         ListButton {
             text: "Description"
@@ -163,12 +165,18 @@ Page {
     }
     
     
+    
+    function openMenu() {
+        menu.open();
+    }
+    
     Menu {
          id: menu
          visualParent: parent
 
          MenuLayout {
              MenuItem { text: currentGeocache.found ? "Mark Not Found" : "Mark Found"; }
+             MenuItem { text: "Settings"; onClicked: { showSettings(); } }
          }
      }
 }
