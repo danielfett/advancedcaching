@@ -57,7 +57,6 @@ Rectangle {
         timer.start()
         controller.marksChanged.connect(populate)
         updateCenter();
-        console.debug("1111111111111111111111111111111111111111111111")
     }
 
 
@@ -460,7 +459,9 @@ Rectangle {
             //console.log("Now, __oldZoom is " + __oldZoom + " and Map is at " + pinchmap.zoomLevel)
              */
             pinchmap.setZoomLevelPoint(Math.round((Math.log(p.scale)/Math.log(2)) + __oldZoom), p.center.x, p.center.y);
-            rot.angle = p.rotation
+            if (rotationEnabled) {
+                rot.angle = p.rotation
+            }
             pan(p.previousCenter.x - p.center.x, p.previousCenter.y - p.center.y);
         }
 

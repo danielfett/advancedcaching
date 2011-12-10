@@ -80,6 +80,51 @@ Page {
                     }
             }
         }
+        
+        
+        
+        Label {
+            font.pixelSize: 20
+            color: UI.COLOR_INFOLABEL
+            text: "Map View"
+        }
+        
+        Row {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            Label {
+                 text: "Enable Map Rotation (BETA)"
+                 font.weight: Font.Bold
+                 font.pixelSize: 26
+            }
+            
+            Switch {
+                anchors.right: parent.right
+                onCheckedChanged: {
+                    settings.optionsMapRotation = checked
+                }
+                checked: settings.optionsMapRotation
+            }
+        }
+        
+        Row {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            Label {
+                 text: "Hide Found Geocaches"
+                 font.weight: Font.Bold
+                 font.pixelSize: 26
+            }
+            
+            Switch {
+                anchors.right: parent.right
+                onCheckedChanged: {
+                    settings.optionsHideFound = checked
+                }
+                checked: settings.optionsHideFound
+            }
+        }
+        
     }
 
 }

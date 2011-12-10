@@ -13,10 +13,11 @@ Page {
         id: pinchmap
         anchors.fill: parent
         model: geocacheList
-        zoomLevel: settings.mapZoom || 11
+        zoomLevel: 11
         Component.onCompleted: {
             centerLatitude = settings.mapPositionLat
             centerLongitude = settings.mapPositionLon
+            zoomLevel = settings.mapZoom
         }
         Connections {
             target: gps
@@ -27,12 +28,23 @@ Page {
                 }
             }
         }
-        Component.onDestruction: {
-            settings.mapPositionLat = latitude;
-            settings.mapPositionLon = longitude;
-            settings.mapZoom = pinchmap.zoomLevel;
-            console.debug("Updated map position");
+        Connections {
+            target: settings
+            onMapPositionLatChanged: { pinchmap.centerLatitude = settings.mapPositionLat }
+            onMapPositionLonChanged: { pinchmap.centerLongitude = settings.mapPositionLon }
+            onMapZoomChanged: { pinchmap.zoomLevel = settings.mapZoom }
         }
+            
+        onLatitudeChanged: {
+            settings.mapPositionLat = latitude;
+        }
+        onLongitudeChanged: {
+            settings.mapPositionLon = longitude;
+        }
+        onZoomLevelChanged: {
+            settings.mapZoom = pinchmap.zoomLevel;
+        }
+         
         showTargetIndicator: gps.targetValid;
         showTargetAtLat: gps.target.lat || 0
         showTargetAtLon: gps.target.lon || 0

@@ -405,10 +405,11 @@ class SettingsWrapper(QtCore.QObject):
         x = t(self.settings[s]) if s in self.settings else 0
         return x
 
-    def _set_setting(self, s, t):
+    def _set_setting(self, s, t, notify = True):
         logger.debug("Setting %s is now: %r" % (s, t))
         self.settings[s] = t
-        self.settingsChanged.emit()
+        if notify:
+            self.settingsChanged.emit()
 
     # Handle gobject signal from Core
     def _save_settings(self, caller):
@@ -452,12 +453,12 @@ class SettingsWrapper(QtCore.QObject):
     def _map_types(self):
         return self._map_types_list
 
-    def createSetting(name, type, signal):
-        return QtCore.Property(type, lambda x: x._setting(name, type), lambda x, m: x._set_setting(name, m), notify=signal)
+    def createSetting(name, type, signal, inputNotify = True):
+        return QtCore.Property(type, lambda x: x._setting(name, type), lambda x, m: x._set_setting(name, m, inputNotify), notify=signal)
 
-    mapPositionLat = createSetting('map_position_lat', float, settingsChanged)
-    mapPositionLon = createSetting('map_position_lon', float, settingsChanged)
-    mapZoom = createSetting('map_zoom', int, settingsChanged)
+    mapPositionLat = createSetting('map_position_lat', float, settingsChanged, False)
+    mapPositionLon = createSetting('map_position_lon', float, settingsChanged, False)
+    mapZoom = createSetting('map_zoom', int, settingsChanged, False)
     optionsUsername = createSetting('options_username', str, settingsChanged)
     optionsPassword = createSetting('options_password', str, settingsChanged)
     lastSelectedGeocache = createSetting('last_selected_geocache', str, settingsChanged)

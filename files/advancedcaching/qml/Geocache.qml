@@ -15,6 +15,7 @@ Rectangle {
     border.color: UI.getCacheColor(cache)
     //smooth: true
     radius: 7
+    visible: ! (settings.optionsHideFound && cache.found)
     Image {
         source: "../data/cross.svg"
         anchors.centerIn: parent
