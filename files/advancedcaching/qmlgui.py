@@ -613,6 +613,9 @@ class GeocacheWrapper(QtCore.QObject):
     def _found(self):
         return self._geocache.found
 
+    def _hints(self):
+        return self._hints
+
     def _coordinates(self):
         logger.debug("Preparing coordinate list...")
         if self._coordinate_list == None:
@@ -654,6 +657,7 @@ class GeocacheWrapper(QtCore.QObject):
     coordinates = QtCore.Property(QtCore.QObject, _coordinates, notify=changed)
     coordinatesCount = QtCore.Property(int, _coordinates_count, notify=changed)
     hasDetails = QtCore.Property(bool, _has_details, notify=changed)
+    hints = QtCore.Property(str, _hints, notify=changed)
 
 class GeocacheListModel(QtCore.QAbstractListModel):
     COLUMNS = ('geocache',)

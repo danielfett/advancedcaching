@@ -71,7 +71,7 @@ PageStackWindow {
     PositionSource {
         id: gpsSource
         active: true
-        updateInterval: 500
+        updateInterval: 1000
         onPositionChanged: {
             console.log("Changed!");
             console.log("pos: " + gpsSource.position.latitudeValid + " and " + position.coordinate.latitude);
