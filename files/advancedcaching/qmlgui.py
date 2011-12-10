@@ -227,7 +227,14 @@ class MapTypesList(QtCore.QAbstractListModel):
         return None
 
     def get_data_at(self, i):
-        return self._maptypes[i]
+        return self._maptypes[i] if i < len(self._maptypes) else None
+        
+    def get_index_of(self, t):
+        try:
+            return self._maptypes.index(t)
+        except ValueError:
+            logger.debug("Map type not found: %r" % t)
+            return None
 
 class FixWrapper(QtCore.QObject):
 
@@ -390,8 +397,6 @@ class SettingsWrapper(QtCore.QObject):
         self.core.connect('settings-changed', self._settings_changed)
         self.core.connect('save-settings', self._save_settings)
         self.settings = {}
-        self._current_map_type = 0
-
         self._map_types_list = MapTypesList(self.core.settings['map_providers'])
 
     settingsChanged = QtCore.Signal()
@@ -403,14 +408,11 @@ class SettingsWrapper(QtCore.QObject):
     def _set_setting(self, s, t):
         logger.debug("Setting %s is now: %r" % (s, t))
         self.settings[s] = t
+        self.settingsChanged.emit()
 
     # Handle gobject signal from Core
     def _save_settings(self, caller):
         caller.save_settings(self.settings, self)
-
-    @QtCore.Slot(int)
-    def setMapType(self, maptype):
-        self._current_map_type = maptype
 
     # Handle gobject signal from Core
     def _settings_changed(self, caller, settings, source):
@@ -421,6 +423,9 @@ class SettingsWrapper(QtCore.QObject):
 
         if 'map_providers' in settings:
             self._map_types_list = MapTypesList(settings['map_providers'])
+        if 'map_type' in settings:
+            self._current_map_type = self._map_types_list.get_data_at(settings['map_type'])
+            
         #if 'last_target_lat' in settings:
         #    self.setTarget(settings['last_target_lat'], settings['last_target_lon'])
 
@@ -435,7 +440,14 @@ class SettingsWrapper(QtCore.QObject):
         return "DM"
 
     def _get_current_map_type(self):
-        return self._map_types_list.get_data_at(self._current_map_type)
+        if 'map_type' in self.settings:
+            return self._map_types_list.get_data_at(self.settings['map_type'])
+        else:
+            return self._map_types_list.get_data_at(0)
+        
+    def _set_current_map_type(self, map_type):
+        self.settings['map_type'] = self._map_types_list.get_index_of(map_type)
+        self.settingsChanged.emit()
 
     def _map_types(self):
         return self._map_types_list
@@ -452,7 +464,7 @@ class SettingsWrapper(QtCore.QObject):
     optionsMapRotation = createSetting('options_maprotation', bool, settingsChanged)
     optionsHideFound = createSetting('options_hide_found', bool, settingsChanged)
 
-    currentMapType = QtCore.Property(QtCore.QObject, _get_current_map_type, notify=settingsChanged)
+    currentMapType = QtCore.Property(QtCore.QObject, _get_current_map_type, _set_current_map_type, notify=settingsChanged)
     mapTypes = QtCore.Property(QtCore.QObject, _map_types, notify=settingsChanged)
     distanceUnit = QtCore.Property(str, _distance_unit, notify=settingsChanged)
     coordinateFormat = QtCore.Property(str, _coordinate_format, notify=settingsChanged)

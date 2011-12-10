@@ -42,11 +42,13 @@ Page {
             anchors.right: parent.right
             text: "save"
             onClicked: {
-                settings.optionsPassword = inputPassword.text
-                settings.optionsUsername = inputUsername.text
+                var pw = inputPassword.text;
+                var un = inputUsername.text;
+                settings.optionsPassword = pw
+                settings.optionsUsername = un
             }
         }
-
+        
         Label {
             font.pixelSize: 20
             color: UI.COLOR_INFOLABEL
@@ -55,7 +57,7 @@ Page {
 
         Flow {
             Repeater {
-                model: controller.mapTypes || emptyList
+                model: settings.mapTypes || emptyList
                 delegate: Rectangle {
                             //text: model.maptype.url
                             Image {
@@ -67,12 +69,12 @@ Page {
                             }
                             width: 132;
                             height: 132;
-                            color: (model.maptype == controller.currentMapType) ? 'red' : 'grey'
+                            color: (model.maptype == settings.currentMapType) ? 'red' : 'grey'
                             MouseArea {
                                 anchors.fill: parent
                                 onClicked: {
                                     console.debug("Setting map type to index " + index)
-                                    controller.setMapType(index)
+                                    settings.currentMapType = model.maptype
                                 }
                             }
                     }

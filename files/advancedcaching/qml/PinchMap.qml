@@ -36,6 +36,10 @@ Rectangle {
     property alias angle: rot.angle
 
     property string url: settings.currentMapType.url
+    
+    onUrlChanged: {
+        populate();
+    }
 
     property int earthRadius: 6371000
 
@@ -53,6 +57,7 @@ Rectangle {
         timer.start()
         controller.marksChanged.connect(populate)
         updateCenter();
+        console.debug("1111111111111111111111111111111111111111111111")
     }
 
 

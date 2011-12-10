@@ -13,19 +13,25 @@ Page {
         id: pinchmap
         anchors.fill: parent
         model: geocacheList
-        centerLatitude: (followPositionButton.checked && gps.lastGoodFix.valid) ? gps.lastGoodFix.lat : settings.mapPositionLat
-        centerLongitude: (followPositionButton.checked && gps.lastGoodFix.valid) ? gps.lastGoodFix.lon : settings.mapPositionLon
         zoomLevel: settings.mapZoom || 11
-        onLatitudeChanged: {
+        Component.onCompleted: {
+            centerLatitude = settings.mapPositionLat
+            centerLongitude = settings.mapPositionLon
+        }
+        Connections {
+            target: gps
+            onLastGoodFixChanged: {
+                if (followPositionButton.checked) {
+                    pinchmap.centerLatitude = gps.lastGoodFix.lat
+                    pinchmap.centerLongitude = gps.lastGoodFix.lon
+                }
+            }
+        }
+        Component.onDestruction: {
             settings.mapPositionLat = latitude;
-        }
-
-        onLongitudeChanged: {
             settings.mapPositionLon = longitude;
-        }
-
-        onZoomLevelChanged: {
             settings.mapZoom = pinchmap.zoomLevel;
+            console.debug("Updated map position");
         }
         showTargetIndicator: gps.targetValid;
         showTargetAtLat: gps.target.lat || 0
@@ -119,11 +125,15 @@ Page {
         Button {
             id: followPositionButton
             iconSource: "image://theme/icon-m-common-location"
-            //onClicked: {pinchmap.setCenterLatLon(48.85568,2.386093) }
             width: parent.parent.buttonSize
             height: parent.parent.buttonSize
             checkable: true
-
+            onClicked: {
+                if (checked && gps.lastGoodFix) {
+                    pinchmap.centerLatitude = gps.lastGoodFix.lat
+                    pinchmap.centerLongitude = gps.lastGoodFix.lon
+                }
+            }
         }
         Button {
             id: refreshGeocachesButton
