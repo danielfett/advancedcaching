@@ -76,10 +76,13 @@ Page {
                 tab: tabDetailsPageStack
                 iconSource: "image://theme/icon-m-toolbar-search"
             }
-            TabButton {
-                //text: "Settings"
-                tab: tabSettings
-                iconSource: "image://theme/icon-m-toolbar-settings"
+            Button {
+                //text: "Menu"
+                //tab: tabSettings
+                iconSource: "image://theme/icon-m-toolbar-view-menu"
+                onClicked: {
+                    tabGroup.currentTab.menu.open()
+                }
             }
             /*TabButton {
                 tab: tabCamera

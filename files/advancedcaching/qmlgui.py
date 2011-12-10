@@ -143,8 +143,11 @@ class Controller(QtCore.QObject):
     def setAsTarget(self, coordinate):
         if type(coordinate) == GeocacheWrapper:
             c = coordinate._geocache
-        else:
+        elif type(coordinate) == CoordinateWrapper:
             c = coordinate._coordinate
+        else:
+            logger.debug("Setting Target to None")
+            c = None
         #self.settings['last_target_lat'], self.settings['last_target_lon'] = c.lat, c.lon
         self.core.set_target(c)
 
@@ -322,8 +325,8 @@ class GPSDataWrapper(QtCore.QObject):
         self.changed.emit()
 
     def _on_target_changed(self, caller, target, distance, bearing):
-        self._target_valid = True
-        self._target = CoordinateWrapper(target)
+        self._target_valid = (target != None)
+        self._target = CoordinateWrapper(target) if target != None else CoordinateWrapper(geo.Coordinate(0, 0))
         self.gps_target_distance = distance
         self.gps_target_bearing = bearing
         self.changed_distance_bearing.emit()

@@ -134,7 +134,7 @@ Page {
                 pinchmap.requestUpdate()
             }
         }
-        Button {
+        /*Button {
             id: settingsButton
             iconSource: "image://theme/icon-m-toolbar-view-menu"
             width: parent.parent.buttonSize
@@ -142,7 +142,7 @@ Page {
             onClicked: {
                 mapMenu.open()
             }
-        }
+        }*/
     }
     ProgressBar {
         id: zoomBar
@@ -164,8 +164,8 @@ Page {
         }
     }
     Menu {
-         id: mapMenu
-         visualParent: tabMap
+         id: menu
+         visualParent: parent
 
          MenuLayout {
              MenuItem { text: "Fetch Details for all in view"; onClicked: { pinchmap.requestUpdateDetails() } }

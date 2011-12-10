@@ -161,4 +161,14 @@ Page {
         }*/
 
     }
+    
+    
+    Menu {
+         id: menu
+         visualParent: parent
+
+         MenuLayout {
+             MenuItem { text: currentGeocache.found ? "Mark Not Found" : "Mark Found"; }
+         }
+     }
 }

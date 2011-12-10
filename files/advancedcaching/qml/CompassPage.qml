@@ -177,4 +177,13 @@ Page {
         }
 
     }
+    
+    Menu {
+         id: menu
+         visualParent: parent
+
+         MenuLayout {
+             MenuItem { text: "Unset Target"; onClicked: { controller.setAsTarget(null); } }
+         }
+     }
 }
