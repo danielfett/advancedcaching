@@ -75,8 +75,8 @@ Page {
                     name: "Status"
                     value: (currentGeocache.status == 0) ? "active" :
                         (currentGeocache.status == 1) ? "disabled" :
-                        "archived"
-                    color: (currentGeocache.status == 1) ? "red" : "black"
+                        "archived";
+                    color: (currentGeocache.status == 1) ? "red" : "black";
                 }
                 /*
                 InfoLabel {
@@ -84,7 +84,7 @@ Page {
                     value: "2010-08-13?"
                 }*/
                 Button {
-                    text: "Fetch details"
+                    text: currentGeocache.hasDetails ? "Update Details" : "Fetch details"
                     onClicked: {
                         controller.geocacheDownloadDetailsClicked(currentGeocache)
                     }

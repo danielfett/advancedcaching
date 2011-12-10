@@ -6,6 +6,7 @@ Item {
     property int size: 0
     property alias name: title.text
     property alias value: value.text
+    property alias color: title.color
     Label {
         id: title
         font.pixelSize: 20
