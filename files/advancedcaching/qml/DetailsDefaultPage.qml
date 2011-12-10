@@ -73,7 +73,10 @@ Page {
                 }
                 InfoLabel {
                     name: "Status"
-                    value: "active"
+                    value: (currentGeocache.status == 0) ? "active" :
+                        (currentGeocache.status == 1) ? "disabled" :
+                        "archived"
+                    color: (currentGeocache.status == 1) ? "red" : "black"
                 }
                 /*
                 InfoLabel {
