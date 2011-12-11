@@ -315,7 +315,9 @@ class GeocacheCoordinate(geo.Coordinate):
         self.alter_lat = coord.lat
         self.alter_lon = coord.lon
 
-    def start_calc(self, stripped_desc):
+    def start_calc(self, stripped_desc = None):
+        if stripped_desc == None:
+            stripped_desc = self.desc
         from coordfinder import CalcCoordinateManager
         if self.vars == None or self.vars == '':
             vars = {}
@@ -392,6 +394,7 @@ class GeocacheCoordinate(geo.Coordinate):
 
         # cache calc
         if self.calc != None:
+            logger.debug("Evaluating cache calc coordinates")
             for coord, source in self.calc.get_solutions():
                 if coord == False:
                     continue
@@ -409,6 +412,7 @@ class GeocacheCoordinate(geo.Coordinate):
 
             for coord, source in self.calc.get_plain_coordinates():
                 if coord == False:
+                    logger.debug("Coordinate is false: %r" % coord)
                     continue
                 if type(source) == int:
                     source_string = self.get_user_coordinate(source)['name']
@@ -418,6 +422,7 @@ class GeocacheCoordinate(geo.Coordinate):
                     coord.user_coordinate_id = None
                 latlon = coord.get_latlon(format)
                 if latlon in check_double:
+                    logger.debug("Coordinate is already in the list: %r" % coord)
                     continue
                 coord.title = "From Text"
                 coord.display_text = "%s: %s" % (source_string, latlon)
@@ -433,6 +438,7 @@ class GeocacheCoordinate(geo.Coordinate):
             coord.user_coordinate_id = None
             clist[i] = coord
             i += 1
+        logger.debug("Found %d coordinates" % len(clist))
         return clist
     
        

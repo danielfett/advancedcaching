@@ -623,6 +623,7 @@ class GeocacheWrapper(QtCore.QObject):
     def _coordinates(self):
         logger.debug("Preparing coordinate list...")
         if self._coordinate_list == None:
+            self._geocache.start_calc()
             z = [CoordinateWrapper(x) for x in self._geocache.get_collected_coordinates(format = geo.Coordinate.FORMAT_DM).values()]
             self._coordinate_list = CoordinateListModel(self.core, z)
         return self._coordinate_list

@@ -26,7 +26,7 @@ TEST = ('''
 
 
 ''', {'A': 2, 'D': 4, 'G': 3,'T': 1, 'R': 2, 'S': 1, 'H': 4, 'B': 2, 'C': 9, 'E': 0, 'F': 1})
-HTML = '''
+HTML = u'''
 
 <br /></p> 
 <p><font face="Arial, sans-serif"><font size=
@@ -74,8 +74,10 @@ class CalcCoordinateManager(object):
         for x in coords:
             logger.debug("Adding: %s, apply_filter = %s" % (x, apply_filter))
             if x.signature in self.__known_signatures:
+                logger.debug("Signature known.")
                 continue
             if apply_filter and x.signature in self.__filtered_signatures:
+                logger.debug("Signature filtered.")
                 continue
             self.__known_signatures.append(x.signature)
             self.requires |= x.requires
@@ -184,6 +186,7 @@ class CalcCoordinate():
             self.result.name = self.orig                
         except (Exception):
             self.warnings.append(self.WARNING_CANNOT_PARSE % result)
+            logger.warning(self.WARNING_CANNOT_PARSE % result)
             self.result = False
         
 
@@ -231,8 +234,8 @@ class CalcCoordinate():
     def find(text, source):
         text = re.sub(ur'''(?u)\s[^\W\d_]{2,}\s''', ' | ', text)
         text = re.sub(ur'''(?u)\b[^\W\d_]{4,}\b''', ' | ', text)
-        text = text.replace('°', '|')
-        text = text.decode('utf-8', 'replace').encode('utf-8')
+        text = text.replace(u'°', '|')
+        #text = text.decode('utf-8', 'replace').encode('utf-8')
         text = text.replace(unichr(160), ' ')
         text = re.sub(ur''' +''', ' ', text)
         matches = re.findall(ur'''(?<![a-zA-Z])([NSns])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s['`\s,/]+([EOWeow])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s[\s'`]*(?![a-zA-Z])''' % {'calc' : CalcCoordinate.SINGLE_CALC_PART}, text)

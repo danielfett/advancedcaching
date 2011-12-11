@@ -42,7 +42,7 @@ def try_parse_coordinate(text):
     
     text = text.strip()
     # got some problems with the degree symbol in regexes.
-    text = text.replace('°', ' ')
+    text = text.replace(u'°', ' ')
     #                         1        2          3           4            5         6            7           8
     match = re.match(ur'''(?i)^([NS+-]?)\s?(\d\d?\d?)[ °]{0,2}(\d\d?\d?)[., ](\d+)['\s,]+([EOW+-]?)\s?(\d{1,3})[ °]{0,2}(\d\d?\d?)[., ](\d+)?[\s']*$''', text)
     if match != None:
