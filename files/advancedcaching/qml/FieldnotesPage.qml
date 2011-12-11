@@ -88,6 +88,9 @@ Page {
         textFormat: TextEdit.PlainText
         wrapMode: TextEdit.Wrap
         text: currentGeocache.fieldnotes
+        
+        anchors.leftMargin: 16
+        anchors.rightMargin: 16
     }
     
     Row {
@@ -111,6 +114,8 @@ Page {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottomMargin: 16
+        anchors.leftMargin: 16
+        anchors.rightMargin: 16
     }
     
     SelectionDialog {

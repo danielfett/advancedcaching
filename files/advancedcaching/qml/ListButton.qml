@@ -6,7 +6,7 @@ Item {
     property alias text: label.text
 
     width: parent.width
-    height: label.height + 16
+    height: label.height + 32
     signal clicked
 
 
@@ -22,7 +22,7 @@ Item {
 
     Label {
         id: label
-        font.weight: Font.Bold
+        //font.weight: Font.Bold
         anchors.verticalCenter: parent.verticalCenter
         anchors.left: parent.left
         anchors.leftMargin: 16
