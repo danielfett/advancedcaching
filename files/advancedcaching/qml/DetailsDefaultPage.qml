@@ -117,6 +117,18 @@ Page {
             }
 
         }
+        
+        ListButton {
+            text: "Images"
+            onClicked: {
+                pageImages.source = "ImagePage.qml"
+                showDetailsPage(pageImages.item)
+            }
+            Loader {
+                id: pageImages
+                source: ""
+            }
+        }
 
 
         ListButton {
@@ -163,7 +175,7 @@ Page {
                 }
                 showDetailsPage(pageFieldnotes)
             }
-        }
+        } 
 /* todo...
         ListButton {
             text: "Images (4)"

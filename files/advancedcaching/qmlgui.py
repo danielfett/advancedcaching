@@ -526,9 +526,6 @@ class CoordinateListModel(QtCore.QAbstractListModel):
         self._coordinates = coordinates
         self.setRoleNames(dict(enumerate(CoordinateListModel.COLUMNS)))
 
-    #def add_many(self, coordinates):
-#        self._coordinates += coordinates
-
     def update(self, new):
         self._coordinates = new
         QtCore.QAbstractListModel.dataChanged(self)
@@ -540,7 +537,39 @@ class CoordinateListModel(QtCore.QAbstractListModel):
         if index.isValid() and role == CoordinateListModel.COLUMNS.index('coordinate'):
             return self._coordinates[index.row()]
         return None
+        
 
+class ImageListModel(QtCore.QAbstractListModel):
+    COLUMNS = ('image',)
+
+    def __init__(self, core, images = []):
+        QtCore.QAbstractListModel.__init__(self)
+        self._images = images
+        self.setRoleNames(dict(enumerate(ImageListModel.COLUMNS)))
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        return len(self._images)
+
+    def data(self, index, role):
+        if index.isValid() and role == ImageListModel.COLUMNS.index('image'):
+            return self._images[index.row()]
+        return None
+
+class ImageWrapper(QtCore.QObject):
+    
+    def __init__(self, url, name):
+        QtCore.QObject.__init__(self)
+        self.__url = url
+        self.__name = name
+        
+    def _url(self):
+        return self.__url
+        
+    def _name(self):
+        return self.__name
+        
+    url = QtCore.Property(str, _url)
+    name = QtCore.Property(str, _name)
 
 
 class GeocacheWrapper(QtCore.QObject):
@@ -550,11 +579,13 @@ class GeocacheWrapper(QtCore.QObject):
         self.core = core
         self._coordinate_list = None
         self._logs_list = None
+        self._image_list = None
 
     def update(self, geocache):
         self._geocache = geocache
         self._coordinate_list = None
         self._logs_list = None
+        self._image_list = None
         self.changed.emit()
         
     def _name(self):
@@ -628,10 +659,11 @@ class GeocacheWrapper(QtCore.QObject):
 
     def _coordinates_count(self):
         return self._coordinates().rowCount()
-        #return []
 
     def _images(self):
-        return self._geocache.get_images()
+        if self._image_list == None:
+            self._image_list = ImageListModel(ImageWrapper(self.get_path_to_image(x), y) for (x, y) in self._geocache.get_images().items()])
+        return self._image_list
 
     def _status(self):
         return self._geocache.status
