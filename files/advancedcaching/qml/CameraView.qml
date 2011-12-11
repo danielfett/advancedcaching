@@ -1,5 +1,7 @@
 import QtQuick 1.1
 import QtMultimediaKit 1.1
+import com.nokia.meego 1.0
+import "functions.js" as F
 
 Camera {
      id: camera
@@ -19,30 +21,60 @@ Camera {
      function angleToScreenpoint (a) {
          return camera.width * (a/apertureAngle)
      }
-     property int angle: compass.azimuth - 90 // in landscape mode, compass is shifted 90 degress
+     property double angle: compass.azimuth + 90 // in landscape mode, compass is shifted 90 degress
      property real leftDegrees: Math.floor((angle - apertureAngle/2)/10)*10
      property real offsetPixels: angleToScreenpoint(angle - leftDegrees) - camera.width/2
      Repeater {
-         model: Math.round(apertureAngle/10)
-         delegate: Column {
-             x: angleToScreenpoint(index * 10) - camera.offsetPixels
-             y: 10
-             Label {
-                 color: "#00ff00"
-                 text: index*10 + camera.leftDegrees
-                 font.pixelSize: 20
-                 x: -width/2
+         model: Math.round(apertureAngle/10) + 1
+         delegate:
+             Text {
+                color: "#00ff00"
+                text: (index*10 + camera.leftDegrees) % 360
+                font.pixelSize: 20
+                x: angleToScreenpoint(index * 10) - camera.offsetPixels - width/2
+                y: 8
+                style: Text.Outline
+                styleColor: "black"
              }
-         }
+         
      }
 
      Rectangle {
-         border.color: "#00ff00"
-         border.width: 2
+         border.color: "#000000"
+         border.width: 1
+         color: "#00ff00"
          height: 15
-         width: 2
+         width: 4
          x: angleToScreenpoint(apertureAngle/2)
          y: 30
      }
-
+     
+     Text {
+        color: "#00ff00"
+        font.pixelSize: 40
+        property double targetAngle: (gps.targetBearing - angle + apertureAngle/2 + 360) % 360
+        property bool outLeft: targetAngle > apertureAngle && (targetAngle + apertureAngle/2) > 180
+        property bool outRight: targetAngle > apertureAngle && (targetAngle + apertureAngle/2) <= 180
+        x: outLeft ? 8 :
+           outRight ? (camera.width - paintedWidth) : 
+           (angleToScreenpoint(targetAngle) - paintedWidth/2 - 8)
+        y: 45
+        text: outLeft ? "<" :
+           outRight ? ">" : "^"
+        id: ti
+        style: Text.Outline
+        styleColor: "black"
+     }
+     
+     Text {
+        x: ti.outLeft ? 8 :
+            ti.outRight ? (camera.width - paintedWidth - 8) :
+            (ti.x + ti.width/2 - width/2)
+        anchors.top: ti.bottom
+        text: F.formatDistance(gps.targetDistance, settings)
+        color: "#00ff00"
+        font.pixelSize: 32
+        style: Text.Outline
+        styleColor: "black"
+     }
 }

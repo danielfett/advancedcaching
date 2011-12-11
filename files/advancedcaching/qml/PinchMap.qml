@@ -153,8 +153,8 @@ Rectangle {
 
     function updateCenter() {
         var l = getCenter()
-        latitude = l[0]
         longitude = l[1]
+        latitude = l[0]
     }
 
     function requestUpdate() {
@@ -520,8 +520,8 @@ Rectangle {
                 var n = mousearea.mapToItem(geocacheDisplayContainer, mouse.x, mouse.y)
                 var g = geocacheDisplayContainer.childAt(n.x, n.y)
                 if (g != null) {
-                    controller.geocacheSelected(g.cache)
                     showAndResetDetailsPage()
+                    controller.geocacheSelected(g.cache)
                 }
             }
 

@@ -86,10 +86,10 @@ Page {
                 tab: tabDetailsPageStack
                 iconSource: "image://theme/icon-m-toolbar-search"
             }
-            /*TabButton {
+            TabButton {
                 tab: tabCamera
                 iconSource: "image://theme/icon-m-viewfinder-camera-selected"
-            }*/
+            }
         }
         
         

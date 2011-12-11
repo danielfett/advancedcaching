@@ -10,13 +10,6 @@ Page {
         anchors.fill: parent
     }
 
-    Label {
-        anchors.horizontalCenter: parent.horizontalCenter
-        anchors.verticalCenter: parent.verticalCenter
-        text: compass.azimuth
-
-    }
-
     Loader {
         width: parent.width
         source: (tabGroup.currentTab == tabCamera) ? "CameraView.qml" : ""

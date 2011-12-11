@@ -95,7 +95,7 @@ class Controller(QtCore.QObject):
 
     # Handle gobject signal from Core
     def _settings_changed(self, caller, settings, source):
-        if source == self:
+        if source == self or type(source) == SettingsWrapper:
             return
         logger.debug("Got settings from %s, len() = %d, source = %s" % (caller, len(settings), source))
 
@@ -323,7 +323,6 @@ class GPSDataWrapper(QtCore.QObject):
         self.gps_has_fix = True
         self.gps_target_distance = distance
         self.gps_target_bearing = bearing
-
         self.changed_distance_bearing.emit()
         self.changed.emit()
 
@@ -331,7 +330,6 @@ class GPSDataWrapper(QtCore.QObject):
         self.gps_data.update(gps_data)
         self.gps_has_fix = False
         self.gps_status = status
-
         self.changed_distance_bearing.emit()
         self.changed.emit()
 
@@ -371,7 +369,6 @@ class GPSDataWrapper(QtCore.QObject):
         return float(self.gps_target_distance) if self._gps_target_distance_valid()  else 0
 
     def _gps_target_bearing(self):
-        logger.debug("Target bearing is %r" % self.gps_target_bearing)
         try:
             return float(self.gps_target_bearing)
         except TypeError:
@@ -414,6 +411,8 @@ class SettingsWrapper(QtCore.QObject):
         self.settings[s] = t
         if notify:
             self.settingsChanged.emit()
+        else:
+            logger.debug("Not notifying about %s settings change" % s)
 
     # Handle gobject signal from Core
     def _save_settings(self, caller):
@@ -465,7 +464,7 @@ class SettingsWrapper(QtCore.QObject):
     mapZoom = createSetting('map_zoom', int, settingsChanged, False)
     optionsUsername = createSetting('options_username', str, settingsChanged)
     optionsPassword = createSetting('options_password', str, settingsChanged)
-    lastSelectedGeocache = createSetting('last_selected_geocache', str, settingsChanged)
+    lastSelectedGeocache = createSetting('last_selected_geocache', str, settingsChanged, False)
     optionsMapRotation = createSetting('options_maprotation', bool, settingsChanged)
     optionsHideFound = createSetting('options_hide_found', bool, settingsChanged)
     optionsShowPositionError = createSetting('options_show_position_error', bool, settingsChanged)
@@ -617,7 +616,7 @@ class GeocacheWrapper(QtCore.QObject):
         return self._geocache.found
 
     def _hints(self):
-        return self._hints
+        return self._geocache.hints
 
     def _coordinates(self):
         logger.debug("Preparing coordinate list...")

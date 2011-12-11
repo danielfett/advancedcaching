@@ -43,6 +43,9 @@ Page {
                 preferredWidth: parent.parent.width
                 settings.minimumFontSize: 20
                 id: description
+                onWidthChanged: {
+                    reload.trigger();
+                }
             }
             
             Label {

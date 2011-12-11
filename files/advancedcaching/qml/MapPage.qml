@@ -15,6 +15,7 @@ Page {
         model: geocacheList
         zoomLevel: 11
         Component.onCompleted: {
+            console.debug("Component completed")
             centerLatitude = settings.mapPositionLat
             centerLongitude = settings.mapPositionLon
             zoomLevel = settings.mapZoom
@@ -30,19 +31,35 @@ Page {
         }
         Connections {
             target: settings
-            onMapPositionLatChanged: { pinchmap.centerLatitude = settings.mapPositionLat }
-            onMapPositionLonChanged: { pinchmap.centerLongitude = settings.mapPositionLon }
+            
+            onMapPositionLatChanged: { pinchmap.centerLatitude = settings.mapPositionLat; console.debug("Lat restored") }
+            onMapPositionLonChanged: { pinchmap.centerLongitude = settings.mapPositionLon; console.debug("Lon restored") }
             onMapZoomChanged: { pinchmap.zoomLevel = settings.mapZoom }
         }
             
         onLatitudeChanged: {
+            console.debug("Latitude stored")
             settings.mapPositionLat = latitude;
         }
         onLongitudeChanged: {
+            console.debug("Longitude stored")
             settings.mapPositionLon = longitude;
         }
         onZoomLevelChanged: {
+            console.debug("Map zoom stored")
             settings.mapZoom = pinchmap.zoomLevel;
+        }
+        
+        onWidthChanged: {
+            console.debug("Width changed");
+            pinchmap.centerLatitude = pinchmap.latitude
+            pinchmap.centerLongitude = pinchmap.longitude
+        }
+        
+        onHeightChanged: {
+            console.debug("Height changed");
+            pinchmap.centerLatitude = pinchmap.latitude
+            pinchmap.centerLongitude = pinchmap.longitude
         }
          
         showTargetIndicator: gps.targetValid;
