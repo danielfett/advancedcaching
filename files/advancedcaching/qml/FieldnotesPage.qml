@@ -97,7 +97,7 @@ Page {
         id: row1
         Button { 
             text: "Upload all Fieldnotes now"
-            width: 2 * parent.width/3
+            width: 4 * parent.width/5
             onClicked: {
                 controller.uploadFieldnotes();
             }

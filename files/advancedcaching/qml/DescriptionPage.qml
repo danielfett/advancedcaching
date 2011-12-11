@@ -30,6 +30,7 @@ Page {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 wrapMode: Text.Wrap
+                id: title
             }
 
             WebView {
@@ -40,12 +41,15 @@ Page {
                 settings.javascriptEnabled: false
                 settings.javaEnabled: false
                 preferredWidth: parent.parent.width
+                settings.minimumFontSize: 20
+                id: description
             }
             
             Label {
                 font.pixelSize: 20
                 color: UI.COLOR_INFOLABEL
                 text: "Drag down for hints"
+                id: label
             }
             
             Label {
@@ -56,10 +60,12 @@ Page {
                 wrapMode: Text.Wrap
             }
         }
+        
+        
        
         clip: true
         contentWidth: width
-        contentHeight: col1.height - hints.font.pixelSize
+        contentHeight: title.height + 16 + label.height + 16 + description.height + header.height + 8
         
     }
 

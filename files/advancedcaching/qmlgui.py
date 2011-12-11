@@ -582,7 +582,6 @@ class GeocacheWrapper(QtCore.QObject):
             showdesc = self._geocache.shortdesc
         else:
             showdesc = self._geocache.desc
-        showdesc = showdesc
         showdesc = re.sub(r'\[\[img:([^\]]+)\]\]', lambda a: "<img src='%s' />" % self.get_path_to_image(a.group(1)), showdesc)
         return showdesc
 
