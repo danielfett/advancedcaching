@@ -149,6 +149,21 @@ Page {
                 showDetailsPage(pageLogs)
             }
         }
+        
+        
+        ListButton {
+            text: "Fieldnote"
+            property variant pageFieldnotes: null
+            onClicked: {
+                if (pageFieldnotes == null) {
+                    var component = Qt.createComponent("FieldnotesPage.qml");
+                    if (component.status == Component.Ready) {
+                        pageFieldnotes = component.createObject(rootWindow);
+                    }
+                }
+                showDetailsPage(pageFieldnotes)
+            }
+        }
 /* todo...
         ListButton {
             text: "Images (4)"

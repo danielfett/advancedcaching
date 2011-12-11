@@ -174,6 +174,10 @@ class Controller(QtCore.QObject):
             timestamp = timestamp)
         logger.debug("Position changed, new fix is %r" % a)
         self.callback_gps(a)
+        
+    @QtCore.Slot()
+    def uploadFieldnotes(self):
+        self.core.on_upload_fieldnotes()
 
     def _progress(self):
         return self._progress
@@ -635,6 +639,26 @@ class GeocacheWrapper(QtCore.QObject):
 
     def _has_details(self):
         return self._geocache.was_downloaded()
+        
+    def _logas(self):
+        try:
+            return int(self._geocache.logas)
+        except ValueError:
+            return 0
+        
+    def _fieldnotes(self):
+        return self._geocache.fieldnotes
+    
+    @QtCore.Slot(str, str)
+    def setFieldnote(self, logas, text):
+        from time import gmtime
+        from time import strftime
+        logger.debug("Setting fieldnote, logas=%r, text=%r" % (logas, text))
+        self._geocache.logas = logas
+        self._geocache.fieldnotes = text
+        self._geocache.logdate = strftime('%Y-%m-%d', gmtime())
+        self.core.save_fieldnote(self._geocache)
+        self.changed.emit()
 
     changed = QtCore.Signal()
 
@@ -658,6 +682,8 @@ class GeocacheWrapper(QtCore.QObject):
     coordinatesCount = QtCore.Property(int, _coordinates_count, notify=changed)
     hasDetails = QtCore.Property(bool, _has_details, notify=changed)
     hints = QtCore.Property(str, _hints, notify=changed)
+    logas = QtCore.Property(int, _logas, notify=changed)
+    fieldnotes = QtCore.Property(str, _fieldnotes, notify=changed)
 
 class GeocacheListModel(QtCore.QAbstractListModel):
     COLUMNS = ('geocache',)

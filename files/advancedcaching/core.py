@@ -826,7 +826,7 @@ class Core(gobject.GObject):
         elif cache.logas == geocaching.GeocacheCoordinate.LOG_AS_NOTFOUND:
             cache.found = 0
 
-        self.save_cache_attribute(cache, ('logas', 'logdate', 'fieldnotes'))
+        self.save_cache_attribute(cache, ('logas', 'logdate', 'fieldnotes', 'found'))
         self.emit('fieldnotes-changed')        
 
     def on_upload_fieldnotes(self):
@@ -852,6 +852,7 @@ class Core(gobject.GObject):
         for c in caches:
             c.logas = geocaching.GeocacheCoordinate.LOG_NO_LOG
             self.save_cache_attribute(c, 'logas')
+            self.emit('cache-changed', c)
         self.emit('hide-progress')
         self.emit('fieldnotes-changed')
 

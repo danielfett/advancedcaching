@@ -89,13 +89,15 @@ Page {
             text: "Map View"
         }
         
-        Row {
+        Item {
             anchors.left: parent.left
             anchors.right: parent.right
+            height: 60
             Label {
                  text: "Enable Map Rotation (BETA)"
                  font.weight: Font.Bold
                  font.pixelSize: 26
+                 anchors.verticalCenter: parent.verticalCenter
             }
             
             Switch {
@@ -104,16 +106,20 @@ Page {
                     settings.optionsMapRotation = checked
                 }
                 checked: settings.optionsMapRotation
+                anchors.verticalCenter: parent.verticalCenter
             }
         }
         
-        Row {
+        
+        Item {
             anchors.left: parent.left
             anchors.right: parent.right
+            height: 60
             Label {
                  text: "Hide Found Geocaches"
                  font.weight: Font.Bold
                  font.pixelSize: 26
+                 anchors.verticalCenter: parent.verticalCenter
             }
             
             Switch {
@@ -122,16 +128,19 @@ Page {
                     settings.optionsHideFound = checked
                 }
                 checked: settings.optionsHideFound
+                anchors.verticalCenter: parent.verticalCenter
             }
         }
         
-        Row {
+        Item {
             anchors.left: parent.left
             anchors.right: parent.right
+            height: 60
             Label {
                  text: "Show position error on map"
                  font.weight: Font.Bold
                  font.pixelSize: 26
+                 anchors.verticalCenter: parent.verticalCenter
             }
             
             Switch {
@@ -140,6 +149,7 @@ Page {
                     settings.optionsShowPositionError = checked
                 }
                 checked: settings.optionsShowPositionError
+                anchors.verticalCenter: parent.verticalCenter
             }
         }
         

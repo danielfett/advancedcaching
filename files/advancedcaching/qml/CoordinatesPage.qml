@@ -22,7 +22,7 @@ Page {
         clip: true
         id: list
         delegate: Item {
-            BorderImage {
+             BorderImage {
                  id: background
                  anchors.fill: parent
                  anchors.leftMargin: -16
