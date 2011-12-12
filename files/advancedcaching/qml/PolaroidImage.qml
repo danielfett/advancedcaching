@@ -7,27 +7,36 @@ Rectangle {
     border.width: 2
     border.color: "#c0c0c0"
     property alias source: image.source
-    property alias text: text.text
+    property alias text: label.text
+    property int targetZ: 2
+    property int maxWidth: 1000
+    property int maxHeight: 1000
+    property int borderWidth: 16
+    z: targetZ
     Image {
         id: image
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
-        anchors.margin: 16
+        y: borderWidth
+        x: borderWidth
         smooth: true
+        z: targetZ + 1
+        width: Math.min(sourceSize.width, maxWidth - 2 * borderWidth)
+        height: Math.min(sourceSize.height, maxHeight - 2*borderWidth + label.height)
+        fillMode: Image.PreserveAspectFit
     }
     smooth: true
     
     Label {
-        id: text
+        id: label
         wrapMode: Text.Wrap
         anchors.left: image.left
         anchors.right: image.right
-        anchors.top: image.top
-        anchors.topMargin: 20
+        anchors.top: image.bottom
+        anchors.topMargin: borderWidth
+        z: targetZ + 1
+        height: (text != "") ? null : -borderWidth
     }
     
-    height: image.margin + image.height + 2 * text.anchors.topMargin + text.paintedHeight
-    width: image.width + 2*image.margin
+    height: borderWidth + image.height + 2 * borderWidth + label.height
+    width: image.width + 2*borderWidth
 }
         

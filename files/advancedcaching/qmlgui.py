@@ -542,7 +542,7 @@ class CoordinateListModel(QtCore.QAbstractListModel):
 class ImageListModel(QtCore.QAbstractListModel):
     COLUMNS = ('image',)
 
-    def __init__(self, core, images = []):
+    def __init__(self, images = []):
         QtCore.QAbstractListModel.__init__(self)
         self._images = images
         self.setRoleNames(dict(enumerate(ImageListModel.COLUMNS)))
@@ -552,15 +552,16 @@ class ImageListModel(QtCore.QAbstractListModel):
 
     def data(self, index, role):
         if index.isValid() and role == ImageListModel.COLUMNS.index('image'):
+            logger.debug("Image retrieved: %r and has url '%s'"  % (self._images[index.row()], self._images[index.row()]._url()))
             return self._images[index.row()]
         return None
 
 class ImageWrapper(QtCore.QObject):
     
-    def __init__(self, url, name):
+    def __init__(self, imageUrl, imageName):
         QtCore.QObject.__init__(self)
-        self.__url = url
-        self.__name = name
+        self.__url = imageUrl
+        self.__name = imageName
         
     def _url(self):
         return self.__url
@@ -568,8 +569,10 @@ class ImageWrapper(QtCore.QObject):
     def _name(self):
         return self.__name
         
-    url = QtCore.Property(str, _url)
-    name = QtCore.Property(str, _name)
+    changed = QtCore.Signal()
+        
+    url = QtCore.Property(str, _url, notify=changed)
+    name = QtCore.Property(str, _name, notify=changed)
 
 
 class GeocacheWrapper(QtCore.QObject):
@@ -662,7 +665,8 @@ class GeocacheWrapper(QtCore.QObject):
 
     def _images(self):
         if self._image_list == None:
-            self._image_list = ImageListModel(ImageWrapper(self.get_path_to_image(x), y) for (x, y) in self._geocache.get_images().items()])
+            l = [ImageWrapper(self.get_path_to_image(x), y) for (x, y) in self._geocache.get_images().items()]
+            self._image_list = ImageListModel(l)
         return self._image_list
 
     def _status(self):
@@ -730,9 +734,9 @@ class GeocacheListModel(QtCore.QAbstractListModel):
         return len(self._geocaches)
 
     def data(self, index, role):
-        if index.isValid() and role == GeocacheListModel.COLUMNS.index('geocache'):
-            return self._geocaches[index.row()]
-        return None
+        #if index.isValid() and role == GeocacheListModel.COLUMNS.index('geocache'):
+        return self._geocaches[index.row()]
+        #return None
 
 
 class LogsListModel(QtCore.QAbstractListModel):
