@@ -523,7 +523,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         return waypoints
 
     def __treat_images(self, data):
-        finder = re.finditer('<a href="([^"]+?)"[^>]*?>.+?<span>(.+?)</span>', data)
+        finder = re.finditer('<a href="([^"]+?)"[^>]*?rel="lightbox"[^>]*?>.+?<span>(.+?)</span>', data)
         for m in finder:
             if m.group(1) == None:
                 continue
