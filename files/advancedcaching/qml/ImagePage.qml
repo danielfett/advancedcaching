@@ -27,7 +27,7 @@ Page {
                 PolaroidImage {
                     scale: targetScale
                     source: model.image.url
-                    text: "Dies ist ein Langer testtext. mit mehreren zeilen?" //model.image.name
+                    text: model.image.name
                     maxWidth: tabImages.width - 8
                     maxHeight: tabImages.height - 8
                     property double targetScale: Math.min(Math.min(((parent.width - 8.0)/width), ((parent.height - 8.0)/height)), 1)

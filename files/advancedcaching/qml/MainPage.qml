@@ -43,7 +43,12 @@ Page {
             }
             
             function openMenu() {
-                currentPage.openMenu();
+                if (currentPage.openMenu) {
+                    currentPage.openMenu();
+                } else {
+                    pageDetailsDefault.openMenu()
+                }
+
             }
             
         }
@@ -100,5 +105,10 @@ Page {
             }
 
         }
+    }
+
+
+    DetailsDefaultPage {
+        id: pageDetailsDefault
     }
 }

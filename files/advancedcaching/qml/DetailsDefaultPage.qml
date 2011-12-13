@@ -205,7 +205,7 @@ Page {
          visualParent: parent
 
          MenuLayout {
-             MenuItem { text: currentGeocache.found ? "Mark Not Found" : "Mark Found"; }
+             //MenuItem { text: currentGeocache.found ? "Mark Not Found" : "Mark Found"; }
              MenuItem { text: "Settings"; onClicked: { showSettings(); } }
          }
      }
