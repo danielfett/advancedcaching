@@ -15,6 +15,7 @@ Page {
 
     Flow {
         anchors.top: header.bottom
+        width: parent.width
         Repeater {
             model: currentGeocache.images// || emptyList
             delegate: Item {
