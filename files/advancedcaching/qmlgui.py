@@ -192,7 +192,59 @@ class Controller(QtCore.QObject):
     progressVisible = QtCore.Property(bool, _progress_visible, notify=progressChanged)
     progressMessage = QtCore.Property(str, _progress_message, notify=progressChanged)
 
+class CacheCalcVarWrapper(QtCore.QObject):
+    def __init__(self, manager, char):
+        self.__manager = manager
+        self.__char = char 
+        self.__value = value
+        
+    def _value(self):
+        return self.__value
+        
+    def _set_value(self, v):
+        self.__value = v
+        self.__manager.set_var(self.__char, v)
+        
+    changed = QtCore.Signal()    
+        
+    value = QtCore.Property(str, _value, _set_value, notify=changed)
+    
 
+class CacheCalcVarList(QtCore.QAbstractListModel):
+    COLUMNS = ('var',)
+
+    def __init__(self, manager):
+        QtCore.QAbstractListModel.__init__(self)
+        self.setRoleNames(dict(enumerate(CacheCalcVarList.COLUMNS)))
+        self.__manager = manager
+        # List of objects of CacheCalcVarWrappers
+        self.__var_wrappers = []
+        # Mapping from chars to wrapper objects
+        self.__var_wrapper_mapping = {}
+        self._init_vars()
+        
+    def _init_vars(self):
+        self.__new_var_wrappers = []
+        self.__new_var_wrapper_mapping = {}
+        for char, value in self.__manager.get_vars():
+            if char in self.__var_wrapper_mapping:
+                self.__new_var_wrappers += [self.__var_wrappers[self.__var_wrapper_mapping[char]]]
+            else:
+                n = len(self.__new_var_wrappers)
+                self.__new_var_wrappers += [CacheCalcVarWrapper(self.__manager, char)]
+                self.__new_var_wrapper_mapping += {char: n}
+        self.__var_wrappers = self.__new_var_wrappers
+        self.__var_wrapper_mapping = self.__new_var_wrapper_mapping
+        
+        QtCore.QAbstractListModel.dataChanged(self)
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        return len(self.__var_wrappers)
+
+    def data(self, index, role):
+        if index.isValid() and role == MapTypesList.COLUMNS.index('var'):
+            return self.__var_wrappers[index.row()]
+        return None
 
 class MapTypeWrapper(QtCore.QObject):
     def __init__(self, name, url):
@@ -210,6 +262,8 @@ class MapTypeWrapper(QtCore.QObject):
 
     name = QtCore.Property(str, _name, notify=changed)
     url = QtCore.Property(str, _url, notify=changed)
+    
+    
 
 class MapTypesList(QtCore.QAbstractListModel):
     COLUMNS = ('maptype',)
@@ -583,12 +637,14 @@ class GeocacheWrapper(QtCore.QObject):
         self._coordinate_list = None
         self._logs_list = None
         self._image_list = None
+        self._var_list = None
 
     def update(self, geocache):
         self._geocache = geocache
         self._coordinate_list = None
         self._logs_list = None
         self._image_list = None
+        self._var_list = None
         self.changed.emit()
         
     def _name(self):
@@ -683,6 +739,11 @@ class GeocacheWrapper(QtCore.QObject):
         
     def _fieldnotes(self):
         return self._geocache.fieldnotes
+        
+    def _vars(self):
+        if self._var_list != None:
+            self._var_list = CacheCalcVarList(self._geocache.calc)
+        return self._var_list
     
     @QtCore.Slot(str, str)
     def setFieldnote(self, logas, text):
@@ -719,6 +780,7 @@ class GeocacheWrapper(QtCore.QObject):
     hints = QtCore.Property(str, _hints, notify=changed)
     logas = QtCore.Property(int, _logas, notify=changed)
     fieldnotes = QtCore.Property(str, _fieldnotes, notify=changed)
+    vars = QtCore.Property(QtCore.QObject, _vars, notify=changed)
 
 class GeocacheListModel(QtCore.QAbstractListModel):
     COLUMNS = ('geocache',)
