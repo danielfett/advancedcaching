@@ -85,9 +85,6 @@ PageStackWindow {
     }
 
 
-    DetailsDefaultPage {
-        id: pageDetailsDefault
-    }
 
     /*
     CoordinatesPage {

@@ -44,6 +44,8 @@ class PointProvider():
         self.conn.executescript(
             'PRAGMA temp_store = MEMORY;' \
             'PRAGMA synchronous=OFF;' \
+            'PRAGMA cache_size = 20000;' \
+            'PRAGMA count_changes = OFF;' \
             'CREATE TABLE IF NOT EXISTS %s (%s);' % (self.cache_table, ', '.join('%s %s' % m for m in self.ctype.SQLROW.items())))
         self.check_table()
         self.conn.executescript(
@@ -117,9 +119,12 @@ class PointProvider():
         c = self.conn.execute(query)
         return self.pack_result(c)
                 
-    def get_points(self, c1, c2):
-                
-        c = self.conn.execute('SELECT * FROM %s WHERE (lat BETWEEN ? AND ?) AND (lon BETWEEN ? AND ?)' % self.cache_table, (min(c1.lat, c2.lat), max(c1.lat, c2.lat), min(c1.lon, c2.lon), max(c1.lon, c2.lon)))
+    def get_points(self, c1, c2, max_points = None):
+        query = 'SELECT * FROM %s WHERE (lat BETWEEN ? AND ?) AND (lon BETWEEN ? AND ?)' % self.cache_table
+        args = (min(c1.lat, c2.lat), max(c1.lat, c2.lat), min(c1.lon, c2.lon), max(c1.lon, c2.lon))
+        if max_points != None:
+            query = "%s LIMIT %d" % (query, max_points)
+        c = self.conn.execute(query, args)
         return self.pack_result(c)
                 
     def get_titles_and_names(self):

@@ -122,8 +122,10 @@ class Controller(QtCore.QObject):
     @QtCore.Slot(QtCore.QObject, float, float, float, float)
     def mapViewChanged(self, map, lat_start, lon_start, lat_end, lon_end):
         #logger.debug("Map view changed to %r-%r, %r-%r." % (lat_start, lon_start, lat_end, lon_end))
+        logger.debug("0. map view changed")
         if self.view.rootObject() != None:
             self.view.rootObject().setGeocacheList(map, GeocacheListModel(self.core, lat_start, lon_start, lat_end, lon_end))
+            logger.debug("5. data set")
 
     @QtCore.Slot(float, float, float, float)
     def updateGeocaches(self, lat_start, lon_start, lat_end, lon_end):
@@ -724,11 +726,15 @@ class GeocacheListModel(QtCore.QAbstractListModel):
     COLUMNS = ('geocache',)
 
     def __init__(self, core, lat_start, lon_start, lat_end, lon_end):
+        logger.debug("1. Initializing qabstract...")
         QtCore.QAbstractListModel.__init__(self)
-        self._geocaches = [GeocacheWrapper(x, core) for x in core.pointprovider.get_points(geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end))[0:100]]
+        logger.debug("2. Creating list...")
+        k = core.pointprovider.get_points(geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end), 1000) #[0:100]
+        logger.debug("3. Wrapping coordinates...")
+        self._geocaches = [GeocacheWrapper(x, core) for x in k]
         self.setRoleNames(dict(enumerate(GeocacheListModel.COLUMNS)))
 
-        logger.debug("Loaded %d geocaches for %f-%f %f-%f" % (len(self._geocaches), lat_start, lon_start, lat_end, lon_end))
+        logger.debug("4. Loaded %d geocaches for %f-%f %f-%f" % (len(self._geocaches), lat_start, lon_start, lat_end, lon_end))
 
     def rowCount(self, parent=QtCore.QModelIndex()):
         return len(self._geocaches)
