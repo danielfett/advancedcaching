@@ -46,6 +46,8 @@ class Controller(QtCore.QObject):
     progressChanged = QtCore.Signal()
     marksChanged = QtCore.Signal()
     
+    MAX_POINTS = 200
+    
     def __init__(self, view, core):
         QtCore.QObject.__init__(self)
         self.view = view
@@ -62,6 +64,7 @@ class Controller(QtCore.QObject):
         self._progress_visible = False
         self._progress = 0
         self._progress_message = ""
+        self._geocache_lists = {}
 
 
     # Handle gobject signal from Core
@@ -122,10 +125,37 @@ class Controller(QtCore.QObject):
     @QtCore.Slot(QtCore.QObject, float, float, float, float)
     def mapViewChanged(self, map, lat_start, lon_start, lat_end, lon_end):
         #logger.debug("Map view changed to %r-%r, %r-%r." % (lat_start, lon_start, lat_end, lon_end))
-        logger.debug("0. map view changed")
-        if self.view.rootObject() != None:
-            self.view.rootObject().setGeocacheList(map, GeocacheListModel(self.core, lat_start, lon_start, lat_end, lon_end))
-            logger.debug("5. data set")
+        
+        points = self.core.pointprovider.get_points(geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end), self.MAX_POINTS + 1) #[0:100]
+        #if not id(map) in self._geocache_lists:
+        logger.debug("Creating new geocache list")
+        if self.view.rootObject() == None:
+            return
+        n = GeocacheListModel(self.core) 
+        self._geocache_lists[id(map)] = n
+        n.update(points)
+        self.view.rootObject().setGeocacheList(map, n, len(points) > self.MAX_POINTS)
+        #else:
+        #    logger.debug("Using old geocache list")
+        #    n = self._geocache_lists[id(map)]
+        #    n.update(points)
+            
+        logger.debug("Showing %d points" % len(points))
+        
+        
+    @QtCore.Slot(QtCore.QObject, str, float, float, float, float)
+    def getGeocaches(self, map, id, lat_start, lon_start, lat_end, lon_end):
+        #logger.debug("Map view changed to %r-%r, %r-%r." % (lat_start, lon_start, lat_end, lon_end))
+        if self.view.rootObject() == None:
+            return
+        if id in self._geocache_lists:
+            n = self._geocache_lists[id]
+            self.view.rootObject().setGeocacheList(map, n, False)
+        else:
+            points = self.core.pointprovider.get_points(geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end), self.MAX_POINTS + 1) #[0:100]
+            n = GeocacheListModel(self.core, points) 
+            self._geocache_lists[id] = n     
+            self.view.rootObject().setGeocacheList(map, n, False)
 
     @QtCore.Slot(float, float, float, float)
     def updateGeocaches(self, lat_start, lon_start, lat_end, lon_end):
@@ -585,6 +615,7 @@ class CoordinateListModel(QtCore.QAbstractListModel):
     def update(self, new):
         self._coordinates = new
         QtCore.QAbstractListModel.dataChanged(self)
+        logger.warning("data changed!")
 
     def rowCount(self, parent=QtCore.QModelIndex()):
         return len(self._coordinates)
@@ -787,16 +818,23 @@ class GeocacheWrapper(QtCore.QObject):
 class GeocacheListModel(QtCore.QAbstractListModel):
     COLUMNS = ('geocache',)
 
-    def __init__(self, core, lat_start, lon_start, lat_end, lon_end):
-        logger.debug("1. Initializing qabstract...")
+    def __init__(self, core, points = []):
         QtCore.QAbstractListModel.__init__(self)
-        logger.debug("2. Creating list...")
-        k = core.pointprovider.get_points(geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end), 1000) #[0:100]
-        logger.debug("3. Wrapping coordinates...")
-        self._geocaches = [GeocacheWrapper(x, core) for x in k]
         self.setRoleNames(dict(enumerate(GeocacheListModel.COLUMNS)))
-
-        logger.debug("4. Loaded %d geocaches for %f-%f %f-%f" % (len(self._geocaches), lat_start, lon_start, lat_end, lon_end))
+        self.core = core
+        self._geocaches = [GeocacheWrapper(x, self.core) for x in points]
+        
+    def update(self, points):
+        oldlen = len(self._geocaches)
+        self._geocaches = [GeocacheWrapper(x, self.core) for x in points]
+        #QtCore.QAbstractListModel.dataChanged(self)
+        newlen = len(self._geocaches)
+        
+        self.dataChanged.emit(self.createIndex(0,0), self.createIndex(newlen,0))
+        if oldlen < newlen:
+            self.rowsInserted.emit(QtCore.QModelIndex(), oldlen -1, newlen - 1)
+        elif oldlen > newlen:
+            self.rowsRemoved.emit(QtCore.QModelIndex(), newlen -1, oldlen - 1)
 
     def rowCount(self, parent=QtCore.QModelIndex()):
         return len(self._geocaches)

@@ -9,10 +9,11 @@ PageStackWindow {
     property variant geocacheList: 0
     property variant currentGeocache: null
     property string downloadText: ""
+    property bool tooManyPoints: false;
 
-
-    function setGeocacheList(map, l) {
+    function setGeocacheList(map, l, toomany) {
         map.model = l
+        tooManyPoints = toomany
     }
 
     function showMessage (message) {

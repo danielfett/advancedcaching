@@ -16,7 +16,7 @@ Rectangle {
     property int numTilesX: Math.ceil(width/tileSize) + 2;
     property int numTilesY: Math.ceil(height/tileSize) + 2;
     property int maxTileNo: Math.pow(2, zoomLevel) - 1;
-    property alias model: geocacheDisplay.model
+    property variant model: 0;//geocacheDisplay.model
     property bool showTargetIndicator: false
     property double showTargetAtLat: 0;
     property double showTargetAtLon: 0;
@@ -155,6 +155,10 @@ Rectangle {
         var l = getCenter()
         longitude = l[1]
         latitude = l[0]
+        var start = getCoordFromScreenpoint(0,0)
+        var end = getCoordFromScreenpoint(pinchmap.width,pinchmap.height)
+
+        //controller.mapViewChanged(pinchmap, start[0], start[1], end[0], end[1])
     }
 
     function requestUpdate() {
@@ -172,11 +176,14 @@ Rectangle {
     }
 
     function populate() {
-        console.debug("Populate called.")
-        var start = num2deg(cornerTileX, cornerTileY)
-        var end = num2deg(cornerTileX + numTilesX, cornerTileY + numTilesY)
+        /*console.debug("Populate called.")
+        //var start = num2deg(cornerTileX, cornerTileY)
+        //var end = num2deg(cornerTileX + numTilesX, cornerTileY + numTilesY)
+        var start = getCoordFromScreenpoint(0,0)
+        var end = getCoordFromScreenpoint(pinchmap.width,pinchmap.height)
+
         controller.mapViewChanged(pinchmap, start[0], start[1], end[0], end[1])
-        return true;
+        return true;*/
     }
 
     function getScaleBarLength(lat) {
@@ -291,17 +298,14 @@ Rectangle {
 
         Repeater {
             id: tiles
-            /*onCountChanged: {
-                if (numTilesX * numTilesY == count &&  map.children.length == 2* count) {
-                    console.log("Now pop because " + count + " == " + numTilesX*numTilesY + " and num children is " + map.children.length);
-                    populate()
-                }
-            }*/
 
 
             model: (pinchmap.numTilesX * pinchmap.numTilesY);
             Rectangle {
+                id: tile
                 property alias source: img.source;
+                property int tileX: cornerTileX + (index % numTilesX)
+                property int tileY: cornerTileY + Math.floor(index / numTilesX)
                 Rectangle {
                     id: progressBar;
                     property real p: 0;
@@ -334,8 +338,32 @@ Rectangle {
                     id: img;
                     anchors.fill: parent;
                     onProgressChanged: { progressBar.p = progress }
-                    source: tileUrl(cornerTileX + (index % numTilesX), cornerTileY + Math.floor(index / numTilesX));
+                    source: tileUrl(tileX, tileY);
                 }
+
+                Repeater {
+                    id: geocacheDisplay
+                    //property variant from: num2deg(tileX, tileY)
+                    //property variant to: num2deg(tileX+1, tileY+1)
+
+                    //model: emptyList
+                    delegate: Geocache {
+                        cache: model.geocache
+                        property variant p: getMappointFromCoord(model.geocache.lat, model.geocache.lon)
+                        targetPoint: [p[0] - (tileX - cornerTileX)*tileSize, p[1] -  (tileY - cornerTileY)* tileSize]
+                        drawSimple: zoomLevel < 12
+                    }// Label { text: "Geocache: " + model.geocache.title }
+
+                }
+                Connections {
+                    target: img;
+                    onSourceChanged: {
+                        var from = num2deg(tileX, tileY);
+                        var to = num2deg(tileX+1, tileY+1);
+                        controller.getGeocaches(geocacheDisplay, "" + tileX + "-" + tileY + "-" + zoomLevel, from[0], from[1], to[0], to[1]);
+                    }
+                }
+
                 width: tileSize;
                 height: tileSize;
                 color: "#c0c0c0";
@@ -356,21 +384,7 @@ Rectangle {
         //origin.x: map.width/2
         //origin.y: map.height/2
         }*/
-        
-        Item {
-            id: geocacheDisplayContainer
-            //anchors.fill:  parent
-            Repeater {
-                id: geocacheDisplay
-                //model: geocacheList
-                delegate: Geocache {
-                    cache: model.geocache
-                    targetPoint: getMappointFromCoord(model.geocache.lat, model.geocache.lon)
-                    drawSimple: zoomLevel < 12
-                }// Label { text: "Geocache: " + model.geocache.title }
 
-            }
-        }
     }
     
     Image {
