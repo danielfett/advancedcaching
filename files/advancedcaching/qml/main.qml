@@ -9,11 +9,9 @@ PageStackWindow {
     property variant geocacheList: 0
     property variant currentGeocache: null
     property string downloadText: ""
-    property bool tooManyPoints: false;
 
-    function setGeocacheList(map, l, toomany) {
+    function setGeocacheList(map, l) {
         map.model = l
-        tooManyPoints = toomany
     }
 
     function showMessage (message) {
@@ -74,9 +72,6 @@ PageStackWindow {
         active: true
         updateInterval: 1000
         onPositionChanged: {
-            console.log("Changed!");
-            console.log("pos: " + gpsSource.position.latitudeValid + " and " + position.coordinate.latitude);
-            console.log(position.latitudeValid +" | "+ position.coordinate.latitude+" | "+ position.coordinate.longitude+" | "+ position.altitudeValid+" | "+ position.coordinate.altitude+" | "+ position.speedValid+" | "+ position.speed+" | "+ position.horizontalAccuracy)
             controller.positionChanged(position.latitudeValid, position.coordinate.latitude, position.coordinate.longitude, position.altitudeValid, position.coordinate.altitude, position.speedValid, position.speed, position.horizontalAccuracy, position.timestamp);
         }
     }

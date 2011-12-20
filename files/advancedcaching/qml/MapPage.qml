@@ -12,7 +12,6 @@ Page {
     PinchMap {
         id: pinchmap
         anchors.fill: parent
-        model: geocacheList
         zoomLevel: 11
         Component.onCompleted: {
             console.debug("Component completed")
@@ -174,15 +173,6 @@ Page {
                 pinchmap.requestUpdate()
             }
         }
-        /*Button {
-            id: settingsButton
-            iconSource: "image://theme/icon-m-toolbar-view-menu"
-            width: parent.parent.buttonSize
-            height: parent.parent.buttonSize
-            onClicked: {
-                mapMenu.open()
-            }
-        }*/
     }
     ProgressBar {
         id: zoomBar
@@ -203,7 +193,15 @@ Page {
             }
         }
     }
-    
+
+    Label {
+        id: tooManyPoints
+        text: "Zoom in to see geocaches"
+        anchors.bottom: zoomBar.top
+        anchors.bottomMargin: 8
+        anchors.horizontalCenter: pinchmap.horizontalCenter
+        visible: pinchmap.tooManyPoints
+    }
     
     
     function openMenu() {

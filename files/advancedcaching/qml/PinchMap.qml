@@ -8,15 +8,16 @@ Rectangle {
     property double centerLatitude: 0;
     property double centerLongitude: 0;
     property int zoomLevel: 10;
+    property int oldZoomLevel: 99
     property int maxZoomLevel: 17;
     property int minZoomLevel: 2;
+    property int minZoomLevelShowGeocaches: 9;
     property int tileSize: 256;
     property int cornerTileX: 32;
     property int cornerTileY: 21;
     property int numTilesX: Math.ceil(width/tileSize) + 2;
     property int numTilesY: Math.ceil(height/tileSize) + 2;
     property int maxTileNo: Math.pow(2, zoomLevel) - 1;
-    property variant model: 0;//geocacheDisplay.model
     property bool showTargetIndicator: false
     property double showTargetAtLat: 0;
     property double showTargetAtLon: 0;
@@ -37,12 +38,10 @@ Rectangle {
     property alias angle: rot.angle
 
     property string url: settings.currentMapType.url
-    
-    onUrlChanged: {
-        populate();
-    }
 
     property int earthRadius: 6371000
+
+    property bool tooManyPoints: true
 
     transform: Rotation {
         angle: 0
@@ -52,31 +51,9 @@ Rectangle {
     }
 
     Component.onCompleted: {
-        populate()
-        setCenterLatLon(centerLatitude, centerLongitude);
         setZoomLevel(zoomLevel);
-        timer.start()
-        controller.marksChanged.connect(populate)
-        updateCenter();
-    }
-
-
-    Timer {
-        id: timer
-        interval: 1000
-        repeat: true
-        running: false
-        triggeredOnStart: false
-        onTriggered: {
-            if (populate()) {
-                timer.stop()
-            }
-        }
-    }
-
-
-    onNumTilesXChanged: {
-        timer.start()
+        setCenterLatLon(centerLatitude, centerLongitude);
+        updateGeocaches();
     }
 
     onCenterLongitudeChanged: {
@@ -146,19 +123,12 @@ Rectangle {
             changed = true;
         }
         updateCenter();
-        if (changed) {
-            populate();
-        }
     }
 
     function updateCenter() {
         var l = getCenter()
         longitude = l[1]
         latitude = l[0]
-        var start = getCoordFromScreenpoint(0,0)
-        var end = getCoordFromScreenpoint(pinchmap.width,pinchmap.height)
-
-        //controller.mapViewChanged(pinchmap, start[0], start[1], end[0], end[1])
     }
 
     function requestUpdate() {
@@ -173,17 +143,6 @@ Rectangle {
         var end = getCoordFromScreenpoint(pinchmap.width,pinchmap.height)
         controller.downloadGeocaches(start[0], start[1], end[0], end[1])
         console.debug("Download requested.")
-    }
-
-    function populate() {
-        /*console.debug("Populate called.")
-        //var start = num2deg(cornerTileX, cornerTileY)
-        //var end = num2deg(cornerTileX + numTilesX, cornerTileY + numTilesY)
-        var start = getCoordFromScreenpoint(0,0)
-        var end = getCoordFromScreenpoint(pinchmap.width,pinchmap.height)
-
-        controller.mapViewChanged(pinchmap, start[0], start[1], end[0], end[1])
-        return true;*/
     }
 
     function getScaleBarLength(lat) {
@@ -221,9 +180,6 @@ Rectangle {
         cornerTileY = Math.floor(cornerTileFloatY);
         map.offsetX = -(cornerTileFloatX - Math.floor(cornerTileFloatX)) * tileSize;
         map.offsetY = -(cornerTileFloatY - Math.floor(cornerTileFloatY)) * tileSize;
-        if (cornerTileX != oldCornerTileX || cornerTileY != oldCornerTileY) {
-            populate();
-        }
         updateCenter();
     }
     function setCoord(c, x, y) {
@@ -341,28 +297,6 @@ Rectangle {
                     source: tileUrl(tileX, tileY);
                 }
 
-                Repeater {
-                    id: geocacheDisplay
-                    //property variant from: num2deg(tileX, tileY)
-                    //property variant to: num2deg(tileX+1, tileY+1)
-
-                    //model: emptyList
-                    delegate: Geocache {
-                        cache: model.geocache
-                        property variant p: getMappointFromCoord(model.geocache.lat, model.geocache.lon)
-                        targetPoint: [p[0] - (tileX - cornerTileX)*tileSize, p[1] -  (tileY - cornerTileY)* tileSize]
-                        drawSimple: zoomLevel < 12
-                    }// Label { text: "Geocache: " + model.geocache.title }
-
-                }
-                Connections {
-                    target: img;
-                    onSourceChanged: {
-                        var from = num2deg(tileX, tileY);
-                        var to = num2deg(tileX+1, tileY+1);
-                        controller.getGeocaches(geocacheDisplay, "" + tileX + "-" + tileY + "-" + zoomLevel, from[0], from[1], to[0], to[1]);
-                    }
-                }
 
                 width: tileSize;
                 height: tileSize;
@@ -371,19 +305,19 @@ Rectangle {
 
         }
 
-        /*transform: Scale {
-        id: scalemap
-        function setScale (sc, screenpointX, screenpointY) {
-        scalemap.xScale = sc
-        scalemap.yScale = sc
+        Item {
+            id: geocacheDisplayContainer
+            Repeater {
+                id: geocacheDisplay
+                delegate: Geocache {
+                    cache: model.geocache
+                    targetPoint: getMappointFromCoord(model.geocache.lat, model.geocache.lon)
+                    drawSimple: zoomLevel < 12
+                    z: 1000
+                }
+            }
+        }
 
-        }
-        function getScale() {
-        return xScale
-        }
-        //origin.x: map.width/2
-        //origin.y: map.height/2
-        }*/
 
     }
     
@@ -464,6 +398,27 @@ Rectangle {
         style: Text.Outline
         styleColor: "white"
         font.pixelSize: 24
+    }
+
+
+    onCornerTileYChanged: {
+        updateGeocaches();
+    }
+
+    onCornerTileXChanged: {
+        updateGeocaches();
+    }
+
+    function updateGeocaches () {
+        console.debug("Update geocaches called")
+        if (zoomLevel < minZoomLevelShowGeocaches) {
+            tooManyPoints = true
+            //geocacheDisplay.model = emptyList
+        } else {
+            var from = getCoordFromScreenpoint(0,0)
+            var to = getCoordFromScreenpoint(pinchmap.width,pinchmap.height)
+            tooManyPoints = controller.getGeocaches(geocacheDisplay, from[0], from[1], to[0], to[1]);
+        }
     }
 
     PinchArea {

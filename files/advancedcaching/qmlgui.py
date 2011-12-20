@@ -122,40 +122,24 @@ class Controller(QtCore.QObject):
         self.view.rootObject().setCurrentGeocache(wrapper)
         #self.updateSetting('last_selected_geocache', wrapper._name())
 
-    @QtCore.Slot(QtCore.QObject, float, float, float, float)
-    def mapViewChanged(self, map, lat_start, lon_start, lat_end, lon_end):
+        
+    @QtCore.Slot(QtCore.QObject, float, float, float, float, result=bool)
+    def getGeocaches(self, map, lat_start, lon_start, lat_end, lon_end):
         #logger.debug("Map view changed to %r-%r, %r-%r." % (lat_start, lon_start, lat_end, lon_end))
+        if self.view.rootObject() == None:
+            return False
         
         points = self.core.pointprovider.get_points(geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end), self.MAX_POINTS + 1) #[0:100]
-        #if not id(map) in self._geocache_lists:
-        logger.debug("Creating new geocache list")
-        if self.view.rootObject() == None:
-            return
-        n = GeocacheListModel(self.core) 
-        self._geocache_lists[id(map)] = n
-        n.update(points)
-        self.view.rootObject().setGeocacheList(map, n, len(points) > self.MAX_POINTS)
-        #else:
-        #    logger.debug("Using old geocache list")
-        #    n = self._geocache_lists[id(map)]
-        #    n.update(points)
-            
-        logger.debug("Showing %d points" % len(points))
         
-        
-    @QtCore.Slot(QtCore.QObject, str, float, float, float, float)
-    def getGeocaches(self, map, id, lat_start, lon_start, lat_end, lon_end):
-        #logger.debug("Map view changed to %r-%r, %r-%r." % (lat_start, lon_start, lat_end, lon_end))
-        if self.view.rootObject() == None:
-            return
-        if id in self._geocache_lists:
-            n = self._geocache_lists[id]
-            self.view.rootObject().setGeocacheList(map, n, False)
+        if len(points) > self.MAX_POINTS:
+            n = GeocacheListModel(self.core, [])
+            toomany = True
         else:
-            points = self.core.pointprovider.get_points(geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end), self.MAX_POINTS + 1) #[0:100]
             n = GeocacheListModel(self.core, points) 
-            self._geocache_lists[id] = n     
-            self.view.rootObject().setGeocacheList(map, n, False)
+            toomany = False
+        #self._geocache_lists[id] = (n, toomany)
+        self.view.rootObject().setGeocacheList(map, n)
+        return toomany
 
     @QtCore.Slot(float, float, float, float)
     def updateGeocaches(self, lat_start, lon_start, lat_end, lon_end):
@@ -671,6 +655,15 @@ class GeocacheWrapper(QtCore.QObject):
         self._logs_list = None
         self._image_list = None
         self._var_list = None
+        
+    GEOCACHE_CACHE = {}
+        
+    @staticmethod
+    def get(geocache, core):
+        if geocache.name not in GeocacheWrapper.GEOCACHE_CACHE:
+            logger.debug("Not in cache: %s" % geocache.name)
+            GeocacheWrapper.GEOCACHE_CACHE[geocache.name] = GeocacheWrapper(geocache, core)
+        return GeocacheWrapper.GEOCACHE_CACHE[geocache.name]
 
     def update(self, geocache):
         self._geocache = geocache
@@ -822,7 +815,8 @@ class GeocacheListModel(QtCore.QAbstractListModel):
         QtCore.QAbstractListModel.__init__(self)
         self.setRoleNames(dict(enumerate(GeocacheListModel.COLUMNS)))
         self.core = core
-        self._geocaches = [GeocacheWrapper(x, self.core) for x in points]
+        #self._geocaches = [GeocacheWrapper(x, self.core) for x in points]
+        self._geocaches = [GeocacheWrapper.get(x, self.core) for x in points]
         
     def update(self, points):
         oldlen = len(self._geocaches)
