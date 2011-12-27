@@ -129,6 +129,7 @@ Rectangle {
         var l = getCenter()
         longitude = l[1]
         latitude = l[0]
+        updateGeocaches();
     }
 
     function requestUpdate() {
@@ -400,14 +401,14 @@ Rectangle {
         font.pixelSize: 24
     }
 
-
+    /*
     onCornerTileYChanged: {
         updateGeocaches();
     }
 
     onCornerTileXChanged: {
         updateGeocaches();
-    }
+    }*/
 
     function updateGeocaches () {
         console.debug("Update geocaches called")
