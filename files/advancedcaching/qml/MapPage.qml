@@ -35,7 +35,7 @@ Page {
             onMapPositionLonChanged: { pinchmap.centerLongitude = settings.mapPositionLon; console.debug("Lon restored") }
             onMapZoomChanged: { pinchmap.zoomLevel = settings.mapZoom }
         }
-            
+
         onLatitudeChanged: {
             console.debug("Latitude stored")
             settings.mapPositionLat = latitude;
@@ -60,7 +60,7 @@ Page {
             pinchmap.centerLatitude = pinchmap.latitude
             pinchmap.centerLongitude = pinchmap.longitude
         }
-         
+
         showTargetIndicator: gps.targetValid;
         showTargetAtLat: gps.target.lat || 0
         showTargetAtLon: gps.target.lon || 0
@@ -105,10 +105,10 @@ Page {
             y: arrowImage.outerMargin
             z: 3
             transform: Rotation {
-               origin.y: compassImage.height/2 - arrowImage.outerMargin
-               origin.x: arrowImage.width/2
-               angle: arrowImage.angle
-           }
+                origin.y: compassImage.height/2 - arrowImage.outerMargin
+                origin.x: arrowImage.width/2
+                angle: arrowImage.angle
+            }
         }
     }
 
@@ -209,21 +209,21 @@ Page {
     }
     
     Menu {
-         id: menu
-         visualParent: parent
+        id: menu
+        visualParent: parent
 
-         MenuLayout {
-             MenuItem { text: "Use Center as Target"; onClicked: {
-                     var c = pinchmap.getCenter();
-                     controller.setTarget(c[0], c[1]);
-                 }}
-             MenuItem { text: "Go to Target"; visible: gps.targetValid; onClicked: {
-                pinchmap.centerLatitude = gps.target.lat
-                pinchmap.centerLongitude = gps.target.lon
-             }}
-             MenuItem { text: "Fetch Details for all in view"; onClicked: { pinchmap.requestUpdateDetails() } }
-             MenuItem { text: "Reload Map"; onClicked: { pinchmap.populate(); } }
-             MenuItem { text: "Settings"; onClicked: { showSettings(); } }
-         }
-     }
+        MenuLayout {
+            MenuItem { text: "Use Center as Target"; onClicked: {
+                    var c = pinchmap.getCenter();
+                    controller.setTarget(c[0], c[1]);
+                }}
+            MenuItem { text: "Go to Target"; visible: gps.targetValid; onClicked: {
+                    pinchmap.centerLatitude = gps.target.lat
+                    pinchmap.centerLongitude = gps.target.lon
+                }}
+            MenuItem { text: "Fetch Details for all in view"; onClicked: { pinchmap.requestUpdateDetails() } }
+            MenuItem { text: "Reload Map"; onClicked: { pinchmap.populate(); } }
+            MenuItem { text: "Settings"; onClicked: { showSettings(); } }
+        }
+    }
 }

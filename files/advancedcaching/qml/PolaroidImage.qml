@@ -39,4 +39,4 @@ Rectangle {
     height: borderWidth + image.height + 2 * borderWidth + label.height
     width: image.width + 2*borderWidth
 }
-        
+

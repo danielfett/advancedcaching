@@ -80,30 +80,11 @@ PageStackWindow {
         mainPage.showDetailsPage(page)
     }
 
-
-
-    /*
-    CoordinatesPage {
-        id: pageCoordinates
-    }*/
-
-    /*
-    Accelerometer {
-        id: accelerometer
-        onReadingChanged: {
-            //console.log("                    x: "+accelerometer.reading.x+" y: "+accelerometer.reading.y+" z: " + accelerometer.reading.z)
-            var divider = Math.sqrt(Math.pow(accelerometer.reading.x,2) + Math.pow(accelerometer.reading.y, 2) + Math.pow(accelerometer.reading.z, 2) )
-            accelerometer.x = Math.acos(accelerometer.reading.x / divider) * (180.0/Math.PI) - 90
-            accelerometer.y = Math.acos(accelerometer.reading.y / divider) * (180.0/Math.PI) - 90
-            accelerometer.z = Math.acos(accelerometer.reading.z / divider) * (180.0/Math.PI)
-            //console.log("X: " + accelerometer.x + ", Y: " + accelerometer.y + ", Z: " + accelerometer.z)
-        }
-        property int x: 0
-        property int y: 0
-        property int z: 0
-        active: true
-    }*/
     CoordinateSelector {
         id: coordinateSelectorDialog
+    }
+
+    Component.onCompleted: {
+        theme.inverted = true;
     }
 }

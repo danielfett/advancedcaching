@@ -22,75 +22,75 @@ Page {
         clip: true
         id: list
         delegate: Item {
-             BorderImage {
-                 id: background
-                 anchors.fill: parent
-                 anchors.leftMargin: -16
-                 anchors.rightMargin: -16
-                 visible: mouseArea.pressed
-                 source: "image://theme/meegotouch-list-background-pressed-center"
-             }
+            BorderImage {
+                id: background
+                anchors.fill: parent
+                anchors.leftMargin: -16
+                anchors.rightMargin: -16
+                visible: mouseArea.pressed
+                source: "image://theme/meegotouch-list-background-pressed-center"
+            }
 
-             Row {
-                 id: r
-                 anchors.verticalCenter: parent.verticalCenter
-                 Column {
+            Row {
+                id: r
+                anchors.verticalCenter: parent.verticalCenter
+                Column {
 
-                     Label {
-                         id: mainText
-                         text: model.coordinate.name || "No Title"
-                         font.weight: Font.Bold
-                         font.pixelSize: 26
-                         width: list.width - arrow.width
-                         wrapMode: Text.WordWrap
-                     }
+                    Label {
+                        id: mainText
+                        text: model.coordinate.name || "No Title"
+                        font.weight: Font.Bold
+                        font.pixelSize: 26
+                        width: list.width - arrow.width
+                        wrapMode: Text.WordWrap
+                    }
 
-                     Label {
-                         id: subText
-                         text: model.coordinate.comment
-                         font.weight: Font.Light
-                         font.pixelSize: 22
-                         color: UI.COLOR_DESCRIPTION
-                         visible: text != ""
-                         width: list.width - arrow.width
-                         wrapMode: Text.WordWrap
-                     }
+                    Label {
+                        id: subText
+                        text: model.coordinate.comment
+                        font.weight: Font.Light
+                        font.pixelSize: 22
+                        color: UI.COLOR_DESCRIPTION
+                        visible: text != ""
+                        width: list.width - arrow.width
+                        wrapMode: Text.WordWrap
+                    }
 
-                     Label {
-                         id: subCoordinate
-                         text: model.coordinate.name
-                         font.weight: Font.Light
-                         font.pixelSize: 22
-                         visible: text != ""
-                     }
-                 }
-             }
+                    Label {
+                        id: subCoordinate
+                        text: model.coordinate.name
+                        font.weight: Font.Light
+                        font.pixelSize: 22
+                        visible: text != ""
+                    }
+                }
+            }
 
-             Image {
-                 id: arrow
-                 source: "image://theme/icon-m-common-drilldown-arrow" + (theme.inverted ? "-inverse" : "")
-                 anchors.right: parent.right;
-                 anchors.verticalCenter: parent.verticalCenter
-             }
+            Image {
+                id: arrow
+                source: "image://theme/icon-m-common-drilldown-arrow" + (theme.inverted ? "-inverse" : "")
+                anchors.right: parent.right;
+                anchors.verticalCenter: parent.verticalCenter
+            }
 
-             MouseArea {
-                 id: mouseArea
-                 anchors.fill: background
-                 onClicked: {
-                     //listPage.openFile(page)
-                     showDescription.coordinate = model.coordinate
-                     if (showDescription.coordinate.valid) {
-                         map.setCenterLatLon(showDescription.coordinate.lat, showDescription.coordinate.lon)
-                         map.visible = true;
-                     } else {
-                         map.visible = false;
-                     }
+            MouseArea {
+                id: mouseArea
+                anchors.fill: background
+                onClicked: {
+                    //listPage.openFile(page)
+                    showDescription.coordinate = model.coordinate
+                    if (showDescription.coordinate.valid) {
+                        map.setCenterLatLon(showDescription.coordinate.lat, showDescription.coordinate.lon)
+                        map.visible = true;
+                    } else {
+                        map.visible = false;
+                    }
 
-                     showDescription.open()
-                 }
-             }
-             height: r.height + 16
-             width: parent.width
+                    showDescription.open()
+                }
+            }
+            height: r.height + 16
+            width: parent.width
         }
     }
 

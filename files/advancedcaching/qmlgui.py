@@ -209,21 +209,30 @@ class Controller(QtCore.QObject):
     progressMessage = QtCore.Property(str, _progress_message, notify=progressChanged)
 
 class CacheCalcVarWrapper(QtCore.QObject):
-    def __init__(self, manager, char):
+    def __init__(self, cache, manager, char):
+        QtCore.QObject.__init__(self)
         self.__manager = manager
         self.__char = char 
-        self.__value = value
+        self.__cache = cache
+        v = manager.get_vars()
+        if char in v:
+            self.__value = v[char] 
+        else:
+            self.__value = ''
         logger.debug("Char is %s, Value is %s" % (self.__char, repr(self.__value)))
         
     def _value(self):
+        logger.debug("Value is %r" % self.__value)
         return self.__value
         
     def _char(self):
+        logger.debug("Char is %r" % self.__char)
         return self.__char
         
     def _set_value(self, v):
         self.__value = v
         self.__manager.set_var(self.__char, v)
+        self.__cache._save('vars')
         
     changed = QtCore.Signal()    
         
@@ -232,29 +241,32 @@ class CacheCalcVarWrapper(QtCore.QObject):
     
 
 class CacheCalcVarList(QtCore.QAbstractListModel):
-    COLUMNS = ('var',)
+    COLUMNS = ('vars',)
 
-    def __init__(self, manager):
+    def __init__(self, cache, manager):
         QtCore.QAbstractListModel.__init__(self)
         self.setRoleNames(dict(enumerate(CacheCalcVarList.COLUMNS)))
+        self.__cache = cache
         self.__manager = manager
         # List of objects of CacheCalcVarWrappers
         self.__var_wrappers = []
         # Mapping from chars to wrapper objects
         self.__var_wrapper_mapping = {}
         self._init_vars()
-        logger.debug("Cache calc list initiated with %d vars" % len(self.__var_wrappers))
+        logger.debug("Cache calc list initiated with %d vars from %d vars" % (len(self.__var_wrappers), len(self.__manager.get_vars())))
         
     def _init_vars(self):
         self.__new_var_wrappers = []
         self.__new_var_wrapper_mapping = {}
-        for char, value in self.__manager.get_vars():
+        req = list(self.__manager.requires)
+        req.sort()
+        for char in req:
             if char in self.__var_wrapper_mapping:
                 self.__new_var_wrappers += [self.__var_wrappers[self.__var_wrapper_mapping[char]]]
             else:
                 n = len(self.__new_var_wrappers)
-                self.__new_var_wrappers += [CacheCalcVarWrapper(self.__manager, char)]
-                self.__new_var_wrapper_mapping += {char: n}
+                self.__new_var_wrappers += [CacheCalcVarWrapper(self.__cache, self.__manager, char)]
+                self.__new_var_wrapper_mapping[char] = n
         self.__var_wrappers = self.__new_var_wrappers
         self.__var_wrapper_mapping = self.__new_var_wrapper_mapping
         
@@ -264,7 +276,7 @@ class CacheCalcVarList(QtCore.QAbstractListModel):
         return len(self.__var_wrappers)
 
     def data(self, index, role):
-        if index.isValid() and role == MapTypesList.COLUMNS.index('var'):
+        if index.isValid() and role == CacheCalcVarList.COLUMNS.index('vars'):
             return self.__var_wrappers[index.row()]
         return None
 
@@ -774,10 +786,13 @@ class GeocacheWrapper(QtCore.QObject):
         
     def _var_list(self):
         if self._var_list == None:
-            self._geocache.start_calc()
-            self._var_list = CacheCalcVarList(self._geocache.calc)
+            self._var_list = CacheCalcVarList(self, self._geocache.calc)
         logger.debug("Returning %r" % self._var_list)
         return self._var_list
+        
+    def _save(self, what):
+        logger.debug("Saving cache attribute: %s" % what)
+        self.core.save_cache_attribute(self._geocache, what)
     
     @QtCore.Slot(str, str)
     def setFieldnote(self, logas, text):

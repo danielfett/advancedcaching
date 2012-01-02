@@ -43,121 +43,121 @@ QueryDialog {
         MouseArea {
             anchors.fill: selectColumn
             onClicked: {  }
-            }, 
+        },
         Column {
-        id: selectColumn
-        spacing: 10
-        // Latitude
-        Button {
-            id: latButton
-            property int value: 1
-            text: (latButton.value > 0) ? "N" : "S"
-            font.pixelSize: UI.FONT_LARGE
-            onClicked: { latButton.value = -latButton.value }
-            width: UI.WIDTH_SELECTOR
-        }
-        Row {
-            UpDownSelect {
-                id: lat1
+            id: selectColumn
+            spacing: 10
+            // Latitude
+            Button {
+                id: latButton
+                property int value: 1
+                text: (latButton.value > 0) ? "N" : "S"
+                font.pixelSize: UI.FONT_LARGE
+                onClicked: { latButton.value = -latButton.value }
+                width: UI.WIDTH_SELECTOR
+            }
+            Row {
+                UpDownSelect {
+                    id: lat1
+                }
+
+                UpDownSelect {
+                    id: lat2
+                }
+
+                Label {
+                    text: "°"
+                    font.pixelSize:  UI.FONT_LARGE
+                    color: "white"
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                UpDownSelect {
+                    id: lat3
+                    max: 5
+                }
+
+                UpDownSelect {
+                    id: lat4
+                }
+
+                Label {
+                    text: "."
+                    font.pixelSize:  UI.FONT_LARGE
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: "white"
+                }
+
+                UpDownSelect {
+                    id: lat5
+                }
+
+                UpDownSelect {
+                    id: lat6
+                }
+
+                UpDownSelect {
+                    id: lat7
+                }
+            }
+            // Longitude
+            Button {
+                id: lonButton
+                property int value: 1
+                text: (lonButton.value > 0) ? "E" : "W"
+                font.pixelSize: UI.FONT_LARGE
+                onClicked: { lonButton.value = -lonButton.value }
+                width: UI.WIDTH_SELECTOR
+            }
+            Row {
+
+                UpDownSelect {
+                    id: lon0
+                    max: 1
+                }
+
+                UpDownSelect {
+                    id: lon1
+                }
+
+                UpDownSelect {
+                    id: lon2
+                }
+                Label {
+                    text: "°"
+                    font.pixelSize:  UI.FONT_LARGE
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: "white"
+                }
+
+                UpDownSelect {
+                    id: lon3
+                    max: 5
+                }
+
+                UpDownSelect {
+                    id: lon4
+                }
+
+                Label {
+                    text: "."
+                    font.pixelSize:  UI.FONT_LARGE
+                    anchors.verticalCenter: parent.verticalCenter
+                    color: "white"
+                }
+
+                UpDownSelect {
+                    id: lon5
+                }
+
+                UpDownSelect {
+                    id: lon6
+                }
+
+                UpDownSelect {
+                    id: lon7
+                }
             }
 
-            UpDownSelect {
-                id: lat2
-            }
-
-            Label {
-                text: "°"
-                font.pixelSize:  UI.FONT_LARGE
-                color: "white"
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            UpDownSelect {
-                id: lat3
-                max: 5
-            }
-
-            UpDownSelect {
-                id: lat4
-            }
-
-            Label {
-                text: "."
-                font.pixelSize:  UI.FONT_LARGE
-                anchors.verticalCenter: parent.verticalCenter
-                color: "white"
-            }
-
-            UpDownSelect {
-                id: lat5
-            }
-
-            UpDownSelect {
-                id: lat6
-            }
-
-            UpDownSelect {
-                id: lat7
-            }
-        }
-        // Longitude
-        Button {
-            id: lonButton
-            property int value: 1
-            text: (lonButton.value > 0) ? "E" : "W"
-            font.pixelSize: UI.FONT_LARGE
-            onClicked: { lonButton.value = -lonButton.value }
-            width: UI.WIDTH_SELECTOR
-        }
-        Row {
-
-            UpDownSelect {
-                id: lon0
-                max: 1
-            }
-
-            UpDownSelect {
-                id: lon1
-            }
-
-            UpDownSelect {
-                id: lon2
-            }
-            Label {
-                text: "°"
-                font.pixelSize:  UI.FONT_LARGE
-                anchors.verticalCenter: parent.verticalCenter
-                color: "white"
-            }
-
-            UpDownSelect {
-                id: lon3
-                max: 5
-            }
-
-            UpDownSelect {
-                id: lon4
-            }
-
-            Label {
-                text: "."
-                font.pixelSize:  UI.FONT_LARGE
-                anchors.verticalCenter: parent.verticalCenter
-                color: "white"
-            }
-
-            UpDownSelect {
-                id: lon5
-            }
-
-            UpDownSelect {
-                id: lon6
-            }
-
-            UpDownSelect {
-                id: lon7
-            }
-        }
-
-    }]
+        }]
 }

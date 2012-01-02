@@ -23,7 +23,7 @@ Page {
             anchors.leftMargin: 16
             anchors.rightMargin: 16
             anchors.top: header.bottom
-        
+
             Label {
                 font.pixelSize: UI.FONT_DEFAULT
                 text: currentGeocache ? currentGeocache.title : "None selected"
@@ -65,7 +65,7 @@ Page {
         }
         
         
-       
+
         clip: true
         contentWidth: width
         contentHeight: title.height + 16 + label.height + 16 + description.height + header.height + 8

@@ -3,7 +3,7 @@ import com.nokia.meego 1.0
 import "uiconstants.js" as UI
 
 Page {
-        
+
     GeocacheHeader{
         cache: currentGeocache
         id: header
@@ -17,7 +17,7 @@ Page {
         anchors.leftMargin: 16
         anchors.rightMargin: 16
         anchors.top: header.bottom
-    
+
         Label {
             font.pixelSize: UI.FONT_DEFAULT
             text: "Write Fieldnote"
@@ -47,7 +47,7 @@ Page {
                 visible: mouseArea.pressed
                 source: "image://theme/meegotouch-list-background-pressed-center"
             }
-             
+
             Label {
                 anchors.verticalCenter: parent.verticalCenter
                 text: logModel.get(currentGeocache.logas).name
@@ -55,10 +55,10 @@ Page {
             }
             
             Image {
-                 id: arrow
-                 source: "image://theme/icon-m-common-drilldown-arrow" + (theme.inverted ? "-inverse" : "")
-                 anchors.right: parent.right;
-                 anchors.verticalCenter: parent.verticalCenter
+                id: arrow
+                source: "image://theme/icon-m-common-drilldown-arrow" + (theme.inverted ? "-inverse" : "")
+                anchors.right: parent.right;
+                anchors.verticalCenter: parent.verticalCenter
             }
             
             MouseArea {
@@ -125,7 +125,7 @@ Page {
             saveFieldnote();
         }
     }
-           
+
     ListModel {
         id: logModel
         ListElement{ name: "Don't upload Fieldnote" }

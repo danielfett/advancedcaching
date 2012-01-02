@@ -288,7 +288,7 @@ Rectangle {
                     text: (img.status == Image.Ready ? "Ready" :
                            img.status == Image.Null ? "Not Set" :
                            img.status == Image.Error ? "Error" :
-                            "Loading...")
+                           "Loading...")
                 }
 
                 Image {

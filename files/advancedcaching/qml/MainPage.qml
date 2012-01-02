@@ -22,7 +22,7 @@ Page {
     function showSettings() {
         tabGroup.currentTab = tabSettings
     }
-        
+
 
     TabGroup {
         id: tabGroup

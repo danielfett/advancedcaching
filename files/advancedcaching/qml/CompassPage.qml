@@ -108,10 +108,10 @@ Page {
                 y: arrowImage.outerMargin
                 z: 3
                 transform: Rotation {
-                   origin.y: compassImage.height/2 - arrowImage.outerMargin
-                   origin.x: arrowImage.width/2
-                   angle: arrowImage.angle
-               }
+                    origin.y: compassImage.height/2 - arrowImage.outerMargin
+                    origin.x: arrowImage.width/2
+                    angle: arrowImage.angle
+                }
             }
         }
 
@@ -161,9 +161,9 @@ Page {
                         if (component.status == Component.Ready) {
                             coordinateSelectorDialog = component.createObject(tabCompass);                
                             coordinateSelectorDialog.accepted.connect(function() {
-                                var res = coordinateSelectorDialog.getValue();
-                                controller.setTarget(res[0], res[1])
-                            })
+                                                                          var res = coordinateSelectorDialog.getValue();
+                                                                          controller.setTarget(res[0], res[1])
+                                                                      })
                         }
                     }
                     if (gps.targetValid) {
@@ -183,12 +183,12 @@ Page {
     }
     
     Menu {
-         id: menu
-         visualParent: parent
+        id: menu
+        visualParent: parent
 
-         MenuLayout {
-             MenuItem { text: "Unset Target"; onClicked: { controller.setAsTarget(null); } }
-             MenuItem { text: "Settings"; onClicked: { showSettings(); } }
-         }
-     }
+        MenuLayout {
+            MenuItem { text: "Unset Target"; onClicked: { controller.setAsTarget(null); } }
+            MenuItem { text: "Settings"; onClicked: { showSettings(); } }
+        }
+    }
 }

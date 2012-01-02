@@ -74,8 +74,8 @@ Page {
                 InfoLabel {
                     name: "Status"
                     value: (currentGeocache.status == 0) ? "active" :
-                        (currentGeocache.status == 1) ? "disabled" :
-                        "archived";
+                                                                    (currentGeocache.status == 1) ? "disabled" :
+                    "archived";
                     color: (currentGeocache.status == 1) ? "red" : "black";
                 }
                 /*
@@ -191,7 +191,7 @@ Page {
                 showDetailsPage(pageFieldnotes)
             }
         } 
-/* todo...
+        /* todo...
         ListButton {
             text: "Images (4)"
             onClicked: {
@@ -216,12 +216,12 @@ Page {
     }
     
     Menu {
-         id: menu
-         visualParent: parent
+        id: menu
+        visualParent: parent
 
-         MenuLayout {
-             //MenuItem { text: currentGeocache.found ? "Mark Not Found" : "Mark Found"; }
-             MenuItem { text: "Settings"; onClicked: { showSettings(); } }
-         }
-     }
+        MenuLayout {
+            //MenuItem { text: currentGeocache.found ? "Mark Not Found" : "Mark Found"; }
+            MenuItem { text: "Settings"; onClicked: { showSettings(); } }
+        }
+    }
 }

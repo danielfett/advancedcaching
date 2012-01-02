@@ -11,14 +11,14 @@ Item {
 
 
     BorderImage {
-         id: background
-         anchors.fill: parent
-         // Fill page borders
-         anchors.leftMargin: -16
-         anchors.rightMargin: -16
-         visible: mouse.pressed
-         source: "image://theme/meegotouch-list-background-pressed-center"
-     }
+        id: background
+        anchors.fill: parent
+        // Fill page borders
+        anchors.leftMargin: -16
+        anchors.rightMargin: -16
+        visible: mouse.pressed
+        source: "image://theme/meegotouch-list-background-pressed-center"
+    }
 
     Label {
         id: label
