@@ -21,7 +21,7 @@
 #
 
 import logging
-logger = logging.getLogger('qtgui')
+logger = logging.getLogger('qmlgui')
 
 from PySide import QtGui
 from PySide import QtDeclarative
@@ -213,9 +213,13 @@ class CacheCalcVarWrapper(QtCore.QObject):
         self.__manager = manager
         self.__char = char 
         self.__value = value
+        logger.debug("Char is %s, Value is %s" % (self.__char, repr(self.__value)))
         
     def _value(self):
         return self.__value
+        
+    def _char(self):
+        return self.__char
         
     def _set_value(self, v):
         self.__value = v
@@ -224,6 +228,7 @@ class CacheCalcVarWrapper(QtCore.QObject):
     changed = QtCore.Signal()    
         
     value = QtCore.Property(str, _value, _set_value, notify=changed)
+    char = QtCore.Property(str, _char, notify=changed)
     
 
 class CacheCalcVarList(QtCore.QAbstractListModel):
@@ -238,6 +243,7 @@ class CacheCalcVarList(QtCore.QAbstractListModel):
         # Mapping from chars to wrapper objects
         self.__var_wrapper_mapping = {}
         self._init_vars()
+        logger.debug("Cache calc list initiated with %d vars" % len(self.__var_wrappers))
         
     def _init_vars(self):
         self.__new_var_wrappers = []
@@ -252,7 +258,7 @@ class CacheCalcVarList(QtCore.QAbstractListModel):
         self.__var_wrappers = self.__new_var_wrappers
         self.__var_wrapper_mapping = self.__new_var_wrapper_mapping
         
-        QtCore.QAbstractListModel.dataChanged(self)
+        self.dataChanged.emit(self.createIndex(0,0), self.createIndex(len(self.__var_wrappers),0))
 
     def rowCount(self, parent=QtCore.QModelIndex()):
         return len(self.__var_wrappers)
@@ -766,9 +772,11 @@ class GeocacheWrapper(QtCore.QObject):
     def _fieldnotes(self):
         return self._geocache.fieldnotes
         
-    def _vars(self):
-        if self._var_list != None:
+    def _var_list(self):
+        if self._var_list == None:
+            self._geocache.start_calc()
             self._var_list = CacheCalcVarList(self._geocache.calc)
+        logger.debug("Returning %r" % self._var_list)
         return self._var_list
     
     @QtCore.Slot(str, str)
@@ -806,7 +814,7 @@ class GeocacheWrapper(QtCore.QObject):
     hints = QtCore.Property(str, _hints, notify=changed)
     logas = QtCore.Property(int, _logas, notify=changed)
     fieldnotes = QtCore.Property(str, _fieldnotes, notify=changed)
-    vars = QtCore.Property(QtCore.QObject, _vars, notify=changed)
+    varList = QtCore.Property(QtCore.QObject, _var_list, notify=changed)
 
 class GeocacheListModel(QtCore.QAbstractListModel):
     COLUMNS = ('geocache',)

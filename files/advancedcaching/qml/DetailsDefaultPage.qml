@@ -145,6 +145,21 @@ Page {
             }
         }
 
+
+        ListButton {
+            text: "CacheCalc"
+            property variant pageCacheCalc: null
+            onClicked: {
+                if (pageCacheCalc == null) {
+                    var component = Qt.createComponent("CacheCalcPage.qml");
+                    if (component.status == Component.Ready) {
+                        pageCacheCalc = component.createObject(rootWindow);
+                    }
+                }
+                showDetailsPage(pageCacheCalc)
+            }
+        }
+
         ListButton {
             text: "Logs (" + (currentGeocache.logsCount || "-") + ")"
             //text: "Logs"
