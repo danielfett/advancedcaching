@@ -48,7 +48,7 @@ Page {
 
         Image {
             id: compassImage
-            source: "../data/windrose.svg"
+            source: theme.inverted ? "../data/windrose-night.svg" : "../data/windrose.svg"
             transform: [Rotation {
                     id: azCompass
                     origin.x: compassImage.width/2
@@ -153,7 +153,7 @@ Page {
                 id: changeTargetButton
                 width: compassColumn.width/6
                 anchors.bottom: currentTarget.bottom
-                iconSource: "image://theme/icon-m-toolbar-edit"
+                iconSource: "image://theme/icon-m-toolbar-edit" + (theme.inverted ? "-white" : "")
                 property variant coordinateSelectorDialog: null
                 onClicked: {
                     if (coordinateSelectorDialog == null) {

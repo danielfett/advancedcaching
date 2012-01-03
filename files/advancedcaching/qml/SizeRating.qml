@@ -14,30 +14,30 @@ Item {
     }
     Image {
         id: micro
-        source: "../data/icon-micro" + (size == 1 ? "-active" : "") + ".png"
+        source: "../data/icon-micro" + (size == 1 ? "-active" : "") + (theme.inverted ? "-night" : "") + ".png"
         y: 26
     }
     Image {
         id: small
-        source: "../data/icon-small" + (size == 2 ? "-active" : "") + ".png"
+        source: "../data/icon-small" + (size == 2 ? "-active" : "") + (theme.inverted ? "-night" : "") + ".png"
         y: 26
         anchors.left: micro.right
     }
     Image {
         id: regular
-        source: "../data/icon-regular" + (size == 3 ? "-active" : "") + ".png"
+        source: "../data/icon-regular" + (size == 3 ? "-active" : "") + (theme.inverted ? "-night" : "") + ".png"
         y: 26
         anchors.left: small.right
     }
     Image {
         id: large
-        source: "../data/icon-large" + (size == 4 ? "-active" : "") + ".png"
+        source: "../data/icon-large" + (size == 4 ? "-active" : "") + (theme.inverted ? "-night" : "") + ".png"
         y: 26
         anchors.left: regular.right
     }
     Image {
         id: unknown
-        source: "../data/icon-unknown" + ((size < 1 || size > 4)  ? "-active" : "") + ".png"
+        source: "../data/icon-unknown" + ((size < 1 || size > 4)  ? "-active" : "") + (theme.inverted ? "-night" : "") + ".png"
         y: 26
         anchors.left: large.right
     }

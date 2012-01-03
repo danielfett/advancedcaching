@@ -149,6 +149,7 @@ class Core(gobject.GObject):
         'options_default_log_text' : 'TFTC!\n\nLogged at %X from my %(machine)s using AGTL.',
         'options_auto_update': True,
         'download_num_logs': 20,
+        'options_night_view_mode': 0
     }
             
     def __init__(self, guitype, root):

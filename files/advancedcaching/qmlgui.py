@@ -232,14 +232,54 @@ class CacheCalcVarWrapper(QtCore.QObject):
     def _set_value(self, v):
         self.__value = v
         self.__manager.set_var(self.__char, v)
-        self.__cache._save('vars')
+        logger.debug("Here I am....")
+        self.__cache() #self.__cache.save_vars()
         
     changed = QtCore.Signal()    
         
     value = QtCore.Property(str, _value, _set_value, notify=changed)
     char = QtCore.Property(str, _char, notify=changed)
     
-
+class CacheCalcCoordinateWrapper(QtCore.QObject):
+    def __init__(self, cache, coordinate):
+        QtCore.QObject.__init__(self)
+        self.__coordinate = coordinate
+        self.__cache = cache
+        
+    def _has_requires(self):
+        return self.__coordinate.has_requires()
+        
+    def _text(self):
+        vars = self.__cache.calc.get_vars()
+        if self.__coordinate.has_requires():
+            t = "= %s\n%s" % (self.__coordinate.replaced_result, self.__coordinate.result if self.__coordinate.result != False else '')
+        else:
+            req = list(self.__coordinate.requires)
+            req.sort()
+            t = "<i>Needs %s</i>\n" % (', '.join(("<s>%s</s>" if r in vars else "<b>%s</b>") % r for r in req))
+        return t
+            
+    def _warnings(self):
+        return (''.join("\n<b>!</b> %s" % w for w in self.__coordinate.warnings)).strip()
+        
+    def _source(self):
+        if type(self.__coordinate.source) == int:
+                source = cache.get_user_coordinate(self.__coordinate.source)['name']
+        else:
+            source = self.__coordinate.source
+        return source
+        
+    def _original_text(self):
+        return self.__coordinate.orig
+        
+    changed = QtCore.Signal()
+        
+    hasRequires = QtCore.Property(bool, _has_requires, notify=changed)
+    text = QtCore.Property(str, _text, notify=changed)
+    warnings = QtCore.Property(str, _warnings, notify=changed)
+    source = QtCore.Property(str, _source, notify=changed)
+    originalText = QtCore.Property(str, _original_text, notify=changed)
+        
 class CacheCalcVarList(QtCore.QAbstractListModel):
     COLUMNS = ('vars',)
 
@@ -265,7 +305,7 @@ class CacheCalcVarList(QtCore.QAbstractListModel):
                 self.__new_var_wrappers += [self.__var_wrappers[self.__var_wrapper_mapping[char]]]
             else:
                 n = len(self.__new_var_wrappers)
-                self.__new_var_wrappers += [CacheCalcVarWrapper(self.__cache, self.__manager, char)]
+                self.__new_var_wrappers += [CacheCalcVarWrapper(self.__cache.save_vars, self.__manager, char)]
                 self.__new_var_wrapper_mapping[char] = n
         self.__var_wrappers = self.__new_var_wrappers
         self.__var_wrapper_mapping = self.__new_var_wrapper_mapping
@@ -556,6 +596,7 @@ class SettingsWrapper(QtCore.QObject):
     optionsMapRotation = createSetting('options_maprotation', bool, settingsChanged)
     optionsHideFound = createSetting('options_hide_found', bool, settingsChanged)
     optionsShowPositionError = createSetting('options_show_position_error', bool, settingsChanged)
+    optionsNightViewMode = createSetting('options_night_view_mode', int, settingsChanged)
 
     currentMapType = QtCore.Property(QtCore.QObject, _get_current_map_type, _set_current_map_type, notify=settingsChanged)
     mapTypes = QtCore.Property(QtCore.QObject, _map_types, notify=settingsChanged)
@@ -673,6 +714,7 @@ class GeocacheWrapper(QtCore.QObject):
         self._logs_list = None
         self._image_list = None
         self._var_list = None
+        self._calc_coordinate_list = None
         
     GEOCACHE_CACHE = {}
         
@@ -689,7 +731,9 @@ class GeocacheWrapper(QtCore.QObject):
         self._logs_list = None
         self._image_list = None
         self._var_list = None
+        self._calc_coordinate_list = None
         self.changed.emit()
+        self.coordsChanged.emit()
         
     def _name(self):
         return self._geocache.name
@@ -790,9 +834,19 @@ class GeocacheWrapper(QtCore.QObject):
         logger.debug("Returning %r" % self._var_list)
         return self._var_list
         
-    def _save(self, what):
-        logger.debug("Saving cache attribute: %s" % what)
-        self.core.save_cache_attribute(self._geocache, what)
+    def save_vars(self):
+        logger.debug("Saving cache vars.")
+        self.core.save_cache_attribute(self._geocache, 'vars')
+        self._calc_coordinate_list = None
+        self._coordinate_list = None 
+        self.coordsChanged.emit()
+        
+    def _calc_coordinates(self):
+        if self._calc_coordinate_list == None:
+            l = [CacheCalcCoordinateWrapper(self._geocache, x) for x in self._geocache.calc.coords]
+            self._calc_coordinate_list = CoordinateListModel(self.core, l)
+        return self._calc_coordinate_list
+            
     
     @QtCore.Slot(str, str)
     def setFieldnote(self, logas, text):
@@ -806,6 +860,7 @@ class GeocacheWrapper(QtCore.QObject):
         self.changed.emit()
 
     changed = QtCore.Signal()
+    coordsChanged = QtCore.Signal()
 
     name = QtCore.Property(str, _name, notify=changed)
     title = QtCore.Property(unicode, _title, notify=changed)
@@ -823,13 +878,14 @@ class GeocacheWrapper(QtCore.QObject):
     status = QtCore.Property(int, _status, notify=changed)
     logs = QtCore.Property(QtCore.QObject, _logs, notify=changed)
     logsCount = QtCore.Property(int, _logs_count, notify=changed)
-    coordinates = QtCore.Property(QtCore.QObject, _coordinates, notify=changed)
-    coordinatesCount = QtCore.Property(int, _coordinates_count, notify=changed)
+    coordinates = QtCore.Property(QtCore.QObject, _coordinates, notify=coordsChanged)
+    coordinatesCount = QtCore.Property(int, _coordinates_count, notify=coordsChanged)
     hasDetails = QtCore.Property(bool, _has_details, notify=changed)
     hints = QtCore.Property(str, _hints, notify=changed)
     logas = QtCore.Property(int, _logas, notify=changed)
     fieldnotes = QtCore.Property(str, _fieldnotes, notify=changed)
     varList = QtCore.Property(QtCore.QObject, _var_list, notify=changed)
+    calcCoordinates = QtCore.Property(QtCore.QObject, _calc_coordinates, notify=coordsChanged)
 
 class GeocacheListModel(QtCore.QAbstractListModel):
     COLUMNS = ('geocache',)

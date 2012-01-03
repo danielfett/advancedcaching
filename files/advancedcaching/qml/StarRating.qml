@@ -15,7 +15,7 @@ Item {
     }
     Image {
         id: marked
-        source: "image://theme/icon-m-toolbar-favorite-mark"
+        source: "image://theme/icon-m-toolbar-favorite-mark" + (theme.inverted ? "-white" : "")
         fillMode: Image.TileHorizontally
         width: (rating)*sourceSize.width
         anchors.left: parent.left
@@ -23,7 +23,7 @@ Item {
     }
     Image {
         id: unmarked
-        source: "image://theme/icon-m-toolbar-favorite-unmark"
+        source: "image://theme/icon-m-toolbar-favorite-unmark" + (theme.inverted ? "-white" : "")
         fillMode: Image.TileHorizontally
         width: (maxrating - rating)*sourceSize.width
         anchors.left: marked.right

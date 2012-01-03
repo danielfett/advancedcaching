@@ -85,6 +85,13 @@ PageStackWindow {
     }
 
     Component.onCompleted: {
-        theme.inverted = true;
+        theme.inverted = settings.optionsNightViewMode;
+    }
+
+    Connections {
+        target: settings
+        onOptionsNightViewModeChanged: {
+            theme.inverted = settings.optionsNightViewMode;
+        }
     }
 }

@@ -94,7 +94,7 @@ Page {
             anchors.right: parent.right
             height: 60
             Label {
-                text: "Enable Map Rotation (BETA)"
+                text: "Map Rotation (BETA)"
                 font.weight: Font.Bold
                 font.pixelSize: 26
                 anchors.verticalCenter: parent.verticalCenter
@@ -106,6 +106,27 @@ Page {
                     settings.optionsMapRotation = checked
                 }
                 checked: settings.optionsMapRotation
+                anchors.verticalCenter: parent.verticalCenter
+            }
+        }
+
+        Item {
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 60
+            Label {
+                text: "Night View (Black Theme)"
+                font.weight: Font.Bold
+                font.pixelSize: 26
+                anchors.verticalCenter: parent.verticalCenter
+            }
+
+            Switch {
+                anchors.right: parent.right
+                onCheckedChanged: {
+                    settings.optionsNightViewMode = checked ? 1 : 0
+                }
+                checked: settings.optionsNightViewMode == 1
                 anchors.verticalCenter: parent.verticalCenter
             }
         }

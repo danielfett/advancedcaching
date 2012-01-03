@@ -67,7 +67,7 @@ Page {
         id: commonTools
         visible: true
         ToolIcon {
-            iconId: "toolbar-back" + ((tabDetailsPageStack.depth < 2) ? "-dimmed" : "")
+            iconId: "toolbar-back" + ((tabDetailsPageStack.depth < 2) ? "-dimmed" : "")// + (theme.inverted ? "-white" : "")
             onClicked: {
                 if (tabDetailsPageStack.depth > 1) tabDetailsPageStack.pop();
             }
@@ -78,22 +78,22 @@ Page {
             style: TabButtonStyle { }
             TabButton {
                 //text: "Compass"
-                iconSource: "../data/icon-m-toolbar-compass.png"
+                iconSource: "../data/icon-m-toolbar-compass" + (theme.inverted ? "-night" : "") + ".png"
                 tab: tabCompass
             }
             TabButton {
                 //text: "Map"
-                iconSource: "../data/icon-m-toolbar-map.png"
+                iconSource: "../data/icon-m-toolbar-map" + (theme.inverted ? "-night" : "") + ".png"
                 tab: tabMap
             }
             TabButton {
                 //text: "Details"
                 tab: tabDetailsPageStack
-                iconSource: "image://theme/icon-m-toolbar-search"
+                iconSource: "image://theme/icon-m-toolbar-search" + (theme.inverted ? "-white" : "")
             }
             TabButton {
                 tab: tabCamera
-                iconSource: "image://theme/icon-m-viewfinder-camera-selected"
+                iconSource: "image://theme/icon-m-viewfinder-camera" + (theme.inverted ? "" : "-selected")
             }
         }
         

@@ -50,7 +50,7 @@ Page {
                 text: model.log.text
                 wrapMode: Text.Wrap
                 font.pixelSize: 22
-                color: UI.COLOR_DESCRIPTION
+                color: theme.inverted ? UI.COLOR_DESCRIPTION_NIGHT : UI.COLOR_DESCRIPTION
                 width: parent.parent.width - 2*16
             }
 

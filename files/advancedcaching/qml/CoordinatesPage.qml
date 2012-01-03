@@ -50,7 +50,7 @@ Page {
                         text: model.coordinate.comment
                         font.weight: Font.Light
                         font.pixelSize: 22
-                        color: UI.COLOR_DESCRIPTION
+                        color: theme.inverted ? UI.COLOR_DESCRIPTION_NIGHT : UI.COLOR_DESCRIPTION
                         visible: text != ""
                         width: list.width - arrow.width
                         wrapMode: Text.WordWrap
