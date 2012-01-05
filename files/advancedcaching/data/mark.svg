@@ -14,7 +14,10 @@
    id="svg3946"
    version="1.1"
    inkscape:version="0.48.2 r9819"
-   sodipodi:docname="cross.svg">
+   sodipodi:docname="mark.svg"
+   inkscape:export-filename="/home/daniel/git/advancedcaching/files/advancedcaching/data/mark.png"
+   inkscape:export-xdpi="63.374084"
+   inkscape:export-ydpi="63.374084">
   <defs
      id="defs3948">
     <marker
@@ -61,7 +64,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title />
+        <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>

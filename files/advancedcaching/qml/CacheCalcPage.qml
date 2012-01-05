@@ -18,22 +18,24 @@ Page {
         anchors.top: header.bottom
         anchors.bottom: parent.bottom
         contentWidth: width
-        contentHeight: col1.height
+        contentHeight: col1.height * 3
         clip: true
 
         Column {
             id: col1
             anchors.left: parent.left
             anchors.right: parent.right
-            Flow {
+
+            Grid {
                 anchors.left: parent.left
                 anchors.right: parent.right
+                columns: 3
                 spacing: 8
                 Repeater {
                     model: currentGeocache.varList || emptyList
-                    delegate:
-                        Row {
+                    delegate: Row {
                         Label {
+                            id: label
                             text: "" + model.vars.char + "="
                             width: 45
                             font.pixelSize: 28
@@ -55,6 +57,7 @@ Page {
             }
 
             Repeater {
+                width: parent.width
                 model: currentGeocache.calcCoordinates || emptyList
                 delegate: Item {
                     BorderImage {
@@ -130,9 +133,10 @@ Page {
                         }
                     }
                     height: r.height + 16
-                    //width: parent.width
+                    width: parent.width
                 }
             }
+
 
 
 

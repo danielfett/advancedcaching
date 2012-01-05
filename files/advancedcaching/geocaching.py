@@ -354,7 +354,7 @@ class GeocacheCoordinate(geo.Coordinate):
         except AttributeError:
             raise Exception("get_user_coordinates has to be called first!")
 
-    def get_collected_coordinates(self, format, include_unknown = True, htmlcallback = lambda x: x, shorten_callback = lambda x: x):
+    def get_collected_coordinates(self, format, include_unknown = True, htmlcallback = lambda x: x, shorten_callback = lambda x: x, skip_calc = False):
         cache = self
         cache.display_text = "Geocache: %s" % cache.get_latlon(format)
         cache.comment = "Original coordinate given in the cache description."
@@ -393,7 +393,7 @@ class GeocacheCoordinate(geo.Coordinate):
             i += 1
 
         # cache calc
-        if self.calc != None:
+        if self.calc != None and not skip_calc:
             logger.debug("Evaluating cache calc coordinates")
             for coord, source in self.calc.get_solutions():
                 if coord == False:
@@ -409,7 +409,9 @@ class GeocacheCoordinate(geo.Coordinate):
                 coord.comment = "From %s:\n%s = %s" % (source_string, coord.name, coord.get_latlon(format))
                 clist[i] = coord
                 i += 1
-
+        
+        # cache calc - plain coordinates
+        if self.calc != None:
             for coord, source in self.calc.get_plain_coordinates():
                 if coord == False:
                     logger.debug("Coordinate is false: %r" % coord)

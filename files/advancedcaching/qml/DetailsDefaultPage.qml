@@ -144,7 +144,7 @@ Page {
         }
 
 
-        ListButton {
+        /*ListButton {
             text: "CacheCalc"
 
             Loader {
@@ -155,7 +155,7 @@ Page {
                 pageCacheCalc.source = "CacheCalcPage.qml";
                 showDetailsPage(pageCacheCalc.item);
             }
-        }
+        }*/
 
         ListButton {
             text: "Logs (" + (currentGeocache.logsCount || "-") + ")"

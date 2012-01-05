@@ -231,9 +231,10 @@ class CacheCalcVarWrapper(QtCore.QObject):
         
     def _set_value(self, v):
         self.__value = v
+        logger.debug("Setting char %r to value %r" % (self.__char, v))
         self.__manager.set_var(self.__char, v)
         logger.debug("Here I am....")
-        self.__cache() #self.__cache.save_vars()
+        self.__cache.save_vars()
         
     changed = QtCore.Signal()    
         
@@ -249,11 +250,16 @@ class CacheCalcCoordinateWrapper(QtCore.QObject):
     def _has_requires(self):
         return self.__coordinate.has_requires()
         
-    def _text(self):
-        vars = self.__cache.calc.get_vars()
+    def _calculation(self):
         if self.__coordinate.has_requires():
-            t = "= %s\n%s" % (self.__coordinate.replaced_result, self.__coordinate.result if self.__coordinate.result != False else '')
+            return self.__coordinate.replaced_result
+        return ''
+        
+    def _text(self):    
+        if self.__coordinate.has_requires():
+            t = "%s" % self.__coordinate.result if self.__coordinate.result != False else 'nix!'
         else:
+            vars = self.__cache.calc.get_vars()
             req = list(self.__coordinate.requires)
             req.sort()
             t = "<i>Needs %s</i>\n" % (', '.join(("<s>%s</s>" if r in vars else "<b>%s</b>") % r for r in req))
@@ -275,6 +281,7 @@ class CacheCalcCoordinateWrapper(QtCore.QObject):
     changed = QtCore.Signal()
         
     hasRequires = QtCore.Property(bool, _has_requires, notify=changed)
+    calculation = QtCore.Property(str, _calculation, notify=changed)
     text = QtCore.Property(str, _text, notify=changed)
     warnings = QtCore.Property(str, _warnings, notify=changed)
     source = QtCore.Property(str, _source, notify=changed)
@@ -305,7 +312,7 @@ class CacheCalcVarList(QtCore.QAbstractListModel):
                 self.__new_var_wrappers += [self.__var_wrappers[self.__var_wrapper_mapping[char]]]
             else:
                 n = len(self.__new_var_wrappers)
-                self.__new_var_wrappers += [CacheCalcVarWrapper(self.__cache.save_vars, self.__manager, char)]
+                self.__new_var_wrappers += [CacheCalcVarWrapper(self.__cache, self.__manager, char)]
                 self.__new_var_wrapper_mapping[char] = n
         self.__var_wrappers = self.__new_var_wrappers
         self.__var_wrapper_mapping = self.__new_var_wrapper_mapping
@@ -803,8 +810,9 @@ class GeocacheWrapper(QtCore.QObject):
     def _coordinates(self):
         logger.debug("Preparing coordinate list...")
         if self._coordinate_list == None:
-            self._geocache.start_calc()
-            z = [CoordinateWrapper(x) for x in self._geocache.get_collected_coordinates(format = geo.Coordinate.FORMAT_DM).values()]
+            if self._geocache.calc == None:
+                self._geocache.start_calc()
+            z = [CoordinateWrapper(x) for x in self._geocache.get_collected_coordinates(format = geo.Coordinate.FORMAT_DM, skip_calc = True).values()]
             self._coordinate_list = CoordinateListModel(self.core, z)
         return self._coordinate_list
 
@@ -855,6 +863,8 @@ class GeocacheWrapper(QtCore.QObject):
         
     def _calc_coordinates(self):
         if self._calc_coordinate_list == None:
+            if self._geocache.calc == None:
+                self._geocache.start_calc()
             l = [CacheCalcCoordinateWrapper(self._geocache, x) for x in self._geocache.calc.coords]
             self._calc_coordinate_list = CoordinateListModel(self.core, l)
         return self._calc_coordinate_list

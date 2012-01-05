@@ -11,86 +11,226 @@ Page {
         id: listHeader
     }
 
-    ListView {
+    Flickable {
         anchors.top: listHeader.bottom
         anchors.leftMargin: 16
         anchors.rightMargin: 16
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom:  parent.bottom
-        model: currentGeocache.coordinates || emptyList
+        contentHeight: col1.height
+        contentWidth: width
         clip: true
-        id: list
-        delegate: Item {
-            BorderImage {
-                id: background
-                anchors.fill: parent
-                anchors.leftMargin: -16
-                anchors.rightMargin: -16
-                visible: mouseArea.pressed
-                source: "image://theme/meegotouch-list-background-pressed-center"
-            }
 
-            Row {
-                id: r
-                anchors.verticalCenter: parent.verticalCenter
-                Column {
-
-                    Label {
-                        id: mainText
-                        text: model.coordinate.name || "No Title"
-                        font.weight: Font.Bold
-                        font.pixelSize: 26
-                        width: list.width - arrow.width
-                        wrapMode: Text.WordWrap
-                    }
-
-                    Label {
-                        id: subText
-                        text: model.coordinate.comment
-                        font.weight: Font.Light
-                        font.pixelSize: 22
-                        color: theme.inverted ? UI.COLOR_DESCRIPTION_NIGHT : UI.COLOR_DESCRIPTION
-                        visible: text != ""
-                        width: list.width - arrow.width
-                        wrapMode: Text.WordWrap
-                    }
-
-                    Label {
-                        id: subCoordinate
-                        text: model.coordinate.name
-                        font.weight: Font.Light
-                        font.pixelSize: 22
-                        visible: text != ""
-                    }
-                }
-            }
-
-            Image {
-                id: arrow
-                source: "image://theme/icon-m-common-drilldown-arrow" + (theme.inverted ? "-inverse" : "")
-                anchors.right: parent.right;
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            MouseArea {
-                id: mouseArea
-                anchors.fill: background
-                onClicked: {
-                    //listPage.openFile(page)
-                    showDescription.coordinate = model.coordinate
-                    if (showDescription.coordinate.valid) {
-                        map.setCenterLatLon(showDescription.coordinate.lat, showDescription.coordinate.lon)
-                        map.visible = true;
-                    } else {
-                        map.visible = false;
-                    }
-
-                    showDescription.open()
-                }
-            }
-            height: r.height + 16
+        Column {
+            id: col1
             width: parent.width
+
+            Label {
+                font.pixelSize: 20
+                color: UI.COLOR_INFOLABEL
+                text: "Plain Coordinates"
+            }
+
+            Repeater {
+                width: parent.width
+
+                model: currentGeocache.coordinates || emptyList
+                clip: true
+                id: list
+                delegate: Item {
+                    BorderImage {
+                        id: background
+                        anchors.fill: parent
+                        anchors.leftMargin: -16
+                        anchors.rightMargin: -16
+                        visible: mouseArea.pressed
+                        source: "image://theme/meegotouch-list-background-pressed-center"
+                    }
+
+                    Row {
+                        id: r
+                        anchors.verticalCenter: parent.verticalCenter
+                        Column {
+
+                            Label {
+                                id: mainText
+                                text: model.coordinate.name || "No Title"
+                                font.weight: Font.Bold
+                                font.pixelSize: 26
+                                width: list.width - arrow.width
+                                wrapMode: Text.WordWrap
+                            }
+
+                            Label {
+                                id: subText
+                                text: model.coordinate.comment
+                                font.weight: Font.Light
+                                font.pixelSize: 22
+                                color: theme.inverted ? UI.COLOR_DESCRIPTION_NIGHT : UI.COLOR_DESCRIPTION
+                                visible: text != ""
+                                width: list.width - arrow.width
+                                wrapMode: Text.WordWrap
+                            }
+
+                            Label {
+                                id: subCoordinate
+                                text: model.coordinate.name
+                                font.weight: Font.Light
+                                font.pixelSize: 22
+                                visible: text != ""
+                            }
+                        }
+                    }
+
+                    Image {
+                        id: arrow
+                        source: "image://theme/icon-m-common-drilldown-arrow" + (theme.inverted ? "-inverse" : "")
+                        anchors.right: parent.right;
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    MouseArea {
+                        id: mouseArea
+                        anchors.fill: background
+                        onClicked: {
+                            //listPage.openFile(page)
+                            showDescription.coordinate = model.coordinate
+                            if (showDescription.coordinate.valid) {
+                                map.setCenterLatLon(showDescription.coordinate.lat, showDescription.coordinate.lon)
+                                map.visible = true;
+                            } else {
+                                map.visible = false;
+                            }
+
+                            showDescription.open()
+                        }
+                    }
+                    height: r.height + 16
+                    width: parent.width
+                }
+
+            }
+
+            Label {
+                font.pixelSize: 20
+                color: UI.COLOR_INFOLABEL
+                text: "Calculated Coordinates"
+            }
+
+
+            Grid {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                columns: 3
+                spacing: 8
+                Repeater {
+                    model: currentGeocache.varList || emptyList
+                    delegate: Row {
+                        Label {
+                            id: label
+                            text: "" + model.vars.char + "="
+                            width: 45
+                            font.pixelSize: 28
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        TextField {
+                            placeholderText: "?"
+                            width: 90
+                            id: labelText
+                            text: "" + model.vars.value
+                            font.pixelSize: 28
+                            onTextChanged: {
+                                model.vars.value = text
+                            }
+                            inputMethodHints: Qt.ImhFormattedNumbersOnly
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        height: labelText.height + 16
+                    }
+                }
+            }
+
+            Repeater {
+                width: parent.width
+                model: currentGeocache.calcCoordinates || emptyList
+                delegate: Item {
+                    BorderImage {
+                        id: background
+                        anchors.fill: parent
+                        anchors.leftMargin: -16
+                        anchors.rightMargin: -16
+                        visible: mouseArea.pressed
+                        source: "image://theme/meegotouch-list-background-pressed-center"
+                    }
+
+                    Row {
+                        id: r
+                        anchors.verticalCenter: parent.verticalCenter
+                        Column {
+
+                            Label {
+                                id: mainText
+                                text: "From <b>" + model.coordinate.source + "</b>"
+                                //font.weight: Font.Bold
+                                font.pixelSize: 26
+                                width: col1.width - arrow.width
+                                wrapMode: Text.WordWrap
+                            }
+
+                            Label {
+                                id: subText
+                                text: model.coordinate.originalText + ((model.coordinate.calculation != "") ? ("\n= " + model.coordinate.calculation) : "")
+                                font.weight: Font.Light
+                                font.pixelSize: 22
+                                color: theme.inverted ? UI.COLOR_DESCRIPTION_NIGHT : UI.COLOR_DESCRIPTION
+                                width: col1.width - arrow.width
+                                wrapMode: Text.WordWrap
+                            }
+
+                            Label {
+                                id: warnings
+                                text: model.coordinate.warnings
+                                font.weight: Font.Light
+                                font.pixelSize: 22
+                                color: "yellow"
+                                visible: text != ""
+                                width: col1.width - arrow.width
+                                wrapMode: Text.WordWrap
+                            }
+
+                            Label {
+                                id: subText2
+                                text: model.coordinate.text
+                                font.weight: Font.Light
+                                font.pixelSize: 22
+                                //color: theme.inverted ? UI.COLOR_DESCRIPTION_NIGHT : UI.COLOR_DESCRIPTION
+                                visible: text != ""
+                                width: col1.width - arrow.width
+                                wrapMode: Text.WordWrap
+                            }
+                        }
+                    }
+
+                    Image {
+                        id: arrow
+                        source: "image://theme/icon-m-common-drilldown-arrow" + (theme.inverted ? "-inverse" : "")
+                        anchors.right: parent.right;
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+
+                    MouseArea {
+                        id: mouseArea
+                        anchors.fill: background
+                        onClicked: {
+
+                        }
+                    }
+                    height: r.height + 16
+                    width: parent.width
+                }
+            }
+
         }
     }
 
