@@ -10,27 +10,15 @@ Rectangle {
     property bool drawSimple
     x: targetPoint[0] - width/2
     y: targetPoint[1] - height/2
-    color: (cache.name == currentGeocache.name) ? "#88ff0000" : "#88ffffff"
+    color: (cache.name == currentGeocache.name) ? "#88ff0000" : (cache.marked ? "#88ffff80" : "#88ffffff")
     border.width: 4
     border.color: UI.getCacheColor(cache)
     //smooth: true
     radius: 7
     visible: ! (settings.optionsHideFound && cache.found)
     Image {
-        source: "../data/cross.svg"
+        source: (currentGeocache.status == 0) ? "../data/cross.svg" : "../data/mark.png";
         anchors.centerIn: parent
         visible: ! drawSimple
     }
-    /*
-    Text {
-        font.pixelSize: 15
-        font.weight: Font.Bold
-        text: cache.title
-        width: 150
-        wrapMode: Text.WordWrap
-        anchors.left: parent.right
-        anchors.leftMargin: 8
-        color: "green"
-        visible: ! drawSimple
-    }*/
 }

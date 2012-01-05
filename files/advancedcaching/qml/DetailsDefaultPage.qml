@@ -105,15 +105,14 @@ Page {
 
         ListButton {
             text: "Description"
-            property variant pageDescription: null
+
+            Loader {
+                id: pageDescription
+            }
+
             onClicked: {
-                if (pageDescription == null) {
-                    var component = Qt.createComponent("DescriptionPage.qml");
-                    if (component.status == Component.Ready) {
-                        pageDescription = component.createObject(rootWindow);
-                    }
-                }
-                showDetailsPage(pageDescription)
+                pageDescription.source = "DescriptionPage.qml";
+                showDetailsPage(pageDescription.item);
             }
 
         }
@@ -121,12 +120,11 @@ Page {
         ListButton {
             text: "Images"
             onClicked: {
-                pageImages.source = "ImagePage.qml"
-                showDetailsPage(pageImages.item)
+                pageImages.source = "ImagePage.qml";
+                showDetailsPage(pageImages.item);
             }
             Loader {
                 id: pageImages
-                source: ""
             }
             visible: currentGeocache.images.length > 0
         }
@@ -134,79 +132,55 @@ Page {
 
         ListButton {
             text: "Coordinates (" + (currentGeocache.coordinatesCount || "-") + ")"
-            property variant pageCoordinates: null
+
+            Loader {
+                id: pageCoordinates
+            }
+
             onClicked: {
-                if (pageCoordinates == null) {
-                    var component = Qt.createComponent("CoordinatesPage.qml");
-                    if (component.status == Component.Ready) {
-                        pageCoordinates = component.createObject(rootWindow);
-                    }
-                }
-                showDetailsPage(pageCoordinates)
+                pageCoordinates.source = "CoordinatesPage.qml";
+                showDetailsPage(pageCoordinates.item);
             }
         }
 
 
         ListButton {
             text: "CacheCalc"
-            property variant pageCacheCalc: null
+
+            Loader {
+                id: pageCacheCalc
+            }
+
             onClicked: {
-                if (pageCacheCalc == null) {
-                    var component = Qt.createComponent("CacheCalcPage.qml");
-                    if (component.status == Component.Ready) {
-                        pageCacheCalc = component.createObject(rootWindow);
-                    }
-                }
-                showDetailsPage(pageCacheCalc)
+                pageCacheCalc.source = "CacheCalcPage.qml";
+                showDetailsPage(pageCacheCalc.item);
             }
         }
 
         ListButton {
             text: "Logs (" + (currentGeocache.logsCount || "-") + ")"
-            //text: "Logs"
-            // todo: Add Icons of Logs here
 
-            property variant pageLogs: null
+            Loader {
+                id: pageLogs
+            }
             onClicked: {
-                if (pageLogs == null) {
-                    var component = Qt.createComponent("LogsPage.qml");
-                    if (component.status == Component.Ready) {
-                        pageLogs = component.createObject(rootWindow);
-                    }
-                }
-                showDetailsPage(pageLogs)
+                pageLogs.source = "LogsPage.qml";
+                showDetailsPage(pageLogs.item);
             }
         }
         
         
         ListButton {
             text: "Fieldnote"
-            property variant pageFieldnotes: null
-            onClicked: {
-                if (pageFieldnotes == null) {
-                    var component = Qt.createComponent("FieldnotesPage.qml");
-                    if (component.status == Component.Ready) {
-                        pageFieldnotes = component.createObject(rootWindow);
-                    }
-                }
-                showDetailsPage(pageFieldnotes)
+            Loader {
+                id: pageFieldnotes
             }
-        } 
-        /* todo...
-        ListButton {
-            text: "Images (4)"
+
             onClicked: {
-                //parent.parent.buttonClicked("ImagesPage")
+                pageFieldnotes.source = "FieldnotesPage.qml";
+                showDetailsPage(pageFieldnotes.item);
             }
         }
-
-        ListButton {
-            text: "CacheCalc"
-
-            onClicked: {
-                //parent.parent.buttonClicked("CacheCalcPage.qml")
-            }
-        }*/
 
     }
     
