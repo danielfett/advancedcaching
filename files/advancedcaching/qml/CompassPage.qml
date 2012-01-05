@@ -46,71 +46,53 @@ Page {
             anchors.right: parent.right
         }
 
-        Image {
-            id: compassImage
-            source: theme.inverted ? "../data/windrose-night.svg" : "../data/windrose.svg"
-            transform: [Rotation {
-                    id: azCompass
-                    origin.x: compassImage.width/2
-                    origin.y: compassImage.height/2
-                    angle: -compass.azimuth
-                }/*,
-                Rotation {
-                    origin.x: compassImage.width/2
-                    origin.y: compassImage.height/2
-                    axis {x: 0; y: 0; z: 1}
-                    angle: accelerometer.x
-                }
-                ,
-                Rotation {
-                    origin.x: compassImage.width/2
-                    origin.y: compassImage.height/2
-                    axis {x: 0; y: 1; z: 0}
-                    angle: -accelerometer.x
-                },
-                Rotation {
-                    origin.x: compassImage.width/2
-                    origin.y: compassImage.height/2
-                    axis {x: 1; y: 0; z: 0}
-                    angle: -accelerometer.y
-                }*/]
-            //anchors.fill: parent
+        Item {
+            width: parent.width
+            height: compassImage.height
             anchors.topMargin: -32
-            anchors.horizontalCenter: parent.horizontalCenter
-            smooth: true
-            width: compassColumn.width * 0.9
-            fillMode: Image.PreserveAspectFit
-            z: 2
-            /*
             Image {
-                property int angle: 90
-                property int outerMargin: 15
-                id: sunImage
-                source: "image://theme/icon-m-weather-sunny"
-                x: compassImage.width/2 - width/2
-                y: sunImage.outerMargin
-                z: -1
-                transform: Rotation {
-                   origin.y: compassImage.height/2 - sunImage.outerMargin
-                   origin.x: sunImage.width/2
-                   angle: sunImage.angle
-               }
-            }*/
-            Image {
-                property int angle: gps.targetBearing || 0
-                property int outerMargin: 50
-                visible: (gps.targetValid && gps.lastGoodFix.valid)
-                id: arrowImage
-                source: "../data/arrow_target.svg"
-                width: (compassImage.paintedWidth / compassImage.sourceSize.width)*sourceSize.width
+                id: compassImage
+                source: theme.inverted ? "../data/windrose-night.svg" : "../data/windrose.svg"
+                transform: [Rotation {
+                        id: azCompass
+                        origin.x: compassImage.width/2
+                        origin.y: compassImage.height/2
+                        angle: -compass.azimuth
+                    }]
+                smooth: true
+                width: compassColumn.width * 0.9
+                anchors.horizontalCenter: parent.horizontalCenter
                 fillMode: Image.PreserveAspectFit
-                x: compassImage.width/2 - width/2
-                y: arrowImage.outerMargin
-                z: 3
-                transform: Rotation {
-                    origin.y: compassImage.height/2 - arrowImage.outerMargin
-                    origin.x: arrowImage.width/2
-                    angle: arrowImage.angle
+                z: 2
+                Image {
+                    property int angle: gps.targetBearing || 0
+                    property int outerMargin: 50
+                    visible: (gps.targetValid && gps.lastGoodFix.valid)
+                    id: arrowImage
+                    source: "../data/arrow_target.svg"
+                    width: (compassImage.paintedWidth / compassImage.sourceSize.width)*sourceSize.width
+                    fillMode: Image.PreserveAspectFit
+                    x: compassImage.width/2 - width/2
+                    y: arrowImage.outerMargin
+                    z: 3
+                    transform: Rotation {
+                        origin.y: compassImage.height/2 - arrowImage.outerMargin
+                        origin.x: arrowImage.width/2
+                        angle: arrowImage.angle
+                    }
+                }
+            }
+
+
+            Image {
+                source: "image://theme/icon-m-viewfinder-camera" + (theme.inverted ? "" : "-selected")
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        tabGroup.currentTab = tabCamera
+                    }
                 }
             }
         }
@@ -175,6 +157,7 @@ Page {
                 }
             }
         }
+
 
     }
     

@@ -685,6 +685,10 @@ class ImageListModel(QtCore.QAbstractListModel):
             logger.debug("Image retrieved: %r and has url '%s'"  % (self._images[index.row()], self._images[index.row()]._url()))
             return self._images[index.row()]
         return None
+        
+    changed = QtCore.Signal()
+    
+    length = QtCore.Property(int, rowCount, notify=changed)
 
 class ImageWrapper(QtCore.QObject):
     
@@ -828,6 +832,14 @@ class GeocacheWrapper(QtCore.QObject):
     def _fieldnotes(self):
         return self._geocache.fieldnotes
         
+    def _marked(self):
+        return self._geocache.marked
+        
+    def _set_marked(self, marked):
+        self._geocache.marked = marked
+        self.core.save_cache_attribute(self._geocache, 'marked')
+        self.changed.emit()
+        
     def _var_list(self):
         if self._var_list == None:
             self._var_list = CacheCalcVarList(self, self._geocache.calc)
@@ -876,6 +888,7 @@ class GeocacheWrapper(QtCore.QObject):
     found = QtCore.Property(bool, _found, notify=changed)
     images = QtCore.Property(QtCore.QObject, _images, notify=changed)
     status = QtCore.Property(int, _status, notify=changed)
+    marked = QtCore.Property(bool, _marked, _set_marked, notify=changed)
     logs = QtCore.Property(QtCore.QObject, _logs, notify=changed)
     logsCount = QtCore.Property(int, _logs_count, notify=changed)
     coordinates = QtCore.Property(QtCore.QObject, _coordinates, notify=coordsChanged)

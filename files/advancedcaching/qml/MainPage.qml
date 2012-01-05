@@ -91,10 +91,10 @@ Page {
                 tab: tabDetailsPageStack
                 iconSource: "image://theme/icon-m-toolbar-search" + (theme.inverted ? "-white" : "")
             }
-            TabButton {
+            /*TabButton {
                 tab: tabCamera
                 iconSource: "image://theme/icon-m-viewfinder-camera" + (theme.inverted ? "" : "-selected")
-            }
+            }*/
         }
         
         

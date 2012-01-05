@@ -263,7 +263,7 @@ class GeocacheCoordinate(geo.Coordinate):
 
     def get_images(self):
         if self.images == None or self.images == '':
-            return []
+            return {}
         try:
             return self.saved_images
         except (AttributeError):

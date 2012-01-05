@@ -128,6 +128,7 @@ Page {
                 id: pageImages
                 source: ""
             }
+            visible: currentGeocache.images.length > 0
         }
 
 
