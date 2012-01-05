@@ -222,18 +222,15 @@ class CacheCalcVarWrapper(QtCore.QObject):
         logger.debug("Char is %s, Value is %s" % (self.__char, repr(self.__value)))
         
     def _value(self):
-        logger.debug("Value is %r" % self.__value)
         return self.__value
         
     def _char(self):
-        logger.debug("Char is %r" % self.__char)
         return self.__char
         
     def _set_value(self, v):
         self.__value = v
         logger.debug("Setting char %r to value %r" % (self.__char, v))
         self.__manager.set_var(self.__char, v)
-        logger.debug("Here I am....")
         self.__cache.save_vars()
         
     changed = QtCore.Signal()    
@@ -865,7 +862,7 @@ class GeocacheWrapper(QtCore.QObject):
         if self._calc_coordinate_list == None:
             if self._geocache.calc == None:
                 self._geocache.start_calc()
-            l = [CacheCalcCoordinateWrapper(self._geocache, x) for x in self._geocache.calc.coords]
+            l = [CacheCalcCoordinateWrapper(self._geocache, x) for x in self._geocache.calc.coords if len(x.requires) > 0]
             self._calc_coordinate_list = CoordinateListModel(self.core, l)
         return self._calc_coordinate_list
             

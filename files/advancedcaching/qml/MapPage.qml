@@ -13,12 +13,11 @@ Page {
         id: pinchmap
         anchors.fill: parent
         zoomLevel: 11
-        Component.onCompleted: {
-            console.debug("Component completed")
+        /*Component.onCompleted: {
             centerLatitude = settings.mapPositionLat
             centerLongitude = settings.mapPositionLon
             zoomLevel = settings.mapZoom
-        }
+        }*/
         Connections {
             target: gps
             onLastGoodFixChanged: {
@@ -37,26 +36,21 @@ Page {
         }
 
         onLatitudeChanged: {
-            console.debug("Latitude stored")
             settings.mapPositionLat = latitude;
         }
         onLongitudeChanged: {
-            console.debug("Longitude stored")
             settings.mapPositionLon = longitude;
         }
         onZoomLevelChanged: {
-            console.debug("Map zoom stored")
             settings.mapZoom = pinchmap.zoomLevel;
         }
         
         onWidthChanged: {
-            console.debug("Width changed");
             pinchmap.centerLatitude = pinchmap.latitude
             pinchmap.centerLongitude = pinchmap.longitude
         }
         
         onHeightChanged: {
-            console.debug("Height changed");
             pinchmap.centerLatitude = pinchmap.latitude
             pinchmap.centerLongitude = pinchmap.longitude
         }

@@ -131,7 +131,7 @@ Page {
 
 
         ListButton {
-            text: "Coordinates (" + (currentGeocache.coordinatesCount || "-") + ")"
+            text: "Coordinates"
 
             Loader {
                 id: pageCoordinates
@@ -142,20 +142,6 @@ Page {
                 showDetailsPage(pageCoordinates.item);
             }
         }
-
-
-        /*ListButton {
-            text: "CacheCalc"
-
-            Loader {
-                id: pageCacheCalc
-            }
-
-            onClicked: {
-                pageCacheCalc.source = "CacheCalcPage.qml";
-                showDetailsPage(pageCacheCalc.item);
-            }
-        }*/
 
         ListButton {
             text: "Logs (" + (currentGeocache.logsCount || "-") + ")"
