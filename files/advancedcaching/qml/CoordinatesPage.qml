@@ -58,8 +58,33 @@ Page {
                                 text: model.coordinate.name || "No Title"
                                 font.weight: Font.Bold
                                 font.pixelSize: 26
-                                width: list.width - arrow.width
+                                width: list.width - arrow.width - direction.width
                                 wrapMode: Text.WordWrap
+
+                                Row {
+                                    id: direction
+                                    visible: model.coordinate.valid
+                                    anchors.top: mainText.top
+                                    anchors.left: mainText.right
+
+                                    Label {
+                                        text: (model.coordinate.valid) ? F.formatDistance(F.getDistanceTo(gps.lastGoodFix.lat, gps.lastGoodFix.lon, model.coordinate.lat, model.coordinate.lon), settings) : ""
+                                        font.weight: Font.Light
+                                        font.pixelSize: 26
+                                        //width: implicitWidth
+                                    }
+
+                                    Image {
+                                        id: arrowDirection
+                                        source: "../data/small-arrow" + (theme.inverted ? "-night" : "") + ".png"
+                                        transform: Rotation{
+                                            angle: (model.coordinate.valid) ? (-compass.azimuth + F.getBearingTo(gps.lastGoodFix.lat, gps.lastGoodFix.lon, model.coordinate.lat, model.coordinate.lon)) : 0
+                                            origin.x: arrowDirection.width/2
+                                            origin.y: arrowDirection.height/2
+                                        }
+                                        visible: (gps.lastGoodFix.valid && model.coordinate.valid)
+                                    }
+                                }
                             }
 
                             Label {
@@ -107,7 +132,7 @@ Page {
                         }
                     }
                     height: r.height + 16
-                    width: parent.width
+                    width: col1.width
                 }
 
             }
@@ -116,6 +141,7 @@ Page {
                 font.pixelSize: 20
                 color: UI.COLOR_INFOLABEL
                 text: "Calculated Coordinates"
+                visible: currentGeocache.calcCoordinates.length > 0
             }
 
 
@@ -174,8 +200,33 @@ Page {
                                 text: "From <b>" + model.coordinate.source + "</b>"
                                 //font.weight: Font.Bold
                                 font.pixelSize: 26
-                                width: col1.width - arrow.width
+                                width: list.width - arrow.width - direction.width
                                 wrapMode: Text.WordWrap
+
+                                Row {
+                                    id: direction
+                                    visible: model.coordinate.result.valid
+                                    anchors.top: mainText.top
+                                    anchors.left: mainText.right
+
+                                    Label {
+                                        text: (model.coordinate.result.valid) ? F.formatDistance(F.getDistanceTo(gps.lastGoodFix.lat, gps.lastGoodFix.lon, model.coordinate.result.lat, model.coordinate.result.lon), settings) : ""
+                                        font.weight: Font.Light
+                                        font.pixelSize: 26
+                                        //width: implicitWidth
+                                    }
+
+                                    Image {
+                                        id: arrowDirection
+                                        source: "../data/small-arrow" + (theme.inverted ? "-night" : "") + ".png"
+                                        transform: Rotation{
+                                            angle: (model.coordinate.result.valid) ? (-compass.azimuth + F.getBearingTo(gps.lastGoodFix.lat, gps.lastGoodFix.lon, model.coordinate.result.lat, model.coordinate.result.lon)) : 0
+                                            origin.x: arrowDirection.width/2
+                                            origin.y: arrowDirection.height/2
+                                        }
+                                        visible: (model.coordinate.result.valid)
+                                    }
+                                }
                             }
 
                             Label {
@@ -227,7 +278,7 @@ Page {
                         }
                     }
                     height: r.height + 16
-                    width: parent.width
+                    width: col1.width
                 }
             }
 
@@ -271,7 +322,7 @@ Page {
                 }
                 PinchMap {
                     id: map
-                    zoomLevel: 13
+                    zoomLevel: 15
                     width: showDescription.width
                     height: 300
                     clip: true

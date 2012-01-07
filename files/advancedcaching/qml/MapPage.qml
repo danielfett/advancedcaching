@@ -195,6 +195,7 @@ Page {
         anchors.bottomMargin: 8
         anchors.horizontalCenter: pinchmap.horizontalCenter
         visible: pinchmap.tooManyPoints
+        color: "black"
     }
     
     

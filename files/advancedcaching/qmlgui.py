@@ -243,6 +243,7 @@ class CacheCalcCoordinateWrapper(QtCore.QObject):
         QtCore.QObject.__init__(self)
         self.__coordinate = coordinate
         self.__cache = cache
+        self.__result = None
         
     def _has_requires(self):
         return self.__coordinate.has_requires()
@@ -275,6 +276,11 @@ class CacheCalcCoordinateWrapper(QtCore.QObject):
     def _original_text(self):
         return self.__coordinate.orig
         
+    def _result(self):
+        if self.__result == None:
+            self.__result = CoordinateWrapper(self.__coordinate.result)
+        return self.__result
+                
     changed = QtCore.Signal()
         
     hasRequires = QtCore.Property(bool, _has_requires, notify=changed)
@@ -283,6 +289,7 @@ class CacheCalcCoordinateWrapper(QtCore.QObject):
     warnings = QtCore.Property(str, _warnings, notify=changed)
     source = QtCore.Property(str, _source, notify=changed)
     originalText = QtCore.Property(str, _original_text, notify=changed)
+    result = QtCore.Property(QtCore.QObject, _result, notify=changed)
         
 class CacheCalcVarList(QtCore.QAbstractListModel):
     COLUMNS = ('vars',)
@@ -508,6 +515,7 @@ class GPSDataWrapper(QtCore.QObject):
 
     def _gps_status(self):
         return self.gps_status
+            
 
     data = QtCore.Property(QtCore.QObject, _gps_data, notify=changed)
     lastGoodFix = QtCore.Property(QtCore.QObject, _gps_last_good_fix, notify=changed)
@@ -612,7 +620,7 @@ class CoordinateWrapper(QtCore.QObject):
     def __init__(self, coordinate):
         QtCore.QObject.__init__(self)
         self._coordinate = coordinate
-        self._is_valid = (self._coordinate.lat != -1 or self._coordinate.lon != -1) and self._coordinate.lat != None
+        self._is_valid = coordinate != None and coordinate != False and (self._coordinate.lat != -1 or self._coordinate.lon != -1) and self._coordinate.lat != None
         if self._is_valid:
             try:
                 float(self._coordinate.lat)
@@ -671,6 +679,9 @@ class CoordinateListModel(QtCore.QAbstractListModel):
         if index.isValid() and role == CoordinateListModel.COLUMNS.index('coordinate'):
             return self._coordinates[index.row()]
         return None
+        
+    changed = QtCore.Signal()
+    length = QtCore.Property(int, rowCount, notify=changed)
         
 
 class ImageListModel(QtCore.QAbstractListModel):
@@ -847,8 +858,9 @@ class GeocacheWrapper(QtCore.QObject):
         
     def _var_list(self):
         if self._var_list == None:
+            if self._geocache.calc == None:
+                self._geocache.start_calc()
             self._var_list = CacheCalcVarList(self, self._geocache.calc)
-        logger.debug("Returning %r" % self._var_list)
         return self._var_list
         
     def save_vars(self):
@@ -904,7 +916,7 @@ class GeocacheWrapper(QtCore.QObject):
     hints = QtCore.Property(str, _hints, notify=changed)
     logas = QtCore.Property(int, _logas, notify=changed)
     fieldnotes = QtCore.Property(str, _fieldnotes, notify=changed)
-    varList = QtCore.Property(QtCore.QObject, _var_list, notify=changed)
+    varList = QtCore.Property(QtCore.QObject, _var_list, notify=coordsChanged)
     calcCoordinates = QtCore.Property(QtCore.QObject, _calc_coordinates, notify=coordsChanged)
 
 class GeocacheListModel(QtCore.QAbstractListModel):

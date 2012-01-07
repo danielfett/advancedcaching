@@ -116,6 +116,8 @@ class CalcCoordinateManager(object):
             c.set_vars(self.__vars)
             if c.has_requires():
                 c.try_get_solution()
+            else:
+                c.result = None
 
     def get_solutions(self):
         return [(c.result, c.source) for c in self.coords if c.has_requires() and len(c.requires) > 0]
@@ -170,7 +172,6 @@ class CalcCoordinate():
         return True
 
     def try_get_solution(self):
-
         replaced = [self.__replace(x) for x in [self.lat_deg, self.lat_min, self.lat_min_2, self.lon_deg, self.lon_min, self.lon_min_2]]
         self.replaced_result = ("%%s%s %s.%s %%s%s %s.%s" % tuple(replaced)) % (self.ns, self.ew)
         results = [self.resolve(x) for x in replaced]
