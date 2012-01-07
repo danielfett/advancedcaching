@@ -22,6 +22,7 @@ Page {
         contentWidth: width
         clip: true
 
+
         Column {
             id: col1
             anchors.left: parent.left
