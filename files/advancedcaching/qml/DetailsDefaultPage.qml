@@ -3,6 +3,7 @@ import com.nokia.meego 1.0
 import "uiconstants.js" as UI
 
 Page {
+    //id: pageDetailsDefault
     orientationLock: PageOrientation.LockPortrait
     GeocacheHeader{
         cache: currentGeocache
@@ -173,7 +174,11 @@ Page {
     
     
     function openMenu() {
-        menu.open();
+        if (tabDetailsPageStack.currentPage.openMenu) {
+            tabDetailsPageStack.currentPage.openMenu();
+        } else {
+            menu.open();
+        }
     }
     
     Menu {

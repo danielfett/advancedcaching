@@ -11,7 +11,8 @@ Page {
 
     PinchMap {
         id: pinchmap
-        anchors.fill: parent
+        width: listPage.width
+        height: listPage.height
         zoomLevel: 11
         /*Component.onCompleted: {
             centerLatitude = settings.mapPositionLat

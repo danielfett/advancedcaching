@@ -411,7 +411,6 @@ class GeocacheCoordinate(geo.Coordinate):
                 i += 1
         
         # cache calc - plain coordinates
-        if self.calc != None:
             for coord, source in self.calc.get_plain_coordinates():
                 if coord == False:
                     logger.debug("Coordinate is false: %r" % coord)

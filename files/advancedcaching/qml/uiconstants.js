@@ -12,6 +12,9 @@ var COLOR_DESCRIPTION = "mediumblue"
 var COLOR_DESCRIPTION_NIGHT = "lightblue"
 var COLOR_DIALOG_TEXT = "white"
 var WIDTH_SELECTOR = 50;
+var COLOR_WARNING_NIGHT = "yellow"
+var COLOR_WARNING = "darkred"
+var COLOR_WARNING_DARKBG = "red"
 
 function getCacheColor(cache) {
     if (cache.found) {

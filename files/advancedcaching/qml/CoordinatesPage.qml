@@ -29,7 +29,7 @@ Page {
             Label {
                 font.pixelSize: 20
                 color: UI.COLOR_INFOLABEL
-                text: "Plain Coordinates"
+                text: "Coordinates from the Listing"
             }
 
             Repeater {
@@ -119,16 +119,9 @@ Page {
                         id: mouseArea
                         anchors.fill: background
                         onClicked: {
-                            //listPage.openFile(page)
-                            showDescription.coordinate = model.coordinate
-                            if (showDescription.coordinate.valid) {
-                                map.setCenterLatLon(showDescription.coordinate.lat, showDescription.coordinate.lon)
-                                map.visible = true;
-                            } else {
-                                map.visible = false;
-                            }
-
-                            showDescription.open()
+                            showDescription.source = "CoordinateDetailsDialog.qml"
+                            showDescription.item.coordinate = model.coordinate
+                            showDescription.item.open()
                         }
                     }
                     height: r.height + 16
@@ -140,7 +133,7 @@ Page {
             Label {
                 font.pixelSize: 20
                 color: UI.COLOR_INFOLABEL
-                text: "Calculated Coordinates"
+                text: "Found and Calculated Coordinates"
                 visible: currentGeocache.calcCoordinates.length > 0
             }
 
@@ -161,13 +154,17 @@ Page {
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         TextField {
+                            property bool init: false
                             placeholderText: "?"
                             width: 90
                             id: labelText
                             text: "" + model.vars.value
                             font.pixelSize: 28
                             onTextChanged: {
-                                model.vars.value = text
+                                if (init) {
+                                    model.vars.value = text
+                                }
+                                init = true;
                             }
                             inputMethodHints: Qt.ImhFormattedNumbersOnly
                             anchors.verticalCenter: parent.verticalCenter
@@ -244,7 +241,7 @@ Page {
                                 text: model.coordinate.warnings
                                 font.weight: Font.Light
                                 font.pixelSize: 22
-                                color: "yellow"
+                                color: theme.inverted ? UI.COLOR_WARNING_NIGHT : UI.COLOR_WARNING
                                 visible: text != ""
                                 width: col1.width - arrow.width
                                 wrapMode: Text.WordWrap
@@ -274,7 +271,10 @@ Page {
                         id: mouseArea
                         anchors.fill: background
                         onClicked: {
-
+                            editCalc.source = "CacheCalcEditDialog.qml";
+                            //editCalc.item.manager = controller.getEditWrapper(currentGeocache, model.coordinate);
+                            editCalc.item.coordinate = model.coordinate;
+                            editCalc.item.open();
                         }
                     }
                     height: r.height + 16
@@ -285,60 +285,29 @@ Page {
         }
     }
 
-    QueryDialog {
+    Loader {
         id: showDescription
-        property variant coordinate: false
-        anchors.centerIn: parent
-        acceptButtonText: "Set as Target"
-        rejectButtonText: "cancel"
-        titleText: coordinate ? coordinate.name : "undefined"
-        // todo: Gesamtwert berechnen
-        content: [
-            Column {
-                spacing: 8
-                Label {
-                    text: showDescription.coordinate.valid ? F.formatCoordinate(showDescription.coordinate.lat, showDescription.coordinate.lon, settings) : "undefined"
-                    width: showDescription.width
-                    font.weight: Font.Light
-                    color: UI.COLOR_DIALOG_TEXT
-                    wrapMode: Text.WordWrap
-                    font.pixelSize: UI.FONT_DEFAULT
-                    visible: showDescription.coordinate.valid || false
-                }/*
-                Label {
-                    text: showDescription.coordinate.display_text || "undefined"
-                    width: showDescription.width
-                    font.weight: Font.Light
-                    wrapMode: Text.WordWrap
-                    color: UI.COLOR_DIALOG_TEXT
-                    font.pixelSize: UI.FONT_SMALL
-                }*/
-                Label {
-                    text: showDescription.coordinate ? showDescription.coordinate.comment : "undefined"
-                    width: showDescription.width
-                    wrapMode: Text.WordWrap
-                    color: UI.COLOR_DIALOG_TEXT
-                    font.pixelSize: UI.FONT_SMALL
-                }
-                PinchMap {
-                    id: map
-                    zoomLevel: 15
-                    width: showDescription.width
-                    height: 300
-                    clip: true
-                    centerLatitude: showDescription.coordinate.lat || 49
-                    centerLongitude: showDescription.coordinate.lon || 6
-                    showTargetIndicator: true
-                    showTargetAtLat: showDescription.coordinate.lat || 49
-                    showTargetAtLon: showDescription.coordinate.lon || 6
+    }
 
-                }
-            }
+    Loader {
+        id: editCalc
+    }
 
-        ]
-        onAccepted: {
-            controller.setAsTarget(coordinate)
-            showMessage("New Target set.")
+    function openMenu() {
+        console.debug("Opening Menu!")
+        menu.open();
+    }
+
+    Menu {
+        id: menu
+        visualParent: parent
+
+        MenuLayout {
+            MenuItem { text: "Add Calc string"; onClicked: {
+                    editCalc.source = "CacheCalcEditDialog.qml";
+                    editCalc.item.manager = controller.getEditWrapper(currentGeocache, null);
+                    editCalc.item.open();
+                } }
         }
     }
 }
