@@ -174,11 +174,15 @@ Page {
     
     
     function openMenu() {
-        if (tabDetailsPageStack.currentPage.openMenu) {
-            tabDetailsPageStack.currentPage.openMenu();
+        if (tabDetailsPageStack.currentPage.openStackMenu) {
+            tabDetailsPageStack.currentPage.openStackMenu();
         } else {
-            menu.open();
+            openStackMenu();
         }
+    }
+
+    function openStackMenu() {
+        menu.open();
     }
     
     Menu {

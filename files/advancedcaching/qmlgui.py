@@ -36,7 +36,7 @@ import geocaching
 import gpsreader
 from os import path
 from gui import Gui
-from astral import Astral
+#from astral import Astral
 
 d = lambda x: x#.decode('utf-8', 'replace')
 
@@ -560,7 +560,7 @@ class GPSDataWrapper(QtCore.QObject):
         self.gps_status = ''
         self._target_valid = False
         self._target = CoordinateWrapper(geo.Coordinate(0, 0))
-        self.astral = Astral()
+        #self.astral = Astral()
 
 
     def _on_good_fix(self, core, gps_data, distance, bearing):
@@ -717,6 +717,7 @@ class SettingsWrapper(QtCore.QObject):
     optionsHideFound = createSetting('options_hide_found', bool, settingsChanged)
     optionsShowPositionError = createSetting('options_show_position_error', bool, settingsChanged)
     optionsNightViewMode = createSetting('options_night_view_mode', int, settingsChanged)
+    downloadNumLogs = createSetting('download_num_logs', int, settingsChanged)
 
     currentMapType = QtCore.Property(QtCore.QObject, _get_current_map_type, _set_current_map_type, notify=settingsChanged)
     mapTypes = QtCore.Property(QtCore.QObject, _map_types, notify=settingsChanged)
