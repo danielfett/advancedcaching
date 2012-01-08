@@ -119,9 +119,15 @@ Page {
                         id: mouseArea
                         anchors.fill: background
                         onClicked: {
-                            showDescription.source = "CoordinateDetailsDialog.qml"
-                            showDescription.item.coordinate = model.coordinate
-                            showDescription.item.open()
+                            if (model.coordinate.userCoordinateID == -1) {
+                                showDescription.source = "CoordinateDetailsDialog.qml"
+                                showDescription.item.coordinate = model.coordinate
+                                showDescription.item.open()
+                            } else {
+                                editCalc.source = "CacheCalcEditDialog.qml";
+                                editCalc.item.editCalcCoordinateByID(currentGeocache, model.coordinate.userCoordinateID);
+                                editCalc.item.open();
+                            }
                         }
                     }
                     height: r.height + 16
@@ -161,7 +167,7 @@ Page {
                             text: "" + model.vars.value
                             font.pixelSize: 28
                             onTextChanged: {
-                                if (init) {
+                                if (init || model.vars.value == "") {
                                     model.vars.value = text
                                 }
                                 init = true;
@@ -272,8 +278,7 @@ Page {
                         anchors.fill: background
                         onClicked: {
                             editCalc.source = "CacheCalcEditDialog.qml";
-                            //editCalc.item.manager = controller.getEditWrapper(currentGeocache, model.coordinate);
-                            editCalc.item.coordinate = model.coordinate;
+                            editCalc.item.editCalcCoordinate(currentGeocache, model.coordinate);
                             editCalc.item.open();
                         }
                     }
@@ -305,7 +310,13 @@ Page {
         MenuLayout {
             MenuItem { text: "Add Calc string"; onClicked: {
                     editCalc.source = "CacheCalcEditDialog.qml";
-                    editCalc.item.manager = controller.getEditWrapper(currentGeocache, null);
+                    editCalc.item.addCalc(currentGeocache);
+                    editCalc.item.open();
+                } }
+
+            MenuItem { text: "Add coordinate"; onClicked: {
+                    editCalc.source = "CacheCalcEditDialog.qml";
+                    editCalc.item.addCoordinate(currentGeocache);
                     editCalc.item.open();
                 } }
         }

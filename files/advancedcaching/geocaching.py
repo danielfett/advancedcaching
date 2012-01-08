@@ -190,7 +190,7 @@ class GeocacheCoordinate(geo.Coordinate):
         elif attribute == 'marked':
             return 1 if self.marked else 0
         elif attribute == 'vars':
-            return dumps(self.calc.get_vars()) if self.calc != None else ''
+            return dumps(self.calc.get_vars()) if self.calc != None else self.vars
         elif attribute == 'user_coordinates':
             try:
                 return dumps(self.saved_user_coordinates)
@@ -333,6 +333,12 @@ class GeocacheCoordinate(geo.Coordinate):
         for w in self.get_waypoints():
             self.calc.add_text(w['comment'], "Waypoint %s" % w['name'])
         self.calc.update()
+        
+    # Destroy calc manager safely
+    def stop_calc(self): 
+        self.vars = dumps(self.calc.get_vars())
+        self.calc = None
+        
 
     def set_user_coordinate(self, type, value, name, id = None):
         d = {'value': value, 'type' : type, 'name' : name}

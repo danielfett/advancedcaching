@@ -136,24 +136,19 @@ Page {
                 width: compassColumn.width/6
                 anchors.bottom: currentTarget.bottom
                 iconSource: "image://theme/icon-m-toolbar-edit" + (theme.inverted ? "-white" : "")
-                property variant coordinateSelectorDialog: null
                 onClicked: {
-                    if (coordinateSelectorDialog == null) {
-                        var component = Qt.createComponent("CoordinateSelector.qml");
-                        if (component.status == Component.Ready) {
-                            coordinateSelectorDialog = component.createObject(tabCompass);                
-                            coordinateSelectorDialog.accepted.connect(function() {
-                                                                          var res = coordinateSelectorDialog.getValue();
-                                                                          controller.setTarget(res[0], res[1])
-                                                                      })
-                        }
-                    }
+                    coordinateSelectorDialog.source = "CoordinateSelectorDialog.qml";
+                    coordinateSelectorDialog.item.accepted.connect(function() {
+                                                                       var res = coordinateSelectorDialog.item.getValue();
+                                                                       controller.setTarget(res[0], res[1])
+                                                                   });
+
                     if (gps.targetValid) {
-                        coordinateSelectorDialog.setValue(gps.target.lat, gps.target.lon);
+                        coordinateSelectorDialog.item.setValue(gps.target.lat, gps.target.lon);
                     } else if (gps.lastGoodFix.valid) {
-                        coordinateSelectorDialog.setValue(gps.lastGoodFix.lat, gps.lastGoodFix.lon);
+                        coordinateSelectorDialog.item.setValue(gps.lastGoodFix.lat, gps.lastGoodFix.lon);
                     }
-                    coordinateSelectorDialog.open()
+                    coordinateSelectorDialog.item.open()
                 }
             }
         }
@@ -163,6 +158,10 @@ Page {
     
     function openMenu() {
         menu.open();
+    }
+
+    Loader {
+        id: coordinateSelectorDialog
     }
     
     Menu {

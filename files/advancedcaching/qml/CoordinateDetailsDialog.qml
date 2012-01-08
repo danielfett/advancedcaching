@@ -3,25 +3,30 @@ import com.nokia.meego 1.0
 import "uiconstants.js" as UI
 import "functions.js" as F
 
-QueryDialog {
+Sheet {
     id: showDescription
-    property variant coordinate: false
-    anchors.centerIn: parent
+    property variant coordinate: null
     acceptButtonText: "Set as Target"
-    //rejectButtonText: "Show on Map"
-    titleText: coordinate ? coordinate.name : "undefined"
+    rejectButtonText: "Close"
+    //titleText: coordinate ? coordinate.name : "undefined"
 
     onCoordinateChanged: {
         if (coordinate.valid) {
             map.visible = true;
-            //map.setCenterLatLon(coordinate.lat, coordinate.lon)
         } else {
             map.visible = false;
         }
     }
 
     content: [
+        MouseArea {
+            anchors.fill: parent
+            onClicked: { } // to prevent "clicking through" the dialog background
+        },
         Column {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            anchors.topMargin: 16
             spacing: 8
             Label {
                 text: coordinate.valid ? F.formatCoordinate(coordinate.lat, coordinate.lon, settings) : "undefined"

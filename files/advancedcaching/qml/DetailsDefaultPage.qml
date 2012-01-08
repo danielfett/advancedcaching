@@ -29,7 +29,7 @@ Page {
 
         InfoLabel {
             name: "Created by"
-            value: currentGeocache.owner || "unknown"
+            value: currentGeocache ? currentGeocache.owner : "unknown"
             width: col1.width
         }
 
@@ -44,12 +44,12 @@ Page {
                 spacing: 16
                 StarRating{
                     id: rating1
-                    rating: currentGeocache.terrain || -1
+                    rating: currentGeocache ? currentGeocache.terrain : -1
                     text: "Terrain"
                 }
                 SizeRating {
                     id: rating3
-                    size: currentGeocache.size || -1
+                    size: currentGeocache ? currentGeocache.size : -1
                     text: "Size"
                 }
 
@@ -69,15 +69,15 @@ Page {
                 spacing: 16
                 StarRating{
                     id: rating2
-                    rating: currentGeocache.difficulty || -1
+                    rating: currentGeocache ? currentGeocache.difficulty : -1
                     text: "Difficulty"
                 }
                 InfoLabel {
                     name: "Status"
-                    value: (currentGeocache.status == 0) ? "active" :
-                                                                    (currentGeocache.status == 1) ? "disabled" :
+                    value: (currentGeocache && currentGeocache.status == 0) ? "active" :
+                                                                    (currentGeocache && currentGeocache.status == 1) ? "disabled" :
                     "archived";
-                    color: (currentGeocache.status == 1) ? "red" : "black";
+                    color: (currentGeocache && currentGeocache.status == 1) ? "red" : "black";
                 }
                 /*
                 InfoLabel {
@@ -85,7 +85,7 @@ Page {
                     value: "2010-08-13?"
                 }*/
                 Button {
-                    text: currentGeocache.hasDetails ? "Update Details" : "Fetch details"
+                    text: currentGeocache ? (currentGeocache.hasDetails ? "Update Details" : "Fetch details") : "Don't click!"
                     onClicked: {
                         controller.geocacheDownloadDetailsClicked(currentGeocache)
                     }
@@ -127,7 +127,7 @@ Page {
             Loader {
                 id: pageImages
             }
-            visible: currentGeocache.images.length > 0
+            visible: (currentGeocache != null) && (currentGeocache.images.length > 0)
         }
 
 
@@ -145,7 +145,7 @@ Page {
         }
 
         ListButton {
-            text: "Logs (" + (currentGeocache.logsCount || "-") + ")"
+            text: "Logs (" + (currentGeocache ? currentGeocache.logsCount : "-") + ")"
 
             Loader {
                 id: pageLogs

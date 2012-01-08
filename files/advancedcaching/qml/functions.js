@@ -27,6 +27,7 @@ function formatCoordinate(lat, lon, c) {
 function getDM(l) {
     var out = Array(3);
     out[0] = (l > 0) ? 1 : -1
+    l = out[0] * l
     out[1] = ("00" + Math.floor(l)).substr(-3, 3)
     out[2] = ("00" + ((l - Math.floor(l)) * 60).toFixed(3)).substr(-6, 6)
     return out

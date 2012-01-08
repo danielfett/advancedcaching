@@ -80,10 +80,6 @@ PageStackWindow {
         mainPage.showDetailsPage(page)
     }
 
-    CoordinateSelector {
-        id: coordinateSelectorDialog
-    }
-
     Component.onCompleted: {
         theme.inverted = settings.optionsNightViewMode;
     }

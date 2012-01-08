@@ -3,130 +3,243 @@ import com.nokia.meego 1.0
 import "uiconstants.js" as UI
 import "functions.js" as F
 
-QueryDialog {
+Sheet {
     id: editCalc
     property variant coordinate: null
     property variant manager: null
     property variant buttonText: ""
-    anchors.centerIn: parent
-    acceptButtonText: view.checked ? (coordinate.hasRequires ? "Set as Target" : "") : "Save"
-    rejectButtonText: ""
-    titleText: "CacheCalc"
+    property bool isCoordinate: false
+    property bool isKnown: false
+    //anchors.centerIn: parent
+    acceptButtonText: view.checked ? ((isCoordinate || coordinate.hasRequires) ? "Set as Target" : "") : "Save"
+    rejectButtonText: "Close"
+    //titleText: "CacheCalc"
 
-    onCoordinateChanged: {
-        manager = controller.getEditWrapper(currentGeocache, coordinate);
+    function editCalcCoordinate(geocache, c) {
+        coordinate = c;
+        manager = controller.getEditWrapper(geocache, c);
+        edit.checked = true;
+    }
+
+    function editCalcCoordinateByID(geocache, id) {
+        manager = controller.getEditWrapperByID(geocache, id);
+        coordinate = null;
+        edit.checked = true;
+    }
+
+    function addCalc(geocache) {
+        coordinate = null;
+        manager = controller.getAddCalcWrapper(geocache);
+        edit.checked = true;
+    }
+
+    function addCoordinate(geocache) {
+        coordinate = null;
+        manager = controller.getAddCoordinateWrapper(geocache);
+        edit.checked = true;
     }
 
     onManagerChanged: {
+        console.debug("Manager changed to " + (manager ? manager : "none"))
         textName.text = manager.beforeName
-        textCalc.text = manager.beforeCalc
         buttonText = manager.buttonText
-        // 2 == USER_TYPE_CALC_STRING_OVERRIDE
-        warning.text = (manager.ctype == 2) ? "If you make changes here, this will replace the calculation which was found in the listing." : ""
+        isCoordinate = manager.isCoordinate
+        if (isCoordinate) {
+            cs.setValue(manager.beforeCoordinate.lat, manager.beforeCoordinate.lon);
+            warning.text = '';
+            coordinate = manager.beforeCoordinate
+            isKnown = true;
+        } else {
+            textCalc.text = manager.beforeCalc
+            // 2 == USER_TYPE_CALC_STRING_OVERRIDE
+            warning.text = (manager.ctype == 2) ? "If you make changes here, this will replace the calculation which was found in the listing." : ""
+            isKnown = (coordinate != null && coordinate.hasRequires);
+        }
     }
 
     content: [
+        MouseArea {
+            anchors.fill: parent
+            onClicked: { } // to prevent "clicking through" the dialog background
+        },
         Column {
             anchors.horizontalCenter: parent.horizontalCenter
-            spacing: 8
+            anchors.top: parent.top
+            anchors.topMargin: 16
+            spacing: 16
+
+            states: [State{
+                    name: "VIEW-CALC-UNKNOWN"
+                    PropertyChanges { target: unknown; visible: true; }
+                    PropertyChanges { target: coordinates; visible: false; }
+                    PropertyChanges { target: map; visible: false; }
+                    PropertyChanges { target: colView; visible: true; }
+                    PropertyChanges { target: colEdit; visible: false; }
+                    when: (! isCoordinate && ! isKnown && view.checked)
+                },
+                State {
+                    name: "VIEW-CALC-KNOWN"
+                    PropertyChanges { target: unknown; visible: false; }
+                    PropertyChanges { target: coordinates; visible: true; }
+                    PropertyChanges { target: map; visible: true; }
+                    PropertyChanges { target: colView; visible: true; }
+                    PropertyChanges { target: colEdit; visible: false; }
+                    when: (! isCoordinate && isKnown && view.checked)
+                },
+                State {
+                    name: "VIEW-COORDINATE"
+                    PropertyChanges { target: unknown; visible: false; }
+                    PropertyChanges { target: coordinates; visible: true; }
+                    PropertyChanges { target: map; visible: true; }
+                    PropertyChanges { target: colView; visible: true; }
+                    PropertyChanges { target: colEdit; visible: false; }
+                    when: (isCoordinate && view.checked)
+                },
+                State {
+                    name: "EDIT-CALC"
+                    PropertyChanges { target: map; visible: false; }
+                    PropertyChanges { target: labelCalc; visible: true; }
+                    PropertyChanges { target: textCalc; visible: true; }
+                    PropertyChanges { target: colView; visible: false; }
+                    PropertyChanges { target: colEdit; visible: true; }
+                    PropertyChanges { target: cs; visible: false; }
+                    when: (!isCoordinate && edit.checked)
+                },
+                State {
+                    name: "EDIT-COORDINATE"
+                    PropertyChanges { target: map; visible: false; }
+                    PropertyChanges { target: labelCalc; visible: false; }
+                    PropertyChanges { target: textCalc; visible: false; }
+                    PropertyChanges { target: colView; visible: false; }
+                    PropertyChanges { target: colEdit; visible: true; }
+                    PropertyChanges { target: cs; visible: true; }
+                    when: (isCoordinate && edit.checked)
+                }
+
+            ]
+
+            onStateChanged: {
+                console.debug("STATE is now " + state)
+            }
+
             ButtonRow {
                 Button { id: view; text: "View"; onClicked: { } }
                 Button { id: edit; text: "Edit"; onClicked: { } }
             }
 
-            // VIEW
-            Label {
-                text: "?"
-                font.pixelSize: 200
-                color: "#444444"
-                visible: (view.checked && ! coordinate.hasRequires)
+            Column {
+                id: colView
                 anchors.horizontalCenter: parent.horizontalCenter
-            }
-
-            Label {
-                text: coordinate.hasRequires ? F.formatCoordinate(coordinate.result.lat, coordinate.result.lon, settings) : "undefined"
-                width: 400//showDescription.width
-                font.weight: Font.Light
-                color: UI.COLOR_DIALOG_TEXT
-                wrapMode: Text.WordWrap
-                font.pixelSize: UI.FONT_DEFAULT
-                visible: (coordinate.hasRequires && view.checked) || false
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
-            PinchMap {
-                id: map
-                zoomLevel: 15
-                width: 400//showDescription.width
-                height: 300
-                clip: true
-                centerLatitude: coordinate.hasRequires ? coordinate.result.lat : 0 || 0
-                centerLongitude: coordinate.hasRequires ? coordinate.result.lon : 0 || 0
-                showTargetIndicator: true
-                showTargetAtLat: coordinate.hasRequires ? coordinate.result.lat : 0 || 0
-                showTargetAtLon: coordinate.hasRequires ? coordinate.result.lon : 0 || 0
-                visible: (coordinate.hasRequires && view.checked) || false
-                anchors.horizontalCenter: parent.horizontalCenter
-            }
-
-            // EDIT
+                spacing: 8
 
 
-            Label {
-                id: warning
-                font.pixelSize: 20
-                color: theme.inverted ? UI.COLOR_WARNING_NIGHT : UI.COLOR_WARNING_DARKBG
-                text: ""
-                width: 400
-                visible: (text != "" && edit.checked)
-                wrapMode: Text.Wrap
-            }
 
-            Label {
-                font.pixelSize: 20
-                color: UI.COLOR_INFOLABEL
-                text: "Name"
-                width: 400
-                visible: edit.checked
-                wrapMode: Text.Wrap
-            }
-            TextField {
-                id: textName
-                placeholderText: "Name"
-                width: 400
-                visible: edit.checked
-            }
-
-            Label {
-                font.pixelSize: 20
-                color: UI.COLOR_INFOLABEL
-                text: "Coordinate or Calc String. You can use A-Z and the operators () +-*/.\nExample: N34 AB.CDE E3 (A+B*2)C.DE(B-9)"
-                width: 400
-                visible: edit.checked
-                wrapMode: Text.Wrap
-            }
-
-            TextField {
-                id: textCalc
-                placeholderText: "N12 34.567 W12 34.567"
-                width: 400
-                visible: edit.checked
-            }
-
-            Button {
-                text: buttonText
-                visible: (text != "" && edit.checked)
-                onClicked: {
-                    manager.deleteCalc();
-                    editCalc.close();
+                // VIEW
+                Label {
+                    id: unknown
+                    text: "?"
+                    font.pixelSize: 200
+                    color: "#444444"
+                    anchors.horizontalCenter: parent.horizontalCenter
                 }
-                anchors.horizontalCenter: parent.horizontalCenter
+
+                Label {
+                    id: coordinates
+                    text: (coordinate.hasRequires) ? F.formatCoordinate(coordinate.result.lat, coordinate.result.lon, settings) : "undefined"
+                    width: 400
+                    font.weight: Font.Light
+                    color: UI.COLOR_DIALOG_TEXT
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: UI.FONT_DEFAULT
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+                PinchMap {
+                    id: map
+                    zoomLevel: 15
+                    width: 400//showDescription.width
+                    height: 300
+                    clip: true
+                    centerLatitude: isCoordinate ? coordinate.lat : (coordinate.hasRequires ? coordinate.result.lat : 0)
+                    centerLongitude: isCoordinate ? coordinate.lat : (coordinate.hasRequires ? coordinate.result.lon : 0)
+                    showTargetIndicator: true
+                    showTargetAtLat: isCoordinate ? coordinate.lat : (coordinate.hasRequires ? coordinate.result.lat : 0)
+                    showTargetAtLon: isCoordinate ? coordinate.lat : (coordinate.hasRequires ? coordinate.result.lon : 0)
+                    anchors.horizontalCenter: parent.horizontalCenter
+                }
+
             }
+
+            Column {
+                id: colEdit
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 8
+
+                Label {
+                    id: warning
+                    font.pixelSize: 20
+                    color: theme.inverted ? UI.COLOR_WARNING_NIGHT : UI.COLOR_WARNING_DARKBG
+                    text: ""
+                    width: 400
+                    wrapMode: Text.Wrap
+                }
+
+                Label {
+                    id: labelName
+                    font.pixelSize: 20
+                    color: UI.COLOR_INFOLABEL
+                    text: "Name"
+                    width: 400
+                    wrapMode: Text.Wrap
+                }
+                TextField {
+                    id: textName
+                    placeholderText: "Name"
+                    width: 400
+                    visible: edit.checked
+                }
+
+                Label {
+                    id: labelCalc
+                    font.pixelSize: 20
+                    color: UI.COLOR_INFOLABEL
+                    text: "Coordinate or Calc String. You can use A-Z and the operators () +-*/.\nExample: N34 AB.CDE E3 (A+B*2)C.DE(B-9)"
+                    width: 400
+                    wrapMode: Text.Wrap
+                }
+
+                TextField {
+                    id: textCalc
+                    placeholderText: "N12 34.567 W12 34.567"
+                    width: 400
+                }
+
+                CoordinateSelector {
+                    id: cs
+                }
+
+                Button {
+                    id: deleteButton
+                    text: buttonText
+                    onClicked: {
+                        manager.deleteCalc();
+                        editCalc.close();
+                    }
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    visible: text != ""
+                }
+            }
+
         }
+
+
 
     ]
     onAccepted: {
         if (edit.checked) {
             save();
+        } else if (isCoordinate) {
+            controller.setAsTarget(coordinate)
+            showMessage("New Target set.")
         } else if (coordinate.hasRequires) {
             controller.setAsTarget(coordinate.result)
             showMessage("New Target set.")
@@ -134,8 +247,15 @@ QueryDialog {
     }
 
     function save() {
+        if (isCoordinate) {
+            var v = cs.getValue();
+            showMessage(manager.saveCoordinate(textName.text, v[0], v[1]));
+            return;
+        }
+
         if (textName.text != manager.beforeName || textCalc.text != manager.beforeCalc) {
             showMessage(manager.save(textName.text, textCalc.text));
+            return;
         }
     }
 }

@@ -8,7 +8,7 @@ Header {
     color: (cache == null) ? "grey" : UI.getCacheColorBackground(cache)
 
     Image {
-        source: "image://theme/icon-m-common-favorite" + (cache.marked ? "-mark" : "-unmark")
+        source: "image://theme/icon-m-common-favorite" + ((cache && cache.marked) ? "-mark" : "-unmark")
         anchors.top: parent.top
         anchors.topMargin: 8
         anchors.right: parent.right
@@ -19,5 +19,6 @@ Header {
                 cache.marked = ! cache.marked;
             }
         }
+        visible: cache != null
     }
 }

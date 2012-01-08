@@ -197,14 +197,24 @@ class Controller(QtCore.QObject):
         
     @QtCore.Slot(QtCore.QObject, QtCore.QObject, result = QtCore.QObject)
     def getEditWrapper(self, cache, obj):
-        if not obj:
-            self.__editwrapper = CalcEditWrapper(cachewrapper = cache)
-            return self.__editwrapper
-        elif type(obj) == CacheCalcCoordinateWrapper:
-            self.__editwrapper = CalcEditWrapper(cachewrapper = cache, source_id = obj.coordinate().source, coordinate = obj.coordinate())
-            return self.__editwrapper
-        else:
-            logger.error("Could not resolve call; cache = %r, obj = %r" % (cache, obj))
+        self.__editwrapper = CalcEditWrapper(cachewrapper = cache, source_id = obj.coordinate().source, coordinate = obj.coordinate())
+        return self.__editwrapper
+        
+    @QtCore.Slot(QtCore.QObject, int, result = QtCore.QObject)
+    def getEditWrapperByID(self, cache, id):
+        self.__editwrapper = CalcEditWrapper(cachewrapper = cache, source_id = id)
+        return self.__editwrapper
+        
+    @QtCore.Slot(QtCore.QObject, result = QtCore.QObject)
+    def getAddCalcWrapper(self, cache):
+        self.__editwrapper = CalcEditWrapper(cachewrapper = cache, add = CalcEditWrapper.ADD_CALC_STRING)
+        return self.__editwrapper
+        
+    @QtCore.Slot(QtCore.QObject, result = QtCore.QObject)
+    def getAddCoordinateWrapper(self, cache):
+        self.__editwrapper = CalcEditWrapper(cachewrapper = cache, add = CalcEditWrapper.ADD_COORDINATE)
+        return self.__editwrapper
+            
 
     def _progress(self):
         return self._progress
@@ -220,52 +230,75 @@ class Controller(QtCore.QObject):
     progressMessage = QtCore.Property(str, _progress_message, notify=progressChanged)
     
 class CalcEditWrapper(QtCore.QObject):
-    def __init__(self, cachewrapper, source_id = None, coordinate = None):
+    ADD_CALC_STRING = 0
+    ADD_COORDINATE = 1
+    
+    def __init__(self, cachewrapper, source_id = None, coordinate = None, add = ""):
         QtCore.QObject.__init__(self)
+        
+        self.__before_coordinate = None
+        self.__is_coordinate = False
+        self.__before_name = ""
+        self.__before_calc = ""
+        self.__button_text = ""
+        
         info = None
-        if source_id == None: # Add new Calc String or Coordinate to geocache
-            before_calc = ''
-            before_name = ''
-            ctype = geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING
+        # Add new Calc String to geocache
+        if add == CalcEditWrapper.ADD_CALC_STRING: 
             logger.debug("Adding new calc string")
-            button_text = None
-        elif type(source_id) != int: # Overwrite existing Calc String
-            before_calc = coordinate.orig
-            before_name = ''
-            ctype = geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING_OVERRIDE
+            self.__ctype = geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING
+            self.__button_text = None
+            self.__case = 0
+        # Add new coordinate to geocache
+        elif add == CalcEditWrapper.ADD_COORDINATE:
+            logger.debug("Adding new user coordinate")
+            self.__before_coordinate = CoordinateWrapper(geo.Coordinate(0, 0, ''))
+            self.__is_coordinate = True
+            self.__ctype = geocaching.GeocacheCoordinate.USER_TYPE_COORDINATE
+            self.__case = 1
+        # Overwrite existing Calc String
+        # Calc Strings have a string as source, e.g. "Description"
+        elif type(source_id) != int:
             logger.debug("Overwriting original coordinate.")
-            button_text = None
-        else: # Edit existing user supplied Calc String or Calc String Overwrite
-            info = cachewrapper._geocache.get_user_coordinate(source_id)
-            before_name = info['name']
-            ctype = info['type']
-            if info['type'] == geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING:
-                before_calc = info['value']
+            self.__before_calc = coordinate.orig
+            self.__ctype = geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING_OVERRIDE
+            self.__button_text = None
+            self.__case = 2
+        # Edit existing user supplied Calc String or Calc String Overwrite
+        # These have integers as source
+        else: 
+            self.__info = cachewrapper._geocache.get_user_coordinate(source_id)
+            self.__before_name = self.__info['name']
+            self.__ctype = self.__info['type']
+            if self.__info['type'] == geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING:
                 logger.debug("Editing user supplied calc string.")
-                button_text = 'Delete'
-            elif info['type'] == geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING_OVERRIDE:
-                before_calc = info['value'][1]
+                self.__before_calc = self.__info['value']
+                self.__button_text = 'Delete'
+                self.__case = 3
+            elif self.__info['type'] == geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING_OVERRIDE:
                 logger.debug("Editing user supplied overwrite.")
-                button_text = 'Reset'
-            #elif info['type'] == geocaching.GeocacheCoordinate.USER_TYPE_COORDINATE:
-            #    start = geo.Coordinate(info['value'][0], info['value'][1], info['name'])
-            #    res = self.show_coordinate_input(start, none_on_cancel = True, show_name_input = True)
-            #    if res == None:
-            #        return
-            #    cache.set_user_coordinate(geocaching.GeocacheCoordinate.USER_TYPE_COORDINATE, (res.lat, res.lon), res.name, source_id)
-            #    self.core.save_cache_attribute(self.current_cache, 'user_coordinates')
-            #    self.update_coords()
-            #    return
+                self.__before_calc = self.__info['value'][1]
+                self.__button_text = 'Reset'
+                self.__case = 4
+            elif self.__info['type'] == geocaching.GeocacheCoordinate.USER_TYPE_COORDINATE:
+                c = geo.Coordinate(self.__info['value'][0], self.__info['value'][1], self.__info['name'])
+                logger.debug("Editing existing user coordinate: %s" % c)
+                self.__before_coordinate = CoordinateWrapper(c)
+                self.__button_text = 'Delete'
+                self.__is_coordinate = True
+                self.__case = 5
             else:
                 raise Exception("Illegal type.")
-        self.__before_calc = before_calc
-        self.__ctype = ctype
-        self.__before_name = before_name
-        self.__button_text = button_text
+                
         self.__source_id = source_id
         self.__cachewrapper = cachewrapper
         self.__coordinate = coordinate
-        self.__info = info
+        
+    def _before_coordinate(self):
+        return self.__before_coordinate
+        
+    def _is_coordinate(self):
+        return self.__is_coordinate
         
     def _ctype(self):
         return self.__ctype
@@ -286,22 +319,31 @@ class CalcEditWrapper(QtCore.QObject):
             res = "Coordinate saved."
         except Exception:
             res = "Calc string saved."
-        if self.__source_id == None:
+        if self.__case in [0, 3]:
             value = after_calc
-            id = None
-        elif type(self.__source_id) != int:
+            id = self.__source_id
+        elif self.__case == 2:
             value = (self.__coordinate.signature, after_calc)
             id = None
-        elif self.__info['type'] == geocaching.GeocacheCoordinate.USER_TYPE_CALC_STRING or self.__info['type'] == geocaching.GeocacheCoordinate.USER_TYPE_COORDINATE:
-            value = after_calc
-            id = self.__source_id
-        else:
+        elif self.__case == 4:
             value = (self.__info['value'][0], after_calc)
             id = self.__source_id
+        else:
+            raise Exception("Illegal call. Case is %d. For case in (1,5) call saveCoordinate!" % self.__case)
         self.__cachewrapper._geocache.set_user_coordinate(self.__ctype, value, after_name, id)
         logger.debug("Now saving user coordinates?")
         self.__cachewrapper.save_user_coordinates()
         return res
+        
+    @QtCore.Slot(str, float, float, result = str)
+    def saveCoordinate(self, after_name, lat, lon):
+        logger.debug("lat = %r, lon = %r" % (lat, lon))
+        value = (lat, lon)
+        id = self.__source_id
+        self.__cachewrapper._geocache.set_user_coordinate(self.__ctype, value, after_name, id)
+        logger.debug("Now saving user coordinates?")
+        self.__cachewrapper.save_user_coordinates()
+        return "Coordinate saved"
         
     @QtCore.Slot()
     def deleteCalc(self):
@@ -310,6 +352,8 @@ class CalcEditWrapper(QtCore.QObject):
         
     beforeCalc = QtCore.Property(str, _before_calc)
     beforeName = QtCore.Property(str, _before_name)
+    beforeCoordinate = QtCore.Property(QtCore.QObject, _before_coordinate)
+    isCoordinate = QtCore.Property(bool, _is_coordinate)
     buttonText = QtCore.Property(str, _button_text)
     ctype = QtCore.Property(int, _ctype)
 
@@ -334,8 +378,9 @@ class CacheCalcVarWrapper(QtCore.QObject):
         
     def _set_value(self, v):
         self.__value = v
-        logger.debug("Setting char %r to value %r" % (self.__char, v))
+        logger.debug("Setting char %r to value %r (I)" % (self.__char, v))
         self.__manager.set_var(self.__char, v)
+        logger.debug("Setting char %r to value %r (II)" % (self.__char, v))
         self.__cache.save_vars()
         
     changed = QtCore.Signal()    
@@ -373,7 +418,7 @@ class CacheCalcCoordinateWrapper(QtCore.QObject):
         
     def _source(self):
         if type(self.__coordinate.source) == int:
-                source = self.__cache.get_user_coordinate(self.__coordinate.source)['name']
+            source = self.__cache.get_user_coordinate(self.__coordinate.source)['name']
         else:
             source = self.__coordinate.source
         return source
@@ -726,9 +771,10 @@ class SettingsWrapper(QtCore.QObject):
 
 
 class CoordinateWrapper(QtCore.QObject):
-    def __init__(self, coordinate):
+    def __init__(self, coordinate, geocache = None):
         QtCore.QObject.__init__(self)
         self._coordinate = coordinate
+        self._geocache = geocache
         self._is_valid = coordinate != None and coordinate != False and (self._coordinate.lat != -1 or self._coordinate.lon != -1) and self._coordinate.lat != None
         if self._is_valid:
             try:
@@ -753,7 +799,9 @@ class CoordinateWrapper(QtCore.QObject):
         return d(self._coordinate.comment)
 
     def _user_coordinate_id(self):
-        return self._coordinate.user_coordinate_id
+        return self._coordinate.user_coordinate_id if self._coordinate.user_coordinate_id != None else -1
+        #self._user_coordinate = CacheCalcCoordinateWrapper(self._geocache, self._geocache.get_user_coordinate(self._coordinate.user_coordinate_id))
+        #return self._user_coordinate
 
     def _is_valid_coordinate(self):
         return self._is_valid
@@ -765,7 +813,7 @@ class CoordinateWrapper(QtCore.QObject):
     lon = QtCore.Property(float, _lon, notify=changed)
     display_text = QtCore.Property(str, _display_text, notify=changed)
     comment = QtCore.Property(str, _comment, notify=changed)
-    user_coordinate_id = QtCore.Property(unicode, _user_coordinate_id, notify=changed)
+    userCoordinateID = QtCore.Property(int, _user_coordinate_id, notify=changed)
     valid = QtCore.Property(bool, _is_valid_coordinate, notify=changed)
 
 class CoordinateListModel(QtCore.QAbstractListModel):
@@ -929,7 +977,7 @@ class GeocacheWrapper(QtCore.QObject):
         if self._coordinate_list == None:
             if self._geocache.calc == None:
                 self._geocache.start_calc()
-            z = [CoordinateWrapper(x) for x in self._geocache.get_collected_coordinates(format = geo.Coordinate.FORMAT_DM, skip_calc = True).values()]
+            z = [CoordinateWrapper(x, self._geocache) for x in self._geocache.get_collected_coordinates(format = geo.Coordinate.FORMAT_DM, skip_calc = True).values()]
             self._coordinate_list = CoordinateListModel(self.core, z)
         return self._coordinate_list
 
@@ -982,7 +1030,9 @@ class GeocacheWrapper(QtCore.QObject):
         logger.debug("Saving user coordinates.")
         self.core.save_cache_attribute(self._geocache, 'user_coordinates')
         self._calc_coordinate_list = None
-        self._geocache.calc = None
+        self._coordinate_list = None
+        self._geocache.stop_calc()
+        self._var_list = None
         self.coordsChanged.emit()
         
     def _calc_coordinates(self):
