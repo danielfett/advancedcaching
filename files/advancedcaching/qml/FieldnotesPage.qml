@@ -122,8 +122,21 @@ Page {
         id: logAsDialog
         model: logModel
         onSelectedIndexChanged: {
-            saveFieldnote();
+            if (selectedIndex != currentGeocache.logas) {
+                saveFieldnote();
+            }
         }
+        onAccepted: {
+            console.debug("HI!");
+        }
+    }
+
+    Connections {
+        target: rootWindow
+        onCurrentGeocacheChanged: {
+            logAsDialog.selectedIndex = currentGeocache.logas
+        }
+
     }
 
     ListModel {

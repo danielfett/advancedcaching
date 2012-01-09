@@ -5,6 +5,7 @@ import QtMobility.sensors 1.2
 import QtMobility.location 1.1
 
 PageStackWindow {
+    id: rootWindow
     //property variant controller
     property variant geocacheList: 0
     property variant currentGeocache: null
@@ -36,7 +37,6 @@ PageStackWindow {
         settings.lastSelectedGeocache = geocache.name;
     }
 
-    id: rootWindow
 
 
     initialPage: MainPage {
