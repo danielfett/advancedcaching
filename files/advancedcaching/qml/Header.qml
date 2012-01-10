@@ -4,7 +4,7 @@ import "uiconstants.js" as UI
 
 Item {
     property alias text: titleText.text
-    property alias color: rect.color
+    property variant color: "cornflowerblue"
 
     Rectangle {
         id: rect
@@ -16,6 +16,7 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         height: 66
+        color: parent.color
     }
     Label {
         id: titleText

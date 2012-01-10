@@ -6,9 +6,16 @@ import "functions.js" as F
 Page {
     id: listPage
     orientationLock: PageOrientation.LockPortrait
+    tools: commonTools
     GeocacheHeader{
         cache: currentGeocache
         id: listHeader
+    }
+
+    onStatusChanged: {
+        if (status == PageStatus.Inactive) {
+            pageCoordinates.source = "";
+        }
     }
 
     Flickable {

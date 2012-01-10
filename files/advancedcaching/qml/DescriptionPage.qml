@@ -5,6 +5,12 @@ import QtWebKit 1.0
 
 Page {
 
+    onStatusChanged: {
+        if (status == PageStatus.Inactive) {
+            pageDescription.source = "";
+        }
+    }
+
     Flickable {
         anchors.fill: parent
         id: flick

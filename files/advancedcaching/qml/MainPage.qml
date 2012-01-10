@@ -9,7 +9,7 @@ Page {
     orientationLock: PageOrientation.LockPortrait
 
     function showDetailsPage(page) {
-        tabDetailsPageStack.push(page)
+        tabGroup.currentTab.push(page)
     }
 
     function showAndResetDetailsPage() {
@@ -41,7 +41,7 @@ Page {
             Component.onCompleted: {
                 push(pageDetailsDefault)
             }
-            
+
             function openMenu() {
                 if (currentPage.openMenu) {
                     currentPage.openMenu();
@@ -50,7 +50,25 @@ Page {
                 }
 
             }
-            
+
+        }
+
+        PageStack {
+            id: tabListPageStack
+            anchors.fill: parent
+            Component.onCompleted: {
+                push(pageList)
+            }
+
+            function openMenu() {
+                if (currentPage.openMenu) {
+                    currentPage.openMenu();
+                } else {
+                    pageList.openMenu()
+                }
+
+            }
+
         }
 
         SettingsPage{
@@ -67,9 +85,9 @@ Page {
         id: commonTools
         visible: true
         ToolIcon {
-            iconId: "toolbar-back" + ((tabDetailsPageStack.depth < 2) ? "-dimmed" : "")// + (theme.inverted ? "-white" : "")
+            iconId: "toolbar-back" + ((! tabGroup.currentTab.depth || tabGroup.currentTab.depth < 2) ? "-dimmed" : "")// + (theme.inverted ? "-white" : "")
             onClicked: {
-                if (tabDetailsPageStack.depth > 1) tabDetailsPageStack.pop();
+                if (tabGroup.currentTab.depth && tabGroup.currentTab.depth > 1) tabGroup.currentTab.pop();
             }
 
         }
@@ -89,11 +107,16 @@ Page {
             TabButton {
                 //text: "Details"
                 tab: tabDetailsPageStack
+                iconSource: "image://theme/icon-m-toolbar-new-message" + (theme.inverted ? "-white" : "")
+            }
+            TabButton {
+                //text: "Details"
+                tab: tabListPageStack
                 iconSource: "image://theme/icon-m-toolbar-search" + (theme.inverted ? "-white" : "")
             }
         }
-        
-        
+
+
         ToolIcon {
             iconId: "toolbar-view-menu"
             onClicked: {
@@ -103,8 +126,11 @@ Page {
         }
     }
 
-
     DetailsDefaultPage {
         id: pageDetailsDefault
+    }
+
+    ListPage {
+        id: pageList
     }
 }

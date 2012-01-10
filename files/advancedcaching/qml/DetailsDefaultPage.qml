@@ -107,9 +107,6 @@ Page {
         ListButton {
             text: "Description"
 
-            Loader {
-                id: pageDescription
-            }
 
             onClicked: {
                 pageDescription.source = "DescriptionPage.qml";
@@ -124,9 +121,6 @@ Page {
                 pageImages.source = "ImagePage.qml";
                 showDetailsPage(pageImages.item);
             }
-            Loader {
-                id: pageImages
-            }
             visible: (currentGeocache != null) && (currentGeocache.images.length > 0)
         }
 
@@ -134,9 +128,6 @@ Page {
         ListButton {
             text: "Coordinates"
 
-            Loader {
-                id: pageCoordinates
-            }
 
             onClicked: {
                 pageCoordinates.source = "CoordinatesPage.qml";
@@ -147,9 +138,6 @@ Page {
         ListButton {
             text: "Logs (" + (currentGeocache ? currentGeocache.logsCount : "-") + ")"
 
-            Loader {
-                id: pageLogs
-            }
             onClicked: {
                 pageLogs.source = "LogsPage.qml";
                 showDetailsPage(pageLogs.item);
@@ -159,9 +147,6 @@ Page {
         
         ListButton {
             text: "Fieldnote"
-            Loader {
-                id: pageFieldnotes
-            }
 
             onClicked: {
                 pageFieldnotes.source = "FieldnotesPage.qml";
@@ -170,12 +155,36 @@ Page {
         }
 
     }
-    
+
+    Loader {
+        id: pageDescription
+    }
+    Loader {
+        id: pageImages
+    }
+    Loader {
+        id: pageCoordinates
+    }
+    Loader {
+        id: pageLogs
+    }
+    Loader {
+        id: pageFieldnotes
+    }
+    /*Connections {
+        target: tabDetailsPageStack
+        onDepthChanged: {
+            if (tabDetailsPageStack.depth == 1) {
+                pageDescription.source = "";
+                pageCoordinates.source = "";
+            }
+        }
+    }*/
     
     
     function openMenu() {
-        if (tabDetailsPageStack.currentPage.openStackMenu) {
-            tabDetailsPageStack.currentPage.openStackMenu();
+        if (rootWindow.pageStack.currentPage.openStackMenu) {
+            rootWindow.pageStack.currentPage.openStackMenu();
         } else {
             openStackMenu();
         }

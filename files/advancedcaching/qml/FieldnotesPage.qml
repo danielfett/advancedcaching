@@ -3,6 +3,7 @@ import com.nokia.meego 1.0
 import "uiconstants.js" as UI
 
 Page {
+    tools: commonTools
 
     GeocacheHeader{
         cache: currentGeocache

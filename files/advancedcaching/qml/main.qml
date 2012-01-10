@@ -3,6 +3,7 @@ import com.nokia.meego 1.0
 import "uiconstants.js" as UI
 import QtMobility.sensors 1.2
 import QtMobility.location 1.1
+import QtMobility.systeminfo 1.2
 
 PageStackWindow {
     id: rootWindow
@@ -73,6 +74,20 @@ PageStackWindow {
         updateInterval: 1000
         onPositionChanged: {
             controller.positionChanged(position.latitudeValid, position.coordinate.latitude, position.coordinate.longitude, position.altitudeValid, position.coordinate.altitude, position.speedValid, position.speed, position.horizontalAccuracy, position.timestamp);
+        }
+    }
+
+    DeviceInfo {
+        monitorLockStatusChanges: true
+        onLockStatusChanged: {
+            console.debug("d " + isDeviceLocked);
+            if (isDeviceLocked) {
+                compass.active = false;
+                gpsSource.updateInterval = 30000;
+            } else {
+                compass.active = true;
+                gpsSource.updateInterval = 1000;
+            }
         }
     }
 

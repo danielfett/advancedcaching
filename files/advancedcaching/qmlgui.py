@@ -132,13 +132,13 @@ class Controller(QtCore.QObject):
         points = self.core.pointprovider.get_points(geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end), self.MAX_POINTS + 1) #[0:100]
         
         if len(points) > self.MAX_POINTS:
-            n = GeocacheListModel(self.core, [])
+            self._geocache_list = GeocacheListModel(self.core, [])
             toomany = True
         else:
-            n = GeocacheListModel(self.core, points) 
+            self._geocache_list = GeocacheListModel(self.core, points) 
             toomany = False
         #self._geocache_lists[id] = (n, toomany)
-        self.view.rootObject().setGeocacheList(map, n)
+        self.view.rootObject().setGeocacheList(map, self._geocache_list)
         return toomany
 
     @QtCore.Slot(float, float, float, float)
@@ -214,7 +214,19 @@ class Controller(QtCore.QObject):
     def getAddCoordinateWrapper(self, cache):
         self.__editwrapper = CalcEditWrapper(cachewrapper = cache, add = CalcEditWrapper.ADD_COORDINATE)
         return self.__editwrapper
-            
+        
+    @QtCore.Slot(result = QtCore.QObject)
+    def getGeocachesWithFieldnotes(self):
+        self.__pointmodel = GeocacheListModel(self.core, self.core.pointprovider.get_new_fieldnotes())
+        return self.__pointmodel
+        
+    @QtCore.Slot(result = QtCore.QObject)
+    def getMarkedGeocaches(self):
+        self.core.pointprovider.push_filter()
+        self.core.pointprovider.set_filter(marked = True)
+        self.__pointmodel = GeocacheListModel(self.core, self.core.pointprovider.get_points_filter())
+        self.core.pointprovider.pop_filter()
+        return self.__pointmodel
 
     def _progress(self):
         return self._progress
@@ -925,6 +937,10 @@ class GeocacheWrapper(QtCore.QObject):
 
     def _shortdesc(self):
         return self._geocache.shortdesc
+        
+    def _stripped_shortdesc(self):
+        from cachedownloader import HTMLManipulations
+        return HTMLManipulations.strip_html_visual(self._geocache.shortdesc)
 
     def _desc(self):
         if self._geocache.desc != '' and self._geocache.shortdesc != '':
@@ -1064,6 +1080,7 @@ class GeocacheWrapper(QtCore.QObject):
     lon = QtCore.Property(float, _lon, notify=changed)
     desc = QtCore.Property(str, _desc, notify=changed)
     shortdesc = QtCore.Property(str, _shortdesc, notify=changed)
+    strippedShortdesc = QtCore.Property(str, _stripped_shortdesc, notify=changed)
     type = QtCore.Property(str, _type, notify=changed)
     size = QtCore.Property(int, _size, notify=changed)
     difficulty = QtCore.Property(float, _difficulty, notify=changed)
@@ -1086,7 +1103,12 @@ class GeocacheWrapper(QtCore.QObject):
 
 class GeocacheListModel(QtCore.QAbstractListModel):
     COLUMNS = ('geocache',)
-
+    
+    SORT_BY_PROXIMITY = 0
+    SORT_BY_NAME = 1
+    SORT_BY_TYPE = 2
+    SORT_BY_FOUND = 3
+    
     def __init__(self, core, points = []):
         QtCore.QAbstractListModel.__init__(self)
         self.setRoleNames(dict(enumerate(GeocacheListModel.COLUMNS)))
@@ -1113,7 +1135,24 @@ class GeocacheListModel(QtCore.QAbstractListModel):
         #if index.isValid() and role == GeocacheListModel.COLUMNS.index('geocache'):
         return self._geocaches[index.row()]
         #return None
-
+        
+    @QtCore.Slot(int, QtCore.QObject)
+    def sort(self, by, gpsWrapper):
+        if by == self.SORT_BY_PROXIMITY:
+            def key(f):
+                if gpsWrapper.gps_last_good_fix._valid():
+                    return f._geocache.distance_to(geo.Coordinate(gpsWrapper.gps_last_good_fix._lat(), gpsWrapper.gps_last_good_fix._lon()))
+                return None
+        elif by == self.SORT_BY_NAME:
+            key = lambda f: f._title()
+        elif by == self.SORT_BY_TYPE:
+            key = lambda f: f._type() + ("b" if f._found() else "a")
+        elif by == self.SORT_BY_FOUND:
+            key = lambda f: ("b" if f._found() else "a") + f._type()
+        self._geocaches.sort(key = key)
+        self.dataChanged.emit(self.createIndex(0,0), self.createIndex(len(self._geocaches),0))
+        
+            
 
 class LogsListModel(QtCore.QAbstractListModel):
     COLUMNS = ('log',)

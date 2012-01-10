@@ -6,6 +6,7 @@ import "functions.js" as F
 Page {
     id: tabMap
     property int buttonSize: 72
+    property alias geocacheModel: pinchmap.model // for access by the list page
 
     orientationLock: PageOrientation.LockPortrait
 

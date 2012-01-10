@@ -6,7 +6,7 @@ Item {
     property alias text: label.text
 
     width: parent.width
-    height: label.paintedHeight + 24
+    height: label.paintedHeight + 34
     signal clicked
 
 

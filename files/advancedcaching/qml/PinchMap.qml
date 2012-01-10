@@ -43,6 +43,8 @@ Rectangle {
 
     property bool tooManyPoints: true
 
+    property alias model: geocacheDisplay.model
+
     transform: Rotation {
         angle: 0
         origin.x: pinchmap.width/2
