@@ -4,6 +4,7 @@ import "uiconstants.js" as UI
 import "functions.js" as F
 
 Page {
+    orientationLock: PageOrientation.LockPortrait
     id: tabSettings
     tools: settingsTools
     Header {
