@@ -6,7 +6,7 @@ Column {
     property int max: 9
     property int value: 0
     Button {
-        iconSource: "image://theme/icon-s-common-add"
+        iconSource: theme.inverted ? "image://theme/icon-m-input-add" : "image://theme/icon-m-common-add"
         width: UI.WIDTH_SELECTOR
         onClicked: { value = (value + 1) % (max + 1) }
     }
@@ -18,7 +18,7 @@ Column {
         color: "white"
     }
     Button {
-        iconSource: "image://theme/icon-s-common-remove"
+        iconSource: theme.inverted ? "image://theme/icon-m-input-remove" : "image://theme/icon-m-common-remove"
         width: UI.WIDTH_SELECTOR
         onClicked: { value = (value > 0) ? (value - 1) : max }
     }

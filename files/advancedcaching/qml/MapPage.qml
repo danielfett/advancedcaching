@@ -134,13 +134,13 @@ Page {
         anchors.rightMargin: 16
         spacing: 16
         Button {
-            iconSource: "image://theme/icon-m-common-add"
+            iconSource: theme.inverted ? "image://theme/icon-m-input-add" : "image://theme/icon-m-common-add"
             onClicked: {pinchmap.zoomIn() }
             width: parent.parent.buttonSize
             height: parent.parent.buttonSize
         }
         Button {
-            iconSource: "image://theme/icon-m-common-remove"
+            iconSource: theme.inverted ? "image://theme/icon-m-input-remove" : "image://theme/icon-m-common-remove"
             onClicked: {pinchmap.zoomOut() }
             width: parent.parent.buttonSize
             height: parent.parent.buttonSize
@@ -155,7 +155,7 @@ Page {
         spacing: 16
         Button {
             id: followPositionButton
-            iconSource: "image://theme/icon-m-common-location"
+            iconSource: "image://theme/icon-m-common-location" + (theme.inverted ? "-inverse" : "")
             width: parent.parent.buttonSize
             height: parent.parent.buttonSize
             checkable: true
@@ -168,7 +168,7 @@ Page {
         }
         Button {
             id: refreshGeocachesButton
-            iconSource: "image://theme/icon-m-toolbar-refresh"
+            iconSource: theme.inverted? "image://theme/icon-m-common-refresh" : "image://theme/icon-m-toolbar-refresh"
             width: parent.parent.buttonSize
             height: parent.parent.buttonSize
             onClicked: {
