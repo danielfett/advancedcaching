@@ -1152,7 +1152,14 @@ class GeocacheListModel(QtCore.QAbstractListModel):
         self._geocaches.sort(key = key)
         self.dataChanged.emit(self.createIndex(0,0), self.createIndex(len(self._geocaches),0))
         
+    @QtCore.Slot(bool)
+    def markAll(self, mark):
+        for i in self._geocaches:
+            i._set_marked(mark)
             
+    @QtCore.Slot()
+    def downloadDetails(self):
+        self.core.update_coordinates([x._geocache for x in self._geocaches]);
 
 class LogsListModel(QtCore.QAbstractListModel):
     COLUMNS = ('log',)

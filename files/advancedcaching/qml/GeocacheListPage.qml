@@ -144,8 +144,17 @@ Page {
         visualParent: parent
 
         MenuLayout {
-            MenuItem { text: "Sort by Proximity"; onClicked: {
-                    model.sort(0, gps);
+
+            MenuItem { text: "Add all to favorites"; onClicked: {
+                    model.markAll(true);
+                } }
+
+            MenuItem { text: "Remove all from favorites"; onClicked: {
+                    model.markAll(false);
+                } }
+                
+            MenuItem { text: "Download Details for all"; onClicked: {
+                    model.downloadDetails();
                 } }
 
             MenuItem { text: "Sort by Name"; onClicked: {
