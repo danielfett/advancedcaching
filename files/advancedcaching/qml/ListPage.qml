@@ -23,6 +23,7 @@ Page {
                 showDetailsPage(pageGeocacheList.item);
                 pageGeocacheList.item.model = tabMap.geocacheModel;
                 pageGeocacheList.item.model.sort(0, gps);
+                pageGeocacheList.title = "Geocaches in Map";
             }
             height: 70
         }
@@ -35,6 +36,7 @@ Page {
                 showDetailsPage(pageGeocacheList.item);
                 pageGeocacheList.item.model = controller.getGeocachesWithFieldnotes();
                 pageGeocacheList.item.model.sort(0, gps);
+                pageGeocacheList.title = "Geocaches with Fieldnotes";
             }
             height: 70
         }
@@ -47,6 +49,7 @@ Page {
                 showDetailsPage(pageGeocacheList.item);
                 pageGeocacheList.item.model = controller.getMarkedGeocaches();
                 pageGeocacheList.item.model.sort(0, gps);
+                pageGeocacheList.title = "Favorite Geocaches";
             }
             height: 70
         }

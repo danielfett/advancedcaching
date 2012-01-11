@@ -15,6 +15,8 @@ Page {
         }
     }
 
+    property alias title: header.text
+
     Header{
         text: "List Geocaches"
         id: header
