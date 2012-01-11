@@ -103,6 +103,8 @@ Page {
         spacing: 0
         width: parent.parent.width
         visible: currentGeocache != null
+        anchors.top: col1.bottom
+        property int itemHeight: height/(images.visible ? 5 : 4)
 
         ListButton {
             text: "Description"
@@ -112,16 +114,18 @@ Page {
                 pageDescription.source = "DescriptionPage.qml";
                 showDetailsPage(pageDescription.item);
             }
-
+            height: parent.itemHeight
         }
         
         ListButton {
+            id: images
             text: "Images"
             onClicked: {
                 pageImages.source = "ImagePage.qml";
                 showDetailsPage(pageImages.item);
             }
             visible: (currentGeocache != null) && (currentGeocache.images.length > 0)
+            height: parent.itemHeight
         }
 
 
@@ -133,6 +137,7 @@ Page {
                 pageCoordinates.source = "CoordinatesPage.qml";
                 showDetailsPage(pageCoordinates.item);
             }
+            height: parent.itemHeight
         }
 
         ListButton {
@@ -142,6 +147,7 @@ Page {
                 pageLogs.source = "LogsPage.qml";
                 showDetailsPage(pageLogs.item);
             }
+            height: parent.itemHeight
         }
         
         
@@ -152,6 +158,7 @@ Page {
                 pageFieldnotes.source = "FieldnotesPage.qml";
                 showDetailsPage(pageFieldnotes.item);
             }
+            height: parent.itemHeight
         }
 
     }
