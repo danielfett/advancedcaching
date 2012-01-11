@@ -6,7 +6,7 @@ import QtWebKit 1.0
 Page {
 
     onStatusChanged: {
-        if (status == PageStatus.Inactive) {
+        if (status == PageStatus.Inactive && tabDetailsPageStack.depth == 1) {
             pageDescription.source = "";
         }
     }

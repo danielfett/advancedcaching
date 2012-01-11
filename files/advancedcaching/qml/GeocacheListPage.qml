@@ -10,7 +10,7 @@ Page {
     property alias model: list.model
 
     onStatusChanged: {
-        if (status == PageStatus.Inactive) {
+        if (status == PageStatus.Inactive && tabListPageStack.depth == 1) {
             pageGeocacheList.source = "";
         }
     }
