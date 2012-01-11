@@ -91,7 +91,7 @@ Page {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
-                        tabGroup.currentTab = tabCamera
+                        showCamera();
                     }
                 }
             }

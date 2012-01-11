@@ -20,7 +20,13 @@ Page {
     }
     
     function showSettings() {
-        tabGroup.currentTab = tabSettings
+        pageSettings.source = "SettingsPage.qml";
+        rootWindow.pageStack.push(pageSettings.item);
+    }
+    
+    function showCamera() {
+        pageCamera.source = "VideoPage.qml";
+        rootWindow.pageStack.push(pageCamera.item);
     }
 
 
@@ -70,15 +76,22 @@ Page {
             }
 
         }
+    }
 
-        SettingsPage{
-            id: tabSettings
-        }
+    DetailsDefaultPage {
+        id: pageDetailsDefault
+    }
 
-        VideoPage{
-            id: tabCamera
-        }
-
+    ListPage {
+        id: pageList
+    }
+    
+    Loader {
+        id: pageSettings
+    }
+    
+    Loader {
+        id: pageCamera
     }
 
     ToolBarLayout {
@@ -125,12 +138,5 @@ Page {
 
         }
     }
-
-    DetailsDefaultPage {
-        id: pageDetailsDefault
-    }
-
-    ListPage {
-        id: pageList
-    }
+    
 }

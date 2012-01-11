@@ -5,9 +5,15 @@ import "functions.js" as F
 
 Page {
     id: tabSettings
+    tools: settingsTools
     Header {
         text: "Settings"
         id: header
+    }
+    onStatusChanged: {
+        if (status == PageStatus.Inactive && rootWindow.pageStack.depth == 1) {
+            pageSettings.source = "";
+        }
     }
 
     Flickable {
@@ -205,6 +211,20 @@ Page {
                         settings.downloadNumLogs = parseInt(text)
                     }
                 }
+            }
+
+        }
+    }
+    
+    
+    
+    ToolBarLayout {
+        id: settingsTools
+        visible: true
+        ToolIcon {
+            iconId: "toolbar-back" + ((! rootWindow.pageStack.depth || rootWindow.pageStack.depth < 2) ? "-dimmed" : "")// + (theme.inverted ? "-white" : "")
+            onClicked: {
+                if (rootWindow.pageStack.depth > 1) rootWindow.pageStack.pop();
             }
 
         }
