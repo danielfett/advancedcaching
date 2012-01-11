@@ -10,6 +10,12 @@ Page {
 
     orientationLock: PageOrientation.LockPortrait
 
+    function showOnMap(lat, lon) {
+        pinchmap.centerLatitude = lat
+        pinchmap.centerLongitude = lon
+        tabGroup.currentTab = tabMap
+    }
+
     PinchMap {
         id: pinchmap
         width: listPage.width

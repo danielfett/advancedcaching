@@ -178,15 +178,6 @@ Page {
     Loader {
         id: pageFieldnotes
     }
-    /*Connections {
-        target: tabDetailsPageStack
-        onDepthChanged: {
-            if (tabDetailsPageStack.depth == 1) {
-                pageDescription.source = "";
-                pageCoordinates.source = "";
-            }
-        }
-    }*/
     
     
     function openMenu() {
@@ -199,7 +190,8 @@ Page {
 
         MenuLayout {
             MenuItem { text: "Settings"; onClicked: { showSettings(); } }
-            MenuItem { text: "Open Website"; onClicked: { Qt.openUrlExternally(currentGeocache.url); } }
+            MenuItem { text: "Open Website"; onClicked: { Qt.openUrlExternally(currentGeocache.url); } visible: currentGeocache != null }
+            MenuItem { text: "Show on Map"; onClicked: { tabMap.showOnMap(currentGeocache.lat, currentGeocache.lon); } visible: currentGeocache != null }
         }
     }
 }

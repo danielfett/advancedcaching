@@ -104,7 +104,7 @@ Page {
                 color: UI.COLOR_INFOLABEL
                 text: "Map View"
             }
-
+            /*
             Item {
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -124,7 +124,7 @@ Page {
                     checked: settings.optionsMapRotation
                     anchors.verticalCenter: parent.verticalCenter
                 }
-            }
+            }*/
 
             Item {
                 anchors.left: parent.left
