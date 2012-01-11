@@ -80,7 +80,6 @@ PageStackWindow {
     DeviceInfo {
         monitorLockStatusChanges: true
         onLockStatusChanged: {
-            console.debug("d " + isDeviceLocked);
             if (isDeviceLocked) {
                 compass.active = false;
                 gpsSource.updateInterval = 30000;

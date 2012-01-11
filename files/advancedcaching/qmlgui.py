@@ -987,6 +987,9 @@ class GeocacheWrapper(QtCore.QObject):
 
     def _hints(self):
         return self._geocache.hints
+        
+    def _url(self):
+        return "http://coord.info/%s" % self._geocache.name
 
     def _coordinates(self):
         logger.debug("Preparing coordinate list...")
@@ -1082,6 +1085,7 @@ class GeocacheWrapper(QtCore.QObject):
     shortdesc = QtCore.Property(str, _shortdesc, notify=changed)
     strippedShortdesc = QtCore.Property(str, _stripped_shortdesc, notify=changed)
     type = QtCore.Property(str, _type, notify=changed)
+    url = QtCore.Property(str, _url, notify=changed)
     size = QtCore.Property(int, _size, notify=changed)
     difficulty = QtCore.Property(float, _difficulty, notify=changed)
     terrain = QtCore.Property(float, _terrain, notify=changed)

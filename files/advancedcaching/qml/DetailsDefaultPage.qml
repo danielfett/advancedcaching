@@ -190,14 +190,6 @@ Page {
     
     
     function openMenu() {
-        if (rootWindow.pageStack.currentPage.openStackMenu) {
-            rootWindow.pageStack.currentPage.openStackMenu();
-        } else {
-            openStackMenu();
-        }
-    }
-
-    function openStackMenu() {
         menu.open();
     }
     
@@ -206,8 +198,8 @@ Page {
         visualParent: parent
 
         MenuLayout {
-            //MenuItem { text: currentGeocache.found ? "Mark Not Found" : "Mark Found"; }
             MenuItem { text: "Settings"; onClicked: { showSettings(); } }
+            MenuItem { text: "Open Website"; onClicked: { Qt.openUrlExternally(currentGeocache.url); } }
         }
     }
 }
