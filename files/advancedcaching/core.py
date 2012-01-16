@@ -120,7 +120,7 @@ class Core(gobject.GObject):
         'download_create_index': False,
         'download_run_after': False,
         'download_run_after_string': '',
-        'download_output_dir': path.expanduser(path.join(DATA_DIR, 'geocaches', '')),
+        'download_output_dir': path.expanduser(path.join(DATA_DIR, '.geocaches', '')),
         'map_position_lat': 49.7540,
         'map_position_lon': 6.66135,
         'map_follow_position': True,
@@ -662,7 +662,6 @@ class Core(gobject.GObject):
             point_new = self.pointprovider.add_point(c)
             if point_new:
                 new_caches.append(c)
-        self.pointprovider.save()
         self.emit('hide-progress')
         self.emit('map-marks-changed')
         if sync:
