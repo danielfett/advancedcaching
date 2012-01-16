@@ -141,7 +141,8 @@ class Core(gobject.GObject):
         'options_show_html_description': False,
         'map_providers': [
             ('OpenStreetMaps', {'remote_url': "http://a.tile.openstreetmap.org/%(zoom)d/%(x)d/%(y)d.png", 'prefix': 'OpenStreetMap I'}),
-            ('OpenCycleMaps', {'remote_url': 'http://a.tile.opencyclemap.org/cycle/%(zoom)d/%(x)d/%(y)d.png', 'prefix': 'OpenCycleMap'})
+            ('OpenCycleMaps', {'remote_url': 'http://a.tile.opencyclemap.org/cycle/%(zoom)d/%(x)d/%(y)d.png', 'prefix': 'OpenCycleMap'}),
+            ('Google Maps Satellite', {'remote_url': 'http://khm.google.com/kh?v=51&x=%(x)d&s=&y=%(y)d&z=%(zoom)d', 'prefix': 'Google Maps Sat'})
         ],
         'options_map_double_size': False,
         'options_rotate_screen': 0,
