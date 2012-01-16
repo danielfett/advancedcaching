@@ -87,8 +87,8 @@ Page {
         visualParent: parent
 
         MenuLayout {
-            MenuItem { text: "Settings"; onClicked: { showSettings(); } }
             MenuItem { text: "Open Website"; onClicked: { Qt.openUrlExternally(currentGeocache.url); } }
+            MenuItem { text: "Settings"; onClicked: { showSettings(); } }
         }
     }
 }

@@ -168,6 +168,7 @@ Page {
             MenuItem { text: "Sort by Found, Type"; onClicked: {
                     model.sort(3, null);
                 } }
+            MenuItem { text: "Settings"; onClicked: { showSettings(); } }
         }
     }
 }

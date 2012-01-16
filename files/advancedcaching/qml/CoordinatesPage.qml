@@ -306,9 +306,10 @@ Page {
     }
 
     function openMenu() {
-        console.debug("Opening Menu!")
         menu.open();
     }
+
+
 
     Menu {
         id: menu
@@ -326,6 +327,7 @@ Page {
                     editCalc.item.addCoordinate(currentGeocache);
                     editCalc.item.open();
                 } }
+            MenuItem { text: "Settings"; onClicked: { showSettings(); } }
         }
     }
 }

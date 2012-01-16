@@ -58,4 +58,18 @@ Page {
         }
     }
 
+
+    function openMenu() {
+        menu.open();
+    }
+
+    Menu {
+        id: menu
+        visualParent: parent
+
+        MenuLayout {
+            MenuItem { text: "Settings"; onClicked: { showSettings(); } }
+        }
+    }
+
 }

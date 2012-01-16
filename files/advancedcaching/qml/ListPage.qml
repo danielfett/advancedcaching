@@ -62,6 +62,9 @@ Page {
     }
 
 
+    function openMenu() {
+        menu.open();
+    }
 
     Menu {
         id: menu
