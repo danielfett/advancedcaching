@@ -25,6 +25,7 @@ import sys
 import geo
 import math
 import os
+import re
 
 usage = r'''Here's how to use this app:
 
@@ -87,7 +88,8 @@ filter-options:
         -o|--owner owner-search-string
         -n|--name name-search-string
         -i|--id id-search-string
-                Search owner, name (title) or id of the geocaches.
+        -a|--attribute attribute-search-string
+                Search owner, name (title), id or attributes of the geocaches (see below for search string syntax).
         --new
                 Caches which were downloaded in current session. Useful to
                 get alerted when new caches arrive.
@@ -121,6 +123,11 @@ Instead of a coordinate, you may also query geonames.com for a place name.
 Just start the string with 'q:':
     q:London
     'q:Brisbane, Australia'
+    
+Search strings are expected as plain strings or as pythonic regular expressions (prefixed with 'r:'). If you use regular expressions, you can use the switch '(?i)' to disable case matching:
+    'title' matches all strings containing title (plain string)
+    r:'.*title.* matches only lower case title (regex)
+    r:'(?i).*title.*' matches also upper case title (regex)
 
 '''
 
@@ -255,6 +262,7 @@ class Cli():
             # undo what we did.
             self.nt -= 1
             return
+        self.core.pointprovider.save()
             
     def parse_sql(self):
         self.nt += 1
@@ -316,6 +324,9 @@ class Cli():
             elif token == '-i' or token == '--id':
                 id = self.parse_string()
                 self.add_filter_id (id)
+            elif token == '-a' or token == '--attribute':
+                attribute = self.parse_string()
+                self.add_filter_attribute (attribute)
             elif token == '--new':
                 self.caches = self.new_caches
             else:
@@ -571,16 +582,28 @@ class Cli():
         print "* filter with types: %d left" % len(self.caches)
         
     def add_filter_owner(self, owner):
-        self.caches = filter(lambda x: owner.lower() in x.owner.lower(), self.caches)
+        self.caches = filter(lambda x: self.get_string_filter(owner)(x.owner), self.caches)
+        
         print "* filter with owner: %d left" % len(self.caches)
         
     def add_filter_name (self, name):
-        self.caches = filter(lambda x: name.lower() in x.title.lower(), self.caches)
+        self.caches = filter(lambda x: self.get_string_filter(name)(x.title), self.caches)
         print "* filter with name: %d left" % len(self.caches)
     
     def add_filter_id (self, idstring):
-        self.caches = filter(lambda x: idstring.lower() in x.name.lower(), self.caches)
+        self.caches = filter(lambda x: self.get_string_filter(idstring)(x.name), self.caches)
         print "* filter with id: %d left" % len(self.caches)
+        
+    def add_filter_attribute (self, attribute):
+        self.caches = filter(lambda x: self.get_string_filter(attribute)(x.attributes), self.caches)
+        print "* filter with attribute: %d left" % len(self.caches)
+        
+    def get_string_filter(self, searchstring):
+        if searchstring.startswith('r:'):
+            matcher = re.compile(searchstring[2:])
+            return lambda x: matcher.match(x) if x != None else False
+        else:
+            return lambda x: searchstring.lower() in x.lower()
     
     def action_print (self):
         print "Found %d Caches:" % len(self.caches)

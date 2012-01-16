@@ -240,7 +240,7 @@ class CacheDownloader(gobject.GObject):
         
 class GeocachingComCacheDownloader(CacheDownloader):
     
-    MAX_REC_DEPTH = 2
+    MAX_REC_DEPTH = 8
 
     MAX_DOWNLOAD_NUM = 20
 
@@ -341,7 +341,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     def _parse_cache_page(self, cache_page, coordinate, num_logs):
         section = ''
         prev_section = ''
-        shortdesc = desc = coords = hints = waypoints = images = logs = owner = head = ''
+        shortdesc = desc = coords = hints = waypoints = images = logs = owner = head = attribute_line = ''
         logger.debug("Start parsing...")
         for line in cache_page:
             line = line.strip()
