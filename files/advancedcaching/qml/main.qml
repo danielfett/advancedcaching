@@ -104,4 +104,8 @@ PageStackWindow {
             theme.inverted = settings.optionsNightViewMode;
         }
     }
+
+    Loader {
+        id: pageCamera
+    }
 }

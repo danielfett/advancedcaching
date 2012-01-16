@@ -1,6 +1,8 @@
 import QtQuick 1.1
 import com.nokia.meego 1.0
 import "uiconstants.js" as UI
+import "functions.js" as F
+import QtMultimediaKit 1.1
 
 Page {
     orientationLock: PageOrientation.LockLandscape
@@ -10,10 +12,21 @@ Page {
     }
     onStatusChanged: {
         if (status == PageStatus.Inactive && rootWindow.pageStack.depth == 1) {
-            pageVideo.source = "";
+            //pageCamera.source = "";
         }
     }
     tools: cameraTools
+
+
+    property int apertureAngle: 70
+
+    function angleToScreenpoint (a) {
+        return camera.width * (a/apertureAngle)
+    }
+    property double angle: compass.azimuth + 90 // in landscape mode, compass is shifted 90 degress
+    property real leftDegrees: Math.floor((angle - apertureAngle/2)/10)*10
+    property real offsetPixels: angleToScreenpoint(angle - leftDegrees) - camera.width/2
+
     Camera {
         id: camera
         y: 0
@@ -23,17 +36,9 @@ Page {
         focus: visible
         whiteBalanceMode: Camera.WhiteBalanceAuto
         exposureCompensation: -1.0
-        state: (tabGroup.currentTab == tabCamera) ? Camera.ActiveState : Camera.LoadedState
+        state: (status == PageStatus.Active) ? Camera.ActiveState : Camera.LoadedState
 
 
-        property int apertureAngle: 70
-
-        function angleToScreenpoint (a) {
-            return camera.width * (a/apertureAngle)
-        }
-        property double angle: compass.azimuth + 90 // in landscape mode, compass is shifted 90 degress
-        property real leftDegrees: Math.floor((angle - apertureAngle/2)/10)*10
-        property real offsetPixels: angleToScreenpoint(angle - leftDegrees) - camera.width/2
         Repeater {
             model: Math.round(apertureAngle/10) + 1
             delegate:

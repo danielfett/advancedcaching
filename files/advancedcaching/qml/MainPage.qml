@@ -89,10 +89,7 @@ Page {
     Loader {
         id: pageSettings
     }
-    
-    Loader {
-        id: pageCamera
-    }
+
 
     ToolBarLayout {
         id: commonTools

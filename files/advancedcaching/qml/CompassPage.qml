@@ -83,7 +83,8 @@ Page {
                 }
             }
 
-
+            /*
+              // Disabled due to some weird loading behavior
             Image {
                 source: "image://theme/icon-m-viewfinder-camera" + (theme.inverted ? "" : "-selected")
                 anchors.right: parent.right
@@ -94,7 +95,7 @@ Page {
                         showCamera();
                     }
                 }
-            }
+            }*/
         }
 
 
