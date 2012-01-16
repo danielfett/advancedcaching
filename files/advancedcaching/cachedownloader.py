@@ -395,6 +395,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
             elif section == 'token':
                 usertoken = line.replace("userToken = '", '').replace("';", '').strip()
                 break
+            elif section == 'after-hints' and line.startswith("<img src=\"/images/attributes"):
+                attribute_line = line
                 
         logger.debug('finished parsing, converting...')
         head = unicode(head, 'utf-8', errors='replace')
@@ -404,6 +406,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         waypoints = unicode(waypoints, 'utf-8', errors='replace')
         logs = unicode(logs, 'utf-8', errors='replace')
         images = unicode(images, 'utf-8', errors='replace')
+        attribute_line = unicode(attribute_line, 'utf-8', errors='replace')
         logger.debug('finished converting, reading...')
 
         coordinate.size, coordinate.difficulty, coordinate.terrain, coordinate.owner, coordinate.lat, coordinate.lon = self.__parse_head(head, coords)
@@ -412,6 +415,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         coordinate.hints = self.__treat_hints(hints)
         coordinate.set_waypoints(self.__treat_waypoints(waypoints))
         coordinate.set_logs(self._get_logs(usertoken, num_logs))
+        coordinate.attributes = self.__treat_attributes(attribute_line)
         self.__treat_images(images)
         coordinate.set_images(self.images)
         logger.debug('finished reading.')
@@ -465,7 +469,14 @@ class GeocachingComCacheDownloader(CacheDownloader):
         lon = float(coords.group(2))
         return size, diff, terr, owner, lat, lon
         
-        
+    def __treat_attributes(self, line):
+        finder = re.finditer('<img[^>]+?title="([^"]+?)"', line)
+        attributes = []
+        for m in finder:
+            if m.group(1) != "blank":
+                attributes += [m.group(1)]
+        logger.debug("Attributes are: %r" % attributes)
+        return ','.join(attributes)
     
     def __treat_hints(self, hints):
         hints = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(hints))).strip()
@@ -515,7 +526,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 id = ''.join(HTMLManipulations._strip_html(x).strip() for x in tds[4:6])
                 name = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(tds[6])).strip()
             
-                m = re.compile(ur'''(\?\?\?|(?P<lat_sign>N|S) (?P<lat_d>\d+)° (?P<lat_m>[0-9\.]+) (?P<lon_sign>E|W) (?P<lon_d>\d+)° (?P<lon_m>[0-9\.]+))''').search(tds[7])
+                m = re.compile(ur'''(\?\?\?|(?P<lat_sign>N|S) (?P<lat_d>\d+?)° (?P<lat_m>[0-9\.]+?) (?P<lon_sign>E|W) (?P<lon_d>\d+?)° (?P<lon_m>[0-9\.]+?))''').search(tds[7])
                 lat = self.__from_dm(m.group('lat_sign'), m.group('lat_d'), m.group('lat_m'))
                 lon = self.__from_dm(m.group('lon_sign'), m.group('lon_d'), m.group('lon_m'))
             else:

@@ -92,7 +92,7 @@ class GeocacheCoordinate(geo.Coordinate):
     ATTRS = ('lat', 'lon', 'title', 'name', 'shortdesc', 'desc', 'hints', 'type', \
              'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
              'images', 'notes', 'fieldnotes', 'logas', 'logdate', 'marked', \
-             'logs', 'status', 'vars', 'alter_lat', 'alter_lon', 'updated', 'user_coordinates')
+             'logs', 'status', 'vars', 'alter_lat', 'alter_lon', 'updated', 'user_coordinates', 'attributes')
 
 
     SQLROW = {
@@ -123,6 +123,7 @@ class GeocacheCoordinate(geo.Coordinate):
         'alter_lon': 'REAL',
         'updated' : 'INTEGER',
         'user_coordinates' : 'TEXT',
+        'attributes' : 'TEXT',
         }
     def __init__(self, lat, lon=None, name='', data=None):
         geo.Coordinate.__init__(self, lat, lon, name)
@@ -156,6 +157,7 @@ class GeocacheCoordinate(geo.Coordinate):
         self.alter_lon = 0
         self.updated = 0
         self.user_coordinates = ''
+        self.attributes = ''
 
     def clone(self):
         n = GeocacheCoordinate(self.lat, self.lon)
