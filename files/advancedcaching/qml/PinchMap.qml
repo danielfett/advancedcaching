@@ -5,8 +5,8 @@ import "functions.js" as F
 
 Rectangle {
     id: pinchmap;
-    property double centerLatitude: 0;
-    property double centerLongitude: 0;
+    //property double centerLatitude: 0;
+    //property double centerLongitude: 0;
     property int zoomLevel: 10;
     property int oldZoomLevel: 99
     property int maxZoomLevel: 17;
@@ -52,21 +52,13 @@ Rectangle {
         id: rot
     }
 
-    Component.onCompleted: {
-        setZoomLevel(zoomLevel);
-        setCenterLatLon(centerLatitude, centerLongitude);
-        updateGeocaches();
+
+    onWidthChanged: {
+        pinchmap.setCenterLatLon(pinchmap.latitude, pinchmap.longitude);
     }
 
-    onCenterLongitudeChanged: {
-        if (centerLatitude != null) {
-            setCenterLatLon(centerLatitude, centerLongitude);
-        }
-    }
-    onCenterLatitudeChanged: {
-        if (centerLongitude != null) {
-            setCenterLatLon(centerLatitude, centerLongitude);
-        }
+    onHeightChanged: {
+        pinchmap.setCenterLatLon(pinchmap.latitude, pinchmap.longitude);
     }
 
 

@@ -11,8 +11,7 @@ Page {
     orientationLock: PageOrientation.LockPortrait
 
     function showOnMap(lat, lon) {
-        pinchmap.centerLatitude = lat
-        pinchmap.centerLongitude = lon
+        pinchmap.setCenterLatLon(lat, lon);
         tabGroup.currentTab = tabMap
     }
 
@@ -21,26 +20,32 @@ Page {
         width: listPage.width
         height: listPage.height
         zoomLevel: 11
-        /*Component.onCompleted: {
-            centerLatitude = settings.mapPositionLat
-            centerLongitude = settings.mapPositionLon
-            zoomLevel = settings.mapZoom
-        }*/
+
         Connections {
             target: gps
             onLastGoodFixChanged: {
-                if (followPositionButton.checked) {
-                    pinchmap.centerLatitude = gps.lastGoodFix.lat
-                    pinchmap.centerLongitude = gps.lastGoodFix.lon
+                if (tabMap.status == PageStatus.Active) {
+                    if (followPositionButton.checked && ! updateTimer.running) {
+                        console.debug("Update from GPS position")
+                        pinchmap.setCenterLatLon(gps.lastGoodFix.lat, gps.lastGoodFix.lon);
+                        updateTimer.start();
+                    } else if (followPositionButton.checked) {
+                        console.debug("Update timer preventing another update.");
+                    }
                 }
             }
         }
         Connections {
             target: settings
-            
-            onMapPositionLatChanged: { pinchmap.centerLatitude = settings.mapPositionLat; console.debug("Lat restored") }
-            onMapPositionLonChanged: { pinchmap.centerLongitude = settings.mapPositionLon; console.debug("Lon restored") }
-            onMapZoomChanged: { pinchmap.zoomLevel = settings.mapZoom }
+            onSettingsChanged: {
+                pinchmap.setCenterLatLon(settings.mapPositionLat, settings.mapPositionLon); console.debug("Lat/Lon restored from settings: " + settings.mapPositionLat + " / " + settings.mapPositionLon);
+                pinchmap.setZoomLevel(settings.mapZoom); console.debug("Zoom restored from settings: " + settings.mapZoom);
+            }
+        }
+        Timer {
+            id: updateTimer
+            interval: 500
+            repeat: false
         }
 
         onLatitudeChanged: {
@@ -52,16 +57,7 @@ Page {
         onZoomLevelChanged: {
             settings.mapZoom = pinchmap.zoomLevel;
         }
-        
-        onWidthChanged: {
-            pinchmap.centerLatitude = pinchmap.latitude
-            pinchmap.centerLongitude = pinchmap.longitude
-        }
-        
-        onHeightChanged: {
-            pinchmap.centerLatitude = pinchmap.latitude
-            pinchmap.centerLongitude = pinchmap.longitude
-        }
+
 
         showTargetIndicator: gps.targetValid;
         showTargetAtLat: gps.target.lat || 0
@@ -161,8 +157,7 @@ Page {
             checkable: true
             onClicked: {
                 if (checked && gps.lastGoodFix) {
-                    pinchmap.centerLatitude = gps.lastGoodFix.lat
-                    pinchmap.centerLongitude = gps.lastGoodFix.lon
+                    pinchmap.setCenterLatLon(gps.lastGoodFix.lat, gps.lastGoodFix.lon);
                 }
             }
         }
@@ -221,8 +216,8 @@ Page {
                     controller.setTarget(c[0], c[1]);
                 }}
             MenuItem { text: "Go to Target"; visible: gps.targetValid; onClicked: {
-                    pinchmap.centerLatitude = gps.target.lat
-                    pinchmap.centerLongitude = gps.target.lon
+                    followPositionButton.checked = false;
+                    pinchmap.setCenterLatLon(gps.target.lat, gps.target.lon);
                 }}
             MenuItem { text: "Fetch Details for all in view"; onClicked: { pinchmap.requestUpdateDetails() } }
             MenuItem { text: "Reload Map"; onClicked: { pinchmap.populate(); } }
