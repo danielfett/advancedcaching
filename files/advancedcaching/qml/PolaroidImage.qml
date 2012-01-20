@@ -15,7 +15,7 @@ Rectangle {
     z: targetZ
     Image {
         id: image
-        y: borderWidth
+        y: borderWidth - (height - paintedHeight)/2
         x: borderWidth
         smooth: true
         z: targetZ + 1
@@ -30,13 +30,12 @@ Rectangle {
         wrapMode: Text.Wrap
         anchors.left: image.left
         anchors.right: image.right
-        anchors.top: image.bottom
-        anchors.topMargin: borderWidth
+        y: borderWidth + image.paintedHeight + borderWidth
         z: targetZ + 1
-        height: (text != "") ? null : -borderWidth
+        height: (text != "") ? paintedHeight : -borderWidth
     }
     
-    height: borderWidth + image.height + 2 * borderWidth + label.height
+    height: borderWidth + image.paintedHeight + 2 * borderWidth + label.height
     width: image.width + 2*borderWidth
 }
 
