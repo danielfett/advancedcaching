@@ -34,12 +34,26 @@ Page {
             anchors.right: parent.right
 
             spacing: 16
+
             Label {
                 font.pixelSize: 20
                 color: UI.COLOR_INFOLABEL
                 text: "geocaching.com user data"
             }
 
+            Label {
+                text: "Please make sure to set the <b>language</b> at geocaching.com to <b>english</b> and the date format to <b>01/20/2012</b>. You don't need a premium membership."
+                wrapMode: Text.Wrap
+                width: col1.width
+            }
+
+            Button {
+                text: "View profile settings"
+                onClicked: {
+                    Qt.openUrlExternally("http://www.geocaching.com/account/ManagePreferences.aspx");
+                }
+                anchors.right: parent.right
+            }
             TextField {
                 placeholderText: "username"
                 width: parent.width
@@ -208,6 +222,14 @@ Page {
                     }
                 }
             }
+
+
+            /*
+            Label {
+                font.pixelSize: 20
+                color: UI.COLOR_INFOLABEL
+                text: "About"
+            }*/
 
         }
     }
