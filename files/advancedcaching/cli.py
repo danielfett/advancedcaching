@@ -608,10 +608,8 @@ class Cli():
     def action_print (self):
         print "Found %d Caches:" % len(self.caches)
         for c in self.caches:
-            try:
-                print u"%s\t%s (%s)%s" % (c.name, c.title, c.type, ('*' if c.was_downloaded() else ''))
-            except UnicodeEncodeError, e:
-                print "error"
+            print (u"%s\t%s (%s)%s" % (c.name, c.title, c.type, ('*' if c.was_downloaded() else ''))).encode('utf-8')
+            
             
     def action_fetch_details(self):
         i = 1 
@@ -628,13 +626,10 @@ class Cli():
             i += 1
 
     def action_command(self, commandline):
-        import unicodedata
         if len(self.caches) == 0:
             print "* Not running command (no geocaches left)"
             return
-        list = " -- ".join(["%s (%s)" % (a.title, a.type) for a in self.caches])
-        if not isinstance(list, str):
-            list = unicodedata.normalize('NFKD', list).encode('ascii','ignore')
+        list = " -- ".join([("%s (%s)" % (a.title, a.type)).encode('utf-8') for a in self.caches])
         os.system(commandline % ('"%s"' % list.encode('string-escape')))
         
     def set_download_progress(self, some, thing):
