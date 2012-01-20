@@ -71,18 +71,35 @@ Page {
                 text: "Map Type"
             }
 
-            Flow {
+            Grid {
+                spacing: 8
+                columns: 3
                 Repeater {
                     model: settings.mapTypes || emptyList
                     delegate: Rectangle {
                         //text: model.maptype.url
                         Image {
+                            id: mapTile
                             source: F.getMapTile(model.maptype.url, 8811, 5378, 14);
                             width: 128;
                             height: 128;
                             anchors.centerIn: parent
                             fillMode: Image.Tile
                         }
+
+                        Label {
+                            anchors.left: mapTile.left
+                            anchors.leftMargin: 4
+                            anchors.bottom: mapTile.bottom
+                            anchors.bottomMargin: 4
+                            anchors.right: mapTile.right
+                            elide: Text.ElideMiddle
+                            text: model.maptype.name
+                            maximumLineCount: 2
+                            wrapMode: Text.Wrap
+
+                        }
+
                         width: 132;
                         height: 132;
                         color: (model.maptype == settings.currentMapType) ? 'red' : 'grey'
