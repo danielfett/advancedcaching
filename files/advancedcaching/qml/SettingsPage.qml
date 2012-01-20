@@ -28,7 +28,6 @@ Page {
         contentWidth: width
         clip: true
 
-
         Column {
             id: col1
             anchors.left: parent.left
@@ -121,27 +120,6 @@ Page {
                 color: UI.COLOR_INFOLABEL
                 text: "Map View"
             }
-            /*
-            Item {
-                anchors.left: parent.left
-                anchors.right: parent.right
-                height: 60
-                Label {
-                    text: "Map Rotation (BETA)"
-                    font.weight: Font.Bold
-                    font.pixelSize: 26
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-
-                Switch {
-                    anchors.right: parent.right
-                    onCheckedChanged: {
-                        settings.optionsMapRotation = checked
-                    }
-                    checked: settings.optionsMapRotation
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-            }*/
 
             Item {
                 anchors.left: parent.left
