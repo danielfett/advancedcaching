@@ -608,13 +608,16 @@ class Cli():
     def action_print (self):
         print "Found %d Caches:" % len(self.caches)
         for c in self.caches:
-            print "%s\t%s (%s)" % (c.name, c.title, c.type)
+            try:
+                print u"%s\t%s (%s)%s" % (c.name, c.title, c.type, ('*' if c.was_downloaded() else ''))
+            except UnicodeEncodeError, e:
+                print "error"
             
     def action_fetch_details(self):
         i = 1 
         for c in self.caches:
             print "* (%d of %d)\tDownloading '%s'" % (i, len(self.caches), c.title)
-            self.core.on_download_cache(c, sync=True)
+            self.core.on_download_cache_complete(None, self.core.on_download_cache(c, sync=True))
             i += 1
     
     def action_export(self, format, folder):
