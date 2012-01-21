@@ -17,7 +17,7 @@ Rectangle {
     radius: 7
     visible: ! (settings.optionsHideFound && cache.found)
     Image {
-        source: (cache.status == 0) ? "../data/cross.svg" : "../data/mark.png";
+        source: (cache.status == 0) ? "../data/mark.png" : "../data/cross.png";
         anchors.centerIn: parent
         visible: ! drawSimple
     }
