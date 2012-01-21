@@ -42,8 +42,8 @@ d = lambda x: x#.decode('utf-8', 'replace')
 
 class Controller(QtCore.QObject):
 
-    changed = QtCore.Signal()
     progressChanged = QtCore.Signal()
+    versionChanged = QtCore.Signal()
     marksChanged = QtCore.Signal()
     
     MAX_POINTS = 200
@@ -88,9 +88,6 @@ class Controller(QtCore.QObject):
 
     # Handle gobject signal from Core
     def _show_progress(self, caller, progress, message):
-        #logger.debug("Show Progress")
-        #self.view.rootObject().showProgress(progress, str(message))
-        #logger.debug("Showed Progress")
         self._progress_visible = True
         self._progress = float(progress)
         self._progress_message = str(message)
@@ -108,8 +105,6 @@ class Controller(QtCore.QObject):
                 self.geocacheSelected(GeocacheWrapper(c, self.core))
         if 'last_target_lat' in settings and 'last_target_lon' in settings:
             self.setTarget(settings['last_target_lat'], settings['last_target_lon'])
-        #if 'last_target_lat' in settings:
-        #    self.setTarget(settings['last_target_lat'], settings['last_target_lon'])
 
 
     @QtCore.Slot(QtCore.QObject)
@@ -120,16 +115,14 @@ class Controller(QtCore.QObject):
     def geocacheSelected(self, wrapper):
         self.current_cache = wrapper
         self.view.rootObject().setCurrentGeocache(wrapper)
-        #self.updateSetting('last_selected_geocache', wrapper._name())
 
         
     @QtCore.Slot(QtCore.QObject, float, float, float, float, result=bool)
     def getGeocaches(self, map, lat_start, lon_start, lat_end, lon_end):
-        #logger.debug("Map view changed to %r-%r, %r-%r." % (lat_start, lon_start, lat_end, lon_end))
         if self.view.rootObject() == None:
             return False
         
-        points = self.core.pointprovider.get_points(geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end), self.MAX_POINTS + 1) #[0:100]
+        points = self.core.pointprovider.get_points(geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end), self.MAX_POINTS + 1)
         
         if len(points) > self.MAX_POINTS:
             self._geocache_list = GeocacheListModel(self.core, [])
@@ -137,7 +130,6 @@ class Controller(QtCore.QObject):
         else:
             self._geocache_list = GeocacheListModel(self.core, points) 
             toomany = False
-        #self._geocache_lists[id] = (n, toomany)
         self.view.rootObject().setGeocacheList(map, self._geocache_list)
         return toomany
 
@@ -151,7 +143,6 @@ class Controller(QtCore.QObject):
 
     @QtCore.Slot(float, float)
     def setTarget(self, lat, lon):
-        #self.settings['last_target_lat'], self.settings['last_target_lon'] = lat, lon
         logger.debug("Setting target to %f, %f" % (lat, lon))
         self.core.set_target(geo.Coordinate(lat, lon))
 
@@ -164,7 +155,6 @@ class Controller(QtCore.QObject):
         else:
             logger.debug("Setting Target to None")
             c = None
-        #self.settings['last_target_lat'], self.settings['last_target_lon'] = c.lat, c.lon
         self.core.set_target(c)
 
     @QtCore.Slot(bool, float, float, bool, float, bool, float, float, QtCore.QObject)
@@ -236,10 +226,35 @@ class Controller(QtCore.QObject):
 
     def _progress_message(self):
         return self._progress_message
+        
+    def _core_version(self):
+        return self.core.VERSION
+        
+    def _parser_version(self):
+        import cachedownloader
+        return cachedownloader.VERSION
+        
+    def _parser_date(self):
+        import cachedownloader
+        return cachedownloader.VERSION_DATE
+        
+    @QtCore.Slot()
+    def tryParserUpdate(self):
+        updates = self.core.try_update()
+        if updates not in [None, False]:
+            self._show_message(self, "%d modules upgraded. There's no need to restart AGTL." % updates)
+            self.versionChanged.emit();
+        else:
+            self._show_message(self, "No updates available. Please try again in a few days.")
 
     progress = QtCore.Property(float, _progress, notify=progressChanged)
     progressVisible = QtCore.Property(bool, _progress_visible, notify=progressChanged)
     progressMessage = QtCore.Property(str, _progress_message, notify=progressChanged)
+    
+    coreVersion = QtCore.Property(str, _core_version, notify=versionChanged)
+    parserVersion = QtCore.Property(int, _parser_version, notify=versionChanged)
+    parserDate = QtCore.Property(str, _parser_date, notify=versionChanged)
+    
     
 class CalcEditWrapper(QtCore.QObject):
     ADD_CALC_STRING = 0
@@ -775,6 +790,7 @@ class SettingsWrapper(QtCore.QObject):
     optionsShowPositionError = createSetting('options_show_position_error', bool, settingsChanged)
     optionsNightViewMode = createSetting('options_night_view_mode', int, settingsChanged)
     downloadNumLogs = createSetting('download_num_logs', int, settingsChanged)
+    optionsAutoUpdate = createSetting('options_auto_update', bool, settingsChanged)
 
     currentMapType = QtCore.Property(QtCore.QObject, _get_current_map_type, _set_current_map_type, notify=settingsChanged)
     mapTypes = QtCore.Property(QtCore.QObject, _map_types, notify=settingsChanged)

@@ -42,6 +42,13 @@ Page {
                 pinchmap.setZoomLevel(settings.mapZoom); console.debug("Zoom restored from settings: " + settings.mapZoom);
             }
         }
+        Connections {
+            target: controller
+            onMarksChanged: {
+                pinchmap.updateGeocaches();
+            }
+        }
+
         Timer {
             id: updateTimer
             interval: 500

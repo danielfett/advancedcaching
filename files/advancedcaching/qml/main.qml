@@ -26,9 +26,11 @@ PageStackWindow {
         target: controller
         onProgressChanged: {
             if (controller.progressVisible) {
+                progressBanner.visible = true;
                 progressBanner.show()
             } else {
                 progressBanner.hide()
+                progressBanner.visible = false;
             }
         }
     }

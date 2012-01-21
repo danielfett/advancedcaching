@@ -156,6 +156,7 @@ class Core(gobject.GObject):
         gobject.GObject.__init__(self)
         self.current_target = None
         self.current_position = None
+        self.auto_update_checked = False
         self.create_recursive(self.SETTINGS_DIR)
 
         self.dataroot = path.join(root, 'data')
@@ -362,7 +363,8 @@ class Core(gobject.GObject):
                         pass
         except Exception, e:
             if sync:
-                raise e
+                self.emit('error', e)
+                return None
             def same_thread(error):
                 logging.exception(e)
                 self.emit('hide-progress')
@@ -405,8 +407,10 @@ class Core(gobject.GObject):
         logger.debug("Settings where changed by %s." % source)
         if source == self:
             return
-        if 'options_username' in settings and 'options_password' in settings:
-            self.downloader.update_userdata(settings['options_username'], settings['options_password'])
+        if 'options_username' in settings:
+            self.downloader.update_userdata(username = settings['options_username'])
+        if 'options_password' in settings:
+            self.downloader.update_userdata(password = settings['options_password'])
 
     '''
     This is called when settings shall be saved, calling save_settings afterwards.
@@ -636,8 +640,16 @@ class Core(gobject.GObject):
     #
     ##############################################
 
+    def _check_auto_update(self):
+        if 'options_auto_update' in self.settings and self.settings['options_auto_update'] and not self.auto_update_checked:
+            updates = self.try_update(silent = True, sync = True)
+            if updates not in [None, False]:
+                logger.info("Parser update installed.")
+        self.auto_update_checked = True
+
     # called by gui
     def on_download(self, location, sync=False):
+        self._check_auto_update()
         self.emit('progress', 0.5, "Downloading...")
         cd = cachedownloader.GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
@@ -662,6 +674,7 @@ class Core(gobject.GObject):
             point_new = self.pointprovider.add_point(c)
             if point_new:
                 new_caches.append(c)
+        self.pointprovider.save()
         self.emit('hide-progress')
         self.emit('map-marks-changed')
         if sync:
@@ -689,7 +702,7 @@ class Core(gobject.GObject):
 
     # called by gui
     def on_download_cache(self, cache, sync=False):
-        #
+        self._check_auto_update()
         self.emit('progress', 0.5, "Downloading %s..." % cache.name)
 
         cd = cachedownloader.GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
@@ -721,7 +734,7 @@ class Core(gobject.GObject):
 
     # called by gui
     def on_download_descriptions(self, location, visibleonly=False):
-
+        self._check_auto_update()
         #exporter = geocaching.HTMLExporter(self.downloader, self.settings['download_output_dir'])
 
         self.pointprovider.push_filter()
@@ -751,6 +764,7 @@ class Core(gobject.GObject):
 
 
     def update_coordinates(self, caches):
+        self._check_auto_update()
         cd = cachedownloader.GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
         cd.connect("already-downloading-error", self.on_already_downloading_error)
@@ -774,6 +788,7 @@ class Core(gobject.GObject):
 
     # called on signal by downloading thread
     def on_download_descriptions_complete(self, something, caches):
+        self._check_auto_update()
         for c in caches:
             self.pointprovider.add_point(c, True)
         self.pointprovider.save()

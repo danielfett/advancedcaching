@@ -39,16 +39,18 @@ class FileDownloader():
         self.opener_installed = False
         self.login_callback = login_callback
 
-    def update_userdata(self, username, password):
+    def update_userdata(self, username = None, password = None):
         from os import path, remove
-        self.username = username
-        self.password = password
+        if username != None:
+            self.username = username
+        if password != None:
+            self.password = password
         self.logged_in = False
         if path.exists(self.cookiefile):
             try:
                 remove(self.cookiefile)
             except:
-                logger.info("Could not remove cookie file?!")
+                logger.error("Could not remove cookie file?!")
                 pass
 
 

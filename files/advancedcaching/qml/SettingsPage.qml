@@ -81,6 +81,48 @@ Page {
             Label {
                 font.pixelSize: 20
                 color: UI.COLOR_INFOLABEL
+                text: "Website Parser"
+            }
+
+            Label {
+                text: "You are using version " + controller.parserVersion + " from " + controller.parserDate + ". Update parser if you've troubles downloading geocaches. Use Ovi Store for regular updates."
+                wrapMode: Text.Wrap
+                width: col1.width
+            }
+
+            Item {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 60
+                Label {
+                    text: "Auto Update"
+                    font.weight: Font.Bold
+                    font.pixelSize: 26
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Switch {
+                    anchors.right: parent.right
+                    onCheckedChanged: {
+                        settings.optionsAutoUpdate = checked
+                    }
+                    checked: settings.optionsAutoUpdate
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+
+
+            Button {
+                text: "Check for Updates"
+                onClicked: {
+                    controller.tryParserUpdate();
+                }
+                anchors.right: parent.right
+            }
+
+            Label {
+                font.pixelSize: 20
+                color: UI.COLOR_INFOLABEL
                 text: "Map Type"
             }
 
