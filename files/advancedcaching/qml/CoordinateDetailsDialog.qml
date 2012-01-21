@@ -13,6 +13,7 @@ Sheet {
     onCoordinateChanged: {
         if (coordinate.valid) {
             map.visible = true;
+            map.setCenterLatLon(coordinate.lat, coordinate.lon);
         } else {
             map.visible = false;
         }
@@ -35,7 +36,7 @@ Sheet {
                 color: UI.COLOR_DIALOG_TEXT
                 wrapMode: Text.WordWrap
                 font.pixelSize: UI.FONT_DEFAULT
-                visible: showDescription.coordinate.valid || false
+                visible: showDescription.coordinate && showDescription.coordinate.valid
             }/*
             Label {
                 text: showDescription.coordinate.display_text || "undefined"
@@ -58,8 +59,6 @@ Sheet {
                 width: 400//showDescription.width
                 height: 300
                 clip: true
-                centerLatitude: coordinate.lat || 0
-                centerLongitude: coordinate.lon || 0
                 showTargetIndicator: true
                 showTargetAtLat: coordinate.lat || 0
                 showTargetAtLon: coordinate.lon || 0

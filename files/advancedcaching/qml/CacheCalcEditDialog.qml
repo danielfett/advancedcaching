@@ -49,11 +49,15 @@ Sheet {
             warning.text = '';
             coordinate = manager.beforeCoordinate
             isKnown = true;
+            map.setCenterLatLon(coordinate.lat, coordinate.lon);
         } else {
             textCalc.text = manager.beforeCalc
             // 2 == USER_TYPE_CALC_STRING_OVERRIDE
             warning.text = (manager.ctype == 2) ? "If you make changes here, this will replace the calculation which was found in the listing." : ""
             isKnown = (coordinate != null && coordinate.hasRequires);
+            if (isKnown) {
+                map.setCenterLatLon(coordinate.result.lat, coordinate.result.lon);
+            }
         }
     }
 
@@ -159,8 +163,6 @@ Sheet {
                     width: 400//showDescription.width
                     height: 300
                     clip: true
-                    centerLatitude: isCoordinate ? coordinate.lat : (coordinate.hasRequires ? coordinate.result.lat : 0)
-                    centerLongitude: isCoordinate ? coordinate.lat : (coordinate.hasRequires ? coordinate.result.lon : 0)
                     showTargetIndicator: true
                     showTargetAtLat: isCoordinate ? coordinate.lat : (coordinate.hasRequires ? coordinate.result.lat : 0)
                     showTargetAtLon: isCoordinate ? coordinate.lat : (coordinate.hasRequires ? coordinate.result.lon : 0)
