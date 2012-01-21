@@ -104,7 +104,9 @@ Page {
                 Switch {
                     anchors.right: parent.right
                     onCheckedChanged: {
-                        settings.optionsAutoUpdate = checked
+                        if (checked != settings.optionsAutoUpdate) {
+                            settings.optionsAutoUpdate = checked;
+                        }
                     }
                     checked: settings.optionsAutoUpdate
                     anchors.verticalCenter: parent.verticalCenter
@@ -191,7 +193,9 @@ Page {
                 Switch {
                     anchors.right: parent.right
                     onCheckedChanged: {
-                        settings.optionsNightViewMode = checked ? 1 : 0
+                        if ((checked ? 1 : 0) != settings.optionsNightViewMode) {
+                            settings.optionsNightViewMode = checked ? 1 : 0;
+                        }
                     }
                     checked: settings.optionsNightViewMode == 1
                     anchors.verticalCenter: parent.verticalCenter
@@ -260,18 +264,64 @@ Page {
 
                     text: settings.downloadNumLogs
                     onTextChanged: {
-                        settings.downloadNumLogs = parseInt(text)
+                        if (parseInt(text) != settings.downloadNumLogs) {
+                            settings.downloadNumLogs = parseInt(text);
+                        }
                     }
                 }
             }
 
-
-            /*
             Label {
                 font.pixelSize: 20
                 color: UI.COLOR_INFOLABEL
                 text: "About"
-            }*/
+            }
+
+            Button {
+                text: "Open Website"
+                onClicked: {
+                    Qt.openUrlExternally("http://www.danielfett.de/privat,blog,tag?tag=agtl");
+                }
+                anchors.right: parent.right
+            }
+
+
+            Label {
+                font.pixelSize: 20
+                wrapMode: Text.Wrap
+                width: col1.width
+                text: "<b>This is AGTL version " + controller.coreVersion + " for Nokia N9.</b><br>Copyright (C) in most parts 2012 Daniel Fett<br>This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br>This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.<br>You should have received a copy of the GNU General Public License along with this program.  If not, see http://www.gnu.org/licenses/.<br><br>Author: Daniel Fett advancedcaching@fragcom.de"
+            }
+
+
+            Item {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 60
+                Label {
+                    text: "Send Debug Log to Author"
+                    font.weight: Font.Bold
+                    font.pixelSize: 26
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Switch {
+                    anchors.right: parent.right
+                    onCheckedChanged: {
+                        settings.debugLogToHTTP = checked
+                    }
+                    checked: settings.debugLogToHTTP
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+
+
+            Label {
+                font.pixelSize: 20
+                wrapMode: Text.Wrap
+                width: col1.width
+                text: "This settings takes effect after restarting AGTL. Personal data may be transferred in the log messages."
+            }
 
         }
     }

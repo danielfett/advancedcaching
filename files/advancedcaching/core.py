@@ -26,7 +26,7 @@ VERSION = "0.8.0.7"
    
 import logging
 logging.basicConfig(level=logging.WARNING,
-                    format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s',
+                    format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s // %(filename)s:%(lineno)s',
                     )
 
 from geo import Coordinate
@@ -149,7 +149,8 @@ class Core(gobject.GObject):
         'options_default_log_text' : 'TFTC!\n\nLogged at %X from my %(machine)s using AGTL.',
         'options_auto_update': True,
         'download_num_logs': 20,
-        'options_night_view_mode': 0
+        'options_night_view_mode': 0,
+        'debug_log_to_http': False
     }
             
     def __init__(self, guitype, root):
@@ -184,6 +185,12 @@ class Core(gobject.GObject):
         self.emit('settings-changed', self.settings, self)
         self.emit('fieldnotes-changed')  
  
+        if 'debug_log_to_http' in self.settings and self.settings['debug_log_to_http']:
+            http_handler = logging.handlers.HTTPHandler("danielfett.de", "http://www.danielfett.de/files/collect.php")
+            buffering_handler = logging.handlers.MemoryHandler(100, target = http_handler)
+            logging.getLogger('').addHandler(buffering_handler)
+            logging.getLogger('').setLevel(logging.DEBUG)
+            logging.debug("Remote logging activated!")
 
         if '--sim' in argv:
             self.gps_thread = gpsreader.FakeGpsReader(self)

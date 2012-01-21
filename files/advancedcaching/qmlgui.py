@@ -228,7 +228,8 @@ class Controller(QtCore.QObject):
         return self._progress_message
         
     def _core_version(self):
-        return self.core.VERSION
+        import core
+        return core.VERSION
         
     def _parser_version(self):
         import cachedownloader
@@ -791,6 +792,7 @@ class SettingsWrapper(QtCore.QObject):
     optionsNightViewMode = createSetting('options_night_view_mode', int, settingsChanged)
     downloadNumLogs = createSetting('download_num_logs', int, settingsChanged)
     optionsAutoUpdate = createSetting('options_auto_update', bool, settingsChanged)
+    debugLogToHTTP = createSetting('debug_log_to_http', bool, settingsChanged)
 
     currentMapType = QtCore.Property(QtCore.QObject, _get_current_map_type, _set_current_map_type, notify=settingsChanged)
     mapTypes = QtCore.Property(QtCore.QObject, _map_types, notify=settingsChanged)
