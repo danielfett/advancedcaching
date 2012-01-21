@@ -57,13 +57,13 @@ Page {
             Label {
                 font.pixelSize: 20
                 color: UI.COLOR_INFOLABEL
-                text: "Drag down for hints"
+                text: currentGeocache.hints ? "Drag for hints" : "No Hint"
                 id: label
             }
             
             Label {
                 id: hints
-                text: currentGeocache.hints || "No Hint"
+                text: currentGeocache.hints || "Really no Hint"
                 anchors.left: parent.left
                 anchors.right: parent.right
                 wrapMode: Text.Wrap
