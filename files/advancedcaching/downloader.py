@@ -112,7 +112,6 @@ class FileDownloader():
 
 
     def get_reader(self, url, values=None, data=None, login = True):
-        logger.debug("Sending request to %s" % url)
         if connection.offline:
             raise Exception("Can't connect in offline mode.")
         from urllib import urlencode
@@ -120,6 +119,7 @@ class FileDownloader():
         if login and not self.logged_in:
             self.login()
 
+        logger.info("Sending request to %s" % url)
         if values == None and data == None:
             req = Request(url)
             self.add_headers(req)
@@ -148,6 +148,7 @@ class FileDownloader():
         else:
             logger.debug("Got unencoded answer")
             return resp
+            
     def encode_multipart_formdata(self, fields, files):
         """
         fields is a sequence of (name, value) elements for regular form fields.

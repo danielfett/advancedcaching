@@ -339,65 +339,66 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
                 
     def _parse_cache_page(self, cache_page, coordinate, num_logs):
-        section = ''
         prev_section = ''
         shortdesc = desc = coords = hints = waypoints = images = logs = owner = head = attribute_line = warning_line = ''
         logger.debug("Start parsing...")
+        S_NONE, S_HEAD, S_AFTER_HEAD, S_SHORTDESC, S_DESC, S_AFTER_DESC, S_HINTS, S_AFTER_HINTS, S_PRE_WAYPOINTS, S_WAYPOINTS, S_AFTER_WAYPOINTS, S_IMAGES, S_AFTER_IMAGES, S_TOKEN = range(14)
+        section = S_NONE
         for line in cache_page:
             line = line.strip()
             
-            if section == '' and line.startswith('<meta name="og:site_name" '):
-                section = 'head'
-            elif section == 'head' and line.startswith('<form name="aspnetForm"'):
-                section = 'after-head'
-            elif section == 'after-head' and line.startswith('<p class="OldWarning NoBottomSpacing">'):
+            if section == S_NONE and line.startswith('<meta name="og:site_name" '):
+                section = S_HEAD
+            elif section == S_HEAD and line.startswith('<form name="aspnetForm"'):
+                section = S_AFTER_HEAD
+            elif section == S_AFTER_HEAD and warning_line == '' and line.startswith('<p class="OldWarning NoBottomSpacing">'):
                 warning_line = line
-            elif section == 'after-head' and line.startswith('<a id="ctl00_ContentBody_lnkConversions"'):
+            elif section == S_AFTER_HEAD and line.startswith('<a id="ctl00_ContentBody_lnkConversions"'):
                 coords = line
-            elif section == 'after-head' and line.startswith('<span id="ctl00_ContentBody_ShortDescription">'):
-                section = 'shortdesc'
-            elif (section == 'after-head' or section == 'shortdesc') and line.startswith('<span id="ctl00_ContentBody_LongDescription">'):
-                section = 'desc'
-            elif (section == 'desc' or section == 'shortdesc') and line.startswith('Additional Hints'):
-                section = 'after-desc'
-            elif section == 'after-desc' and line.startswith('<div id="div_hint"'):
-                section = 'hints'
-            elif section == 'hints' and line.startswith("<div id='dk'"):
-                section = 'after-hints'
-            elif (section == 'after-hints' or section == 'after-desc') and line.startswith('<div class="CacheDetailNavigationWidget">'):
-                section = 'pre-waypoints'
-            elif section == 'pre-waypoints' and line.startswith('<table class="Table" id="ctl00_ContentBody_Waypoints">'):
-                section = 'waypoints'
-            elif section == 'waypoints' and line.startswith('</tbody> </table>'):
+            elif section == S_AFTER_HEAD and line.startswith('<span id="ctl00_ContentBody_ShortDescription">'):
+                section = S_SHORTDESC
+            elif (section == S_AFTER_HEAD or section == S_SHORTDESC) and line.startswith('<span id="ctl00_ContentBody_LongDescription">'):
+                section = S_DESC
+            elif (section == S_DESC or section == S_SHORTDESC) and line.startswith('Additional Hints'):
+                section = S_AFTER_DESC
+            elif section == S_AFTER_DESC and line.startswith('<div id="div_hint"'):
+                section = S_HINTS
+            elif section == S_HINTS and line.startswith("<div id='dk'"):
+                section = S_AFTER_HINTS
+            elif (section == S_AFTER_HINTS or section == S_AFTER_DESC) and line.startswith('<div class="CacheDetailNavigationWidget">'):
+                section = S_PRE_WAYPOINTS
+            elif section == S_PRE_WAYPOINTS and line.startswith('<table class="Table" id="ctl00_ContentBody_Waypoints">'):
+                section = S_WAYPOINTS
+            elif section == S_WAYPOINTS and line.startswith('</tbody> </table>'):
                 section = 'after-waypoints'
-            elif (section == 'pre-waypoints' or section == 'after-waypoints') and line.startswith('<span id="ctl00_ContentBody_MapLinks_MapLinks">'):
-                section = 'images'
-            elif section == 'images' and line.startswith('<div class="InformationWidget'):
-                section = 'after-images'            
-            elif section == 'after-images' and line.startswith('userToken = '):
-                section = 'token'
+            elif (section == S_PRE_WAYPOINTS or section == 'after-waypoints') and line.startswith('<span id="ctl00_ContentBody_MapLinks_MapLinks">'):
+                section = S_IMAGES
+            elif section == S_IMAGES and line.startswith('<div class="InformationWidget'):
+                section = S_AFTER_IMAGES            
+            elif section == S_AFTER_IMAGES and line.startswith('userToken = '):
+                section = S_TOKEN
                 
 
             if section != prev_section:
                 logger.debug("Now in Section '%s', with line %s" % (section, line[:20:]))
             prev_section = section
 
-            if section == 'head':
+            if section == S_HEAD:
                 head = "%s%s\n" % (head, line)
-            elif section == 'shortdesc':
+            elif section == S_SHORTDESC:
                 shortdesc = "%s%s\n" % (shortdesc, line)
-            elif section == 'desc':
+            elif section == S_DESC:
                 desc = "%s%s\n" % (desc, line)
-            elif section == 'hints':
+            elif section == S_HINTS:
                 hints = "%s%s " % (hints, line)
-            elif section == 'waypoints':
+            elif section == S_WAYPOINTS:
                 waypoints = "%s%s  " % (waypoints, line)
-            elif section == 'images':
+            elif section == S_IMAGES:
                 images = "%s%s " % (images, line)
-            elif section == 'token':
+            elif section == S_TOKEN:
                 usertoken = line.replace("userToken = '", '').replace("';", '').strip()
                 break
-            elif section == 'after-hints' and line.startswith("<img src=\"/images/attributes"):
+            elif section == S_AFTER_HINTS and line.startswith("<img src=\"/images/attributes"):
                 attribute_line = line
                 
         logger.debug('finished parsing, converting...')
