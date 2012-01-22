@@ -341,7 +341,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     def _parse_cache_page(self, cache_page, coordinate, num_logs):
         section = ''
         prev_section = ''
-        shortdesc = desc = coords = hints = waypoints = images = logs = owner = head = attribute_line = ''
+        shortdesc = desc = coords = hints = waypoints = images = logs = owner = head = attribute_line = warning_line = ''
         logger.debug("Start parsing...")
         for line in cache_page:
             line = line.strip()
@@ -350,6 +350,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 section = 'head'
             elif section == 'head' and line.startswith('<form name="aspnetForm"'):
                 section = 'after-head'
+            elif section == 'after-head' and line.startswith('<p class="OldWarning NoBottomSpacing">'):
+                warning_line = line
             elif section == 'after-head' and line.startswith('<a id="ctl00_ContentBody_lnkConversions"'):
                 coords = line
             elif section == 'after-head' and line.startswith('<span id="ctl00_ContentBody_ShortDescription">'):
@@ -408,7 +410,16 @@ class GeocachingComCacheDownloader(CacheDownloader):
         images = unicode(images, 'utf-8', errors='replace')
         attribute_line = unicode(attribute_line, 'utf-8', errors='replace')
         logger.debug('finished converting, reading...')
-
+        if 'archived' in warning_line:
+            coordinate.status = geocaching.GeocacheCoordinate.STATUS_ARCHIVED
+            logger.debug("Cache status is ARCHIVED")
+        elif 'temporarily unavailable' in warning_line:
+            coordinate.status = geocaching.GeocacheCoordinate.STATUS_DISABLED
+            logger.debug("Cache status is DISABLED")
+        else:
+            # Do not change existing status - it may be more accurate.
+            pass
+            
         coordinate.size, coordinate.difficulty, coordinate.terrain, coordinate.owner, coordinate.lat, coordinate.lon = self.__parse_head(head, coords)
         coordinate.shortdesc = self.__treat_shortdesc(shortdesc)
         coordinate.desc = self.__treat_desc(desc)

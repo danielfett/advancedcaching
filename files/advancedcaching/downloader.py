@@ -26,7 +26,7 @@ logger = logging.getLogger('downloader')
 import connection
 
 class FileDownloader():
-    USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; U; Linux i686; de; rv:1.9.0.12) Gecko/2009070811  Windows NT Firefox/3.1'
+    USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.15 (KHTML, like Gecko) Ubuntu/11.10 Chromium/18.0.997.0 Chrome/18.0.997.0 Safari/535.15'
     opener_installed = False
 
     def __init__(self, username, password, cookiefile, login_callback):

@@ -929,6 +929,8 @@ class GeocacheWrapper(QtCore.QObject):
         if geocache.name not in GeocacheWrapper.GEOCACHE_CACHE:
             logger.debug("Not in cache: %s" % geocache.name)
             GeocacheWrapper.GEOCACHE_CACHE[geocache.name] = GeocacheWrapper(geocache, core)
+        else:
+            GeocacheWrapper.GEOCACHE_CACHE[geocache.name].update(geocache)
         return GeocacheWrapper.GEOCACHE_CACHE[geocache.name]
 
     def update(self, geocache):

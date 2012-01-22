@@ -60,7 +60,7 @@ class GeocacheCoordinate(geo.Coordinate):
     STATUS_NORMAL = 0
     STATUS_DISABLED = 1
     STATUS_ARCHIVED = 2
-    STATUS_TEXT = ['normal', 'not available!']
+    STATUS_TEXT = ['normal', 'not available!', 'archived']
 
     LOG_TYPE_FOUND = 'smile'
     LOG_TYPE_NOTFOUND = 'sad'
