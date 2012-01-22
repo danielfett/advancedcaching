@@ -1,6 +1,7 @@
 import QtQuick 1.0
 import com.nokia.meego 1.0
 import "uiconstants.js" as UI
+import "functions.js" as F
 
 Page {
     tools: commonTools
@@ -165,6 +166,15 @@ Page {
 
         MenuLayout {
             MenuItem { text: "Settings"; onClicked: { showSettings(); } }
+        }
+
+        MenuLayout {
+            MenuItem { text: "Share Find on Twitter"; onClicked: {
+                    var title = currentGeocache.title.trunc(90, true);
+                    var text = encodeURIComponent("I just found the #Geocache '" + title + "' #agtl #n9");
+                    var url = encodeURIComponent(currentGeocache.url);
+                    Qt.openUrlExternally("https://twitter.com/share?url=" + url + "&text=" + text);
+                } }
         }
     }
 }
