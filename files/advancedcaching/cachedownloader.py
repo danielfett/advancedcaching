@@ -347,36 +347,50 @@ class GeocachingComCacheDownloader(CacheDownloader):
         for line in cache_page:
             line = line.strip()
             
-            if section == S_NONE and line.startswith('<meta name="og:site_name" '):
-                section = S_HEAD
-            elif section == S_HEAD and line.startswith('<form name="aspnetForm"'):
-                section = S_AFTER_HEAD
-            elif section == S_AFTER_HEAD and warning_line == '' and line.startswith('<p class="OldWarning NoBottomSpacing">'):
-                warning_line = line
-            elif section == S_AFTER_HEAD and line.startswith('<a id="ctl00_ContentBody_lnkConversions"'):
-                coords = line
-            elif section == S_AFTER_HEAD and line.startswith('<span id="ctl00_ContentBody_ShortDescription">'):
-                section = S_SHORTDESC
-            elif (section == S_AFTER_HEAD or section == S_SHORTDESC) and line.startswith('<span id="ctl00_ContentBody_LongDescription">'):
-                section = S_DESC
-            elif (section == S_DESC or section == S_SHORTDESC) and line.startswith('Additional Hints'):
-                section = S_AFTER_DESC
-            elif section == S_AFTER_DESC and line.startswith('<div id="div_hint"'):
-                section = S_HINTS
-            elif section == S_HINTS and line.startswith("<div id='dk'"):
-                section = S_AFTER_HINTS
-            elif (section == S_AFTER_HINTS or section == S_AFTER_DESC) and line.startswith('<div class="CacheDetailNavigationWidget">'):
-                section = S_PRE_WAYPOINTS
-            elif section == S_PRE_WAYPOINTS and line.startswith('<table class="Table" id="ctl00_ContentBody_Waypoints">'):
-                section = S_WAYPOINTS
-            elif section == S_WAYPOINTS and line.startswith('</tbody> </table>'):
-                section = 'after-waypoints'
-            elif (section == S_PRE_WAYPOINTS or section == 'after-waypoints') and line.startswith('<span id="ctl00_ContentBody_MapLinks_MapLinks">'):
-                section = S_IMAGES
-            elif section == S_IMAGES and line.startswith('<div class="InformationWidget'):
-                section = S_AFTER_IMAGES            
-            elif section == S_AFTER_IMAGES and line.startswith('userToken = '):
-                section = S_TOKEN
+            if section == S_NONE: 
+                if line.startswith('<meta name="og:site_name" '):
+                    section = S_HEAD
+            elif section == S_HEAD:
+                if line.startswith('<form name="aspnetForm"'):
+                    section = S_AFTER_HEAD
+            elif section == S_AFTER_HEAD:
+                if line.startswith('<span id="ctl00_ContentBody_ShortDescription">'):
+                    section = S_SHORTDESC
+                elif line.startswith('<span id="ctl00_ContentBody_LongDescription">'):
+                    section = S_DESC
+            elif section == S_SHORTDESC:
+                if line.startswith('<span id="ctl00_ContentBody_LongDescription">'):
+                    section = S_DESC
+                elif line.startswith('Additional Hints'):
+                    section = S_AFTER_DESC
+            elif section == S_DESC:
+                if line.startswith('Additional Hints'):
+                    section = S_AFTER_DESC
+            elif section == S_AFTER_DESC:
+                if line.startswith('<div id="div_hint"'):
+                    section = S_HINTS
+                elif line.startswith('<div class="CacheDetailNavigationWidget">'):
+                    section = S_PRE_WAYPOINTS
+            elif section == S_HINTS:
+                if line.startswith("<div id='dk'"):
+                    section = S_AFTER_HINTS
+            elif section == S_AFTER_HINTS:
+                if line.startswith('<div class="CacheDetailNavigationWidget">'):
+                    section = S_PRE_WAYPOINTS
+            elif section == S_WAYPOINTS:
+                if line.startswith('</tbody> </table>'):
+                    section = 'after-waypoints'
+            elif section == S_PRE_WAYPOINTS:
+                if line.startswith('<span id="ctl00_ContentBody_MapLinks_MapLinks">'):
+                    section = S_IMAGES
+                if line.startswith('<table class="Table" id="ctl00_ContentBody_Waypoints">'):
+                    section = S_WAYPOINTS
+            elif section == S_IMAGES:
+                if line.startswith('<div class="InformationWidget'):
+                    section = S_AFTER_IMAGES            
+            elif section == S_AFTER_IMAGES:
+                if line.startswith('userToken = '):
+                    section = S_TOKEN
                 
 
             if section != prev_section:
@@ -398,8 +412,12 @@ class GeocachingComCacheDownloader(CacheDownloader):
             elif section == S_TOKEN:
                 usertoken = line.replace("userToken = '", '').replace("';", '').strip()
                 break
-            elif section == S_AFTER_HINTS and line.startswith("<img src=\"/images/attributes"):
+            elif section == S_AFTER_HINTS and attribute_line == '' and line.startswith("<img src=\"/images/attributes"):
                 attribute_line = line
+            elif section == S_AFTER_HEAD and warning_line == '' and line.startswith('<p class="OldWarning NoBottomSpacing">'):
+                warning_line = line
+            elif section == S_AFTER_HEAD and coords == '' and line.startswith('<a id="ctl00_ContentBody_lnkConversions"'):
+                coords = line
                 
         logger.debug('finished parsing, converting...')
         head = unicode(head, 'utf-8', errors='replace')
