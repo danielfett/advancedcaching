@@ -11,7 +11,7 @@ Sheet {
     property bool isCoordinate: false
     property bool isKnown: false
     //anchors.centerIn: parent
-    acceptButtonText: view.checked ? ((isCoordinate || coordinate.hasRequires) ? "Set as Target" : "") : "Save"
+    acceptButtonText: view.checked ? ((isCoordinate || (coordinate ? coordinate.hasRequires : false)) ? "Set as Target" : "") : "Save"
     rejectButtonText: "Close"
     //titleText: "CacheCalc"
 
@@ -22,8 +22,8 @@ Sheet {
     }
 
     function editCalcCoordinateByID(geocache, id) {
-        manager = controller.getEditWrapperByID(geocache, id);
         coordinate = null;
+        manager = controller.getEditWrapperByID(geocache, id);
         edit.checked = true;
     }
 
@@ -40,7 +40,6 @@ Sheet {
     }
 
     onManagerChanged: {
-        console.debug("Manager changed to " + (manager ? manager : "none"))
         textName.text = manager.beforeName
         buttonText = manager.buttonText
         isCoordinate = manager.isCoordinate
@@ -50,6 +49,9 @@ Sheet {
             coordinate = manager.beforeCoordinate
             isKnown = true;
             map.setCenterLatLon(coordinate.lat, coordinate.lon);
+            map.showTargetIndicator = true;
+            map.showTargetAtLat = coordinate.lat;
+            map.showTargetAtLon = coordinate.lon;
         } else {
             textCalc.text = manager.beforeCalc
             // 2 == USER_TYPE_CALC_STRING_OVERRIDE
@@ -57,6 +59,11 @@ Sheet {
             isKnown = (coordinate != null && coordinate.hasRequires);
             if (isKnown) {
                 map.setCenterLatLon(coordinate.result.lat, coordinate.result.lon);
+                map.showTargetIndicator = true;
+                map.showTargetAtLat = coordinate.result.lat;
+                map.showTargetAtLon = coordinate.result.lon;
+            } else {
+                map.showTargetIndicator = false;
             }
         }
     }
@@ -123,7 +130,14 @@ Sheet {
             ]
 
             onStateChanged: {
-                console.debug("STATE is now " + state)
+                console.debug("STATE is now " + state);
+                if (state == 'VIEW-COORDINATE') {
+                    var c = cs.getValue();
+                    map.setCenterLatLon(c[0], c[1]);
+                    map.showTargetIndicator = true;
+                    map.showTargetAtLat = c[0];
+                    map.showTargetAtLon = c[1];
+                }
             }
 
             ButtonRow {
@@ -149,7 +163,7 @@ Sheet {
 
                 Label {
                     id: coordinates
-                    text: (coordinate.hasRequires) ? F.formatCoordinate(coordinate.result.lat, coordinate.result.lon, settings) : "undefined"
+                    text: (coordinate && coordinate.hasRequires) ? F.formatCoordinate(coordinate.result.lat, coordinate.result.lon, settings) : "undefined"
                     width: 400
                     font.weight: Font.Light
                     color: UI.COLOR_DIALOG_TEXT
@@ -163,9 +177,6 @@ Sheet {
                     width: 400//showDescription.width
                     height: 300
                     clip: true
-                    showTargetIndicator: true
-                    showTargetAtLat: isCoordinate ? coordinate.lat : (coordinate.hasRequires ? coordinate.result.lat : 0)
-                    showTargetAtLon: isCoordinate ? coordinate.lat : (coordinate.hasRequires ? coordinate.result.lon : 0)
                     anchors.horizontalCenter: parent.horizontalCenter
                 }
 

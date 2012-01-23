@@ -388,10 +388,11 @@ class GeocacheCoordinate(geo.Coordinate):
             coord.display_text = "%s - %s - %s\n%s" % (w['name'], latlon, w['id'], shorten_callback(htmlcallback(w['comment'])))
             clist[i] = coord
             i += 1
+            logger.debug("Added coordinate, name=%r, title=%r, user_coordinate_id=%r" % (coord.name, coord.title, coord.user_coordinate_id))
 
         # read from local user_coordinates
         for id, local in self.get_user_coordinates(self.USER_TYPE_COORDINATE):
-            coord = geo.Coordinate(* local['value'])
+            coord = geo.Coordinate(* local['value'], name=local['name'])
             text = local['name'] if local['name'] != '' else 'manually entered'
             coord.display_text = "%s: %s" % (text, coord.get_latlon(format))
             coord.title = "Entered"
@@ -399,6 +400,7 @@ class GeocacheCoordinate(geo.Coordinate):
             coord.user_coordinate_id = id
             clist[i] = coord
             i += 1
+            logger.debug("Added coordinate, name=%r, title=%r, user_coordinate_id=%r" % (coord.name, coord.title, coord.user_coordinate_id))
 
         # cache calc
         if self.calc != None and not skip_calc:
@@ -417,6 +419,7 @@ class GeocacheCoordinate(geo.Coordinate):
                 coord.comment = "From %s:\n%s = %s" % (source_string, coord.name, coord.get_latlon(format))
                 clist[i] = coord
                 i += 1
+                logger.debug("Added coordinate, name=%r, title=%r, user_coordinate_id=%r" % (coord.name, coord.title, coord.user_coordinate_id))
         
         # cache calc - plain coordinates
             for coord, source in self.calc.get_plain_coordinates():
@@ -438,6 +441,7 @@ class GeocacheCoordinate(geo.Coordinate):
                 coord.comment = "Found in %s." % source_string
                 clist[i] = coord
                 i += 1
+                logger.debug("Added coordinate, name=%r, title=%r, user_coordinate_id=%r" % (coord.name, coord.title, coord.user_coordinate_id))
 
         # parsed from notes
         for coord in geo.search_coordinates(self.notes):
@@ -447,6 +451,7 @@ class GeocacheCoordinate(geo.Coordinate):
             coord.user_coordinate_id = None
             clist[i] = coord
             i += 1
+            logger.debug("Added coordinate, name=%r, title=%r, user_coordinate_id=%r" % (coord.name, coord.title, coord.user_coordinate_id))
         logger.debug("Found %d coordinates" % len(clist))
         return clist
     
