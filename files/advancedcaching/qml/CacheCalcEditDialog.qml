@@ -251,9 +251,11 @@ Sheet {
         if (edit.checked) {
             save();
         } else if (isCoordinate) {
+            save();
             controller.setAsTarget(coordinate)
             showMessage("New Target set.")
         } else if (coordinate.hasRequires) {
+            save();
             controller.setAsTarget(coordinate.result)
             showMessage("New Target set.")
         }
