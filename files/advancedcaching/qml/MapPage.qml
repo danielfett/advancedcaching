@@ -170,7 +170,7 @@ Page {
         }
         Button {
             id: refreshGeocachesButton
-            iconSource: theme.inverted? "image://theme/icon-m-common-refresh" : "image://theme/icon-m-toolbar-refresh"
+            iconSource: "image://theme/icon-s-transfer-download" + (theme.inverted ? "-inverse" : "")
             width: parent.parent.buttonSize
             height: parent.parent.buttonSize
             onClicked: {
