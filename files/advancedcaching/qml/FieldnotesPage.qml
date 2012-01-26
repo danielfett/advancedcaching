@@ -18,23 +18,29 @@ Page {
         anchors.right: parent.right
         anchors.leftMargin: 16
         anchors.rightMargin: 16
+        anchors.topMargin: 8
         anchors.top: header.bottom
 
         Label {
             font.pixelSize: UI.FONT_DEFAULT
             text: "Write Fieldnote"
             anchors.left: parent.left
-            anchors.right: parent.right
             wrapMode: Text.Wrap
+
+            Image {
+                source: "image://theme/icon-m-content-description" + (theme.inverted ? "-inverse" : "")
+                anchors.left: parent.right
+                anchors.leftMargin: 16
+                anchors.verticalCenter: parent.verticalCenter
+                height: 36
+                width: 36
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: { infoDialog.open() }
+                }
+            }
         }
-        
-        Label {
-            font.pixelSize: 20
-            wrapMode: Text.Wrap
-            anchors.left: parent.left
-            anchors.right: parent.right
-            text: "Fieldnotes are temporary log entries, which can be reviewed and submitted as a regular log later on. After uploading, you will find them in your account overview on the web page. If you don't upload them now, they are stored here."
-        }
+
         
         Item { 
             anchors.left: parent.left
@@ -42,11 +48,10 @@ Page {
             height: 60
             
             BorderImage {
-                id: background
                 anchors.fill: parent
                 anchors.leftMargin: -16
                 anchors.rightMargin: -16
-                visible: mouseArea.pressed
+                visible: mouseArea2.pressed
                 source: "image://theme/meegotouch-list-background-pressed-center"
             }
 
@@ -57,14 +62,13 @@ Page {
             }
             
             Image {
-                id: arrow
                 source: "image://theme/icon-m-common-drilldown-arrow" + (theme.inverted ? "-inverse" : "")
                 anchors.right: parent.right;
                 anchors.verticalCenter: parent.verticalCenter
             }
             
             MouseArea {
-                id: mouseArea
+                id: mouseArea2
                 anchors.fill: parent
                 onClicked: { logAsDialog.open() }
             }
@@ -105,13 +109,6 @@ Page {
             }
         }
         
-        /*Label {
-            font.pixelSize: 20
-            wrapMode: Text.Wrap
-            text: "To upload fielnotes later, use the menu."
-            width: parent.width/2
-        }*/      
-        
         anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
@@ -131,6 +128,19 @@ Page {
         onAccepted: {
             console.debug("HI!");
         }
+    }
+
+    QueryDialog {
+        id: infoDialog
+        titleText: "About Fieldnotes"
+
+        content: [Label {
+            font.pixelSize: 26
+            wrapMode: Text.Wrap
+            anchors.left: parent.left
+            anchors.right: parent.right
+            text: "Fieldnotes are temporary log entries, which can be reviewed and submitted as regular logs later on.<br><br>After uploading, you will find them in your account overview on the web page. If you don't upload them now, they are stored here for later uploading."
+        }]
     }
 
     Connections {
