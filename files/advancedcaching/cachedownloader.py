@@ -378,6 +378,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 if line.startswith('<div class="CacheDetailNavigationWidget">'):
                     section = S_PRE_WAYPOINTS
             elif section == S_PRE_WAYPOINTS:
+                if line.startswith('<span id="ctl00_ContentBody_MapLinks_MapLinks">'):
+                    section = S_IMAGES
                 if line.startswith('<table class="Table" id="ctl00_ContentBody_Waypoints">'):
                     section = S_WAYPOINTS
             elif section == S_WAYPOINTS:
@@ -430,10 +432,10 @@ class GeocachingComCacheDownloader(CacheDownloader):
         attribute_line = unicode(attribute_line, 'utf-8', errors='replace')
         logger.debug('finished converting, reading...')
         if 'archived' in warning_line:
-            coordinate.status = geocaching.GeocacheCoordinate.STATUS_ARCHIVED
+            coordinate.status = GeocacheCoordinate.STATUS_ARCHIVED
             logger.debug("Cache status is ARCHIVED")
         elif 'temporarily unavailable' in warning_line:
-            coordinate.status = geocaching.GeocacheCoordinate.STATUS_DISABLED
+            coordinate.status = GeocacheCoordinate.STATUS_DISABLED
             logger.debug("Cache status is DISABLED")
         else:
             # Do not change existing status - it may be more accurate.
