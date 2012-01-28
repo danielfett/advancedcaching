@@ -69,9 +69,9 @@ if '--simple' in argv:
 elif '--desktop' in argv:
     import biggui
     gui = biggui.BigGui
-elif '--qt' in argv:
-    import qtgui
-    gui = qtgui.QtGui
+elif '--qml-desktop' in argv:
+    import qmlgui_desktop
+    gui = qmlgui_desktop.QmlGui 
 elif '--qml' in argv:
     import qmlgui
     gui = qmlgui.QmlGui
