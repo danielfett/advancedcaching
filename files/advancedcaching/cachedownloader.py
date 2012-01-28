@@ -377,14 +377,15 @@ class GeocachingComCacheDownloader(CacheDownloader):
             elif section == S_AFTER_HINTS:
                 if line.startswith('<div class="CacheDetailNavigationWidget">'):
                     section = S_PRE_WAYPOINTS
-            elif section == S_WAYPOINTS:
-                if line.startswith('</tbody> </table>'):
-                    section = 'after-waypoints'
             elif section == S_PRE_WAYPOINTS:
-                if line.startswith('<span id="ctl00_ContentBody_MapLinks_MapLinks">'):
-                    section = S_IMAGES
                 if line.startswith('<table class="Table" id="ctl00_ContentBody_Waypoints">'):
                     section = S_WAYPOINTS
+            elif section == S_WAYPOINTS:
+                if line.startswith('</tbody> </table>'):
+                    section = S_AFTER_WAYPOINTS
+            elif section == S_AFTER_WAYPOINTS:
+                if line.startswith('<span id="ctl00_ContentBody_MapLinks_MapLinks">'):
+                    section = S_IMAGES
             elif section == S_IMAGES:
                 if line.startswith('<div class="InformationWidget'):
                     section = S_AFTER_IMAGES            
@@ -425,7 +426,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
         desc = unicode(desc, 'utf-8', errors='replace')
         hints = unicode(hints, 'utf-8', errors='replace')
         waypoints = unicode(waypoints, 'utf-8', errors='replace')
-        logs = unicode(logs, 'utf-8', errors='replace')
         images = unicode(images, 'utf-8', errors='replace')
         attribute_line = unicode(attribute_line, 'utf-8', errors='replace')
         logger.debug('finished converting, reading...')
@@ -452,6 +452,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         return coordinate
 
     def _get_logs(self, usertoken, count):
+        logger.debug("Retrieving %d logs..." % count)
         logs = self.downloader.get_reader('http://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=1&num=%d&decrypt=true' % (usertoken, count))
         try:
             r = json.loads(logs.read())
@@ -459,7 +460,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
             logger.exception('Could not json-parse logs!')
         if not 'status' in r or r['status'] != 'success':
             logger.error('Could not read logs, status is "%s"' % r['status'])
-            logger.debug('r is %s' % r)
         data = r['data']
 
         output = []
@@ -471,6 +471,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             finder = "%s (found %s)" % (l['UserName'], l['GeocacheFindCount'])
             text = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(l['LogText'])))
             output.append(dict(type=tpe, month=month, day=day, year=year, finder=finder, text=text))
+        logger.debug("Retrieved %d logs" % len(output))
         return output
 
             
@@ -594,6 +595,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
 if __name__ == '__main__':
     import sys
     import downloader
+    import colorer
     logger.setLevel(logging.DEBUG)
     logging.basicConfig(level=logging.DEBUG,
                     format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s',
@@ -628,9 +630,6 @@ if __name__ == '__main__':
         else:
             print "# Didn't find my own geocache :-("
             m = GeocacheCoordinate(0, 0, 'GC1N8G6')
-        if len(sys.argv) == 4:
-            print "Writing to File %s" % sys.argv[3]
-            outfile = sys.argv[3]
     elif len(sys.argv) == 4: # cachedownloader.py geocache username password
         geocache, name, password = sys.argv[1:4]
         a = GeocachingComCacheDownloader(downloader.FileDownloader(name, password, '/tmp/cookies', GeocachingComCacheDownloader.login_callback), '/tmp/', True)
@@ -638,32 +637,31 @@ if __name__ == '__main__':
         print "Using Username %s" % name
         m = GeocacheCoordinate(0, 0, geocache)
     else:
-        print "I don't know what you want to do..."
+        logger.error("I don't know what you want to do...")
         sys.exit()
-    res = a.update_coordinate(m, outfile)
+    res = a.update_coordinate(m, num_logs = 20, outfile = "/tmp/geocache.tmp")
     print res
     c = res
     
-    if c.owner != 'webhamster':
-        print "Owner doesn't match ('%s', expected webhamster)" % c.owner
+    if c.owner != 'Webhamster':
+        logger.error("Owner doesn't match ('%s', expected Webhamster)" % c.owner)
     if c.title != 'Druidenpfad':
-        print "Title doesn't match ('%s', expected 'Druidenpfad')" % c.title
+        logger.error( "Title doesn't match ('%s', expected 'Druidenpfad')" % c.title)
     if c.get_terrain() != '3.0':
-        print "Terrain doesn't match (%s, expected 3.0) " % c.get_terrain()
+        logger.error("Terrain doesn't match (%s, expected 3.0) " % c.get_terrain())
     if c.get_difficulty() != '2.0':
-        print "Diff. doesn't match (%s, expected 2.0)" % c.get_difficulty()
-    if len(c.desc) != 1980:
-        print "Length of text doesn't match (%d, expected %d" % (len(c.desc), 1980)
-    if len(c.shortdesc) != 238:
-        print "Length of short description doesn't match (%d, expected %d" % (len(c.shortdesc), 238)
+        logger.error("Diff. doesn't match (%s, expected 2.0)" % c.get_difficulty())
+    if len(c.desc) < 1800:
+        logger.error("Length of text doesn't match (%d, expected at least %d chars)" % (len(c.desc), 1800))
+    if len(c.shortdesc) < 200:
+        logger.error("Length of short description doesn't match (%d, expected at least %d chars)" % (len(c.shortdesc), 200))
     if len(c.get_waypoints()) != 4:
-        print "Expected 4 waypoints, got %d" % len(c.get_waypoints())
+        logger.error("Expected 4 waypoints, got %d" % len(c.get_waypoints()))
     if len(c.hints) != 83:
-        print "Expected 83 characters of hints, got %d" % len(c.hints)
+        logger.error("Expected 83 characters of hints, got %d" % len(c.hints))
     
     if len(c.get_logs()) < 2:
-        print "Expected at least 2 logs, got %d" % len(c.get_logs())
-    print c.get_logs()
-    print "Owner:%s (type %s)\nTitle:%s (type %s)\nTerrain:%s\nDifficulty:%s\nDescription:%s (type %s)\nShortdesc:%s (type %s)\nHints:%s (type %s)" % (c.owner, type(c.owner), c.title, type(c.title), c.get_terrain(), c.get_difficulty(), c.desc, type(c.desc), c.shortdesc, type(c.shortdesc), c.hints, type(c.hints))
+        logger.error("Expected at least 2 logs, got %d" % len(c.get_logs()))
+    print "Owner:%s (type %s)\nTitle:%s (type %s)\nTerrain:%s\nDifficulty:%s\nDescription:%s (type %s)\nShortdesc:%s (type %s)\nHints:%s (type %s)\nLogs: %r" % (c.owner, type(c.owner), c.title, type(c.title), c.get_terrain(), c.get_difficulty(), c.desc, type(c.desc), c.shortdesc, type(c.shortdesc), c.hints, type(c.hints), c.get_logs())
     print c.get_waypoints()
 
