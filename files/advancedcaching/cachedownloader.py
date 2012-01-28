@@ -238,6 +238,7 @@ class CacheDownloader(gobject.GObject):
         CacheDownloader.lock.release()
         return points
         
+        
 class GeocachingComCacheDownloader(CacheDownloader):
     
     MAX_REC_DEPTH = 8
@@ -290,10 +291,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
         for line in page:
             if line.startswith('var uvtoken'):
                 user_token[0] = re.compile("userToken[ =]+'([^']+)'").search(line).group(1)
-                
+                print user_token
                 page.close()
                 return
-        logger.debug("Got this page: %r" % page)
         raise Exception("Website contents unexpected. Please check connection.")
         
 
@@ -378,6 +378,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 if line.startswith('<div class="CacheDetailNavigationWidget">'):
                     section = S_PRE_WAYPOINTS
             elif section == S_PRE_WAYPOINTS:
+                if line.startswith('<span id="ctl00_ContentBody_MapLinks_MapLinks">'):
+                    section = S_IMAGES
                 if line.startswith('<table class="Table" id="ctl00_ContentBody_Waypoints">'):
                     section = S_WAYPOINTS
             elif section == S_WAYPOINTS:
@@ -412,6 +414,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 images = "%s%s " % (images, line)
             elif section == S_TOKEN:
                 usertoken = line.replace("userToken = '", '').replace("';", '').strip()
+                logger.debug("usertoken is %s" % usertoken)
                 break
             elif section == S_AFTER_HINTS and attribute_line == '' and line.startswith("<img src=\"/images/attributes"):
                 attribute_line = line
@@ -430,10 +433,10 @@ class GeocachingComCacheDownloader(CacheDownloader):
         attribute_line = unicode(attribute_line, 'utf-8', errors='replace')
         logger.debug('finished converting, reading...')
         if 'archived' in warning_line:
-            coordinate.status = geocaching.GeocacheCoordinate.STATUS_ARCHIVED
+            coordinate.status = GeocacheCoordinate.STATUS_ARCHIVED
             logger.debug("Cache status is ARCHIVED")
         elif 'temporarily unavailable' in warning_line:
-            coordinate.status = geocaching.GeocacheCoordinate.STATUS_DISABLED
+            coordinate.status = GeocacheCoordinate.STATUS_DISABLED
             logger.debug("Cache status is DISABLED")
         else:
             # Do not change existing status - it may be more accurate.
@@ -592,6 +595,11 @@ class GeocachingComCacheDownloader(CacheDownloader):
             or id not in self.images):
             self.images[id] = description
 
+
+        
+#class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
+    
+
 if __name__ == '__main__':
     import sys
     import downloader
@@ -600,7 +608,77 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG,
                     format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s',
                     )
-
+    t = open(sys.argv[1]).read()
+    logger.debug("Start")
+    
+    #t = unicode(t, errors='ignore')
+    from lxml.html import fromstring, tostring
+    from lxml.html.clean import word_break_html
+    t = unicode(t, 'utf-8')
+    doc = fromstring(t)
+    
+    def extract_text(el):
+        return tostring(el, encoding='utf-8').strip()
+        #return ' XX '.join(tostring(x) for x in el.iter())
+    
+    #Long Desc
+    print extract_text(doc.get_element_by_id('ctl00_ContentBody_LongDescription'))
+    #Short Desc
+    print extract_text(doc.get_element_by_id('ctl00_ContentBody_ShortDescription'))
+    #latlon
+    print geo.try_parse_coordinate(doc.get_element_by_id('uxLatLon').text_content())
+    print "Size:", doc.cssselect('.CacheSize p span img')[0].get('src')
+    print "T/D", [x.get('src') for x in doc.cssselect('.CacheStarImgs span img')]
+    print "Owner:", extract_text(doc.cssselect('#cacheDetails span.minorCacheDetails a')[0])
+    print "Hint:", extract_text(doc.get_element_by_id('div_hint'))
+    
+    waypoints = []
+    w = {}
+    for x in doc.cssselect('#ctl00_ContentBody_Waypoints tr.BorderBottom'):
+        if len(x) > 6: #chosen between 8 (data line) and 3 (description line)
+            w['id'] = ''.join([x[3].text_content().strip(), x[4].text_content().strip()])
+            w['name'] = x[5].text_content().strip()
+            try:
+                coord = geo.try_parse_coordinate(x[6].text_content().strip())
+                w['lat'], w['lon'] = coord.lat, coord.lon 
+            except Exception, e:
+                w['lat'], w['lon'] = -1, -1
+        else:
+            w['comment'] = x[2].text_content()
+            waypoints += [w]
+    
+    for x in doc.cssselect('script'):
+        if not x.text:
+            continue
+        s = x.text.strip()
+        if s.startswith('//<![CDATA[\r\ninitalLogs'):
+            logs = s.replace('//<![CDATA[\r\ninitalLogs = ', '')
+            logs = re.sub('(?s)};\s*//]]>', '}', logs)
+            print logs
+        elif s.startswith('//<![CDATA[\r\nvar uvtoken'):
+            userToken = re.sub("(?s).*userToken = '", '', s)
+            userToken = re.sub("(?s)'.*", '', userToken)
+            print userToken
+    attributes = [x.get('title') for x in doc.cssselect('.CacheDetailNavigationWidget.BottomSpacing .WidgetBody img') if x.get('title') != 'blank']
+    print attributes
+    images = {}
+    def add_image(url, text):
+        if url in images:
+            if len(text) > len(images[url]):
+                images[url] = text
+        else:
+            images[url] = text
+        
+    for element, attribute, link, pos in doc.get_element_by_id('ctl00_ContentBody_LongDescription').iterlinks():
+        if element.tag == 'img':
+            add_image(link, element.get('alt') or element.get('title'))
+    for x in doc.cssselect('a[rel=lightbox]'):
+        add_image(x.get('href'), x.text_content().strip())
+    print images
+   
+      
+    logger.debug("End")
+    '''
     outfile = None
     if len(sys.argv) == 2: # cachedownloder.py filename
         print "Reading from file %s" % sys.argv[1]
@@ -664,4 +742,4 @@ if __name__ == '__main__':
         logger.error("Expected at least 2 logs, got %d" % len(c.get_logs()))
     print "Owner:%s (type %s)\nTitle:%s (type %s)\nTerrain:%s\nDifficulty:%s\nDescription:%s (type %s)\nShortdesc:%s (type %s)\nHints:%s (type %s)\nLogs: %r" % (c.owner, type(c.owner), c.title, type(c.title), c.get_terrain(), c.get_difficulty(), c.desc, type(c.desc), c.shortdesc, type(c.shortdesc), c.hints, type(c.hints), c.get_logs())
     print c.get_waypoints()
-
+    '''
