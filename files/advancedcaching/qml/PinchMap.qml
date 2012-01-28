@@ -1,5 +1,4 @@
 import QtQuick 1.1
-import QtMobility.location 1.2
 import com.nokia.meego 1.0
 import "functions.js" as F
 
