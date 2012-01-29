@@ -258,7 +258,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     }
 
     @staticmethod
-    def login_callback(username, password):
+    def login_callback(downloader, username, password):
         url = 'https://www.geocaching.com/login/default.aspx'
         values = {'ctl00$ContentBody$tbUsername': username,
             'ctl00$ContentBody$tbPassword': password,
@@ -267,7 +267,16 @@ class GeocachingComCacheDownloader(CacheDownloader):
             '__EVENTTARGET': '',
             '__EVENTARGUMENT': ''
         }
-        return url, values
+        page = downloader.get_reader(url, values, login = False)
+
+        for line in page:
+            if 'You are logged in as' in line:
+                break
+            elif 'combination does not match' in line:
+                raise Exception("Wrong password or username!")
+        else:
+            logger.info("Seems as if the language is set to something other than english")
+            raise Exception("Please go to geocaching.com and set the website language to english!")
 
     @staticmethod
     def check_login_callback(downloader):
@@ -486,12 +495,10 @@ class GeocachingComCacheDownloader(CacheDownloader):
         output = []
         for l in data:
             tpe = l['LogTypeImage'].replace('.gif', '').replace('icon_', '')
-            month = l['Visited'][0:2]
-            day = l['Visited'][3:5]
-            year = l['Visited'][6:10]
+            date = l['Visited']
             finder = "%s (found %s)" % (l['UserName'], l['GeocacheFindCount'])
             text = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(l['LogText'])))
-            output.append(dict(type=tpe, month=month, day=day, year=year, finder=finder, text=text))
+            output.append(dict(type=tpe, date=date, finder=finder, text=text))
         logger.debug("Read %d log entries" % len(output))
         return output
                 
@@ -593,7 +600,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             if id != None:
                 self.__add_image(id, HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(m.group(2))))
     def __replace_images(self, data):
-        return 
+        return re.sub(ur'''(?is)(<img[^>]+src=\n?["']?)([^ >"']+)([^>]+?/?>)''', self.__replace_image_callback, data)
 
     def __replace_image_callback(self, m):
         url = m.group(2)
@@ -615,6 +622,44 @@ from lxml.html import fromstring, tostring
         
 class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
         
+    @staticmethod
+    def check_login_callback(downloader):
+        url = 'http://www.geocaching.com/seek/nearest.aspx'
+        page = downloader.get_reader(url, login = False).read()
+
+        t = unicode(page, 'utf-8')
+        doc = fromstring(t)
+        if len(doc.cssselect('.NotSignedInText')) > 0:
+            logger.info("Probably not signed in anymore.")
+            return False
+        elif len(doc.cssselect('.SignedInText')) > 0:
+            logger.info("Probably still signed in.")
+            return True
+        logger.exception("Could not reliably determine logged in status, assuming No")
+        return False
+        
+    @staticmethod
+    def login_callback(downloader, username, password):
+        url = 'https://www.geocaching.com/login/default.aspx'
+        values = {'ctl00$ContentBody$tbUsername': username,
+            'ctl00$ContentBody$tbPassword': password,
+            'ctl00$ContentBody$cbRememberMe': 'on',
+            'ctl00$ContentBody$btnSignIn': 'Login',
+            '__EVENTTARGET': '',
+            '__EVENTARGUMENT': ''
+        }
+        page = downloader.get_reader(url, values, login = False).read()
+        t = unicode(page, 'utf-8')
+        doc = fromstring(t)
+        
+        if len(doc.cssselect('.SignedInText')) > 0:
+            logger.info("Great success.")
+            return True
+        if doc.get_element_by_id('ctl00_ContentBody_ErrorText') != None:
+            raise Exception("Wrong username or password!")
+        raise Exception("Name/Password MAY be correct, but I encountered unexpected data while logging in.")
+            
+                
     def _parse_cache_page(self, cache_page, coordinate, num_logs):
         logger.debug("Start parsing.")
         pg = cache_page.read()
@@ -679,6 +724,7 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
                 w['comment'] = x[2].text_content().strip()
                 waypoints += [w]
         coordinate.set_waypoints(waypoints)
+        
         # User token and Logs
         for x in doc.cssselect('script'):
             if not x.text:
@@ -807,7 +853,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG,
                     format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s',
                     )
-    parser = GeocachingComCacheDownloader
+    parser = NewGeocachingComCacheDownloader
     outfile = None
     if len(sys.argv) == 2: # cachedownloder.py filename
         print "Reading from file %s" % sys.argv[1]
@@ -860,7 +906,7 @@ if __name__ == '__main__':
         logger.error("Diff. doesn't match (%s, expected 2.0)" % c.get_difficulty())
     if len(c.desc) < 1760:
         logger.error("Length of text doesn't match (%d, expected at least %d chars)" % (len(c.desc), 1760))
-    if len(c.shortdesc) < 200:
+    if len(c.shortdesc) < 160:
         logger.error("Length of short description doesn't match (%d, expected at least %d chars)" % (len(c.shortdesc), 200))
     if len(c.get_waypoints()) != 4:
         logger.error("Expected 4 waypoints, got %d" % len(c.get_waypoints()))
@@ -869,7 +915,6 @@ if __name__ == '__main__':
     
     if len(c.get_logs()) < 2:
         logger.error("Expected at least 2 logs, got %d" % len(c.get_logs()))
-    print c.owner, type(c.owner), c.title, type(c.title), c.get_terrain(), c.get_difficulty(), c.desc, type(c.desc), c.shortdesc, type(c.shortdesc), c.hints, type(c.hints), c.get_logs()
-    print u"Owner:%r (type %r)\nTitle:%r (type %r)\nTerrain:%r\nDifficulty:%r\nDescription:%r (type %r)\nShortdesc:%r (type %r)\nHints:%r (type %r)\nLogs: %r" % (c.owner, type(c.owner), c.title, type(c.title), c.get_terrain(), c.get_difficulty(), c.desc, type(c.desc), c.shortdesc, type(c.shortdesc), c.hints, type(c.hints), c.get_logs())
+    print u"Owner:%r (type %r)\nTitle:%r (type %r)\nTerrain:%r\nDifficulty:%r\nDescription:%r (type %r)\nShortdesc:%r (type %r)\nHints:%r (type %r)\nLogs: %r" % (c.owner, type(c.owner), c.title, type(c.title), c.get_terrain(), c.get_difficulty(), c.desc[:200], type(c.desc), c.shortdesc, type(c.shortdesc), c.hints, type(c.hints), c.get_logs()[:3])
     print c.get_waypoints()
     

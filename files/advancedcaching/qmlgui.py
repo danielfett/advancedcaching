@@ -1238,14 +1238,11 @@ class LogWrapper(QtCore.QObject):
     def _finder(self):
         return self._log['finder']
 
-    def _year(self):
-        return self._log['year']
-
-    def _month(self):
-        return self._log['month']
-
-    def _day(self):
-        return self._log['day']
+    def _date(self):
+        if 'year' in self._log:
+            return "%s-%s-%s" % (self._log['year'], self._log['month'], self._log['day'])
+        else:
+            return self._log['date']
 
     def _text(self):
         return self._log['text']
@@ -1256,9 +1253,7 @@ class LogWrapper(QtCore.QObject):
 
     type = QtCore.Property(str, _type, notify=changed)
     finder = QtCore.Property(str, _finder, notify=changed)
-    year = QtCore.Property(str, _year, notify=changed)
-    month = QtCore.Property(str, _month, notify=changed)
-    day = QtCore.Property(str, _day, notify=changed)
+    date = QtCore.Property(str, _date, notify=changed)
     text = QtCore.Property(str, _text, notify=changed)
     iconBasename = QtCore.Property(str, _icon_basename, notify=changed)
     
