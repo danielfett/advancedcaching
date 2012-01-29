@@ -151,7 +151,7 @@ class CacheDownloader(gobject.GObject):
                 filename = os.path.join(self.path, id)
                 logger.info("Downloading %s to %s" % (url, filename))
                 f = open(filename, 'wb')
-                f.write(self.downloader.get_reader(url).read())
+                f.write(self.downloader.get_reader(url, login=False).read())
                 f.close()
                 if Image != None and self.resize != None and self.resize > 0:
                     im = Image.open(filename)
@@ -301,7 +301,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         data = ('application/json', '{"dto":{"data":{"c":1,"m":"","d":"%f|%f|%f|%f"},"ut":"%s"}}' % (max(c1.lat, c2.lat), min(c1.lat, c2.lat), max(c1.lon, c2.lon), min(c1.lon, c2.lon), user_token[0]))
 
         try:
-            response = self.downloader.get_reader(url, data = data)
+            response = self.downloader.get_reader(url, data = data, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
             the_page = response.read()
 
         except Exception, e:
@@ -311,7 +311,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         return the_page
         
     def _get_user_token(self):
-        page = self.downloader.get_reader('http://www.geocaching.com/map/default.aspx?lat=6&lng=9')
+        page = self.downloader.get_reader('http://www.geocaching.com/map/default.aspx?lat=6&lng=9', login_callback = self.login_callback, check_login_callback = self.check_login_callback)
         for line in page:
             if line.startswith('var uvtoken'):
                 user_token[0] = re.compile("userToken[ =]+'([^']+)'").search(line).group(1)
@@ -359,7 +359,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
         
     def _get_cache_page(self, cacheid):
-        return self.downloader.get_reader('http://www.geocaching.com/seek/cache_details.aspx?wp=%s' % cacheid)
+        return self.downloader.get_reader('http://www.geocaching.com/seek/cache_details.aspx?wp=%s' % cacheid, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
 
                 
     def _parse_cache_page(self, cache_page, coordinate, num_logs):
@@ -480,7 +480,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
     def _get_logs(self, usertoken, count):
         logger.debug("Retrieving %d logs..." % count)
-        logs = self.downloader.get_reader('http://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=1&num=%d&decrypt=true' % (usertoken, count))
+        logs = self.downloader.get_reader('http://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=1&num=%d&decrypt=true' % (usertoken, count), login_callback = self.login_callback, check_login_callback = self.check_login_callback)
         return self._parse_logs_json(logs.read())
 
     def _parse_logs_json(self, logs):
@@ -649,14 +649,15 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
             '__EVENTARGUMENT': ''
         }
         page = downloader.get_reader(url, values, login = False).read()
+
         t = unicode(page, 'utf-8')
         doc = fromstring(t)
         
-        if len(doc.cssselect('.SignedInText')) > 0:
+        if doc.get_element_by_id('ctl00_ContentBody_ErrorText', None) != None:
+            raise Exception("Wrong username or password!")
+        if len(doc.cssselect('.Success')) > 0:
             logger.info("Great success.")
             return True
-        if doc.get_element_by_id('ctl00_ContentBody_ErrorText') != None:
-            raise Exception("Wrong username or password!")
         raise Exception("Name/Password MAY be correct, but I encountered unexpected data while logging in.")
             
                 
@@ -742,7 +743,7 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
             
         # Attributes
         try:
-            coordinate.attributes = [x.get('title') for x in doc.cssselect('.CacheDetailNavigationWidget.BottomSpacing .WidgetBody img') if x.get('title') != 'blank']
+            coordinate.attributes = ','.join([x.get('title') for x in doc.cssselect('.CacheDetailNavigationWidget.BottomSpacing .WidgetBody img') if x.get('title') != 'blank'])
         except Exception, e:
             logger.error("Could not find/parse attributes")
             raise e
@@ -783,7 +784,7 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
         # Next, search image elements and replace them
         for element, attribute, link, pos in desc.iterlinks():
             if element.tag == 'img':
-                replace_id = found_image(link, element.get('alt') or element.get('title'))
+                replace_id = found_image(link, element.get('alt') or element.get('title') or '')
                 replacement = '[[img:%s]]' % replace_id
                 for parent in desc.getiterator():
                     for index, child in enumerate(parent):
@@ -796,7 +797,7 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
             
             
         # Download images
-        for url, data in images:
+        for url, data in images.items():
             # Prepend local path to filename
             filename = os.path.join(self.path, data['filename'])
             logger.info("Downloading %s to %s" % (url, filename))
@@ -804,11 +805,15 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
             # Download file
             try:
                 f = open(filename, 'wb')
-                f.write(self.downloader.get_reader(url).read())
+                f.write(self.downloader.get_reader(url, login = False).read())
                 f.close()
             except Exception, e:
                 logger.exception(e)
                 logger.error("Failed to download image from URL %s" % url)
+                
+        # And save Images to coordinate
+        images_save = dict([x['filename'], x['title']] for x in images.values())
+        coordinate.set_images(images_save)
                 
         # Long description
         coordinate.desc = self._extract_node_contents(desc, 'Description')
@@ -844,6 +849,19 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
         hints = self._rot13(hints)
         hints = re.sub(r'\[([^\]]+)\]', lambda match: self._rot13(match.group(0)), hints)
         return hints
+
+
+BACKENDS = {
+    'geocaching-com-new': {'class': NewGeocachingComCacheDownloader, 'name': 'geocaching.com (new)', 'description': 'New backend for geocaching.com'},
+    'geocaching-com-old': {'class': GeocachingComCacheDownloader, 'name': 'geocaching.com (legacy)', 'description': 'Old backend for geocaching.com, not maintained'},
+    }
+
+def get(name, *args, **kwargs):
+    if name in BACKENDS:
+        return BACKENDS[name]['class'](*args, **kwargs)
+    else:
+        raise Exception("Backend not found: %s" % name)
+
 
 if __name__ == '__main__':
     import sys

@@ -29,7 +29,7 @@ class FileDownloader():
     USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.15 (KHTML, like Gecko) Ubuntu/11.10 Chromium/18.0.997.0 Chrome/18.0.997.0 Safari/535.15'
     opener_installed = False
 
-    def __init__(self, username, password, cookiefile, login_callback, check_login_callback):
+    def __init__(self, username, password, cookiefile):
         self.username = username
         self.password = password
         self.cookiefile = cookiefile
@@ -37,8 +37,6 @@ class FileDownloader():
         from socket import setdefaulttimeout
         setdefaulttimeout(30)
         self.opener_installed = False
-        self.login_callback = login_callback
-        self.check_login_callback = check_login_callback
 
     def update_userdata(self, username = None, password = None):
         from os import path, remove
@@ -55,7 +53,7 @@ class FileDownloader():
                 pass
 
 
-    def login(self):
+    def login(self, login_callback, check_login_callback):
         if connection.offline:
             raise Exception("Can't connect in offline mode.")
         if self.username == '' or self.password == '':
@@ -77,12 +75,12 @@ class FileDownloader():
             logger.info("Couldn't load cookie file")
         else:
             logger.info("Checking if still logged in...")
-            if self.check_login_callback(self):
+            if check_login_callback(self):
                 self.logged_in = True
                 return
         
         logger.info("Logging in")
-        self.login_callback(self, self.username, self.password)
+        login_callback(self, self.username, self.password)
 
         self.logged_in = True
         try:
@@ -91,13 +89,15 @@ class FileDownloader():
             logger.info("Could not save cookies: %s" % e)
 
 
-    def get_reader(self, url, values=None, data=None, login = True):
+    def get_reader(self, url, values=None, data=None, login=True, login_callback=None, check_login_callback=None):
+        if login and not (login_callback and check_login_callback):
+            raise Exception("Either login must be set to False or (check_)login_callback must be provided.")
         if connection.offline:
             raise Exception("Can't connect in offline mode.")
         from urllib import urlencode
         from urllib2 import Request, urlopen
         if login and not self.logged_in:
-            self.login()
+            self.login(login_callback, check_login_callback)
 
         logger.info("Sending request to %s" % url)
         if values == None and data == None:
