@@ -29,7 +29,7 @@ class FileDownloader():
     USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.15 (KHTML, like Gecko) Ubuntu/11.10 Chromium/18.0.997.0 Chrome/18.0.997.0 Safari/535.15'
     opener_installed = False
 
-    def __init__(self, username, password, cookiefile, login_callback):
+    def __init__(self, username, password, cookiefile, login_callback, check_login_callback):
         self.username = username
         self.password = password
         self.cookiefile = cookiefile
@@ -38,6 +38,7 @@ class FileDownloader():
         setdefaulttimeout(30)
         self.opener_installed = False
         self.login_callback = login_callback
+        self.check_login_callback = check_login_callback
 
     def update_userdata(self, username = None, password = None):
         from os import path, remove
@@ -76,18 +77,9 @@ class FileDownloader():
             logger.info("Couldn't load cookie file")
         else:
             logger.info("Checking if still logged in...")
-            url = 'http://www.geocaching.com/seek/nearest.aspx'
-            page = self.get_reader(url, login = False)
-            for line in page:
-                if 'Hello, ' in line:
-                    self.logged_in = True
-                    logger.info("Seems as we're still logged in")
-                    page.close()
-                    return
-                elif 'Welcome, Visitor!' in line:
-                    logger.info("Nope, not logged in anymore")
-                    page.close()
-                    break
+            if self.check_login_callback(self):
+                self.logged_in = True
+                return
         
         logger.info("Logging in")
         url, values = self.login_callback(self.username, self.password)
