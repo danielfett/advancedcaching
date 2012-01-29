@@ -816,7 +816,9 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
         coordinate.set_images(images_save)
                 
         # Long description
-        coordinate.desc = self._extract_node_contents(desc, 'Description')
+        x = self._extract_node_contents(desc, 'Description')
+        logger.debug("x is of type %s" % type(x))
+        coordinate.desc = x
         logger.debug("End parsing.")
         return coordinate
             
@@ -824,7 +826,7 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
     def _extract_node_contents(self, el, name):
         if el == None:
             raise Exception("Could not find Element: %s" % name)
-        return ''.join(tostring(x, encoding='utf-8', method='html') for x in el)
+        return ''.join(unicode(tostring(x, encoding='utf-8', method='html'), 'utf-8') for x in el)
         
     # Handle size string from basename of the according image
     def _handle_size(self, sizestring):
