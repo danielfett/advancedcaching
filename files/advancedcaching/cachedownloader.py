@@ -816,9 +816,21 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
         coordinate.set_images(images_save)
                 
         # Long description
-        x = self._extract_node_contents(desc, 'Description')
-        logger.debug("x is of type %s" % type(x))
-        coordinate.desc = x
+        coordinate.desc = self._extract_node_contents(desc, 'Description')
+        
+        # Archived status
+        for log in coordinate.get_logs():
+            if log['type'] == GeocacheCoordinate.LOG_TYPE_ENABLED:
+                break
+            elif log['type'] == GeocacheCoordinate.LOG_TYPE_DISABLED:
+                coordinate.status = STATUS_DISABLED
+                break
+            elif log['type'] == GeocacheCoordinate.LOG_TYPE_ARCHIVED:
+                coordinate.status = STATUS_ARCHIVED
+                break
+        else:
+            coordinate.stats = GeocacheCoordinate.STATUS_NORMAL
+        
         logger.debug("End parsing.")
         return coordinate
             
