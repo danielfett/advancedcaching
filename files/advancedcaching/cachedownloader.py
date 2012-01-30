@@ -21,8 +21,8 @@
 #
 
 
-VERSION = 19
-VERSION_DATE = '2011-10-07'
+VERSION = 20
+VERSION_DATE = '2012-01-30'
 
 try:
     import json
@@ -36,68 +36,14 @@ import os
 import threading
 import logging
 logger = logging.getLogger('cachedownloader')
-global Image
-try:
-    import Image
-except:
-    Image = None
-    logger.info("Not using image resize feature")
 import re
 import gobject
+from utils import HTMLManipulations
 
 #ugly workaround...
 user_token = [None]
 
 
-class HTMLManipulations(object):
-    COMMENT_REGEX = re.compile('<!--.*?-->', re.DOTALL)
-    
-    @staticmethod
-    def _strip_html(text, soft = False):
-        if not soft:
-            return re.sub(r'<[^>]*?>', '', text)
-        else:
-            return re.sub(r'<[^>]*?>', ' ', text)
-
-    @staticmethod
-    def strip_html_visual(text, image_replace_callback = None):
-        text = text.replace("\n", " ")
-        if image_replace_callback != None:
-            text = re.sub(r"""(?i)<img[^>]+alt=["']?([^'"> ]+)[^>]+>""", image_replace_callback, text)
-        text = re.sub(r'(?i)<(br|p)[^>]*?>', "\n", text)
-        text = re.sub(r'<[^>]*?>', '', text)
-        text = HTMLManipulations._decode_htmlentities(text)
-        text = re.sub(r'[\n\r]+\s*[\n\r]+', '\n', text)
-        return text.strip()
-
-    @staticmethod
-    def _replace_br(text):
-        return re.sub('<[bB][rR]\s*/?>|</?[pP]>', '\n', text)
-
-
-    @staticmethod
-    def _decode_htmlentities(string):
-        def substitute_entity(match):
-            from htmlentitydefs import name2codepoint as n2cp
-            ent = match.group(3)
-            if match.group(1) == "#":
-                # decoding by number
-                if match.group(2) == '':
-                    # number is in decimal
-                    return unichr(int(ent))
-                elif match.group(2) == 'x':
-                    # number is in hex
-                    return unichr(int('0x' + ent, 16))
-            else:
-                # they were using a name
-                cp = n2cp.get(ent)
-                if cp:
-                    return unichr(cp)
-                else:
-                    return match.group()
-
-        entity_re = re.compile(r'&(#?)(x?)(\w+);')
-        return entity_re.subn(substitute_entity, string)[0]
 
 class CacheDownloader(gobject.GObject):
     __gsignals__ = { 'finished-overview': (gobject.SIGNAL_RUN_FIRST,\
@@ -116,12 +62,11 @@ class CacheDownloader(gobject.GObject):
     def _rot13(text):
         return text.encode('rot13').decode('iso-8859-1', 'replace')
 
-    def __init__(self, downloader, path, download_images, resize = None):
+    def __init__(self, downloader, path, download_images):
         gobject.GObject.__init__(self)
         self.downloader = downloader
         self.path = path
         self.download_images = download_images
-        self.resize = resize
         if not os.path.exists(path):
             try:
                 os.mkdir(path)
@@ -130,40 +75,6 @@ class CacheDownloader(gobject.GObject):
 
    
 
-    def _init_images(self):
-        self.downloaded_images = {}
-        self.current_image = 0
-        self.images = {}
-
-    def _download_image(self, url):
-        logger.info("Checking download for %s" % url)
-        if url in self.downloaded_images:
-            return self.downloaded_images[url]
-        
-        ext = url.rsplit('.', 1)[1]
-        if not re.match('^[a-zA-Z0-9]+$', ext):
-            ext = 'img'
-        filename = ''
-        id = "%s-image%d.%s" % (self.current_cache.name, self.current_image, ext)
-
-        if self.download_images:
-            try:
-                filename = os.path.join(self.path, id)
-                logger.info("Downloading %s to %s" % (url, filename))
-                f = open(filename, 'wb')
-                f.write(self.downloader.get_reader(url, login=False).read())
-                f.close()
-                if Image != None and self.resize != None and self.resize > 0:
-                    im = Image.open(filename)
-                    im.thumbnail((self.resize, self.resize), Image.ANTIALIAS)
-                    im.save(filename)
-            except Exception, e:
-                logger.exception(e)
-                return None
-
-        self.downloaded_images[url] = id
-        self.current_image += 1
-        return id
 
     def update_coordinates(self, coordinates, num_logs = 20):
         i = 0
@@ -293,6 +204,37 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 page.close()
                 return False
 
+    def _init_images(self):
+        self.downloaded_images = {}
+        self.current_image = 0
+        self.images = {}
+
+    def _download_image(self, url):
+        logger.info("Checking download for %s" % url)
+        if url in self.downloaded_images:
+            return self.downloaded_images[url]
+        
+        ext = url.rsplit('.', 1)[1]
+        if not re.match('^[a-zA-Z0-9]+$', ext):
+            ext = 'img'
+        filename = ''
+        id = "%s-image%d.%s" % (self.current_cache.name, self.current_image, ext)
+
+        if self.download_images:
+            try:
+                filename = os.path.join(self.path, id)
+                logger.info("Downloading %s to %s" % (url, filename))
+                f = open(filename, 'wb')
+                f.write(self.downloader.get_reader(url, login=False).read())
+                f.close()
+            except Exception, e:
+                logger.exception(e)
+                return None
+
+        self.downloaded_images[url] = id
+        self.current_image += 1
+        return id
+        
     def _get_overview(self, location):
         if user_token[0] == None:
             self._get_user_token()
@@ -865,7 +807,7 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
             size = 5
         return size
         
-    # Convert stars3_5 to 35, stars4 to 4 (basename of image to star rating)
+    # Convert stars3_5 to 35, stars4 to 4 (and so on, basename of image of star rating)
     def _handle_stars(self, stars):
         return int(stars[5])*10 + (int(stars[7]) if len(stars) > 6 else 0)
         

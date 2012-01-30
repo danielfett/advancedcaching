@@ -37,7 +37,7 @@ import geocaching
 import gobject
 import gtk
 import hildon
-from cachedownloader import HTMLManipulations
+from utils import HTMLManipulations
 from hildon_plugins import HildonFieldnotes
 from hildon_plugins import HildonSearchPlace
 from hildon_plugins import HildonSearchGeocaches

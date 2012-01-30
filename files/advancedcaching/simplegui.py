@@ -49,7 +49,7 @@ except (ImportError):
 import pango
 from os import path, extsep
 import re
-from cachedownloader import HTMLManipulations
+from utils import HTMLManipulations
 from gtkmap import *
 from gui import Gui
 

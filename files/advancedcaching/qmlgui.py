@@ -959,7 +959,7 @@ class GeocacheWrapper(QtCore.QObject):
         return self._geocache.shortdesc
         
     def _stripped_shortdesc(self):
-        from cachedownloader import HTMLManipulations
+        from utils import HTMLManipulations
         return HTMLManipulations.strip_html_visual(self._geocache.shortdesc)
 
     def _desc(self):
