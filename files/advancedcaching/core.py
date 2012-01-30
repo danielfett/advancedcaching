@@ -833,7 +833,6 @@ class Core(gobject.GObject):
         finally:
             self.emit('hide-progress')
         
-                
 
     ##############################################
     #
