@@ -392,7 +392,7 @@ class GeocacheCoordinate(geo.Coordinate):
 
         # read from local user_coordinates
         for id, local in self.get_user_coordinates(self.USER_TYPE_COORDINATE):
-            coord = geo.Coordinate(* local['value'], name=local['name'])
+            coord = geo.Coordinate(local['value'][0], local['value'][1], name=local['name'])
             text = local['name'] if local['name'] != '' else 'manually entered'
             coord.display_text = "%s: %s" % (text, coord.get_latlon(format))
             coord.title = "Entered"
