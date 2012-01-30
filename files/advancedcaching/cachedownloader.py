@@ -672,18 +672,23 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
             return url.split('/')[-1].split('.')[0]
         
         # Short Description - Long Desc. is added after the image handling (see below)
-        coordinate.shortdesc = doc.get_element_by_id('ctl00_ContentBody_ShortDescription').text_content()#self._extract_node_contents(doc.get_element_by_id('ctl00_ContentBody_ShortDescription'), 'Short Description')
+        try:
+            coordinate.shortdesc = doc.get_element_by_id('ctl00_ContentBody_ShortDescription').text_content()
+        except KeyError, e:
+            # happend when no short description is available
+            logger.info("No short description available")
+            coordinate.shortdesc = ''
 
         # Coordinate - may have been updated by the user; therefore retrieve it again
-        coord_text = doc.get_element_by_id('uxLatLon')
-        if coord_text == None:
-            raise Exception("Could not find uxLatLon")
         try:
-            coord = geo.try_parse_coordinate(coord_text.text_content())
+            text = doc.get_element_by_id('uxLatLon').text_content()
+            coord = geo.try_parse_coordinate(text)
+            coordinate.lat, coordinate.lon = coord.lat, coord.lon
+        except KeyError, e:
+            raise Exception("Could not find uxLatLon")
         except Exception, e:
             logger.error("Could not parse this coordinate: %r" % coord_text.text_content())
             raise e
-        coordinate.lat, coordinate.lon = coord.lat, coord.lon
         
         # Size 
         try:
@@ -701,13 +706,19 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
             logger.error("Could not find/parse star ratings")
             
         # Hint(s)
-        hint = doc.get_element_by_id('div_hint')
-        if hint == None:
-            raise Exception("Hint not found.")
-        coordinate.hints = self._handle_hints(hint.text_content())
+        try:
+            hint = doc.get_element_by_id('div_hint')
+            coordinate.hints = self._handle_hints(hint.text_content())
+        except KeyError, e:
+            logger.info("Hint not found!")
+            coordinate.hints = ''
         
         # Owner
-        coordinate.owner = doc.cssselect('#cacheDetails span.minorCacheDetails a')[0].text_content()
+        try:
+            coordinate.owner = doc.cssselect('#cacheDetails span.minorCacheDetails a')[0].text_content()
+        except Exception, e:
+            logger.error("Owner not found!")
+            raise e
             
         # Waypoints
         waypoints = []
@@ -777,9 +788,11 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
             
         # Search images in Description and replace them by a special placeholder
         # First, extract description...
-        desc = doc.get_element_by_id('ctl00_ContentBody_LongDescription')
-        if desc == None:
-            raise Exception("Description could not be found!")
+        try:
+            desc = doc.get_element_by_id('ctl00_ContentBody_LongDescription')
+        except Exception, e:
+            logger.error("Description could not be found!")
+            raise e
             
         # Next, search image elements and replace them
         for element, attribute, link, pos in desc.iterlinks():
@@ -816,7 +829,7 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
         coordinate.set_images(images_save)
                 
         # Long description
-        coordinate.desc = self._extract_node_contents(desc, 'Description')
+        coordinate.desc = self._extract_node_contents(desc)
         
         # Archived status
         for log in coordinate.get_logs():
@@ -835,9 +848,7 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
         return coordinate
             
     # Only return the contents of a node, not the node tag itself, as text
-    def _extract_node_contents(self, el, name):
-        if el == None:
-            raise Exception("Could not find Element: %s" % name)
+    def _extract_node_contents(self, el):
         return ''.join(unicode(tostring(x, encoding='utf-8', method='html'), 'utf-8') for x in el)
         
     # Handle size string from basename of the according image
