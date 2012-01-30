@@ -73,3 +73,8 @@ class HTMLManipulations(object):
 
         entity_re = re.compile(r'&(#?)(x?)(\w+);')
         return entity_re.subn(substitute_entity, string)[0]
+        
+    
+    @staticmethod
+    def _rot13(text):
+        return text.encode('rot13').decode('utf-8', 'replace')
