@@ -54,16 +54,20 @@ class CacheDownloader(gobject.GObject):
                     'already-downloading-error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
                     'finished-single' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
                     'finished-multiple' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+                    'finished-uploading': (gobject.SIGNAL_RUN_FIRST,\
+                                 gobject.TYPE_NONE,\
+                                 ()),
                     }
 
     lock = threading.Lock()
 
-    def __init__(self, downloader, path, download_images):
+    # Path and download_images are not needed if this instance is only used to upload data.
+    def __init__(self, downloader, path = None, download_images = True):
         gobject.GObject.__init__(self)
         self.downloader = downloader
         self.path = path
         self.download_images = download_images
-        if not os.path.exists(path):
+        if path != None and not os.path.exists(path):
             try:
                 os.mkdir(path)
             except:
@@ -119,6 +123,17 @@ class CacheDownloader(gobject.GObject):
         CacheDownloader.lock.release()
         return points
         
+    # Upload one or more fieldnotes
+    def upload_fieldnotes(self, geocaches):
+        try:
+            self._upload_fieldnotes(geocaches)
+        except Exception, e:
+            self.emit('download-error', e)
+            return False
+        self.emit('finished-uploading')
+        return True
+                
+        
         
 class GeocachingComCacheDownloader(CacheDownloader):
     
@@ -167,7 +182,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         
         for line in page:
             if 'Hello, ' in line:
-                logger.info("Seems as we're still logged in")
+                logger.info("Seems as if we're still logged in")
                 page.close()
                 return True
             elif 'Welcome, Visitor!' in line:
@@ -536,6 +551,57 @@ class GeocachingComCacheDownloader(CacheDownloader):
         if ((id in self.images and len(description) > len(self.images[id]))
             or id not in self.images):
             self.images[id] = description
+            
+            
+    # Upload one or more fieldnotes
+    def _upload_fieldnotes(self, geocaches):
+        notes = []
+        logger.info("Preparing fieldnotes...")
+        for geocache in geocaches:
+            if geocache.logdate == '':
+                raise Exception("Illegal Date.")
+
+            if geocache.logas == GeocacheCoordinate.LOG_AS_FOUND:
+                log = "Found it"
+            elif geocache.logas == GeocacheCoordinate.LOG_AS_NOTFOUND:
+                log = "Didn't find it"
+            elif geocache.logas == GeocacheCoordinate.LOG_AS_NOTE:
+                log = "Write note"
+            else:
+                raise Exception("Illegal status: %s" % geocache.logas)
+
+            text = geocache.fieldnotes.replace('"', "'")
+
+            notes.append('%s,%sT10:00Z,%s,"%s"' % (geocache.name, geocache.logdate, log, text))
+            
+        logger.info("Uploading fieldnotes...")
+        url = 'http://www.geocaching.com/my/uploadfieldnotes.aspx'
+        
+        # First, download webpage to get the correct viewstate value
+        page = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback).read()
+        m = re.search('<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="([^"]+)" />', page)
+        if m == None:
+            raise Exception("Could not download fieldnotes page.")
+        viewstate = m.group(1)
+        
+        # Next, compile the text for the logs
+        text = "\r\n".join(notes).encode("UTF-16")
+        
+        # And finally, upload the stuff
+        response = self.downloader.get_reader(url,
+                                              data=self.downloader.encode_multipart_formdata(
+                                                [('ctl00$ContentBody$btnUpload', 'Upload Field Note'), ('ctl00$ContentBody$chkSuppressDate', ''), ('__VIEWSTATE', viewstate)],
+                                                [('ctl00$ContentBody$FieldNoteLoader', 'geocache_visits.txt', text)]
+                                              ), 
+                                              login_callback = self.login_callback, 
+                                              check_login_callback = self.check_login_callback
+                                              )
+
+        res = response.read()
+        if not "successfully uploaded" in res:
+            raise Exception("Something went wrong while uploading the field notes.")
+        else:
+            logger.info("Finished upload!")
 
 from lxml.html import fromstring, tostring
         

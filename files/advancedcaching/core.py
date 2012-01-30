@@ -856,8 +856,8 @@ class Core(gobject.GObject):
         self.emit('progress', 0.5, "Uploading Fieldnotes...")
 
         caches = self.pointprovider.get_new_fieldnotes()
-        fn = fieldnotesuploader.FieldnotesUploader(self.downloader)
-        fn.connect("upload-error", self.on_download_error)
+        fn = cachedownloader.get(self.settings['options_backend'], self.downloader)
+        fn.connect("download-error", self.on_download_error)
         
         def same_thread(arg1):
             gobject.idle_add(self.on_upload_fieldnotes_finished, arg1, caches)
@@ -865,9 +865,7 @@ class Core(gobject.GObject):
             
         fn.connect('finished-uploading', same_thread)
         
-        for c in caches:
-            fn.add_fieldnote(c)
-        t = Thread(target=fn.upload)
+        t = Thread(target=fn.upload_fieldnotes, args=[caches])
         t.daemon = True
         t.start()
         
