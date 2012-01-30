@@ -77,4 +77,7 @@ class HTMLManipulations(object):
     
     @staticmethod
     def _rot13(text):
-        return text.encode('rot13').decode('utf-8', 'replace')
+        # This handles unicode strings correctly and is available in Python 3, as opposed to encode('rot13')
+        text = re.sub(u'[a-z]', lambda x: ((ord(x)-97)+13 % 26) + 97, text)
+        text = re.sub(u'[A-Z]', lambda x: ((ord(x)-64)+13 % 26) + 65, text)
+        return text

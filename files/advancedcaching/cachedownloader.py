@@ -190,7 +190,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 page.close()
                 return False
                 
-    def _get_overview(self, location, rec_depth):
+    def _get_overview(self, location, rec_depth = 0):
         if user_token[0] == None:
             self._get_user_token()
         c1, c2 = location
@@ -206,7 +206,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         
         if not 'cc' in a['cs']:
             if 'count' in a['cs'] and 'count' != 0: # This indicates too many points in the area
-                if rec_depth < MAX_REC_DEPTH: 
+                if rec_depth < self.MAX_REC_DEPTH: 
                     # If we may recurse further...
                     # let's try to download one half of the geocaches first
                     mlat = (c1.lat + c2.lat)/2

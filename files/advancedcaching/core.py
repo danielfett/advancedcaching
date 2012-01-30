@@ -44,7 +44,6 @@ from os import path, mkdir, extsep, remove, walk
 import provider
 from threading import Thread
 import cachedownloader
-import fieldnotesuploader
 from actors.tts import TTS
 #from actors.notify import Notify
 
@@ -110,7 +109,7 @@ class Core(gobject.GObject):
 
     DATA_DIR = path.expanduser(path.join('~', '')) if not path.exists(MAEMO_HOME) else MAEMO_HOME
 
-    UPDATE_MODULES = [cachedownloader, fieldnotesuploader]
+    UPDATE_MODULES = [cachedownloader]
     
     DEFAULT_SETTINGS = {
         'download_visible': True,
