@@ -606,7 +606,12 @@ class GeocachingComCacheDownloader(CacheDownloader):
 from lxml.html import fromstring, tostring
         
 class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
-        
+    
+    def __init__(self, downloader, path = None, download_images = True):
+        logger.info("Using new downloader.")
+        GeocachingComCacheDownloader.__init__(self, downloader, path, download_images)
+        self.downloader.allow_minified_answers = True
+    
     @staticmethod
     def check_login_callback(downloader):
         url = 'http://www.geocaching.com/seek/nearest.aspx'

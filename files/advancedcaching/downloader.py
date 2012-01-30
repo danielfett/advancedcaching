@@ -37,6 +37,10 @@ class FileDownloader():
         from socket import setdefaulttimeout
         setdefaulttimeout(30)
         self.opener_installed = False
+        
+        # This controls the use of the cache-headers in requests to allow/deny minified answers
+        # as provided by some mobile operators.
+        self.allow_minified_answers = True
 
     def update_userdata(self, username = None, password = None):
         from os import path, remove
@@ -162,6 +166,7 @@ class FileDownloader():
 
     def add_headers(self, req):
         req.add_header('User-Agent', self.USER_AGENT)
-        req.add_header('Cache-Control', 'no-cache')
-        req.add_header('Pragma', 'no-cache')
+        if not self.allow_minified_answers:
+            req.add_header('Cache-Control', 'no-cache')
+            req.add_header('Pragma', 'no-cache')
         req.add_header('Accept-Encoding', 'gzip')
