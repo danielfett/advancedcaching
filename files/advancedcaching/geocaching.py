@@ -68,6 +68,8 @@ class GeocacheCoordinate(geo.Coordinate):
     LOG_TYPE_MAINTENANCE = 'maint'
     LOG_TYPE_PUBLISHED = 'greenlight'
     LOG_TYPE_DISABLED = 'disabled'
+    LOG_TYPE_ENABLED = 'enabled'
+    LOG_TYPE_ARCHIVED = 'traffic_cone'
     LOG_TYPE_NEEDS_MAINTENANCE = 'needsmaint'
     LOG_TYPE_WILLATTEND = 'rsvp'
     LOG_TYPE_ATTENDED = 'attended'

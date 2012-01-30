@@ -37,7 +37,7 @@ import geocaching
 import gobject
 import gtk
 import hildon
-from cachedownloader import HTMLManipulations
+from utils import HTMLManipulations
 from hildon_plugins import HildonFieldnotes
 from hildon_plugins import HildonSearchPlace
 from hildon_plugins import HildonSearchGeocaches
@@ -923,7 +923,10 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                 w_name.set_markup(" <b>%s</b>" % my_gtk_label_escape(HTMLManipulations._decode_htmlentities(l['finder'])))
                 w_name.set_alignment(0, 0)
                 w_date = gtk.Label()
-                w_date.set_markup("<b>%4d-%02d-%02d</b>" % (int(l['year']), int(l['month']), int(l['day'])))
+                if 'year' in l:
+                    w_date.set_markup("<b>%4d-%02d-%02d</b>" % (int(l['year']), int(l['month']), int(l['day'])))
+                else:
+                    w_date.set_markup("<b>%s</b>" % l['date'])
                 w_date.set_alignment(0.95, 0)
                 w_text = gtk.Label("%s\n" % l['text'].strip())
                 w_text.set_line_wrap(True)

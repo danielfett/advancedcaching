@@ -49,7 +49,7 @@ except (ImportError):
 import pango
 from os import path, extsep
 import re
-from cachedownloader import HTMLManipulations
+from utils import HTMLManipulations
 from gtkmap import *
 from gui import Gui
 
@@ -1044,7 +1044,10 @@ class SimpleGui(Gui):
                     t = 'MAINTENANCE'
                 else:
                     t = l['type'].upper()
-                text_hints += '%s by %s at %4d/%d/%d: %s\n\n' % (t, l['finder'], int(l['year']), int(l['month']), int(l['day']), l['text'])
+                if 'year' in l:
+                    text_hints += '%s by %s at %4d/%d/%d: %s\n\n' % (t, l['finder'], int(l['year']), int(l['month']), int(l['day']), l['text'])
+                else:
+                    text_hints += '%s by %s at %s: %s\n\n' % (t, l['finder'], l['date'], l['text'])
             text_hints += '\n----------------\n'
         else:
             text_hints = 'NO LOGS.\n\n'

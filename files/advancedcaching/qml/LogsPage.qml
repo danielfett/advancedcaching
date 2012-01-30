@@ -36,7 +36,7 @@ Page {
                 }
 
                 Label {
-                    text: model.log.year + "-" + model.log.month + "-" + model.log.day + " by " + model.log.finder
+                    text: model.log.date + " by " + model.log.finder
                     font.weight: Font.Light
                     font.pixelSize: 22
                     visible: text != ""

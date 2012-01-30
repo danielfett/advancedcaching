@@ -150,7 +150,8 @@ class Core(gobject.GObject):
         'options_auto_update': True,
         'download_num_logs': 20,
         'options_night_view_mode': 0,
-        'debug_log_to_http': False
+        'debug_log_to_http': False,
+        'options_backend': 'geocaching-com-new',
     }
             
     def __init__(self, guitype, root):
@@ -172,7 +173,7 @@ class Core(gobject.GObject):
      
         connection.init()
 
-        self.downloader = downloader.FileDownloader(self.settings['options_username'], self.settings['options_password'], self.COOKIE_FILE, cachedownloader.GeocachingComCacheDownloader.login_callback)
+        self.downloader = downloader.FileDownloader(self.settings['options_username'], self.settings['options_password'], self.COOKIE_FILE)
                 
         self.pointprovider = provider.PointProvider(self.CACHES_DB, geocaching.GeocacheCoordinate, 'geocaches')
 
@@ -658,7 +659,7 @@ class Core(gobject.GObject):
     def on_download(self, location, sync=False):
         self._check_auto_update()
         self.emit('progress', 0.5, "Downloading...")
-        cd = cachedownloader.GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd = cachedownloader.get(self.settings['options_backend'], self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
         cd.connect("already-downloading-error", self.on_already_downloading_error)
         if not sync:
@@ -712,7 +713,7 @@ class Core(gobject.GObject):
         self._check_auto_update()
         self.emit('progress', 0.5, "Downloading %s..." % cache.name)
 
-        cd = cachedownloader.GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd = cachedownloader.get(self.settings['options_backend'], self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
         cd.connect("already-downloading-error", self.on_already_downloading_error)
         if not sync:
@@ -772,7 +773,7 @@ class Core(gobject.GObject):
 
     def update_coordinates(self, caches):
         self._check_auto_update()
-        cd = cachedownloader.GeocachingComCacheDownloader(self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        cd = cachedownloader.get(self.settings['options_backend'], self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
         cd.connect("already-downloading-error", self.on_already_downloading_error)
 
@@ -832,7 +833,6 @@ class Core(gobject.GObject):
         finally:
             self.emit('hide-progress')
         
-                
 
     ##############################################
     #
@@ -855,8 +855,8 @@ class Core(gobject.GObject):
         self.emit('progress', 0.5, "Uploading Fieldnotes...")
 
         caches = self.pointprovider.get_new_fieldnotes()
-        fn = fieldnotesuploader.FieldnotesUploader(self.downloader)
-        fn.connect("upload-error", self.on_download_error)
+        fn = cachedownloader.get(self.settings['options_backend'], self.downloader)
+        fn.connect("download-error", self.on_download_error)
         
         def same_thread(arg1):
             gobject.idle_add(self.on_upload_fieldnotes_finished, arg1, caches)
@@ -864,9 +864,7 @@ class Core(gobject.GObject):
             
         fn.connect('finished-uploading', same_thread)
         
-        for c in caches:
-            fn.add_fieldnote(c)
-        t = Thread(target=fn.upload)
+        t = Thread(target=fn.upload_fieldnotes, args=[caches])
         t.daemon = True
         t.start()
         

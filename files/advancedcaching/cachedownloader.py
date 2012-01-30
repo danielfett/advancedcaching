@@ -21,8 +21,8 @@
 #
 
 
-VERSION = 19
-VERSION_DATE = '2011-10-07'
+VERSION = 20
+VERSION_DATE = '2012-01-30'
 
 try:
     import json
@@ -36,68 +36,14 @@ import os
 import threading
 import logging
 logger = logging.getLogger('cachedownloader')
-global Image
-try:
-    import Image
-except:
-    Image = None
-    logger.info("Not using image resize feature")
 import re
 import gobject
+from utils import HTMLManipulations
 
 #ugly workaround...
 user_token = [None]
 
 
-class HTMLManipulations(object):
-    COMMENT_REGEX = re.compile('<!--.*?-->', re.DOTALL)
-    
-    @staticmethod
-    def _strip_html(text, soft = False):
-        if not soft:
-            return re.sub(r'<[^>]*?>', '', text)
-        else:
-            return re.sub(r'<[^>]*?>', ' ', text)
-
-    @staticmethod
-    def strip_html_visual(text, image_replace_callback = None):
-        text = text.replace("\n", " ")
-        if image_replace_callback != None:
-            text = re.sub(r"""(?i)<img[^>]+alt=["']?([^'"> ]+)[^>]+>""", image_replace_callback, text)
-        text = re.sub(r'(?i)<(br|p)[^>]*?>', "\n", text)
-        text = re.sub(r'<[^>]*?>', '', text)
-        text = HTMLManipulations._decode_htmlentities(text)
-        text = re.sub(r'[\n\r]+\s*[\n\r]+', '\n', text)
-        return text.strip()
-
-    @staticmethod
-    def _replace_br(text):
-        return re.sub('<[bB][rR]\s*/?>|</?[pP]>', '\n', text)
-
-
-    @staticmethod
-    def _decode_htmlentities(string):
-        def substitute_entity(match):
-            from htmlentitydefs import name2codepoint as n2cp
-            ent = match.group(3)
-            if match.group(1) == "#":
-                # decoding by number
-                if match.group(2) == '':
-                    # number is in decimal
-                    return unichr(int(ent))
-                elif match.group(2) == 'x':
-                    # number is in hex
-                    return unichr(int('0x' + ent, 16))
-            else:
-                # they were using a name
-                cp = n2cp.get(ent)
-                if cp:
-                    return unichr(cp)
-                else:
-                    return match.group()
-
-        entity_re = re.compile(r'&(#?)(x?)(\w+);')
-        return entity_re.subn(substitute_entity, string)[0]
 
 class CacheDownloader(gobject.GObject):
     __gsignals__ = { 'finished-overview': (gobject.SIGNAL_RUN_FIRST,\
@@ -108,32 +54,210 @@ class CacheDownloader(gobject.GObject):
                     'already-downloading-error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
                     'finished-single' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
                     'finished-multiple' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+                    'finished-uploading': (gobject.SIGNAL_RUN_FIRST,\
+                                 gobject.TYPE_NONE,\
+                                 ()),
                     }
 
     lock = threading.Lock()
 
-    @staticmethod
-    def _rot13(text):
-        return text.encode('rot13').decode('iso-8859-1', 'replace')
-
-    def __init__(self, downloader, path, download_images, resize = None):
+    # Path and download_images are not needed if this instance is only used to upload data.
+    def __init__(self, downloader, path = None, download_images = True):
         gobject.GObject.__init__(self)
         self.downloader = downloader
         self.path = path
         self.download_images = download_images
-        self.resize = resize
-        if not os.path.exists(path):
+        if path != None and not os.path.exists(path):
             try:
                 os.mkdir(path)
             except:
                 raise Exception("Path does not exist: %s" % path)
 
-   
+    # Update several coordinates
+    def update_coordinates(self, coordinates, num_logs = 20):
+        i = 0
+        c = []
+        if len(coordinates) > self.MAX_DOWNLOAD_NUM:
+            self.emit("download-error", Exception("Downloading of more than %d descriptions is not supported." % self.MAX_DOWNLOAD_NUM))
+            return
+        for cache in coordinates:
+            self.emit("progress", cache.name, i, len(coordinates))
+            u = self.update_coordinate(cache, num_logs = num_logs)
+            c.append(u)
+            i += 1
+        self.emit("finished-multiple", c)
+        return c
+                
+    # Update a single coordinate
+    def update_coordinate(self, coordinate, num_logs = 20, outfile = None):
+        if not CacheDownloader.lock.acquire(False):
+            self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
+            return
+        try:
+            logger.info("Downloading %s..." % (coordinate.name))
+            u = self._update_coordinate(coordinate, outfile = outfile, num_logs = num_logs)
+        except Exception, e:
+            logger.exception(e)
+            CacheDownloader.lock.release()
+            self.emit('download-error', e)
+            return coordinate
+        CacheDownloader.lock.release()
+        self.emit('finished-single', u)
+        return u
 
-    def _init_images(self):
+    # Retrieve geocaches in the bounding box defined by location  
+    def get_geocaches(self, location):
+        if not CacheDownloader.lock.acquire(False):
+            self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
+            logger.warning("Download in progress")
+            return
+            
+        try:
+            points = self._get_overview(location)
+        except Exception, e:
+            self.emit('download-error', e)
+            CacheDownloader.lock.release()
+            return []
+
+        self.emit('finished-overview', points)
+        CacheDownloader.lock.release()
+        return points
+        
+    # Upload one or more fieldnotes
+    def upload_fieldnotes(self, geocaches):
+        try:
+            self._upload_fieldnotes(geocaches)
+        except Exception, e:
+            self.emit('download-error', e)
+            return False
+        self.emit('finished-uploading')
+        return True
+                
+        
+        
+class GeocachingComCacheDownloader(CacheDownloader):
+    
+    MAX_REC_DEPTH = 5
+
+    MAX_DOWNLOAD_NUM = 80
+
+
+    CTIDS = {
+        2:GeocacheCoordinate.TYPE_REGULAR,
+        3:GeocacheCoordinate.TYPE_MULTI,
+        4:GeocacheCoordinate.TYPE_VIRTUAL,
+        6:GeocacheCoordinate.TYPE_EVENT,
+        8:GeocacheCoordinate.TYPE_MYSTERY,
+        11:GeocacheCoordinate.TYPE_WEBCAM,
+        137:GeocacheCoordinate.TYPE_EARTH
+    }
+
+    # Called by downloader.py to perform a login
+    @staticmethod
+    def login_callback(downloader, username, password):
+        url = 'https://www.geocaching.com/login/default.aspx'
+        values = {'ctl00$ContentBody$tbUsername': username,
+            'ctl00$ContentBody$tbPassword': password,
+            'ctl00$ContentBody$cbRememberMe': 'on',
+            'ctl00$ContentBody$btnSignIn': 'Login',
+            '__EVENTTARGET': '',
+            '__EVENTARGUMENT': ''
+        }
+        page = downloader.get_reader(url, values, login = False)
+
+        for line in page:
+            if 'You are logged in as' in line:
+                break
+            elif 'combination does not match' in line:
+                raise Exception("Wrong password or username!")
+        else:
+            logger.info("Seems as if the language is set to something other than english")
+            raise Exception("Please go to geocaching.com and set the website language to english!")
+
+    # Called by downloader to check if the user is logged in
+    @staticmethod
+    def check_login_callback(downloader):
+        url = 'http://www.geocaching.com/seek/nearest.aspx'
+        page = downloader.get_reader(url, login = False)
+        
+        for line in page:
+            if 'Hello, ' in line:
+                logger.info("Seems as if we're still logged in")
+                page.close()
+                return True
+            elif 'Welcome, Visitor!' in line:
+                logger.info("Nope, not logged in anymore")
+                page.close()
+                return False
+                
+    def _get_overview(self, location, rec_depth):
+        if user_token[0] == None:
+            self._get_user_token()
+        c1, c2 = location
+        url = 'http://www.geocaching.com/map/default.aspx/MapAction?lat=9&lng=6'
+        data = ('application/json', '{"dto":{"data":{"c":1,"m":"","d":"%f|%f|%f|%f"},"ut":"%s"}}' % (max(c1.lat, c2.lat), min(c1.lat, c2.lat), max(c1.lon, c2.lon), min(c1.lon, c2.lon), user_token[0]))
+
+        response = self.downloader.get_reader(url, data = data, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
+        the_page = response.read()
+
+        c1, c2 = location
+        a = json.loads(json.loads(the_page)['d'])
+        points = []
+        
+        if not 'cc' in a['cs']:
+            if 'count' in a['cs'] and 'count' != 0: # This indicates too many points in the area
+                if rec_depth < MAX_REC_DEPTH: 
+                    # If we may recurse further...
+                    # let's try to download one half of the geocaches first
+                    mlat = (c1.lat + c2.lat)/2
+                    nc1 = geo.Coordinate(min(c1.lat, c2.lat), min(c1.lon, c2.lon))
+                    mc1 = geo.Coordinate(mlat, max(c1.lon, c2.lon))
+                    mc2 = geo.Coordinate(mlat, min(c1.lon, c2.lon))
+                    nc2 = geo.Coordinate(max(c1.lat, c2.lat), max(c1.lon, c2.lon))
+
+                    points += self._get_overview((nc1, mc1), rec_depth + 1)
+                    points += self._get_overview((mc2, nc2), rec_depth + 1)
+                    
+                else:
+                    # Recursion limit reached. Time to throw an exception!
+                    raise Exception("Please select a smaller part of the map.")
+            else: # This indicates no points in the area
+                pass # Return empty points list
+            return points
+            
+        # If there are points in the area...
+        for b in a['cs']['cc']:
+            c = GeocacheCoordinate(b['lat'], b['lon'], b['gc'])
+            c.title = b['nn']
+            if b['ctid'] in self.CTIDS:
+                c.type = self.CTIDS[b['ctid']]
+            else:
+                c.type = GeocacheCoordinate.TYPE_UNKNOWN
+
+            c.found = b['f']
+            if not b['ia']:
+                c.status = GeocacheCoordinate.STATUS_DISABLED
+            points.append(c)
+        return points
+        
+    def _update_coordinate(self, coordinate, num_logs = 20, outfile = None):
+        coordinate = coordinate.clone()
+        
         self.downloaded_images = {}
         self.current_image = 0
         self.images = {}
+        self.current_cache = coordinate
+        
+        url = 'http://www.geocaching.com/seek/cache_details.aspx?wp=%s' % coordinate.name
+        response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
+        if outfile != None:
+            f = open(outfile, 'w')
+            f.write(response.read())
+            f.close()
+            response = open(outfile)
+            
+        return self._parse_cache_page(response, coordinate, num_logs)
+
 
     def _download_image(self, url):
         logger.info("Checking download for %s" % url)
@@ -151,192 +275,26 @@ class CacheDownloader(gobject.GObject):
                 filename = os.path.join(self.path, id)
                 logger.info("Downloading %s to %s" % (url, filename))
                 f = open(filename, 'wb')
-                f.write(self.downloader.get_reader(url).read())
+                f.write(self.downloader.get_reader(url, login=False).read())
                 f.close()
-                if Image != None and self.resize != None and self.resize > 0:
-                    im = Image.open(filename)
-                    im.thumbnail((self.resize, self.resize), Image.ANTIALIAS)
-                    im.save(filename)
             except Exception, e:
-                logger.exception("Could not download %s: %s" % (url, e))
+                logger.exception(e)
                 return None
 
         self.downloaded_images[url] = id
         self.current_image += 1
         return id
-
-    def update_coordinates(self, coordinates, num_logs = 20):
-        i = 0
-        c = []
-        if len(coordinates) > self.MAX_DOWNLOAD_NUM:
-            self.emit("download-error", Exception("Downloading of more than %d descriptions is not supported." % self.MAX_DOWNLOAD_NUM))
-            return
-        for cache in coordinates:
-            self.emit("progress", cache.name, i, len(coordinates))
-            u = self.update_coordinate(cache, num_logs = num_logs)
-            c.append(u)
-            i += 1
-        self.emit("finished-multiple", c)
-        return c
-                
-    def update_coordinate(self, coordinate, num_logs = 20, outfile = None):
-        if not CacheDownloader.lock.acquire(False):
-            self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
-            return
-        self._init_images()
-        coordinate = coordinate.clone()
-        self.current_cache = coordinate
-        try:
-            logger.info("Downloading %s..." % (coordinate.name))
-            response = self._get_cache_page(coordinate.name)
-            if outfile != None:
-                f = open(outfile, 'w')
-                f.write(response.read())
-                f.close()
-                response = open(outfile)
-            u = self._parse_cache_page(response, coordinate, num_logs)
-        except Exception, e:
-            CacheDownloader.lock.release()
-            self.emit('download-error', e)
-            return self.current_cache
-        CacheDownloader.lock.release()
-        self.emit('finished-single', u)
-        return u
-
-                
-    def get_geocaches(self, location, rec_depth = 0):
-        if not CacheDownloader.lock.acquire(False):
-            self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
-            logger.warning("Download in progress")
-            return
-        # don't recurse indefinitely
-        if rec_depth > self.MAX_REC_DEPTH:
-            raise Exception("Please select a smaller part of the map.")
-            CacheDownloader.lock.release()
-            return []
-
-        try:
-            content = self._get_overview(location)
-        except Exception, e:
-            self.emit('download-error', e)
-            CacheDownloader.lock.release()
-            return []
-                            
-        if content == None:
-            return []
-        try:
-            points = self._parse_overview(content, location, rec_depth)
-        except Exception, e:
-            if rec_depth == 0:
-                self.emit('download-error', e)
-                CacheDownloader.lock.release()
-                return []
-            else:
-                raise e
-
-        self.emit('finished-overview', points)
-        CacheDownloader.lock.release()
-        return points
         
-class GeocachingComCacheDownloader(CacheDownloader):
-    
-    MAX_REC_DEPTH = 8
-
-    MAX_DOWNLOAD_NUM = 20
-
-
-    CTIDS = {
-        2:GeocacheCoordinate.TYPE_REGULAR,
-        3:GeocacheCoordinate.TYPE_MULTI,
-        4:GeocacheCoordinate.TYPE_VIRTUAL,
-        6:GeocacheCoordinate.TYPE_EVENT,
-        8:GeocacheCoordinate.TYPE_MYSTERY,
-        11:GeocacheCoordinate.TYPE_WEBCAM,
-        137:GeocacheCoordinate.TYPE_EARTH
-    }
-
-    @staticmethod
-    def login_callback(username, password):
-        url = 'https://www.geocaching.com/login/default.aspx'
-        values = {'ctl00$ContentBody$tbUsername': username,
-            'ctl00$ContentBody$tbPassword': password,
-            'ctl00$ContentBody$cbRememberMe': 'on',
-            'ctl00$ContentBody$btnSignIn': 'Login',
-            '__EVENTTARGET': '',
-            '__EVENTARGUMENT': ''
-        }
-        return url, values
-
-
-    def _get_overview(self, location):
-        if user_token[0] == None:
-            self._get_user_token()
-        c1, c2 = location
-        url = 'http://www.geocaching.com/map/default.aspx/MapAction?lat=9&lng=6'
-        data = ('application/json', '{"dto":{"data":{"c":1,"m":"","d":"%f|%f|%f|%f"},"ut":"%s"}}' % (max(c1.lat, c2.lat), min(c1.lat, c2.lat), max(c1.lon, c2.lon), min(c1.lon, c2.lon), user_token[0]))
-
-        try:
-            response = self.downloader.get_reader(url, data = data)
-            the_page = response.read()
-
-        except Exception, e:
-            CacheDownloader.lock.release()
-            self.emit('download-error', e)
-            return None
-        return the_page
         
     def _get_user_token(self):
-        page = self.downloader.get_reader('http://www.geocaching.com/map/default.aspx?lat=6&lng=9')
+        page = self.downloader.get_reader('http://www.geocaching.com/map/default.aspx?lat=6&lng=9', login_callback = self.login_callback, check_login_callback = self.check_login_callback)
         for line in page:
             if line.startswith('var uvtoken'):
                 user_token[0] = re.compile("userToken[ =]+'([^']+)'").search(line).group(1)
-                
+                print user_token
                 page.close()
                 return
-        logger.debug("Got this page: %r" % page)
         raise Exception("Website contents unexpected. Please check connection.")
-        
-
-    def _parse_overview(self, content, location, rec_depth = 0):
-        c1, c2 = location
-        #text = content.replace('\\"', '"')
-        #text = text.replace('\t', ' ')
-        full = json.loads(content)
-        a = json.loads(full['d'])
-        points = []
-        if not 'cc' in a['cs']:
-            if 'count' in a['cs'] and 'count' != 0:
-                # let's try to download one half of the geocaches first
-                mlat = (c1.lat + c2.lat)/2
-                nc1 = geo.Coordinate(min(c1.lat, c2.lat), min(c1.lon, c2.lon))
-                mc1 = geo.Coordinate(mlat, max(c1.lon, c2.lon))
-                mc2 = geo.Coordinate(mlat, min(c1.lon, c2.lon))
-                nc2 = geo.Coordinate(max(c1.lat, c2.lat), max(c1.lon, c2.lon))
-                #print "recursing..."
-
-                CacheDownloader.lock.release()
-                points += self.get_geocaches((nc1, mc1), rec_depth + 1)
-                points += self.get_geocaches((mc2, nc2), rec_depth + 1)
-                CacheDownloader.lock.acquire(False)
-            return points
-        for b in a['cs']['cc']:
-            c = GeocacheCoordinate(b['lat'], b['lon'], b['gc'])
-            c.title = b['nn']
-            if b['ctid'] in self.CTIDS:
-                c.type = self.CTIDS[b['ctid']]
-            else:
-                c.type = GeocacheCoordinate.TYPE_UNKNOWN
-
-            c.found = b['f']
-            if not b['ia']:
-                c.status = GeocacheCoordinate.STATUS_DISABLED
-            points.append(c)
-        return points
-
-        
-    def _get_cache_page(self, cacheid):
-        return self.downloader.get_reader('http://www.geocaching.com/seek/cache_details.aspx?wp=%s' % cacheid)
-
                 
     def _parse_cache_page(self, cache_page, coordinate, num_logs):
         prev_section = ''
@@ -414,6 +372,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 images = "%s%s " % (images, line)
             elif section == S_TOKEN:
                 usertoken = line.replace("userToken = '", '').replace("';", '').strip()
+                logger.debug("usertoken is %s" % usertoken)
                 break
             elif section == S_AFTER_HINTS and attribute_line == '' and line.startswith("<img src=\"/images/attributes"):
                 attribute_line = line
@@ -455,9 +414,12 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
     def _get_logs(self, usertoken, count):
         logger.debug("Retrieving %d logs..." % count)
-        logs = self.downloader.get_reader('http://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=1&num=%d&decrypt=true' % (usertoken, count))
+        logs = self.downloader.get_reader('http://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=1&num=%d&decrypt=true' % (usertoken, count), login_callback = self.login_callback, check_login_callback = self.check_login_callback)
+        return self._parse_logs_json(logs.read())
+
+    def _parse_logs_json(self, logs):
         try:
-            r = json.loads(logs.read())
+            r = json.loads(logs)
         except Exception, e:
             logger.exception('Could not json-parse logs!')
         if not 'status' in r or r['status'] != 'success':
@@ -467,16 +429,12 @@ class GeocachingComCacheDownloader(CacheDownloader):
         output = []
         for l in data:
             tpe = l['LogTypeImage'].replace('.gif', '').replace('icon_', '')
-            month = l['Visited'][0:2]
-            day = l['Visited'][3:5]
-            year = l['Visited'][6:10]
+            date = l['Visited']
             finder = "%s (found %s)" % (l['UserName'], l['GeocacheFindCount'])
             text = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(l['LogText'])))
-            output.append(dict(type=tpe, month=month, day=day, year=year, finder=finder, text=text))
-        logger.debug("Retrieved %d logs" % len(output))
+            output.append(dict(type=tpe, date=date, finder=finder, text=text))
+        logger.debug("Read %d log entries" % len(output))
         return output
-
-            
                 
     def __parse_head(self, head, coords):
         size_diff_terr = re.compile('was created by (?P<owner>.+?) on .+? a (?P<size>[a-zA-Z ]+) size geocache, with difficulty of (?P<diff>[0-9.]+?), terrain of (?P<terr>[0-9.]+?). ').search(head)
@@ -489,7 +447,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             size = 3
         elif sizestring == 'large' or sizestring == 'big':
             size = 4
-        elif sizestring == 'not chosen' or sizestring == 'other':
+        elif sizestring == 'not chosen' or sizestring == 'other' or sizestring == 'virtual':
             size = 5
         else:
             logger.warning("Size not known: %s" % sizestring)
@@ -513,8 +471,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
     
     def __treat_hints(self, hints):
         hints = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(hints))).strip()
-        hints = self._rot13(hints)
-        hints = re.sub(r'\[([^\]]+)\]', lambda match: self._rot13(match.group(0)), hints)
+        hints = HTMLManipulations._rot13(hints)
+        hints = re.sub(r'\[([^\]]+)\]', lambda match: HTMLManipulations._rot13(match.group(0)), hints)
         hints = hints.replace('&aofc;', '').strip()
         return hints
 
@@ -593,6 +551,332 @@ class GeocachingComCacheDownloader(CacheDownloader):
         if ((id in self.images and len(description) > len(self.images[id]))
             or id not in self.images):
             self.images[id] = description
+            
+            
+    # Upload one or more fieldnotes
+    def _upload_fieldnotes(self, geocaches):
+        notes = []
+        logger.info("Preparing fieldnotes...")
+        for geocache in geocaches:
+            if geocache.logdate == '':
+                raise Exception("Illegal Date.")
+
+            if geocache.logas == GeocacheCoordinate.LOG_AS_FOUND:
+                log = "Found it"
+            elif geocache.logas == GeocacheCoordinate.LOG_AS_NOTFOUND:
+                log = "Didn't find it"
+            elif geocache.logas == GeocacheCoordinate.LOG_AS_NOTE:
+                log = "Write note"
+            else:
+                raise Exception("Illegal status: %s" % geocache.logas)
+
+            text = geocache.fieldnotes.replace('"', "'")
+
+            notes.append('%s,%sT10:00Z,%s,"%s"' % (geocache.name, geocache.logdate, log, text))
+            
+        logger.info("Uploading fieldnotes...")
+        url = 'http://www.geocaching.com/my/uploadfieldnotes.aspx'
+        
+        # First, download webpage to get the correct viewstate value
+        page = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback).read()
+        m = re.search('<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="([^"]+)" />', page)
+        if m == None:
+            raise Exception("Could not download fieldnotes page.")
+        viewstate = m.group(1)
+        
+        # Next, compile the text for the logs
+        text = "\r\n".join(notes).encode("UTF-16")
+        
+        # And finally, upload the stuff
+        response = self.downloader.get_reader(url,
+                                              data=self.downloader.encode_multipart_formdata(
+                                                [('ctl00$ContentBody$btnUpload', 'Upload Field Note'), ('ctl00$ContentBody$chkSuppressDate', ''), ('__VIEWSTATE', viewstate)],
+                                                [('ctl00$ContentBody$FieldNoteLoader', 'geocache_visits.txt', text)]
+                                              ), 
+                                              login_callback = self.login_callback, 
+                                              check_login_callback = self.check_login_callback
+                                              )
+
+        res = response.read()
+        if not "successfully uploaded" in res:
+            raise Exception("Something went wrong while uploading the field notes.")
+        else:
+            logger.info("Finished upload!")
+
+from lxml.html import fromstring, tostring
+        
+class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
+    
+    def __init__(self, downloader, path = None, download_images = True):
+        logger.info("Using new downloader.")
+        GeocachingComCacheDownloader.__init__(self, downloader, path, download_images)
+        self.downloader.allow_minified_answers = True
+    
+    @staticmethod
+    def check_login_callback(downloader):
+        url = 'http://www.geocaching.com/seek/nearest.aspx'
+        page = downloader.get_reader(url, login = False).read()
+
+        t = unicode(page, 'utf-8')
+        doc = fromstring(t)
+        if len(doc.cssselect('.NotSignedInText')) > 0:
+            logger.info("Probably not signed in anymore.")
+            return False
+        elif len(doc.cssselect('.SignedInText')) > 0:
+            logger.info("Probably still signed in.")
+            return True
+        logger.exception("Could not reliably determine logged in status, assuming No")
+        return False
+        
+    @staticmethod
+    def login_callback(downloader, username, password):
+        url = 'https://www.geocaching.com/login/default.aspx'
+        values = {'ctl00$ContentBody$tbUsername': username,
+            'ctl00$ContentBody$tbPassword': password,
+            'ctl00$ContentBody$cbRememberMe': 'on',
+            'ctl00$ContentBody$btnSignIn': 'Login',
+            '__EVENTTARGET': '',
+            '__EVENTARGUMENT': ''
+        }
+        page = downloader.get_reader(url, values, login = False).read()
+
+        t = unicode(page, 'utf-8')
+        doc = fromstring(t)
+        
+        if doc.get_element_by_id('ctl00_ContentBody_ErrorText', None) != None:
+            raise Exception("Wrong username or password!")
+        if len(doc.cssselect('.Success')) > 0:
+            logger.info("Great success.")
+            return True
+        raise Exception("Name/Password MAY be correct, but I encountered unexpected data while logging in.")
+            
+                
+    def _parse_cache_page(self, cache_page, coordinate, num_logs):
+        logger.debug("Start parsing.")
+        pg = cache_page.read()
+        t = unicode(pg, 'utf-8')
+        doc = fromstring(t)
+        
+        # Basename - Image name without path and extension
+        def basename(url):
+            return url.split('/')[-1].split('.')[0]
+        
+        # Short Description - Long Desc. is added after the image handling (see below)
+        try:
+            coordinate.shortdesc = doc.get_element_by_id('ctl00_ContentBody_ShortDescription').text_content()
+        except KeyError, e:
+            # happend when no short description is available
+            logger.info("No short description available")
+            coordinate.shortdesc = ''
+
+        # Coordinate - may have been updated by the user; therefore retrieve it again
+        try:
+            text = doc.get_element_by_id('uxLatLon').text_content()
+            coord = geo.try_parse_coordinate(text)
+            coordinate.lat, coordinate.lon = coord.lat, coord.lon
+        except KeyError, e:
+            raise Exception("Could not find uxLatLon")
+        except Exception, e:
+            logger.error("Could not parse this coordinate: %r" % coord_text.text_content())
+            raise e
+        
+        # Size 
+        try:
+            # src is URL to image of the cache size
+            # src.split('/')[-1].split('.')[0] is the basename minus extension
+            coordinate.size = self._handle_size(basename(doc.cssselect('.CacheSize p span img')[0].get('src')))
+        except Exception, e:
+            logger.error("Could not find/parse size string")
+            raise e
+            
+        # Terrain/Difficulty
+        try:
+            coordinate.difficulty, coordinate.terrain = [self._handle_stars(basename(x.get('src'))) for x in doc.cssselect('.CacheStarImgs span img')]
+        except Exception, e:
+            logger.error("Could not find/parse star ratings")
+            
+        # Hint(s)
+        try:
+            hint = doc.get_element_by_id('div_hint')
+            coordinate.hints = self._handle_hints(hint.text_content())
+        except KeyError, e:
+            logger.info("Hint not found!")
+            coordinate.hints = ''
+        
+        # Owner
+        try:
+            coordinate.owner = doc.cssselect('#cacheDetails span.minorCacheDetails a')[0].text_content()
+        except Exception, e:
+            logger.error("Owner not found!")
+            raise e
+            
+        # Waypoints
+        waypoints = []
+        w = {}
+        for x in doc.cssselect('#ctl00_ContentBody_Waypoints tr.BorderBottom'):
+            if len(x) > 6: #chosen between 8 (data line) and 3 (description line)
+                w['id'] = ''.join([x[3].text_content().strip(), x[4].text_content().strip()])
+                w['name'] = x[5].text_content().strip()
+                try:
+                    coord = geo.try_parse_coordinate(x[6].text_content().strip())
+                    w['lat'], w['lon'] = coord.lat, coord.lon 
+                except Exception, e:
+                    w['lat'], w['lon'] = -1, -1
+            else:
+                w['comment'] = x[2].text_content().strip()
+                waypoints += [w]
+        coordinate.set_waypoints(waypoints)
+        
+        # User token and Logs
+        for x in doc.cssselect('script'):
+            if not x.text:
+                continue
+            s = x.text.strip()
+            if s.startswith('//<![CDATA[\r\ninitalLogs'):
+                logs = s.replace('//<![CDATA[\r\ninitalLogs = ', '')
+                logs = re.sub('(?s)};\s*//]]>', '}', logs)
+                coordinate.set_logs(self._parse_logs_json(logs))
+            # User Token is not currently in use
+            #elif s.startswith('//<![CDATA[\r\nvar uvtoken'):
+            #    userToken = re.sub("(?s).*userToken = '", '', s)
+            #    userToken = re.sub("(?s)'.*", '', userToken)
+            #    print userToken
+            
+        # Attributes
+        try:
+            coordinate.attributes = ','.join([x.get('title') for x in doc.cssselect('.CacheDetailNavigationWidget.BottomSpacing .WidgetBody img') if x.get('title') != 'blank'])
+        except Exception, e:
+            logger.error("Could not find/parse attributes")
+            raise e
+        
+        # Image Handling
+
+        images = {}
+        # Called when an image was found.
+        # Returns a unique filename for the given URL
+        def found_image(url, title):
+            # First, check if this URL is known        
+            if url in images:
+                # If it is, take the longest available title
+                if len(images[url]['title']) < title:
+                    images[url]['title'] = title
+                # Return the previously calculated filename
+                # Obviously, it points to the image from the same URL
+                return images[url]['filename']
+            
+            # If this URL is encountered for the first time, calculate the filename
+            ext = url.rsplit('.', 1)[1]
+            if not re.match('^[a-zA-Z0-9]+$', ext):
+                ext = 'img'
+            filename = "%s-image%d.%s" % (coordinate.name, len(images), ext)
+            images[url] = {'filename': filename, 'title': title}
+            return filename
+        
+        # Find Images in the additional image section
+        for x in doc.cssselect('a[rel=lightbox]'):
+            found_image(x.get('href'), x.text_content().strip())
+            
+        # Search images in Description and replace them by a special placeholder
+        # First, extract description...
+        try:
+            desc = doc.get_element_by_id('ctl00_ContentBody_LongDescription')
+        except Exception, e:
+            logger.error("Description could not be found!")
+            raise e
+            
+        # Next, search image elements and replace them
+        for element, attribute, link, pos in desc.iterlinks():
+            if element.tag == 'img':
+                replace_id = found_image(link, element.get('alt') or element.get('title') or '')
+                replacement = '[[img:%s]]' % replace_id
+                for parent in desc.getiterator():
+                    for index, child in enumerate(parent):
+                        if child == element:
+                            if parent[index-1].tail == None:
+                                parent[index-1].tail = replacement
+                            else:
+                                parent[index-1].tail += replacement
+                            del parent[index]
+            
+            
+        # Download images
+        for url, data in images.items():
+            # Prepend local path to filename
+            filename = os.path.join(self.path, data['filename'])
+            logger.info("Downloading %s to %s" % (url, filename))
+            
+            # Download file
+            try:
+                f = open(filename, 'wb')
+                f.write(self.downloader.get_reader(url, login = False).read())
+                f.close()
+            except Exception, e:
+                logger.exception(e)
+                logger.error("Failed to download image from URL %s" % url)
+                
+        # And save Images to coordinate
+        images_save = dict([x['filename'], x['title']] for x in images.values())
+        coordinate.set_images(images_save)
+                
+        # Long description
+        coordinate.desc = self._extract_node_contents(desc)
+        
+        # Archived status
+        for log in coordinate.get_logs():
+            if log['type'] == GeocacheCoordinate.LOG_TYPE_ENABLED:
+                break
+            elif log['type'] == GeocacheCoordinate.LOG_TYPE_DISABLED:
+                coordinate.status = GeocacheCoordinate.STATUS_DISABLED
+                break
+            elif log['type'] == GeocacheCoordinate.LOG_TYPE_ARCHIVED:
+                coordinate.status = GeocacheCoordinate.STATUS_ARCHIVED
+                break
+        else:
+            coordinate.stats = GeocacheCoordinate.STATUS_NORMAL
+        
+        logger.debug("End parsing.")
+        return coordinate
+            
+    # Only return the contents of a node, not the node tag itself, as text
+    def _extract_node_contents(self, el):
+        return ''.join(unicode(tostring(x, encoding='utf-8', method='html'), 'utf-8') for x in el)
+        
+    # Handle size string from basename of the according image
+    def _handle_size(self, sizestring):
+        if sizestring == 'micro':
+            size = 1
+        elif sizestring == 'small':
+            size = 2
+        elif sizestring == 'regular':
+            size = 3
+        elif sizestring == 'large' or sizestring == 'big':
+            size = 4
+        else:   
+            size = 5
+        return size
+        
+    # Convert stars3_5 to 35, stars4 to 4 (and so on, basename of image of star rating)
+    def _handle_stars(self, stars):
+        return int(stars[5])*10 + (int(stars[7]) if len(stars) > 6 else 0)
+        
+    def _handle_hints(self, hints):
+        hints = HTMLManipulations._strip_html(HTMLManipulations._replace_br(hints)).strip()
+        hints = HTMLManipulations._rot13(hints)
+        hints = re.sub(r'\[([^\]]+)\]', lambda match: HTMLManipulations._rot13(match.group(0)), hints)
+        return hints
+
+
+BACKENDS = {
+    'geocaching-com-new': {'class': NewGeocachingComCacheDownloader, 'name': 'geocaching.com (new)', 'description': 'New backend for geocaching.com'},
+    'geocaching-com-old': {'class': GeocachingComCacheDownloader, 'name': 'geocaching.com (legacy)', 'description': 'Old backend for geocaching.com, not maintained'},
+    }
+
+def get(name, *args, **kwargs):
+    if name in BACKENDS:
+        return BACKENDS[name]['class'](*args, **kwargs)
+    else:
+        raise Exception("Backend not found: %s" % name)
+
 
 if __name__ == '__main__':
     import sys
@@ -602,16 +886,16 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG,
                     format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s',
                     )
-
+    parser = NewGeocachingComCacheDownloader
     outfile = None
     if len(sys.argv) == 2: # cachedownloder.py filename
         print "Reading from file %s" % sys.argv[1]
         inp = open(sys.argv[1])
         m = GeocacheCoordinate(0, 0, 'GC1N8G6')
-        a = GeocachingComCacheDownloader(downloader.FileDownloader('dummy', 'dummy', '/tmp/cookies'), '/tmp/', True)
+        a = parser(downloader.FileDownloader('dummy', 'dummy', '/tmp/cookies'), '/tmp/', True)
     elif len(sys.argv) == 3: # cachedownloader.py username password
         name, password = sys.argv[1:3]
-        a = GeocachingComCacheDownloader(downloader.FileDownloader(name, password, '/tmp/cookies', GeocachingComCacheDownloader.login_callback), '/tmp/', True)
+        a = parser(downloader.FileDownloader(name, password, '/tmp/cookies', parser.login_callback, parser.check_login_callback), '/tmp/', True)
 
         print "Using Username %s" % name
 
@@ -634,7 +918,7 @@ if __name__ == '__main__':
             m = GeocacheCoordinate(0, 0, 'GC1N8G6')
     elif len(sys.argv) == 4: # cachedownloader.py geocache username password
         geocache, name, password = sys.argv[1:4]
-        a = GeocachingComCacheDownloader(downloader.FileDownloader(name, password, '/tmp/cookies', GeocachingComCacheDownloader.login_callback), '/tmp/', True)
+        a = parser(downloader.FileDownloader(name, password, '/tmp/cookies', GeocachingComCacheDownloader.login_callback), '/tmp/', True)
 
         print "Using Username %s" % name
         m = GeocacheCoordinate(0, 0, geocache)
@@ -645,17 +929,17 @@ if __name__ == '__main__':
     print res
     c = res
     
-    if c.owner != 'Webhamster':
-        logger.error("Owner doesn't match ('%s', expected Webhamster)" % c.owner)
+    if c.owner != 'webhamster':
+        logger.error("Owner doesn't match ('%s', expected webhamster)" % c.owner)
     if c.title != 'Druidenpfad':
         logger.error( "Title doesn't match ('%s', expected 'Druidenpfad')" % c.title)
     if c.get_terrain() != '3.0':
         logger.error("Terrain doesn't match (%s, expected 3.0) " % c.get_terrain())
     if c.get_difficulty() != '2.0':
         logger.error("Diff. doesn't match (%s, expected 2.0)" % c.get_difficulty())
-    if len(c.desc) < 1800:
-        logger.error("Length of text doesn't match (%d, expected at least %d chars)" % (len(c.desc), 1800))
-    if len(c.shortdesc) < 200:
+    if len(c.desc) < 1760:
+        logger.error("Length of text doesn't match (%d, expected at least %d chars)" % (len(c.desc), 1760))
+    if len(c.shortdesc) < 160:
         logger.error("Length of short description doesn't match (%d, expected at least %d chars)" % (len(c.shortdesc), 200))
     if len(c.get_waypoints()) != 4:
         logger.error("Expected 4 waypoints, got %d" % len(c.get_waypoints()))
@@ -664,6 +948,6 @@ if __name__ == '__main__':
     
     if len(c.get_logs()) < 2:
         logger.error("Expected at least 2 logs, got %d" % len(c.get_logs()))
-    print "Owner:%s (type %s)\nTitle:%s (type %s)\nTerrain:%s\nDifficulty:%s\nDescription:%s (type %s)\nShortdesc:%s (type %s)\nHints:%s (type %s)\nLogs: %r" % (c.owner, type(c.owner), c.title, type(c.title), c.get_terrain(), c.get_difficulty(), c.desc, type(c.desc), c.shortdesc, type(c.shortdesc), c.hints, type(c.hints), c.get_logs())
+    print u"Owner:%r (type %r)\nTitle:%r (type %r)\nTerrain:%r\nDifficulty:%r\nDescription:%r (type %r)\nShortdesc:%r (type %r)\nHints:%r (type %r)\nLogs: %r" % (c.owner, type(c.owner), c.title, type(c.title), c.get_terrain(), c.get_difficulty(), c.desc[:200], type(c.desc), c.shortdesc, type(c.shortdesc), c.hints, type(c.hints), c.get_logs()[:3])
     print c.get_waypoints()
-
+    
