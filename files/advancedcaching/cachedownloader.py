@@ -124,9 +124,12 @@ class CacheDownloader(gobject.GObject):
         return points
         
     # Upload one or more fieldnotes
-    def upload_fieldnotes(self, geocaches):
+    def upload_fieldnotes(self, geocaches, upload_as_logs = False):
         try:
-            self._upload_fieldnotes(geocaches)
+            if not upload_as_logs:
+                self._upload_fieldnotes(geocaches)
+            else:
+                self._upload_logs(geocaches)
         except Exception, e:
             self.emit('download-error', e)
             return False
@@ -836,7 +839,107 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
         
         logger.debug("End parsing.")
         return coordinate
+        
+        
+    # Upload one or more fieldnotes
+    def _upload_fieldnotes(self, geocaches):
+        notes = []
+        logger.info("Preparing fieldnotes (new downloader)...")
+        for geocache in geocaches:
+            if geocache.logdate == '':
+                raise Exception("Illegal Date.")
+
+            if geocache.logas == GeocacheCoordinate.LOG_AS_FOUND:
+                log = "Found it"
+            elif geocache.logas == GeocacheCoordinate.LOG_AS_NOTFOUND:
+                log = "Didn't find it"
+            elif geocache.logas == GeocacheCoordinate.LOG_AS_NOTE:
+                log = "Write note"
+            else:
+                raise Exception("Illegal status: %s" % geocache.logas)
+
+            text = geocache.fieldnotes.replace('"', "'")
+
+            notes.append('%s,%sT10:00Z,%s,"%s"' % (geocache.name, geocache.logdate, log, text))
             
+        logger.info("Uploading fieldnotes...")
+        url = 'http://www.geocaching.com/my/uploadfieldnotes.aspx'
+        
+        # First, download webpage to get the correct viewstate value
+        pg = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback).read()
+        t = unicode(pg, 'utf-8')
+        doc = fromstring(t)
+        values = doc.forms[0].form_values()
+        values += [('ctl00$ContentBody$btnUpload', 'Upload Field Note')]
+        data = self.downloader.encode_multipart_formdata(values, [('ctl00$ContentBody$FieldNoteLoader', 'geocache_visits.txt', text)])
+
+        response = self.downloader.get_reader(url, 
+            data=data, 
+            login_callback = self.login_callback, 
+            check_login_callback = self.check_login_callback)
+
+        res = response.read()
+        t = unicode(res, 'utf-8')
+        doc = fromstring(t)
+        
+        # There's no real success/no success message on the website. 
+        # We therefore assume success, if this element is in the response
+        if doc.get_element_by_id('ctl00_ContentBody_lnkFieldNotes', None) == None:
+            raise Exception("Something went wrong while uploading the field notes.")
+        else:
+            logger.info("Finished upload!")
+       
+    # Upload one or more logs
+    def _upload_logs(self, geocaches):
+        notes = []
+        logger.info("Preparing logs...")
+        for geocache in geocaches:
+            if geocache.logdate == '':
+                raise Exception("Illegal Date.")
+
+            if geocache.logas == GeocacheCoordinate.LOG_AS_FOUND:
+                log = 2
+            elif geocache.logas == GeocacheCoordinate.LOG_AS_NOTFOUND:
+                log = 3
+            elif geocache.logas == GeocacheCoordinate.LOG_AS_NOTE:
+                log = 4
+            else:
+                raise Exception("Illegal status: %s" % geocache.logas)
+
+            text = geocache.fieldnotes
+            year, month, day = geocache.logdate.split('-')
+            
+            url = 'http://www.geocaching.com/seek/log.aspx?wp=%s' % geocache.name
+            
+            # First, download webpage to get the correct viewstate value
+            pg = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback).read()
+            t = unicode(pg, 'utf-8')
+            doc = fromstring(t)
+            doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$ddLogType'] = str(log)
+            doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$DateTimeLogged$Day'] = str(int(day))
+            doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$DateTimeLogged$Month'] = str(int(month))
+            doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$DateTimeLogged$Year'] = str(int(year))
+            doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$uxLogInfo'] = text
+            values = dict(doc.forms[0].form_values())
+            values['ctl00$ContentBody$LogBookPanel1$LogButton'] = doc.get_element_by_id('ctl00_ContentBody_LogBookPanel1_LogButton').get('value')
+            logger.debug("Field values are %r" % values)
+            response = self.downloader.get_reader(url, 
+                values=values, 
+                login_callback = self.login_callback, 
+                check_login_callback = self.check_login_callback)
+
+            res = response.read()
+            t = unicode(res, 'utf-8')
+            print t
+            doc = fromstring(t)
+            
+            # There's no real success/no success message on the website. 
+            # We therefore assume success, if this element is in the response
+            if doc.get_element_by_id('ctl00_ContentBody_LogBookPanel1_ViewLogPanel', None) == None:
+                raise Exception("Something went wrong while uploading the log.")
+            else:
+                logger.info("Finished upload!")
+                 
     # Only return the contents of a node, not the node tag itself, as text
     def _extract_node_contents(self, el):
         return ''.join(unicode(tostring(x, encoding='utf-8', method='html'), 'utf-8') for x in el)
