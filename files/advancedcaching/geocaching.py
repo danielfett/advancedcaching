@@ -211,20 +211,7 @@ class GeocacheCoordinate(geo.Coordinate):
     def unserialize(self, data):
         ret = {}
         for key in self.ATTRS:
-            d = data[key]
-            if type(d) == str:
-                d = d.decode('utf-8')
-            ret[key] = d
-
-        if ret['notes'] == None:
-            self.notes = ''
-        if ret['fieldnotes'] == None:
-            self.fieldnotes = ''
-        if ret['logs'] == None:
-            self.logs = ''
-        if ret['vars'] == None:
-            self.vars = ''
-        ret['found'] = (ret['found'] == 1)
+            ret[key] = data[key]
         self.__dict__ = ret
         
     def get_waypoints(self):

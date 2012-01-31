@@ -23,9 +23,9 @@
 import logging
 logger = logging.getLogger('qmlgui')
 
-from PySide import QtGui
-from PySide import QtDeclarative
-from PySide import QtOpenGL
+from PySide.QtGui import QApplication
+from PySide.QtDeclarative import QDeclarativeView
+from PySide.QtOpenGL import QGLWidget
 from PySide import QtCore
 import os
 import sys
@@ -1264,11 +1264,11 @@ class QmlGui(Gui):
     USES = ['geonames', 'qmllocationprovider']
 
     def __init__(self, core, dataroot, parent=None):
-        self.app = QtGui.QApplication(sys.argv)
+        self.app = QApplication(sys.argv)
         self.core = core
-        self.view = QtDeclarative.QDeclarativeView()
+        self.view = QDeclarativeView()
         self.view.statusChanged.connect(self._status_changed)
-        glw = QtOpenGL.QGLWidget()
+        glw = QGLWidget()
         self.view.setViewport(glw)
         
         self.controller = Controller(self.view, self.core)

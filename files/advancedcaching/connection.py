@@ -26,13 +26,12 @@ logger = logging.getLogger('connection')
 offline = False
 _conic_connection = None
 
-try:
-    import conic
-except ImportError:
-    pass
-
 def _conic_connection_changed(connection, event, magic = None):
     global offline
+    try: 
+        import conic
+    except ImportError:
+        logger.debug("Not using conic library")
     status = event.get_status()
     if status == conic.STATUS_CONNECTED:
         offline = False
@@ -45,16 +44,17 @@ def _conic_connection_changed(connection, event, magic = None):
 
 def init():
     try: 
-        conic
-    except NameError:
+        import conic
+    except ImportError:
         logger.debug("Not using conic library")
-    else:
-        global _conic_connection
-        _conic_connection = conic.Connection()
-        _conic_connection.connect("connection-event", _conic_connection_changed)
-        _conic_connection.set_property("automatic-connection-events", True)
-        logger.debug("Connection events initialized")
-    
-    
+        return
+
+    global _conic_connection
+    _conic_connection = conic.Connection()
+    _conic_connection.connect("connection-event", _conic_connection_changed)
+    _conic_connection.set_property("automatic-connection-events", True)
+    logger.debug("Connection events initialized")
+
+
     
 

@@ -23,11 +23,11 @@
 from __future__ import with_statement
 
 VERSION = "0.8.0.7"
-   
 import logging
 logging.basicConfig(level=logging.WARNING,
                     format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s // %(filename)s:%(lineno)s',
                     )
+                    
 
 from geo import Coordinate
 try:
@@ -48,8 +48,11 @@ from actors.tts import TTS
 #from actors.notify import Notify
 
 import connection
-
+logging.info("X loaded connection")
 import gobject
+logging.info("X loaded gobject")
+
+use_connection_handling = False
 
 if len(argv) == 1:
     import cli
@@ -75,12 +78,14 @@ elif '--qml' in argv:
     import qmlgui
     gui = qmlgui.QmlGui
 elif '--hildon' in argv:
+    connection.init() # is only used on the maemo platform
     import hildongui
     gui = hildongui.HildonGui
 else:
     import cli
     gui = cli.Cli
 
+logging.info("X loaded gui")
 logger = logging.getLogger('core')
 
 class Core(gobject.GObject):
@@ -169,8 +174,6 @@ class Core(gobject.GObject):
         self.connect('save-settings', self.__on_save_settings)
         self.create_recursive(self.settings['download_output_dir'])
         self.create_recursive(self.settings['download_map_path'])
-     
-        connection.init()
 
         self.downloader = downloader.FileDownloader(self.settings['options_username'], self.settings['options_password'], self.COOKIE_FILE)
                 

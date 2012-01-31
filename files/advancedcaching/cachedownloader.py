@@ -24,21 +24,21 @@
 VERSION = 20
 VERSION_DATE = '2012-01-30'
 
+import logging
+logger = logging.getLogger('cachedownloader')
 try:
     import json
     json.dumps
 except (ImportError, AttributeError):
     import simplejson as json	 
 from geocaching import GeocacheCoordinate
-import datetime
 import geo
 import os
 import threading
-import logging
-logger = logging.getLogger('cachedownloader')
 import re
 import gobject
 from utils import HTMLManipulations
+from lxml.html import fromstring, tostring
 
 #ugly workaround...
 user_token = [None]
@@ -137,7 +137,6 @@ class CacheDownloader(gobject.GObject):
         return True
                 
         
-        
 class GeocachingComCacheDownloader(CacheDownloader):
     
     MAX_REC_DEPTH = 5
@@ -155,44 +154,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
         137:GeocacheCoordinate.TYPE_EARTH
     }
 
-    # Called by downloader.py to perform a login
-    @staticmethod
-    def login_callback(downloader, username, password):
-        url = 'https://www.geocaching.com/login/default.aspx'
-        values = {'ctl00$ContentBody$tbUsername': username,
-            'ctl00$ContentBody$tbPassword': password,
-            'ctl00$ContentBody$cbRememberMe': 'on',
-            'ctl00$ContentBody$btnSignIn': 'Login',
-            '__EVENTTARGET': '',
-            '__EVENTARGUMENT': ''
-        }
-        page = downloader.get_reader(url, values, login = False)
-
-        for line in page:
-            if 'You are logged in as' in line:
-                break
-            elif 'combination does not match' in line:
-                raise Exception("Wrong password or username!")
-        else:
-            logger.info("Seems as if the language is set to something other than english")
-            raise Exception("Please go to geocaching.com and set the website language to english!")
-
-    # Called by downloader to check if the user is logged in
-    @staticmethod
-    def check_login_callback(downloader):
-        url = 'http://www.geocaching.com/seek/nearest.aspx'
-        page = downloader.get_reader(url, login = False)
-        
-        for line in page:
-            if 'Hello, ' in line:
-                logger.info("Seems as if we're still logged in")
-                page.close()
-                return True
-            elif 'Welcome, Visitor!' in line:
-                logger.info("Nope, not logged in anymore")
-                page.close()
-                return False
-                
     def _get_overview(self, location, rec_depth = 0):
         if user_token[0] == None:
             self._get_user_token()
@@ -262,351 +223,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
         return self._parse_cache_page(response, coordinate, num_logs)
 
 
-    def _download_image(self, url):
-        logger.info("Checking download for %s" % url)
-        if url in self.downloaded_images:
-            return self.downloaded_images[url]
-        
-        ext = url.rsplit('.', 1)[1]
-        if not re.match('^[a-zA-Z0-9]+$', ext):
-            ext = 'img'
-        filename = ''
-        id = "%s-image%d.%s" % (self.current_cache.name, self.current_image, ext)
-
-        if self.download_images:
-            try:
-                filename = os.path.join(self.path, id)
-                logger.info("Downloading %s to %s" % (url, filename))
-                f = open(filename, 'wb')
-                f.write(self.downloader.get_reader(url, login=False).read())
-                f.close()
-            except Exception, e:
-                logger.exception(e)
-                return None
-
-        self.downloaded_images[url] = id
-        self.current_image += 1
-        return id
-        
-        
-    def _get_user_token(self):
-        page = self.downloader.get_reader('http://www.geocaching.com/map/default.aspx?lat=6&lng=9', login_callback = self.login_callback, check_login_callback = self.check_login_callback)
-        for line in page:
-            if line.startswith('var uvtoken'):
-                user_token[0] = re.compile("userToken[ =]+'([^']+)'").search(line).group(1)
-                print user_token
-                page.close()
-                return
-        raise Exception("Website contents unexpected. Please check connection.")
-                
-    def _parse_cache_page(self, cache_page, coordinate, num_logs):
-        prev_section = ''
-        shortdesc = desc = coords = hints = waypoints = images = logs = owner = head = attribute_line = warning_line = ''
-        logger.debug("Start parsing...")
-        S_NONE, S_HEAD, S_AFTER_HEAD, S_SHORTDESC, S_DESC, S_AFTER_DESC, S_HINTS, S_AFTER_HINTS, S_PRE_WAYPOINTS, S_WAYPOINTS, S_AFTER_WAYPOINTS, S_IMAGES, S_AFTER_IMAGES, S_TOKEN = range(14)
-        section = S_NONE
-        for line in cache_page:
-            line = line.strip()
-            
-            if section == S_NONE: 
-                if line.startswith('<meta name="og:site_name" '):
-                    section = S_HEAD
-            elif section == S_HEAD:
-                if line.startswith('<form name="aspnetForm"'):
-                    section = S_AFTER_HEAD
-            elif section == S_AFTER_HEAD:
-                if line.startswith('<span id="ctl00_ContentBody_ShortDescription">'):
-                    section = S_SHORTDESC
-                elif line.startswith('<span id="ctl00_ContentBody_LongDescription">'):
-                    section = S_DESC
-            elif section == S_SHORTDESC:
-                if line.startswith('<span id="ctl00_ContentBody_LongDescription">'):
-                    section = S_DESC
-                elif line.startswith('Additional Hints'):
-                    section = S_AFTER_DESC
-            elif section == S_DESC:
-                if line.startswith('Additional Hints'):
-                    section = S_AFTER_DESC
-            elif section == S_AFTER_DESC:
-                if line.startswith('<div id="div_hint"'):
-                    section = S_HINTS
-                elif line.startswith('<div class="CacheDetailNavigationWidget">'):
-                    section = S_PRE_WAYPOINTS
-            elif section == S_HINTS:
-                if line.startswith("<div id='dk'"):
-                    section = S_AFTER_HINTS
-            elif section == S_AFTER_HINTS:
-                if line.startswith('<div class="CacheDetailNavigationWidget">'):
-                    section = S_PRE_WAYPOINTS
-            elif section == S_PRE_WAYPOINTS:
-                if line.startswith('<span id="ctl00_ContentBody_MapLinks_MapLinks">'):
-                    section = S_IMAGES
-                if line.startswith('<table class="Table" id="ctl00_ContentBody_Waypoints">'):
-                    section = S_WAYPOINTS
-            elif section == S_WAYPOINTS:
-                if line.startswith('</tbody> </table>'):
-                    section = S_AFTER_WAYPOINTS
-            elif section == S_AFTER_WAYPOINTS:
-                if line.startswith('<span id="ctl00_ContentBody_MapLinks_MapLinks">'):
-                    section = S_IMAGES
-            elif section == S_IMAGES:
-                if line.startswith('<div class="InformationWidget'):
-                    section = S_AFTER_IMAGES            
-            elif section == S_AFTER_IMAGES:
-                if line.startswith('userToken = '):
-                    section = S_TOKEN
-                
-
-            if section != prev_section:
-                logger.debug("Now in Section '%s', with line %s" % (section, line[:20:]))
-            prev_section = section
-
-            if section == S_HEAD:
-                head = "%s%s\n" % (head, line)
-            elif section == S_SHORTDESC:
-                shortdesc = "%s%s\n" % (shortdesc, line)
-            elif section == S_DESC:
-                desc = "%s%s\n" % (desc, line)
-            elif section == S_HINTS:
-                hints = "%s%s " % (hints, line)
-            elif section == S_WAYPOINTS:
-                waypoints = "%s%s  " % (waypoints, line)
-            elif section == S_IMAGES:
-                images = "%s%s " % (images, line)
-            elif section == S_TOKEN:
-                usertoken = line.replace("userToken = '", '').replace("';", '').strip()
-                logger.debug("usertoken is %s" % usertoken)
-                break
-            elif section == S_AFTER_HINTS and attribute_line == '' and line.startswith("<img src=\"/images/attributes"):
-                attribute_line = line
-            elif section == S_AFTER_HEAD and warning_line == '' and line.startswith('<p class="OldWarning NoBottomSpacing">'):
-                warning_line = line
-            elif section == S_AFTER_HEAD and coords == '' and line.startswith('<a id="ctl00_ContentBody_lnkConversions"'):
-                coords = line
-                
-        logger.debug('finished parsing, converting...')
-        head = unicode(head, 'utf-8', errors='replace')
-        shortdesc = unicode(shortdesc, 'utf-8', errors='replace')
-        desc = unicode(desc, 'utf-8', errors='replace')
-        hints = unicode(hints, 'utf-8', errors='replace')
-        waypoints = unicode(waypoints, 'utf-8', errors='replace')
-        images = unicode(images, 'utf-8', errors='replace')
-        attribute_line = unicode(attribute_line, 'utf-8', errors='replace')
-        logger.debug('finished converting, reading...')
-        if 'archived' in warning_line:
-            coordinate.status = GeocacheCoordinate.STATUS_ARCHIVED
-            logger.debug("Cache status is ARCHIVED")
-        elif 'temporarily unavailable' in warning_line:
-            coordinate.status = GeocacheCoordinate.STATUS_DISABLED
-            logger.debug("Cache status is DISABLED")
-        else:
-            # Do not change existing status - it may be more accurate.
-            pass
-            
-        coordinate.size, coordinate.difficulty, coordinate.terrain, coordinate.owner, coordinate.lat, coordinate.lon = self.__parse_head(head, coords)
-        coordinate.shortdesc = self.__treat_shortdesc(shortdesc)
-        coordinate.desc = self.__treat_desc(desc)
-        coordinate.hints = self.__treat_hints(hints)
-        coordinate.set_waypoints(self.__treat_waypoints(waypoints))
-        coordinate.set_logs(self._get_logs(usertoken, num_logs))
-        coordinate.attributes = self.__treat_attributes(attribute_line)
-        self.__treat_images(images)
-        coordinate.set_images(self.images)
-        logger.debug('finished reading.')
-        return coordinate
-
-    def _get_logs(self, usertoken, count):
-        logger.debug("Retrieving %d logs..." % count)
-        logs = self.downloader.get_reader('http://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=1&num=%d&decrypt=true' % (usertoken, count), login_callback = self.login_callback, check_login_callback = self.check_login_callback)
-        return self._parse_logs_json(logs.read())
-
-    def _parse_logs_json(self, logs):
-        try:
-            r = json.loads(logs)
-        except Exception, e:
-            logger.exception('Could not json-parse logs!')
-        if not 'status' in r or r['status'] != 'success':
-            logger.error('Could not read logs, status is "%s"' % r['status'])
-        data = r['data']
-
-        output = []
-        for l in data:
-            tpe = l['LogTypeImage'].replace('.gif', '').replace('icon_', '')
-            date = l['Visited']
-            finder = "%s (found %s)" % (l['UserName'], l['GeocacheFindCount'])
-            text = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(l['LogText'])))
-            output.append(dict(type=tpe, date=date, finder=finder, text=text))
-        logger.debug("Read %d log entries" % len(output))
-        return output
-                
-    def __parse_head(self, head, coords):
-        size_diff_terr = re.compile('was created by (?P<owner>.+?) on .+? a (?P<size>[a-zA-Z ]+) size geocache, with difficulty of (?P<diff>[0-9.]+?), terrain of (?P<terr>[0-9.]+?). ').search(head)
-        sizestring = size_diff_terr.group('size').lower()
-        if sizestring == 'micro':
-            size = 1
-        elif sizestring == 'small':
-            size = 2
-        elif sizestring == 'regular':
-            size = 3
-        elif sizestring == 'large' or sizestring == 'big':
-            size = 4
-        elif sizestring == 'not chosen' or sizestring == 'other' or sizestring == 'virtual':
-            size = 5
-        else:
-            logger.warning("Size not known: %s" % sizestring)
-            size = 5
-        diff = float(size_diff_terr.group('diff'))*10
-        terr = float(size_diff_terr.group('terr'))*10
-        owner = HTMLManipulations._decode_htmlentities(size_diff_terr.group('owner'))
-        coords = re.compile('lat=([0-9.-]+)&amp;lon=([0-9.-]+)&amp;').search(coords)
-        lat = float(coords.group(1))
-        lon = float(coords.group(2))
-        return size, diff, terr, owner, lat, lon
-        
-    def __treat_attributes(self, line):
-        finder = re.finditer('<img[^>]+?title="([^"]+?)"', line)
-        attributes = []
-        for m in finder:
-            if m.group(1) != "blank":
-                attributes += [m.group(1)]
-        logger.debug("Attributes are: %r" % attributes)
-        return ','.join(attributes)
-    
-    def __treat_hints(self, hints):
-        hints = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(hints))).strip()
-        hints = HTMLManipulations._rot13(hints)
-        hints = re.sub(r'\[([^\]]+)\]', lambda match: HTMLManipulations._rot13(match.group(0)), hints)
-        hints = hints.replace('&aofc;', '').strip()
-        return hints
-
-    def __treat_desc(self, desc):
-        desc = self.__treat_html(desc.rsplit('\n', 5)[0])
-        return desc.strip()
-        
-    def __treat_shortdesc(self, desc):
-        if desc.strip() == '':
-            return ''
-        desc = self.__treat_html(desc.rsplit('\n', 3)[0])
-        return desc
-        
-    def __treat_html(self, html):
-        html = HTMLManipulations.COMMENT_REGEX.sub('', html)
-        html = self.__replace_images(html)
-        return html
-
-    @staticmethod
-    def __from_dm(direction, decimal, minutes):
-        if direction == None or decimal == None or minutes == None:
-            return -1
-        if direction in "SsWw":
-            sign = -1
-        else:
-            sign = 1
-                
-        return (float(decimal) + (float(minutes) / 60.0)) * sign
-
-    def __treat_waypoints(self, data):
-        logger.debug('Waypoints: %s' % data)
-        data.replace('</td>', '')
-        data.replace('</tr>', '')
-        lines = data.split('<tr')
-        waypoints = []
-        for line in lines:
-            tds = re.split('<td[^>]*>', line)
-            logger.debug('TDs: %s' % repr(tds))
-            if len(tds) <= 1:
-                continue
-            elif len(tds) > 4:
-                id = ''.join(HTMLManipulations._strip_html(x).strip() for x in tds[4:6])
-                name = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(tds[6])).strip()
-            
-                m = re.compile(ur'''(\?\?\?|(?P<lat_sign>N|S) (?P<lat_d>\d+?)° (?P<lat_m>[0-9\.]+?) (?P<lon_sign>E|W) (?P<lon_d>\d+?)° (?P<lon_m>[0-9\.]+?))''').search(tds[7])
-                lat = self.__from_dm(m.group('lat_sign'), m.group('lat_d'), m.group('lat_m'))
-                lon = self.__from_dm(m.group('lon_sign'), m.group('lon_d'), m.group('lon_m'))
-            else:
-                comment = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(tds[3]))).strip()
-                waypoints.append({'lat':lat, 'lon':lon, 'id':id, 'name':name, 'comment':comment})
-        return waypoints
-
-    def __treat_images(self, data):
-        finder = re.finditer('<a href="([^"]+?)"[^>]*?rel="lightbox"[^>]*?>.+?<span>(.+?)</span>', data)
-        for m in finder:
-            if m.group(1) == None:
-                continue
-            id = self._download_image(url = m.group(1))
-            if id != None:
-                self.__add_image(id, HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(m.group(2))))
-    def __replace_images(self, data):
-        return re.sub(ur'''(?is)(<img[^>]+src=\n?["']?)([^ >"']+)([^>]+?/?>)''', self.__replace_image_callback, data)
-
-    def __replace_image_callback(self, m):
-        url = m.group(2)
-        if not url.startswith('http://'):
-            return m.group(0)
-        id = self._download_image(url)
-        if id == None:
-            return m.group(0)
-        else:
-            self.__add_image(id)
-            return "[[img:%s]]" % id
-
-    def __add_image(self, id, description = ''):
-        if ((id in self.images and len(description) > len(self.images[id]))
-            or id not in self.images):
-            self.images[id] = description
-            
-            
-    # Upload one or more fieldnotes
-    def _upload_fieldnotes(self, geocaches):
-        notes = []
-        logger.info("Preparing fieldnotes...")
-        for geocache in geocaches:
-            if geocache.logdate == '':
-                raise Exception("Illegal Date.")
-
-            if geocache.logas == GeocacheCoordinate.LOG_AS_FOUND:
-                log = "Found it"
-            elif geocache.logas == GeocacheCoordinate.LOG_AS_NOTFOUND:
-                log = "Didn't find it"
-            elif geocache.logas == GeocacheCoordinate.LOG_AS_NOTE:
-                log = "Write note"
-            else:
-                raise Exception("Illegal status: %s" % geocache.logas)
-
-            text = geocache.fieldnotes.replace('"', "'")
-
-            notes.append('%s,%sT10:00Z,%s,"%s"' % (geocache.name, geocache.logdate, log, text))
-            
-        logger.info("Uploading fieldnotes...")
-        url = 'http://www.geocaching.com/my/uploadfieldnotes.aspx'
-        
-        # First, download webpage to get the correct viewstate value
-        page = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback).read()
-        m = re.search('<input type="hidden" name="__VIEWSTATE" id="__VIEWSTATE" value="([^"]+)" />', page)
-        if m == None:
-            raise Exception("Could not download fieldnotes page.")
-        viewstate = m.group(1)
-        
-        # Next, compile the text for the logs
-        text = "\r\n".join(notes).encode("UTF-16")
-        
-        # And finally, upload the stuff
-        response = self.downloader.get_reader(url,
-                                              data=self.downloader.encode_multipart_formdata(
-                                                [('ctl00$ContentBody$btnUpload', 'Upload Field Note'), ('ctl00$ContentBody$chkSuppressDate', ''), ('__VIEWSTATE', viewstate)],
-                                                [('ctl00$ContentBody$FieldNoteLoader', 'geocache_visits.txt', text)]
-                                              ), 
-                                              login_callback = self.login_callback, 
-                                              check_login_callback = self.check_login_callback
-                                              )
-
-        res = response.read()
-        if not "successfully uploaded" in res:
-            raise Exception("Something went wrong while uploading the field notes.")
-        else:
-            logger.info("Finished upload!")
-
-from lxml.html import fromstring, tostring
         
 class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
     
@@ -968,10 +584,8 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
         hints = re.sub(r'\[([^\]]+)\]', lambda match: HTMLManipulations._rot13(match.group(0)), hints)
         return hints
 
-
 BACKENDS = {
     'geocaching-com-new': {'class': NewGeocachingComCacheDownloader, 'name': 'geocaching.com (new)', 'description': 'New backend for geocaching.com'},
-    'geocaching-com-old': {'class': GeocachingComCacheDownloader, 'name': 'geocaching.com (legacy)', 'description': 'Old backend for geocaching.com, not maintained'},
     }
 
 def get(name, *args, **kwargs):
@@ -979,7 +593,6 @@ def get(name, *args, **kwargs):
         return BACKENDS[name]['class'](*args, **kwargs)
     else:
         raise Exception("Backend not found: %s" % name)
-
 
 if __name__ == '__main__':
     import sys
@@ -1053,4 +666,5 @@ if __name__ == '__main__':
         logger.error("Expected at least 2 logs, got %d" % len(c.get_logs()))
     print u"Owner:%r (type %r)\nTitle:%r (type %r)\nTerrain:%r\nDifficulty:%r\nDescription:%r (type %r)\nShortdesc:%r (type %r)\nHints:%r (type %r)\nLogs: %r" % (c.owner, type(c.owner), c.title, type(c.title), c.get_terrain(), c.get_difficulty(), c.desc[:200], type(c.desc), c.shortdesc, type(c.shortdesc), c.hints, type(c.hints), c.get_logs()[:3])
     print c.get_waypoints()
+    
     
