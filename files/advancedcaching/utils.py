@@ -78,6 +78,29 @@ class HTMLManipulations(object):
     @staticmethod
     def _rot13(text):
         # This handles unicode strings correctly and is available in Python 3, as opposed to encode('rot13')
-        text = re.sub(u'[a-z]', lambda x: ((ord(x)-97)+13 % 26) + 97, text)
-        text = re.sub(u'[A-Z]', lambda x: ((ord(x)-64)+13 % 26) + 65, text)
-        return text
+        out = ''
+        base_a = ord('a')
+        base_A = ord('A')
+        for char in text:
+            o = ord(char)
+            if o in range(base_a, base_a+26):
+                out = u"%s%s" % (out, chr(((o-base_a)+13) % 26 + base_a))
+            elif o in range(base_A, base_A+26):
+                out = u"%s%s" % (out, chr(((o-base_A)+13) % 26 + base_A))
+            else:
+                out = u"%s%s" % (out, char)
+        return out
+        
+
+if __name__ == '__main__':
+    
+    import logging
+    logger = logging.getLogger('utils')
+    import colorer
+    logger.setLevel(logging.DEBUG)
+    logging.basicConfig(level=logging.DEBUG,
+                    format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s',
+                    )
+    test = u'Motörhead?!'
+    logger.info("%s rot13 is %s" % (test, HTMLManipulations._rot13(test)))
+    logger.info("%s double rot13 is %s" % (test, HTMLManipulations._rot13(HTMLManipulations._rot13(test))))
