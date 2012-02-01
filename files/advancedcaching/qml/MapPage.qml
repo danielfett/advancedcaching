@@ -19,7 +19,9 @@ Page {
         id: pinchmap
         width: listPage.width
         height: listPage.height
-        zoomLevel: 11
+        //zoomLevel: 11
+        url: settings.currentMapType.url
+        maxZoomLevel: settings.currentMapType.maxZoom
 
         Connections {
             target: gps

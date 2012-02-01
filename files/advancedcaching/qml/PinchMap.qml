@@ -36,7 +36,7 @@ Rectangle {
     
     property alias angle: rot.angle
 
-    property string url: settings.currentMapType.url
+    property string url: ""//settings.currentMapType.url
 
     property int earthRadius: 6371000
 
@@ -51,6 +51,11 @@ Rectangle {
         id: rot
     }
 
+    onMaxZoomLevelChanged: {
+        if (pinchmap.maxZoomLevel < pinchmap.zoomLevel) {
+            setZoomLevel(maxZoomLevel);
+        }
+    }
 
     onWidthChanged: {
         pinchmap.setCenterLatLon(pinchmap.latitude, pinchmap.longitude);

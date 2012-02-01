@@ -513,21 +513,26 @@ class CacheCalcVarList(QtCore.QAbstractListModel):
         return None
 
 class MapTypeWrapper(QtCore.QObject):
-    def __init__(self, name, url):
+    def __init__(self, name, url, max_zoom):
         QtCore.QObject.__init__(self)
         self._data_name = name
         self._data_url = url
+        self._data_max_zoom = max_zoom
 
     def _name(self):
         return self._data_name
 
     def _url(self):
         return self._data_url
+        
+    def _max_zoom(self):
+        return self._data_max_zoom
 
     changed = QtCore.Signal()
 
     name = QtCore.Property(str, _name, notify=changed)
     url = QtCore.Property(str, _url, notify=changed)
+    maxZoom = QtCore.Property(int, _max_zoom, notify=changed)
     
     
 
@@ -537,8 +542,8 @@ class MapTypesList(QtCore.QAbstractListModel):
     def __init__(self, maptypes):
         QtCore.QAbstractListModel.__init__(self)
         self.setRoleNames(dict(enumerate(MapTypesList.COLUMNS)))
-        #self._maptypes = [{'name': name, 'url': data['remote_url']} for name, data in maptypes]
-        self._maptypes = [MapTypeWrapper(name, data['remote_url']) for name, data in maptypes]
+        # Max zoom was 17 before, therefore 17 is the default value if nothing is stored in the settings
+        self._maptypes = [MapTypeWrapper(name, data['remote_url'], data.get('max_zoom', 17)) for name, data in maptypes]
         logger.debug("Creating new maptypes list with %d entries" % len(self._maptypes))
 
 
