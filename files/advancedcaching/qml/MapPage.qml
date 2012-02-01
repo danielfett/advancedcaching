@@ -96,8 +96,11 @@ Page {
         anchors.top: tabMap.top
         anchors.topMargin: 16
         smooth: true
-        width: Math.min(tabMap.width/4, tabMap.height/4)
-        fillMode: Image.PreserveAspectFit
+        asynchronous: true
+        width: 120
+        height: 120
+
+        //fillMode: Image.PreserveAspectFit
         z: 2
 
         Image {
@@ -105,8 +108,9 @@ Page {
             property int outerMargin: 0
             id: arrowImage
             visible: (gps.targetValid && gps.lastGoodFix.valid)
-            source: "../data/arrow_target.svg"
-            width: (compassImage.paintedWidth / compassImage.sourceSize.width)*sourceSize.width
+            source: "../data/arrow_target-small.png"
+            //width: (compassImage.paintedWidth / compassImage.sourceSize.width)*sourceSize.width
+
             fillMode: Image.PreserveAspectFit
             x: compassImage.width/2 - width/2
             y: arrowImage.outerMargin

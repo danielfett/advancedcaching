@@ -20,10 +20,10 @@ Page {
 
             onClicked: {
                 pageGeocacheList.source = "GeocacheListPage.qml";
-                showDetailsPage(pageGeocacheList.item);
+                pageGeocacheList.item.title = "Geocaches in Map";
                 pageGeocacheList.item.model = tabMap.geocacheModel;
                 pageGeocacheList.item.model.sort(0, gps);
-                pageGeocacheList.item.title = "Geocaches in Map";
+                showDetailsPage(pageGeocacheList.item);
             }
             height: 70
         }
@@ -33,10 +33,10 @@ Page {
 
             onClicked: {
                 pageGeocacheList.source = "GeocacheListPage.qml";
-                showDetailsPage(pageGeocacheList.item);
+                pageGeocacheList.item.title = "Geocaches with Fieldnotes";
                 pageGeocacheList.item.model = controller.getGeocachesWithFieldnotes();
                 pageGeocacheList.item.model.sort(0, gps);
-                pageGeocacheList.item.title = "Geocaches with Fieldnotes";
+                showDetailsPage(pageGeocacheList.item);
             }
             height: 70
         }
@@ -46,10 +46,10 @@ Page {
 
             onClicked: {
                 pageGeocacheList.source = "GeocacheListPage.qml";
-                showDetailsPage(pageGeocacheList.item);
+                pageGeocacheList.item.title = "Favorite Geocaches";
                 pageGeocacheList.item.model = controller.getMarkedGeocaches();
                 pageGeocacheList.item.model.sort(0, gps);
-                pageGeocacheList.item.title = "Favorite Geocaches";
+                showDetailsPage(pageGeocacheList.item);
             }
             height: 70
         }

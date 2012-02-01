@@ -1146,8 +1146,8 @@ class GeocacheListModel(QtCore.QAbstractListModel):
         QtCore.QAbstractListModel.__init__(self)
         self.setRoleNames(dict(enumerate(GeocacheListModel.COLUMNS)))
         self.core = core
-        #self._geocaches = [GeocacheWrapper(x, self.core) for x in points]
         self._geocaches = [GeocacheWrapper.get(x, self.core) for x in points]
+        logger.debug("Geocachelist initialized")
         
     def update(self, points):
         oldlen = len(self._geocaches)
@@ -1166,11 +1166,13 @@ class GeocacheListModel(QtCore.QAbstractListModel):
 
     def data(self, index, role):
         #if index.isValid() and role == GeocacheListModel.COLUMNS.index('geocache'):
+        #logger.debug("Data called, asked for index %d which is currently %s" % (index.row(), self._geocaches[index.row()]._geocache.name))
         return self._geocaches[index.row()]
         #return None
         
     @QtCore.Slot(int, QtCore.QObject)
     def sort(self, by, gpsWrapper):
+        logger.debug("Sort called.")
         if by == self.SORT_BY_PROXIMITY:
             def key(f):
                 if gpsWrapper.gps_last_good_fix._valid():

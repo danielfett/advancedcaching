@@ -11,6 +11,7 @@ Page {
 
     onStatusChanged: {
         if (status == PageStatus.Inactive && tabListPageStack.depth == 1) {
+            console.debug("Unloaded!");
             pageGeocacheList.source = "";
         }
     }
@@ -29,7 +30,7 @@ Page {
         anchors.bottom:  parent.bottom
         clip: true
 
-
+        cacheBuffer: 500
         model: emptyList
         id: list
 
@@ -159,6 +160,10 @@ Page {
 
             MenuItem { text: "Sort by Name"; onClicked: {
                     model.sort(1, null);
+                } }
+
+            MenuItem { text: "Sort by Proximity"; onClicked: {
+                    model.sort(0, gps);
                 } }
 
             MenuItem { text: "Sort by Type, Found"; onClicked: {

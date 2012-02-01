@@ -52,7 +52,7 @@ Page {
             anchors.topMargin: -32
             Image {
                 id: compassImage
-                source: theme.inverted ? "../data/windrose-night.svg" : "../data/windrose.svg"
+                source: theme.inverted ? "../data/windrose-night.png" : "../data/windrose.png"
                 transform: [Rotation {
                         id: azCompass
                         origin.x: compassImage.width/2
@@ -60,7 +60,9 @@ Page {
                         angle: -compass.azimuth
                     }]
                 smooth: true
-                width: compassColumn.width * 0.9
+                //width: 400//compassColumn.width * 0.9
+                asynchronous: true
+
                 anchors.horizontalCenter: parent.horizontalCenter
                 fillMode: Image.PreserveAspectFit
                 z: 2
@@ -69,8 +71,8 @@ Page {
                     property int outerMargin: 50
                     visible: (gps.targetValid && gps.lastGoodFix.valid)
                     id: arrowImage
-                    source: "../data/arrow_target.svg"
-                    width: (compassImage.paintedWidth / compassImage.sourceSize.width)*sourceSize.width
+                    source: "../data/arrow_target.png"
+                    //width: (compassImage.paintedWidth / compassImage.sourceSize.width)*sourceSize.width
                     fillMode: Image.PreserveAspectFit
                     x: compassImage.width/2 - width/2
                     y: arrowImage.outerMargin
@@ -80,6 +82,7 @@ Page {
                         origin.x: arrowImage.width/2
                         angle: arrowImage.angle
                     }
+                    asynchronous: true
                 }
             }
 
