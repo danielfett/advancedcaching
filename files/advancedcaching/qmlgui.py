@@ -1059,6 +1059,9 @@ class GeocacheWrapper(QtCore.QObject):
             self._var_list = CacheCalcVarList(self, self._geocache.calc)
         return self._var_list
         
+    def _attributes(self):
+        return self._geocache.attributes
+        
     def save_vars(self):
         logger.debug("Saving cache vars.")
         self.core.save_cache_attribute(self._geocache, 'vars')
@@ -1123,6 +1126,7 @@ class GeocacheWrapper(QtCore.QObject):
     logas = QtCore.Property(int, _logas, notify=changed)
     fieldnotes = QtCore.Property(str, _fieldnotes, notify=changed)
     varList = QtCore.Property(QtCore.QObject, _var_list, notify=coordsChanged)
+    attributes = QtCore.Property(str, _attributes, notify=changed)
     calcCoordinates = QtCore.Property(QtCore.QObject, _calc_coordinates, notify=coordsChanged)
 
 class GeocacheListModel(QtCore.QAbstractListModel):

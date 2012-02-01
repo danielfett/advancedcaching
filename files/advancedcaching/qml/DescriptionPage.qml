@@ -53,6 +53,21 @@ Page {
                     reload.trigger();
                 }
             }
+
+            Label {
+                font.pixelSize: 20
+                color: UI.COLOR_INFOLABEL
+                text: "Attributes"
+                id: labelAttributes
+            }
+
+            Label {
+                id: attributes
+                text: currentGeocache.attributes.replace(",", ", ") || "No Attributes"
+                anchors.left: parent.left
+                anchors.right: parent.right
+                wrapMode: Text.Wrap
+            }
             
             Label {
                 font.pixelSize: 20
