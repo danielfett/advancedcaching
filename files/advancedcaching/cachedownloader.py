@@ -294,7 +294,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             user_token[0] = re.search('[A-Z0-9]{128}', t).group(0)
         except Exception, e:
             raise Exception("Website contents unexpected. Please check connection.")
-        
+    
     def _parse_cache_page(self, cache_page, coordinate, num_logs):
         logger.debug("Start parsing.")
         pg = cache_page.read()
@@ -608,6 +608,27 @@ class GeocachingComCacheDownloader(CacheDownloader):
         hints = HTMLManipulations._rot13(hints)
         hints = re.sub(r'\[([^\]]+)\]', lambda match: HTMLManipulations._rot13(match.group(0)), hints)
         return hints
+        
+    def _parse_logs_json(self, logs):
+        try:
+            r = json.loads(logs)
+        except Exception, e:
+            logger.exception('Could not json-parse logs!')
+        if not 'status' in r or r['status'] != 'success':
+            logger.error('Could not read logs, status is "%s"' % r['status'])
+        data = r['data']
+
+        output = []
+        for l in data:
+            tpe = l['LogTypeImage'].replace('.gif', '').replace('icon_', '')
+            date = l['Visited']
+            finder = "%s (found %s)" % (l['UserName'], l['GeocacheFindCount'])
+            text = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(l['LogText'])))
+            output.append(dict(type=tpe, date=date, finder=finder, text=text))
+        logger.debug("Read %d log entries" % len(output))
+        return output
+        
+
 
 BACKENDS = {
     'geocaching-com-new': {'class': GeocachingComCacheDownloader, 'name': 'geocaching.com', 'description': 'Backend for geocaching.com'},

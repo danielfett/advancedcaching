@@ -63,7 +63,7 @@ Page {
 
             Label {
                 id: attributes
-                text: currentGeocache.attributes.replace(",", ", ") || "No Attributes"
+                text: currentGeocache.attributes.replace(/,/g, ", ") || "No Attributes"
                 anchors.left: parent.left
                 anchors.right: parent.right
                 wrapMode: Text.Wrap
@@ -89,7 +89,7 @@ Page {
 
         clip: true
         contentWidth: width
-        contentHeight: title.height + 16 + label.height + 16 + description.height + header.height + 8
+        contentHeight: title.height + 16 + label.height + 16 + description.height + header.height + 16 + labelAttributes.height + 16 + attributes.height + 8
         
     }
 
