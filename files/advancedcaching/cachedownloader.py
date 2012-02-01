@@ -139,7 +139,7 @@ class CacheDownloader(gobject.GObject):
         
 class GeocachingComCacheDownloader(CacheDownloader):
     
-    MAX_REC_DEPTH = 5
+    MAX_REC_DEPTH = 3
 
     MAX_DOWNLOAD_NUM = 80
 
@@ -153,6 +153,12 @@ class GeocachingComCacheDownloader(CacheDownloader):
         11:GeocacheCoordinate.TYPE_WEBCAM,
         137:GeocacheCoordinate.TYPE_EARTH
     }
+    
+    def __init__(self, downloader, path = None, download_images = True):
+        logger.info("Using new downloader.")
+        CacheDownloader.__init__(self, downloader, path, download_images)
+        self.downloader.allow_minified_answers = True
+
 
     def _get_overview(self, location, rec_depth = 0):
         if user_token[0] == None:
@@ -172,15 +178,28 @@ class GeocachingComCacheDownloader(CacheDownloader):
             if 'count' in a['cs'] and 'count' != 0: # This indicates too many points in the area
                 if rec_depth < self.MAX_REC_DEPTH: 
                     # If we may recurse further...
-                    # let's try to download one half of the geocaches first
+                    # let's try to download this in quarters
+                    
+                    # left is 
+                    left = min(c1.lat, c2.lat)
+                    # right is 
+                    right = max(c1.lat, c2.lat)
+                    # top is 
+                    top = min(c1.lon, c2.lon)
+                    # bottom is
+                    bottom = max(c1.lon, c2.lon)
+                    # horizontal center is 
                     mlat = (c1.lat + c2.lat)/2
-                    nc1 = geo.Coordinate(min(c1.lat, c2.lat), min(c1.lon, c2.lon))
-                    mc1 = geo.Coordinate(mlat, max(c1.lon, c2.lon))
-                    mc2 = geo.Coordinate(mlat, min(c1.lon, c2.lon))
-                    nc2 = geo.Coordinate(max(c1.lat, c2.lat), max(c1.lon, c2.lon))
-
-                    points += self._get_overview((nc1, mc1), rec_depth + 1)
-                    points += self._get_overview((mc2, nc2), rec_depth + 1)
+                    # vertical center is 
+                    mlon = (c1.lon + c2.lon)/2
+                    
+                    # center is 
+                    center = geo.Coordinate(mlat, mlon)
+                    
+                    points += self._get_overview((geo.Coordinate(left, top), center), rec_depth + 1)
+                    points += self._get_overview((geo.Coordinate(mlat, top), geo.Coordinate(right, mlon)), rec_depth + 1)
+                    points += self._get_overview((geo.Coordinate(left, mlon), geo.Coordinate(mlat, bottom)), rec_depth + 1)
+                    points += self._get_overview((center, geo.Coordinate(right, bottom)), rec_depth + 1)
                     
                 else:
                     # Recursion limit reached. Time to throw an exception!
@@ -222,14 +241,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
             
         return self._parse_cache_page(response, coordinate, num_logs)
 
-
-        
-class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
-    
-    def __init__(self, downloader, path = None, download_images = True):
-        logger.info("Using new downloader.")
-        GeocachingComCacheDownloader.__init__(self, downloader, path, download_images)
-        self.downloader.allow_minified_answers = True
     
     @staticmethod
     def check_login_callback(downloader):
@@ -585,7 +596,7 @@ class NewGeocachingComCacheDownloader(GeocachingComCacheDownloader):
         return hints
 
 BACKENDS = {
-    'geocaching-com-new': {'class': NewGeocachingComCacheDownloader, 'name': 'geocaching.com (new)', 'description': 'New backend for geocaching.com'},
+    'geocaching-com-new': {'class': GeocachingComCacheDownloader, 'name': 'geocaching.com', 'description': 'Backend for geocaching.com'},
     }
 
 def get(name, *args, **kwargs):
