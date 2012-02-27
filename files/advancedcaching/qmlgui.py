@@ -1286,14 +1286,16 @@ class QmlGui(Gui):
         settings = SettingsWrapper(self.core)
         #geocacheList = GeocacheListModel(self.core)
 
+        logger.debug("Startup: Making root context")
         rc = self.view.rootContext()
         rc.setContextProperty('controller', self.controller)
         rc.setContextProperty('settings', settings)
         rc.setContextProperty('gps', GPSDataWrapper(self.core))
         #rc.setContextProperty('geocacheList', geocacheList)
         #rc.setContextProperty('geocacheList', 42)
-
+        logger.debug("Startup: Finished setting context properties")
         self.view.setSource(os.path.join('qml','main.qml'))
+        logger.debug("Startup: Finished setting main source")
 
     def get_gps(self, callback):
         self.controller.callback_gps = callback
