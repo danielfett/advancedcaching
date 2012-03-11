@@ -21,7 +21,7 @@
 #
 
 
-VERSION = 20
+VERSION = 22
 VERSION_DATE = '2012-01-30'
 
 import logging
@@ -112,13 +112,13 @@ class CacheDownloader(gobject.GObject):
             logger.warning("Download in progress")
             return
             
-        #try:
-        points = self._get_overview(location)
-        #except Exception, e:
-        #    logger.error(e)
-        #    self.emit('download-error', e)
-        #    CacheDownloader.lock.release()
-        #    return []
+        try:
+            points = self._get_overview(location)
+        except Exception, e:
+            logger.error(e)
+            self.emit('download-error', e)
+            CacheDownloader.lock.release()
+            return []
 
         self.emit('finished-overview', points)
         CacheDownloader.lock.release()

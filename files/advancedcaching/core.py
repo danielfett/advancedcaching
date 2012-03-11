@@ -22,7 +22,7 @@
 
 from __future__ import with_statement
 
-VERSION = "0.8.0.7"
+VERSION = "0.8.0.8"
 import logging
 logging.basicConfig(level=logging.WARNING,
                     format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s // %(filename)s:%(lineno)s',
@@ -652,6 +652,7 @@ class Core(gobject.GObject):
 
     def _check_auto_update(self):
         if 'options_auto_update' in self.settings and self.settings['options_auto_update'] and not self.auto_update_checked:
+            self.emit('progress', 0.1, "Checking for Updates...")
             updates = self.try_update(silent = True, sync = True)
             if updates not in [None, False]:
                 logger.info("Parser update installed.")
@@ -664,6 +665,7 @@ class Core(gobject.GObject):
         cd = cachedownloader.get(self.settings['options_backend'], self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
         cd.connect("download-error", self.on_download_error)
         cd.connect("already-downloading-error", self.on_already_downloading_error)
+        cd.connect('progress', self.on_download_progress)
         if not sync:
             def same_thread(arg1, arg2):
                 gobject.idle_add(self.on_download_complete, arg1, arg2)
