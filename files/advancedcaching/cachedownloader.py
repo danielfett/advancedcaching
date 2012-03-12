@@ -495,7 +495,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
         doc = fromstring(t)
         values = doc.forms[0].form_values()
         values += [('ctl00$ContentBody$btnUpload', 'Upload Field Note')]
-        data = self.downloader.encode_multipart_formdata(values, [('ctl00$ContentBody$FieldNoteLoader', 'geocache_visits.txt', text)])
+        content = '\n'.join(notes)
+        data = self.downloader.encode_multipart_formdata(values, [('ctl00$ContentBody$FieldNoteLoader', 'geocache_visits.txt', content)])
 
         response = self.downloader.get_reader(url, 
             data=data, 

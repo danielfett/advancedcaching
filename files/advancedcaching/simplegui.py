@@ -352,12 +352,14 @@ class SimpleGui(Gui):
 
     def _check_notes_save(self):
         if self.current_cache != None and self.notes_changed:
-            self.current_cache.notes = self.cache_elements['notes'].get_text(self.cache_elements['notes'].get_start_iter(), self.cache_elements['notes'].get_end_iter())
+            notes = self.cache_elements['notes'].get_text(self.cache_elements['notes'].get_start_iter(), self.cache_elements['notes'].get_end_iter())
+            self.current_cache.notes = notes.decode('utf-8')
             self.core.save_cache_attribute(self.current_cache, 'notes')
             self.notes_changed = False
 
         if self.current_cache != None and self.fieldnotes_changed:
-            self.current_cache.fieldnotes = self.cache_elements['fieldnotes'].get_text(self.cache_elements['fieldnotes'].get_start_iter(), self.cache_elements['fieldnotes'].get_end_iter())
+            fieldnotes = self.cache_elements['fieldnotes'].get_text(self.cache_elements['fieldnotes'].get_start_iter(), self.cache_elements['fieldnotes'].get_end_iter())
+            self.current_cache.fieldnotes = fieldnotes.decode('utf-8')
             self.core.save_cache_attribute(self.current_cache, 'fieldnotes')
             self.fieldnotes_changed = False
                 
