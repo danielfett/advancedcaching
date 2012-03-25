@@ -115,7 +115,7 @@ class CacheDownloader(gobject.GObject):
         try:
             points = self._get_overview(location)
         except Exception, e:
-            logger.error(e)
+            logger.exception(e)
             self.emit('download-error', e)
             CacheDownloader.lock.release()
             return []
@@ -166,7 +166,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         #    self._get_user_token()
         c1, c2 = location
         center = geo.Coordinate((c1.lat + c2.lat)/2, (c1.lon + c2.lon)/2)
-        dist = center.distance_to(c1)/1000
+        dist = (center.distance_to(c1)/1000)/2
         logger.debug("Distance is %f meters" % dist)
         if dist > 100:
             raise Exception("Please select a smaller part of the map!")
@@ -181,18 +181,28 @@ class GeocachingComCacheDownloader(CacheDownloader):
         count = int(bs[0].text_content())
         if count > self.MAX_DOWNLOAD_NUM:
             raise Exception("%d geocaches found, please select a smaller part of the map!" % count)
-        ids = [x.text_content().split('|')[1].strip() for x in doc.cssselect(".SearchResultsTable .Merge span.small")]
-        
-        points = []
-        for id in ids:
-            coordinate = GeocacheCoordinate(-1, -1, id)
-            self.emit("progress", "Description", len(points), len(ids))
-            url = 'http://www.geocaching.com/seek/cache_details.aspx?wp=%s' % coordinate.name
-            response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)                
-            result = self._parse_cache_page(response, coordinate, num_logs = 20, download_images = False)
-            if result.lat != -1:
-                points += [result]
+        wpts = [(
+            # Get the GUID from the link
+            x.getparent().getchildren()[0].get('href').split('guid=')[1], 
+            # See whether this cache was found or not
+            'TertiaryRow' in x.getparent().getparent().get('class'), 
+            # Get the GCID from the text
+            x.text_content().split('|')[1].strip()
+            ) for x in doc.cssselect(".SearchResultsTable .Merge .small")]
             
+        points = []
+        counter = 0
+        for guid, found, id in wpts:
+            coordinate = GeocacheCoordinate(-1, -1, id)
+            coordinate.found = found
+            self.emit("progress", "Description", counter, len(wpts))
+            logger.info("Downloading %s..." % id)
+            url = 'http://www.geocaching.com/seek/cdpf.aspx?guid=%s' % guid
+            response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)                
+            result = self._parse_cache_page_print(response, coordinate, num_logs = 20)
+            if result != None and result.lat != -1:
+                points += [result]
+            counter += 1
         return points
         
     def _update_coordinate(self, coordinate, num_logs = 20, outfile = None):
@@ -464,6 +474,97 @@ class GeocachingComCacheDownloader(CacheDownloader):
         logger.debug("End parsing.")
         return coordinate
         
+
+    def _parse_cache_page_print(self, cache_page, coordinate, num_logs):
+        logger.debug("Start parsing.")
+        pg = cache_page.read()
+        t = unicode(pg, 'utf-8')
+        doc = fromstring(t)
+        
+        # Basename - Image name without path and extension
+        def basename(url):
+            return url.split('/')[-1].split('.')[0]
+            
+        # Title, ID and Owner
+        try:
+            text = doc.cssselect('title')[0].text_content()
+            part1, part2 = text.split(') ', 1)
+            coordinate.id = part1[1:]
+            coordinate.title, coordinate.owner = part2.rsplit(' by ', 1)
+        except Exception, e:
+            logger.error("Could find title, id or owner!")
+            logger.exception(e)
+            raise e  
+            
+        # Type 
+        try:
+            t = int(basename(doc.cssselect('#Content h2 img')[0].get('src')).split('.')[0])
+            coordinate.type = self.CTIDS[t] if t in self.CTIDS else GeocacheCoordinate.TYPE_UNKNOWN
+        except Exception, e:
+            logger.error("Could find type - probably premium cache!")
+            return None
+        
+        # Short Description - Long Desc. is added after the image handling (see below)
+        try:
+            coordinate.shortdesc = doc.cssselect('#Content .sortables .item-content')[1].text_content().strip()
+        except KeyError, e:
+            # happend when no short description is available
+            logger.info("No short description available")
+            logger.exception(e)
+            coordinate.shortdesc = ''
+
+        # Coordinate - may have been updated by the user; therefore retrieve it again
+        try:
+            text = doc.cssselect('.LatLong.Meta')[0].text_content()
+            coord = geo.try_parse_coordinate(text)
+            coordinate.lat, coordinate.lon = coord.lat, coord.lon
+        except KeyError, e:
+            logger.exception(e)
+            raise Exception("Could not find uxLatLon")
+        except Exception, e:
+            logger.error("Could not parse this coordinate: %r" % text)
+            logger.exception(e)
+            raise e
+        
+        # Size 
+        try:
+            # src is URL to image of the cache size
+            # src.split('/')[-1].split('.')[0] is the basename minus extension
+            coordinate.size = self._handle_size(basename(doc.cssselect('.Third .Meta img')[0].get('src')))
+        except Exception, e:
+            logger.error("Could not find/parse size string")
+            logger.exception(e)
+            raise e
+            
+        # Terrain/Difficulty
+        try:
+            coordinate.difficulty, coordinate.terrain = [self._handle_stars(basename(x.get('src'))) for x in doc.cssselect('.Third .Meta img')[1:]]
+        except Exception, e:
+            logger.error("Could not find/parse star ratings")
+            logger.exception(e)
+            
+        # Hint(s)
+        try:
+            hint = self._extract_node_contents(doc.cssselect('#uxEncryptedHint')[0])
+            coordinate.hints = self._handle_hints(hint)
+        except IndexError, e:
+            logger.info("Hint not found!")
+            coordinate.hints = ''
+
+        # Search images in Description and replace them by a special placeholder
+        # First, extract description...
+        try:
+            desc = doc.cssselect('#Content .sortables .item-content')[2]
+        except Exception, e:
+            logger.error("Description could not be found!")
+            logger.exception(e)
+            raise e
+        
+        # Long description
+        coordinate.desc = self._extract_node_contents(desc).strip()
+
+        logger.debug("End parsing.")
+        return coordinate
         
     # Upload one or more fieldnotes
     def _upload_fieldnotes(self, geocaches):
