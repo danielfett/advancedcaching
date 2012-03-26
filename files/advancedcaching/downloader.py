@@ -105,17 +105,22 @@ class FileDownloader():
             self.login(login_callback, check_login_callback)
 
         logger.info("Sending request to %s" % url)
+        
+        # No additional parameters or data
         if values == None and data == None:
             req = Request(url)
             self.add_headers(req)
             resp = urlopen(req)
 
+        # There are only URL parameters, expected in values
         elif data == None:
             if (isinstance(values, dict)):
                 values = urlencode( values)
             req = Request(url, values)
             self.add_headers(req)
             resp = urlopen(req)
+            
+        # There are no URL parameters, but a content_type, body tuple in data
         elif values == None:
             content_type, body = data
             req = Request(url)

@@ -160,6 +160,17 @@ class GeocachingComCacheDownloader(CacheDownloader):
         CacheDownloader.__init__(self, downloader, path, download_images)
         self.downloader.allow_minified_answers = True
 
+    def _parse(self, text):
+        print len(text)
+        text2 = "%s test" % text
+        try:
+            t = unicode(text, 'utf-8')
+            doc = fromstring(t)
+        except Exception, e:
+            logger.exception(e)
+            from lxml.html.soupparser import fromstring as fromstring_soup
+            doc = fromstring_soup(text2)
+        return doc
 
     def _get_overview(self, location, rec_depth = 0):
         #if user_token[0] == None:
@@ -171,51 +182,62 @@ class GeocachingComCacheDownloader(CacheDownloader):
         if dist > 100:
             raise Exception("Please select a smaller part of the map!")
         url = 'http://www.geocaching.com/seek/nearest.aspx?lat=%f&lng=%f&dist=%f' % (center.lat, center.lon, dist)
-        
-        # First, get overview page and count the number of results
         response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
-        t = unicode(response.read(), 'utf-8')
-        doc = fromstring(t)
-        bs = doc.cssselect('#ctl00_ContentBody_ResultsPanel .PageBuilderWidget b')
-        if len(bs) == 0:
-            raise Exception("No results?")
-        count = int(bs[0].text_content())
-        if count > self.MAX_DOWNLOAD_NUM:
-            raise Exception("%d geocaches found, please select a smaller part of the map!" % count)
+        out = open('agtl-debug3.txt', 'w')
+        cont = True
+        while cont:
+            # Count the number of results and pages
+            text = response.read()
+            doc = self._parse(text)
+            from lxml.etree import tostring
+            out.write(10 * "\n")
+            out.write(tostring(doc))
+            bs = doc.cssselect('#ctl00_ContentBody_ResultsPanel .PageBuilderWidget b')
+            if len(bs) == 0:
+                raise Exception("No results?")
+            count = int(bs[0].text_content())
+            page_current = int(bs[1].text_content())
+            page_max = int(bs[2].text_content())
+            logger.info("We are at page %d of %d, total %d geocaches" % (page_current, page_max, count))
+            if count > self.MAX_DOWNLOAD_NUM:
+                raise Exception("%d geocaches found, please select a smaller part of the map!" % count)
+                
+                
+            # Extract waypoint information from the page
+            wpts = [(
+                # Get the GUID from the link
+                x.getparent().getchildren()[0].get('href').split('guid=')[1], 
+                # See whether this cache was found or not
+                'TertiaryRow' in x.getparent().getparent().get('class'), 
+                # Get the GCID from the text
+                x.text_content().split('|')[1].strip()
+                ) for x in doc.cssselect(".SearchResultsTable .Merge .small")]
+                
+            # Download the geocaches using the print preview 
+            points = []
+            for guid, found, id in wpts:
+                coordinate = GeocacheCoordinate(-1, -1, id)
+                coordinate.found = found
+                self.emit("progress", "some Details of", len(points), count)
+                logger.info("Downloading %s..." % id)
+                url = 'http://www.geocaching.com/seek/cdpf.aspx?guid=%s' % guid
+                response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)                
+                result = self._parse_cache_page_print(response, coordinate, num_logs = 20)
+                if result != None and result.lat != -1:
+                    points += [result]
+                
+            cont = False  
+            # There are more pages...
+            if page_current < page_max:
+                from urllib import urlencode
+                doc.forms[0].fields['__EVENTTARGET'] = 'ctl00$ContentBody$pgrTop$lbGoToPage_%d' % (page_current + 1)
+                values = urlencode(doc.forms[0].form_values())
+                action = "http://www.geocaching.com/seek/%s" % doc.forms[0].action
+                logger.info("Retrieving next page!")
+                response = self.downloader.get_reader(action, data=('application/x-www-form-urlencoded', values), login_callback = self.login_callback, check_login_callback = self.check_login_callback)
+                cont = True
             
-            
-        # Extract waypoint information from the page
-        wpts = [(
-            # Get the GUID from the link
-            x.getparent().getchildren()[0].get('href').split('guid=')[1], 
-            # See whether this cache was found or not
-            'TertiaryRow' in x.getparent().getparent().get('class'), 
-            # Get the GCID from the text
-            x.text_content().split('|')[1].strip()
-            ) for x in doc.cssselect(".SearchResultsTable .Merge .small")]
-            
-        # Download the geocaches using the print preview 
-        points = []
-        counter = 0
-        for guid, found, id in wpts:
-            coordinate = GeocacheCoordinate(-1, -1, id)
-            coordinate.found = found
-            self.emit("progress", "some Details of", counter, len(wpts))
-            logger.info("Downloading %s..." % id)
-            url = 'http://www.geocaching.com/seek/cdpf.aspx?guid=%s' % guid
-            response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)                
-            result = self._parse_cache_page_print(response, coordinate, num_logs = 20)
-            if result != None and result.lat != -1:
-                points += [result]
-            counter += 1
-            
-        # Todo: Download multiple pages
-        # 1. find break condition on the website (existance of element ?)
-        # 2. do a post request using the form:
-        #    - set EVENTTARGET, EVENTARGUMENT
-        #    - post via lxml
-        # 3. repeat...
-            
+                
         return points
         
     def _update_coordinate(self, coordinate, num_logs = 20, outfile = None):
