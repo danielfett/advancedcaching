@@ -161,7 +161,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
         self.downloader.allow_minified_answers = True
 
     def _parse(self, text):
-        print len(text)
         text2 = "%s test" % text
         try:
             t = unicode(text, 'utf-8')
@@ -173,8 +172,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
         return doc
 
     def _get_overview(self, location, rec_depth = 0):
-        #if user_token[0] == None:
-        #    self._get_user_token()
         c1, c2 = location
         center = geo.Coordinate((c1.lat + c2.lat)/2, (c1.lon + c2.lon)/2)
         dist = (center.distance_to(c1)/1000)/2
@@ -183,18 +180,15 @@ class GeocachingComCacheDownloader(CacheDownloader):
             raise Exception("Please select a smaller part of the map!")
         url = 'http://www.geocaching.com/seek/nearest.aspx?lat=%f&lng=%f&dist=%f' % (center.lat, center.lon, dist)
         response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
-        out = open('agtl-debug3.txt', 'w')
+        
         cont = True
         while cont:
             # Count the number of results and pages
             text = response.read()
             doc = self._parse(text)
-            from lxml.etree import tostring
-            out.write(10 * "\n")
-            out.write(tostring(doc))
             bs = doc.cssselect('#ctl00_ContentBody_ResultsPanel .PageBuilderWidget b')
             if len(bs) == 0:
-                raise Exception("No results?")
+                raise Exception("There are no geocaches in this area.")
             count = int(bs[0].text_content())
             page_current = int(bs[1].text_content())
             page_max = int(bs[2].text_content())
@@ -242,7 +236,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
         
     def _update_coordinate(self, coordinate, num_logs = 20, outfile = None):
         coordinate = coordinate.clone()
-        
         
         url = 'http://www.geocaching.com/seek/cache_details.aspx?wp=%s' % coordinate.name
         response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
