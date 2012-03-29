@@ -48,9 +48,7 @@ from actors.tts import TTS
 #from actors.notify import Notify
 
 import connection
-logging.info("X loaded connection")
 import gobject
-logging.info("X loaded gobject")
 
 use_connection_handling = False
 
@@ -59,7 +57,7 @@ if len(argv) == 1:
     print cli.usage % ({'name': argv[0]})
     exit()
 
-if '-v' in argv:
+if '-v' in argv or '--remote' in argv:
     import colorer
     import logging.handlers
     logging.getLogger('').setLevel(logging.DEBUG)
@@ -85,7 +83,6 @@ else:
     import cli
     gui = cli.Cli
 
-logging.info("X loaded gui")
 logger = logging.getLogger('core')
 
 class Core(gobject.GObject):
@@ -188,7 +185,7 @@ class Core(gobject.GObject):
         self.emit('settings-changed', self.settings, self)
         self.emit('fieldnotes-changed')  
  
-        if 'debug_log_to_http' in self.settings and self.settings['debug_log_to_http']:
+        if ('debug_log_to_http' in self.settings and self.settings['debug_log_to_http']) or '--remote' in argv:
             http_handler = logging.handlers.HTTPHandler("danielfett.de", "http://www.danielfett.de/files/collect.php")
             buffering_handler = logging.handlers.MemoryHandler(100, target = http_handler)
             logging.getLogger('').addHandler(buffering_handler)
