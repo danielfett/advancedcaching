@@ -33,7 +33,7 @@ class PointProvider():
         self.filterstack = []
         self.conn = connect(filename)
         self.conn.row_factory = Row
-        self.conn.text_factory = unicode
+        self.conn.text_factory = lambda x: unicode(x, errors='replace')
         self.ctype = ctype
         self.cache_table = table
         self.filterstring = []
