@@ -958,7 +958,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                 widget_hints.pack_start(label_hints, False, False)
             else:
                 label_hints = gtk.Label()
-                label_hints.set_markup('<i>No hints available</i>')
+                label_hints.set_markup('<i>No hints available</i>\nSelect "Download all Details" to get logs and images.')
                 widget_hints.pack_start(label_hints, False, False)
 
             # images
