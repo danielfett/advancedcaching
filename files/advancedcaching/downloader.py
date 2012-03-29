@@ -84,7 +84,7 @@ class FileDownloader():
                 self.logged_in = True
                 return
         
-        logger.info("Logging in")
+        logger.info("Logging in with username %s" % self.username)
         login_callback(self, self.username, self.password)
 
         self.logged_in = True
