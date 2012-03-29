@@ -420,7 +420,11 @@ class GeocachingComCacheDownloader(CacheDownloader):
         # Called when an image was found.
         # Returns a unique filename for the given URL
         def found_image(url, title):
-            # First, check if this URL is known        
+            # First, only use the large geocaching.com images
+            if url.startswith('http://img.geocaching.com/cache/') and not url.startswith('http://img.geocaching.com/cache/large/'):
+                url = url.replace('http://img.geocaching.com/cache/', 'http://img.geocaching.com/cache/large/')
+            
+            # Then, check if this URL is known        
             if url in images:
                 # If it is, take the longest available title
                 if len(images[url]['title']) < title:
