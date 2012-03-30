@@ -13,7 +13,7 @@ Page {
         horizontalAlignment: Text.AlignHCenter
         anchors.left: parent.left
         anchors.right: parent.right
-        text: "Update Details for logs and images!\n(If you already did, then there are no logs.)"
+        text: "Update Details for logs, waypoints and images!\n(If you already did, then there are no logs.)"
         visible: (currentGeocache.logsCount == 0)
         anchors.top: listHeader.bottom
         anchors.topMargin: 16

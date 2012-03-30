@@ -21,6 +21,7 @@
 #
 
 from math import sqrt
+from sys import argv
 from sqlite3 import connect, Row, register_converter
 
 from copy import copy
@@ -33,7 +34,7 @@ class PointProvider():
         self.filterstack = []
         self.conn = connect(filename)
         self.conn.row_factory = Row
-        self.conn.text_factory = lambda x: unicode(x, errors='replace')
+        self.conn.text_factory = unicode
         self.ctype = ctype
         self.cache_table = table
         self.filterstring = []
@@ -44,7 +45,7 @@ class PointProvider():
         self.conn.executescript(
             'PRAGMA temp_store = MEMORY;' \
             'PRAGMA synchronous=OFF;' \
-            'PRAGMA cache_size = 20000;' \
+            'PRAGMA cache_size = -2048;' \
             'PRAGMA count_changes = OFF;' \
             'CREATE TABLE IF NOT EXISTS %s (%s);' % (self.cache_table, ', '.join('%s %s' % m for m in self.ctype.SQLROW.items())))
         self.check_table()
@@ -57,6 +58,7 @@ class PointProvider():
         #c.execute('CREATE TABLE IF NOT EXISTS %s (%s)' % (self.cache_table, ', '.join(' '.join(m) for m in self.ctype.SQLROW.items())))
         #self.check_table()
         #c.execute('CREATE INDEX IF NOT EXISTS %s_latlon ON %s (lat ASC, lon ASC)' % (self.cache_table, self.cache_table))
+        
 
     def check_table(self):
         c = self.conn.cursor()

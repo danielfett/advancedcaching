@@ -212,7 +212,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             for guid, found, id in wpts:
                 coordinate = GeocacheCoordinate(-1, -1, id)
                 coordinate.found = found
-                self.emit("progress", "Geocache", len(points), count)
+                self.emit("progress", "Geocachepreview", len(points), count)
                 logger.info("Downloading %s..." % id)
                 url = 'http://www.geocaching.com/seek/cdpf.aspx?guid=%s' % guid
                 response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)                
