@@ -502,7 +502,11 @@ Rectangle {
                 pan(-dx, -dy);
                 __lastX = mouse.x;
                 __lastY = mouse.y;
-                if (Math.pow(mouse.x - __firstX, 2) + Math.pow(mouse.y - __firstY, 2) > maxClickDistance) {
+                /*
+                once the pan threshold is reached, additional checking is unnecessary
+                for the press duration as nothing sets __wasClick back to true
+                */
+                if (__wasClick && Math.pow(mouse.x - __firstX, 2) + Math.pow(mouse.y - __firstY, 2) > maxClickDistance) {
                     __wasClick = false;
                 }
             }
