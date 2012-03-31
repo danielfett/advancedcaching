@@ -507,7 +507,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         return coordinate
         
     # This parses the print preview of a geocache
-    # It currently omits images and logs.
+    # It currently omits images, waypoints and logs.
     def _parse_cache_page_print(self, cache_page, coordinate, num_logs):
         logger.debug("Start parsing.")
         pg = cache_page.read()
@@ -584,17 +584,31 @@ class GeocachingComCacheDownloader(CacheDownloader):
             logger.info("Hint not found!")
             coordinate.hints = ''
 
-        # Search images in Description and replace them by a special placeholder
-        # First, extract description...
+        # Extract description...
         try:
             desc = doc.cssselect('#Content .sortables .item-content')[2]
+            coordinate.desc = self._extract_node_contents(desc).strip()
         except Exception, e:
             logger.error("Description could not be found!")
             logger.exception(e)
             raise e
-        
-        # Long description
-        coordinate.desc = self._extract_node_contents(desc).strip()
+
+        # Waypoints
+        waypoints = []
+        w = {}
+        for x in doc.cssselect('#Content .sortables .item-content tr.BorderBottom'):
+            if len(x) > 6: #chosen between 8 (data line) and 3 (description line)
+                w['id'] = ''.join([x[3].text_content().strip(), x[4].text_content().strip()])
+                w['name'] = x[5].text_content().strip()
+                try:
+                    coord = geo.try_parse_coordinate(x[6].text_content().strip())
+                    w['lat'], w['lon'] = coord.lat, coord.lon 
+                except Exception, e:
+                    w['lat'], w['lon'] = -1, -1
+            else:
+                w['comment'] = x[2].text_content().strip()
+                waypoints += [w]
+        coordinate.set_waypoints(waypoints)
 
         logger.debug("End parsing.")
         return coordinate
@@ -701,7 +715,12 @@ class GeocachingComCacheDownloader(CacheDownloader):
                  
     # Only return the contents of a node, not the node tag itself, as text
     def _extract_node_contents(self, el):
-        return ''.join(unicode(tostring(x, encoding='utf-8', method='html'), 'utf-8') for x in el)
+        # Alternative solution for this would be:
+        #element = unicode(tostring(el, encoding='utf-8', method='html'), 'utf-8')
+        #out = re.sub('^<[^>]+>', '', element)
+        #out = re.sub('<[^>]+>$', '', out)
+        #return out
+        return el.text + ''.join(unicode(tostring(x, encoding='utf-8', method='html'), 'utf-8') for x in el)
         
     # Handle size string from basename of the according image
     def _handle_size(self, sizestring):
@@ -805,7 +824,8 @@ if __name__ == '__main__':
     else:
         logger.error("I don't know what you want to do...")
         sys.exit()
-    res = a.update_coordinate(m, num_logs = 20, outfile = "/tmp/geocache.tmp")
+    #res = a.update_coordinate(m, num_logs = 20, outfile = "/tmp/geocache.tmp")
+    res =m
     print res
     c = res
     
