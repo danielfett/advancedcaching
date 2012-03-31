@@ -1,7 +1,7 @@
 #!/bin/sh
 PKGROOT='maemo/advancedcaching/src/'
-VERSION=$1
-BUILD=$2
+VERSION="$1"
+BUILD="$2"
 if [ "$VERSION" == "" ] ; then 
 	echo "gimme version, plz"
 	exit

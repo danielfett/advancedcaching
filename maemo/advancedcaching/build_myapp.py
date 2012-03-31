@@ -45,7 +45,8 @@ AGTL is Open source and in active development.'''
  p.urgency="low"             #not used in maemo onl for deb os
  p.distribution="fremantle"
  p.repository="extras-devel"
- p.xsbc_bugtracker="http://github.com/webhamster/advancedcaching\nXB-Maemo-Display-Name: Advanced Geocaching Tool for Linux"
+ p.xsbc_bugtracker="http://github.com/webhamster/advancedcaching"
+ #p.xsbc_bugtracker="http://github.com/webhamster/advancedcaching\nXB-Maemo-Display-Name: Advanced Geocaching Tool for Linux"
  #  p.postinstall="""#!/bin/sh
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your post install script
  #  p.postremove="""#!/bin/sh
