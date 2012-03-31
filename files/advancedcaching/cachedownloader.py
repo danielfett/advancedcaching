@@ -583,6 +583,13 @@ class GeocachingComCacheDownloader(CacheDownloader):
         except IndexError, e:
             logger.info("Hint not found!")
             coordinate.hints = ''
+            
+        # Attributes
+        try:
+            coordinate.attributes = ','.join([x.get('title') for x in doc.cssselect('#Content .sortables .item-content')[5].cssselect('img') if x.get('title') != 'blank'])
+        except Exception, e:
+            logger.error("Could not find/parse attributes")
+            raise e
 
         # Extract description...
         try:
@@ -845,10 +852,12 @@ if __name__ == '__main__':
         logger.error("Expected 4 waypoints, got %d" % len(c.get_waypoints()))
     if len(c.hints) != 83:
         logger.error("Expected 83 characters of hints, got %d" % len(c.hints))
+    if len(c.attributes) < 20:
+        logger.error("Expected 20 characters of attributes, got %d" % len(c.attributes))
     
     if len(c.get_logs()) < 2:
         logger.error("Expected at least 2 logs, got %d" % len(c.get_logs()))
-    print u"Owner:%r (type %r)\nTitle:%r (type %r)\nTerrain:%r\nDifficulty:%r\nDescription:%r (type %r)\nShortdesc:%r (type %r)\nHints:%r (type %r)\nLogs: %r" % (c.owner, type(c.owner), c.title, type(c.title), c.get_terrain(), c.get_difficulty(), c.desc[:200], type(c.desc), c.shortdesc, type(c.shortdesc), c.hints, type(c.hints), c.get_logs()[:3])
+    print u"Owner:%r (type %r)\nTitle:%r (type %r)\nTerrain:%r\nDifficulty:%r\nDescription:%r (type %r)\nShortdesc:%r (type %r)\nHints:%r (type %r)\nLogs: %r\nAttributes: %r" % (c.owner, type(c.owner), c.title, type(c.title), c.get_terrain(), c.get_difficulty(), c.desc[:200], type(c.desc), c.shortdesc, type(c.shortdesc), c.hints, type(c.hints), c.get_logs()[:3], c.attributes)
     print c.get_waypoints()
     
     
