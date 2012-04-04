@@ -23,9 +23,7 @@
 
 import logging
 logger = logging.getLogger('downloader')
-logger.error("Loaded logger")
 import connection
-logger.error("Loaded connection")
 class FileDownloader():
     USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.15 (KHTML, like Gecko) Ubuntu/11.10 Chromium/18.0.997.0 Chrome/18.0.997.0 Safari/535.15'
     opener_installed = False
@@ -176,5 +174,3 @@ class FileDownloader():
             req.add_header('Cache-Control', 'no-cache')
             req.add_header('Pragma', 'no-cache')
         req.add_header('Accept-Encoding', 'gzip')
-        
-logger.error("Loaded all")
