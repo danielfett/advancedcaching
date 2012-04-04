@@ -315,7 +315,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         try:
             coordinate.title = doc.cssselect('meta[name="og:title"]')[0].get('content')
         except Exception, e:
-            logger.error("Could find title!")
+            logger.error("Could not find title!")
             raise e  
             
         # Type 
@@ -323,7 +323,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             t = int(basename(doc.cssselect('.cacheImage img')[0].get('src')).split('.')[0])
             coordinate.type = self.CTIDS[t] if t in self.CTIDS else GeocacheCoordinate.TYPE_UNKNOWN
         except Exception, e:
-            logger.error("Could find type!")
+            logger.error("Could not find type!")
             raise e    
         
         # Short Description - Long Desc. is added after the image handling (see below)
@@ -525,7 +525,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             coordinate.id = part1[1:]
             coordinate.title, coordinate.owner = part2.rsplit(' by ', 1)
         except Exception, e:
-            logger.error("Could find title, id or owner!")
+            logger.error("Could not find title, id or owner!")
             logger.exception(e)
             raise e  
             
@@ -534,7 +534,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             t = int(basename(doc.cssselect('#Content h2 img')[0].get('src')).split('.')[0])
             coordinate.type = self.CTIDS[t] if t in self.CTIDS else GeocacheCoordinate.TYPE_UNKNOWN
         except Exception, e:
-            logger.error("Could find type - probably premium cache!")
+            logger.error("Could not find type - probably premium cache!")
             return None
         
         # Short Description - Long Desc. is added after the image handling (see below)
