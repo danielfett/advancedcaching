@@ -390,6 +390,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             else:
                 w['comment'] = x[2].text_content().strip()
                 waypoints += [w]
+                w = {}
         coordinate.set_waypoints(waypoints)
         
         # User token and Logs
@@ -615,6 +616,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             else:
                 w['comment'] = x[2].text_content().strip()
                 waypoints += [w]
+                w = {}
         coordinate.set_waypoints(waypoints)
 
         logger.debug("End parsing.")
