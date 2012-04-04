@@ -181,6 +181,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         url = 'http://www.geocaching.com/seek/nearest.aspx?lat=%f&lng=%f&dist=%f' % (center.lat, center.lon, dist)
         response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
         
+        points = []
         cont = True
         while cont:
             # Count the number of results and pages
@@ -208,7 +209,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 ) for x in doc.cssselect(".SearchResultsTable .Merge .small")]
                 
             # Download the geocaches using the print preview 
-            points = []
             for guid, found, id in wpts:
                 coordinate = GeocacheCoordinate(-1, -1, id)
                 coordinate.found = found
