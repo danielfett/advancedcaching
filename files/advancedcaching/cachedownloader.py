@@ -650,9 +650,11 @@ class GeocachingComCacheDownloader(CacheDownloader):
         pg = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback).read()
         t = unicode(pg, 'utf-8')
         doc = fromstring(t)
+        doc.forms[0].fields['ctl00$ContentBody$chkSuppressDate'] = ''
         values = doc.forms[0].form_values()
         values += [('ctl00$ContentBody$btnUpload', 'Upload Field Note')]
-        content = '\n'.join(notes)
+        content = '\r\n'.join(notes).encode("UTF-16")
+        
         data = self.downloader.encode_multipart_formdata(values, [('ctl00$ContentBody$FieldNoteLoader', 'geocache_visits.txt', content)])
 
         response = self.downloader.get_reader(url, 
