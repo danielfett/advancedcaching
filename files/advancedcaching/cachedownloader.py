@@ -579,7 +579,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         # Hint(s)
         try:
             hint = self._extract_node_contents(doc.cssselect('#uxEncryptedHint')[0])
-            coordinate.hints = self._handle_hints(hint)
+            coordinate.hints = self._handle_hints(hint, encrypted = False)
         except IndexError, e:
             logger.info("Hint not found!")
             coordinate.hints = ''
@@ -727,7 +727,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         #out = re.sub('^<[^>]+>', '', element)
         #out = re.sub('<[^>]+>$', '', out)
         #return out
-        return el.text + ''.join(unicode(tostring(x, encoding='utf-8', method='html'), 'utf-8') for x in el)
+        return (el.text if el.text != None else '') + ''.join(unicode(tostring(x, encoding='utf-8', method='html'), 'utf-8') for x in el)
         
     # Handle size string from basename of the according image
     def _handle_size(self, sizestring):
@@ -747,10 +747,11 @@ class GeocachingComCacheDownloader(CacheDownloader):
     def _handle_stars(self, stars):
         return int(stars[5])*10 + (int(stars[7]) if len(stars) > 6 else 0)
         
-    def _handle_hints(self, hints):
+    def _handle_hints(self, hints, encrypted = True):
         hints = HTMLManipulations._strip_html(HTMLManipulations._replace_br(hints)).strip()
-        hints = HTMLManipulations._rot13(hints)
-        hints = re.sub(r'\[([^\]]+)\]', lambda match: HTMLManipulations._rot13(match.group(0)), hints)
+        if encrypted:
+            hints = HTMLManipulations._rot13(hints)
+            hints = re.sub(r'\[([^\]]+)\]', lambda match: HTMLManipulations._rot13(match.group(0)), hints)
         return hints
         
     def _parse_logs_json(self, logs):
