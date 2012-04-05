@@ -55,7 +55,7 @@ AGTL is Open source and in active development.'''
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your pre install script
  #  p.preremove="""#!/bin/sh
  #  chmod +x /usr/bin/advancedcaching.py""" #Set here your pre remove script
- version = "0.9.0.0"
+ version = "0.9.0.1"
  build = "0"    # for the first build of this version of your software. Increment for later re-builds of the same version of your software.
                 # Text with changelog information to be displayed in the package "Details" tab of the Maemo Application Manager
  changeloginformation = """
