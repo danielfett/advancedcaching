@@ -6,7 +6,7 @@ def read(fname):
 
 setup(name="agtl-meego",
       scripts=['agtl-meego'],
-      version='0.9.0.0-meego0',
+      version='___VERSION___',
       maintainer="daniel",
       maintainer_email="advancedcaching@fragcom.de",
       description="AGTL makes geocaching paperless!",

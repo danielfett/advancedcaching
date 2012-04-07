@@ -22,7 +22,8 @@
 
 from __future__ import with_statement
 
-VERSION = "0.9.0.0"
+# This is also evaluated by the build scripts
+VERSION='0.9.0.0'
 import logging
 logging.basicConfig(level=logging.WARNING,
                     format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s // %(filename)s:%(lineno)s',
