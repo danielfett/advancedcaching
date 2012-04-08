@@ -235,6 +235,10 @@ Page {
             MenuItem { text: "Fetch Details for all in view"; onClicked: { pinchmap.requestUpdateDetails() } }
             MenuItem { text: "Reload Map"; onClicked: { pinchmap.populate(); } }
             MenuItem { text: "Settings"; onClicked: { showSettings(); } }
+            MenuItem { text: "Show this on Nokia Maps"; onClicked: { 
+                    var c = pinchmap.getCenter();
+                    Qt.openUrlExternally("geo:" + c[0] + "," + c[1] + "?action=showOnMap"); 
+                }}
         }
     }
 }

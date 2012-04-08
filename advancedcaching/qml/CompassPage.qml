@@ -175,6 +175,7 @@ Page {
         MenuLayout {
             MenuItem { text: "Unset Target"; onClicked: { controller.setAsTarget(null); } }
             MenuItem { text: "Settings"; onClicked: { showSettings(); } }
+            MenuItem { text: "Show Target on Nokia Maps"; visible: gps.targetValid; onClicked: { Qt.openUrlExternally("geo:" + gps.target.lat + "," + gps.target.lon + "?action=showOnMap"); } }
         }
     }
 }

@@ -192,6 +192,9 @@ Page {
             MenuItem { text: "Open Website"; onClicked: { Qt.openUrlExternally(currentGeocache.url); } visible: currentGeocache != null }
             MenuItem { text: "Show on Map"; onClicked: { tabMap.showOnMap(currentGeocache.lat, currentGeocache.lon); } visible: currentGeocache != null }
             MenuItem { text: "Settings"; onClicked: { showSettings(); } }
+            MenuItem { text: "Show on Nokia Maps"; onClicked: { 
+                    Qt.openUrlExternally("geo:" + currentGeocache.lat + "," + currentGeocache.lon + "?action=showOnMap"); 
+                }}
         }
     }
 }
