@@ -18,7 +18,3 @@ setup(name="agtl-meego",
                   ('/opt/agtl-meego/actors', glob.glob('actors/*.py')),
                   ('/opt/agtl-meego/', glob.glob('*.py')),
                   ('/opt/agtl-meego/', ['splash.png']),  ],)
-                  
-                  
-#shutil.rmtree('deb_dist/agtl-meego-0.8.0.7-meego1/debian/agtl-meego/usr/lib')
-#shutil.rmtree('deb_dist/agtl-meego-0.8.0.7-meego1/debian/agtl-meego/usr/share/pyshared')

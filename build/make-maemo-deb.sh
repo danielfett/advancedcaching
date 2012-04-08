@@ -1,4 +1,6 @@
 #!/bin/sh
+echo "This file hasn't been updated yet; It will not work!"
+exit
 PKGROOT='maemo/advancedcaching/src/'
 VERSION="$1"
 BUILD="$2"

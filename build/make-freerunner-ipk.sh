@@ -1,4 +1,6 @@
 #!/bin/sh
+echo "This file hasn't been updated yet, it will not work"
+exit
 IPKG='ipkg-utils-1.7/ipkg-build'
 PKGROOT='freerunner'
 VERSION="Version: "`grep -oP "(?<=version=').*(?=')" files/setup.py`

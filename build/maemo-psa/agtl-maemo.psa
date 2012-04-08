@@ -1,0 +1,11 @@
+[Project]
+category = Development
+maintainer = daniel
+appname = AGTL
+section = user/navigation
+pyversion = 2.6
+project = agtl-maemo
+email = advancedcaching@fragcom.de
+desc = AGTL, the all-in-one solution for on- and offline geocaching, makes geocaching paperless!
+template = fremantle 
+
