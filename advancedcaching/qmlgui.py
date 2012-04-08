@@ -270,7 +270,6 @@ class CalcEditWrapper(QtCore.QObject):
         self.__before_calc = ""
         self.__button_text = ""
         
-        info = None
         # Add new Calc String to geocache
         if add == CalcEditWrapper.ADD_CALC_STRING: 
             logger.debug("Adding new calc string")
@@ -816,7 +815,7 @@ class CoordinateWrapper(QtCore.QObject):
                 float(self._coordinate.lat)
                 float(self._coordinate.lon)
             except ValueError:
-                self._is_valid = false
+                self._is_valid = False
 
     def _name(self):
         return self._coordinate.name

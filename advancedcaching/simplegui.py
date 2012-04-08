@@ -50,7 +50,7 @@ import pango
 from os import path, extsep
 import re
 from utils import HTMLManipulations
-from gtkmap import *
+from gtkmap import Map, GeocacheLayer, MarksLayer, OsdLayer
 from gui import Gui
 
 

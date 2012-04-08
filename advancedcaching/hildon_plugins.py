@@ -123,7 +123,7 @@ class HildonFieldnotes(object):
         if cache.logdate == '':
             try:
                 text = strftime(self.settings['options_default_log_text'], localtime()) % {'machine': 'N900'}
-            except ValueError, e:
+            except ValueError:
                 text = self.settings['options_default_log_text']
         else:
             text = cache.fieldnotes
@@ -522,7 +522,7 @@ class HildonAboutDialog(object):
         logger.info("Using About Dialog plugin")
         logger.debug("trying update")
         
-        import gobject
+        #import gobject
         #def try_update():
         #    if 'options_auto_update' in self.settings and not self.settings['options_auto_update']:
         #        return False
@@ -603,7 +603,6 @@ Author: Daniel Fett advancedcaching@fragcom.de'''
 
         sizes = self.core.get_file_sizes()
         l = gtk.Label('')
-        import cachedownloader
         l.set_markup("Database Size: %s\nImage Folder Size: %s\n\nClick 'optimize' to purge found geocaches and their images. Be aware that this includes your notes and calculation values for those geocaches." % (self.core.format_file_size(sizes['sqlite']), self.core.format_file_size(sizes['images'])))
         l.set_alignment(0, 0)
         l.set_line_wrap(True)
@@ -767,7 +766,6 @@ class HildonDownloadMap(object):
                     return
         
         import time
-        import threading
         try:
             while True:
                 time.sleep(0.5)
@@ -826,7 +824,7 @@ class HildonToolsDialog(object):
         list.pack_start(button)
         
         dialog.show_all()
-        result = dialog.run()
+        dialog.run()
         dialog.hide()
         
     def _show_tool_rot13(self, caller, data = None):
@@ -843,7 +841,7 @@ class HildonToolsDialog(object):
             import cachedownloader
             try:
                 text = cachedownloader.CacheDownloader._rot13(source.get_buffer().get_text(source.get_buffer().get_start_iter(), source.get_buffer().get_end_iter()))
-            except Exception, e:
+            except Exception:
                 text = ''
                 
             destination.get_buffer().set_text(text)
@@ -851,7 +849,7 @@ class HildonToolsDialog(object):
         source.get_buffer().connect('changed', do_rot)
         
         dialog.show_all()
-        result = dialog.run()
+        dialog.run()
         dialog.hide()
         
     def _show_tool_romans(self, caller, data = None):
@@ -871,7 +869,7 @@ class HildonToolsDialog(object):
                 return
             try:
                 text = HildonToolsDialog._int_to_roman(int(source.get_text()))
-            except ValueError, e:
+            except ValueError:
                 text = ''
             inhibit[0] = True
             destination.set_text(text)
@@ -883,7 +881,7 @@ class HildonToolsDialog(object):
                 return
             try:
                 text = str(HildonToolsDialog._roman_to_int(destination.get_text()))
-            except ValueError, e:
+            except ValueError:
                 text = ''
             inhibit[0] = True
             source.set_text(text)
@@ -893,7 +891,7 @@ class HildonToolsDialog(object):
         destination.connect('changed', to_arabic)
         
         dialog.show_all()
-        result = dialog.run()
+        dialog.run()
         dialog.hide()
     NUMERAL_MAP = zip(
         (1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1),
@@ -943,7 +941,7 @@ class HildonToolsDialog(object):
             try:
                 res = origin[0].transform(-float(direction.get_text()), float(distance.get_text()))
                 text = res.get_latlon()
-            except Exception, e:
+            except Exception:
                 res = None
                 text = 'enter values...'
             resulting_coordinate[0] = res
@@ -966,7 +964,7 @@ class HildonToolsDialog(object):
             self.current_cache.set_user_coordinate(geocaching.GeocacheCoordinate.USER_TYPE_COORDINATE, (resulting_coordinate[0].lat, resulting_coordinate[0].lon), name)
             self.core.save_cache_attribute(self.current_cache, 'user_coordinates')
             self._on_cache_changed(None, self.current_cache)
-            #self.update_coords()
+
         elif res == RESULT_TARGET:
             if resulting_coordinate[0] == None:
                 return

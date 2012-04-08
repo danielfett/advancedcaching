@@ -21,8 +21,7 @@
 #
 
 from math import sqrt
-from sys import argv
-from sqlite3 import connect, Row, register_converter
+from sqlite3 import connect, Row
 
 from copy import copy
 

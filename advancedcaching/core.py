@@ -366,7 +366,7 @@ class Core(gobject.GObject):
                     raise Exception("The update process was stopped while copying files. AGTL may run or not. If not, delete all *.py files in %s." % self.UPDATE_DIR)
                 finally:
                     try:
-                        remove(tmpfile)
+                        remove(temp)
                     except Exception:
                         pass
         except Exception, e:

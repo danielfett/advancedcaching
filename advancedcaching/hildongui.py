@@ -485,7 +485,6 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         button.set_label("Follow Position")
         button.set_active(self._get_track_mode())
         button.connect("clicked", self.on_track_toggled, None)
-        button_track = button
         buttons.append(button)
 
         check_map_double_size = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)

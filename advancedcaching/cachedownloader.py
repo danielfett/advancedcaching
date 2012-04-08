@@ -298,7 +298,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             page = self.downloader.get_reader('http://www.geocaching.com/map/default.aspx?lat=6&lng=9', login_callback = self.login_callback, check_login_callback = self.check_login_callback)
             t = page.read()
             user_token[0] = re.search('[A-Z0-9]{128}', t).group(0)
-        except Exception, e:
+        except Exception:
             raise Exception("Website contents unexpected. Please check connection.")
     
     def _parse_cache_page(self, cache_page, coordinate, num_logs, download_images = True):
@@ -342,7 +342,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         except KeyError, e:
             raise Exception("Could not find uxLatLon")
         except Exception, e:
-            logger.error("Could not parse this coordinate: %r" % coord_text.text_content())
+            logger.error("Could not parse this coordinate: %r" % text)
             raise e
         
         # Size 
@@ -675,7 +675,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
        
     # Upload one or more logs
     def _upload_logs(self, geocaches):
-        notes = []
         logger.info("Preparing logs...")
         for geocache in geocaches:
             if geocache.logdate == '':
@@ -761,7 +760,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     def _parse_logs_json(self, logs):
         try:
             r = json.loads(logs)
-        except Exception, e:
+        except Exception:
             logger.exception('Could not json-parse logs!')
         if not 'status' in r or r['status'] != 'success':
             logger.error('Could not read logs, status is "%s"' % r['status'])

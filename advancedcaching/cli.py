@@ -382,9 +382,6 @@ class Cli():
                 print "$ No updates available."
         self.nt += 1
 
-    def show_error(self, message):
-        print "# Failed: %s" % message
-
     def has_next(self):
         # if we have 5 tokens
         # then 1..4 are valid tokens (0 is command)

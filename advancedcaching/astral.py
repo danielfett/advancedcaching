@@ -167,7 +167,6 @@ class Astral(object):
         newt = self._jday_to_jcentury(julianday + 0.5 + longitude / 360.0)
 
         eqtime = self._eq_of_time(newt)
-        solarNoonDec = self._sun_declination(newt)
         timeUTC = 720.0 + (longitude * 4.0) - eqtime
 
         timeUTC = timeUTC/60.0
@@ -290,13 +289,11 @@ class Astral(object):
         JD = self._julianday(dateandtime.day, dateandtime.month, dateandtime.year)
         t = self._jday_to_jcentury(JD + timenow / 24.0)
         R = self._sun_rad_vector(t)
-        alpha = self._sun_rt_ascension(t)
         theta = self._sun_declination(t)
         Etime = self._eq_of_time(t)
     
         eqtime = Etime
         solarDec = theta   # in degrees
-        earthRadVec = R
     
         solarTimeFix = eqtime - (4.0 * longitude) + (60 * zone)
         trueSolarTime = dateandtime.hour * 60.0 + dateandtime.minute + dateandtime.second / 60.0 + solarTimeFix
@@ -365,13 +362,11 @@ class Astral(object):
         JD = self._julianday(dateandtime.day, dateandtime.month, dateandtime.year)
         t = self._jday_to_jcentury(JD + timenow / 24.0)
         R = self._sun_rad_vector(t)
-        alpha = self._sun_rt_ascension(t)
         theta = self._sun_declination(t)
         Etime = self._eq_of_time(t)
     
         eqtime = Etime
         solarDec = theta   # in degrees
-        earthRadVec = R
     
         solarTimeFix = eqtime - (4.0 * longitude) + (60 * zone)
         trueSolarTime = dateandtime.hour * 60.0 + dateandtime.minute + dateandtime.second / 60.0 + solarTimeFix
