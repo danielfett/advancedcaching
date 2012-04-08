@@ -275,7 +275,7 @@ class GeocacheCoordinate(geo.Coordinate):
             pass
                 
     def was_downloaded(self):
-        return (self.shortdesc != '' or self.desc != '')
+        return (self.logs != None and self.logs != '')
         
     def get_bounds(self):
         minlat = maxlat = self.lat
