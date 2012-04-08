@@ -42,15 +42,43 @@ HTML = u'''
 <p style="font-style: normal; font-weight: normal"><font color=
 "#000000"><font face="Arial, sans-serif"><font size=
 "3"><span style="background: transparent">Es müssen keine Zäune
-oder Mauern überwunden werden.</span></font></font></font></p>
+oder Mauern überwunden werden.</span></font>
+hier steht ein la an ge r Text N49 44.123 E6 34.123 er und das an der</font></font></p>
 N 49°
 (B-C+A+0,5*D).(F+D)(F-G)(D-2*B)
 <p><br /> 
-<br /></p></span> 
-                
-            </div> 
-            <p> 
-</p> 
+P J A C Y L T T F R E I T C F G H S E G O N J U E R E N U U<br />
+
+<br />
+Den Cache findet ihr dann bei<br />
+N 49° 44.(TRRRS) - (S*S)<br />
+E 006° 41.RR - S<br />
+<br />
+
+Die Berechnung der Finalkoordinaten</i></font></p>
+<p style="margin-bottom: 0cm"><font size="4"><i>N 49° 4D.(C+A-E-D)BE</i></font></p>
+<p style="margin-bottom: 0cm"><br /></p>
+<p style="margin-bottom: 0cm"><font size="4"><i>E 006° 4(E-A+F).(F+E)F(E+B)<br />
+<br />
+Die Berechnung der Zusatzzahl</i></font></p>
+<p style="margin-bottom: 0cm"><br /></p>
+<p style="margin-bottom: 0cm"><font size="4"><i>(SxRxNxS)+(PxOxR)-O-P-Q</i></font></p>
+<p> </p>
+
+<p><font size="4"><i>Den Final findet Ihr bei</i></font></p>
+<p><font size="4"><i>N 49° 4(E+G).H (B+J) (A-E)</i></font></p>
+<p><font size="4"><i>E 006° 4(GxB).(F-B) C (H-C)</i></font></p>
+<p> </p>
+
+Aufgabe 6:<br />
+Cache ist bei N 49° QY.acT, E 006° aC.Kgo<br />
+<br />
+
+Aufgabe 6:<br />
+Cache ist bei N 49° qy.act, E 006° ac.gg(o+t/2)<br />
+Cache ist bei N 49° qy.act, E 006° ac.ab*(b+d)*2<br />
+<br />
+
 '''
 import geo
 import re
@@ -229,14 +257,18 @@ class CalcCoordinate():
     def __str__(self):
         return "<%s> from %s" % (self.orig, self.source)
 
-    SINGLE_CALC_PART = ur'''((?:\([A-Za-z +*/0-9-.,]+\)|[A-Za-z ()+*/0-9-])+)'''
+    # For aa bb.CCC
+    SHORT_CALC_PART = ur'''((?:\([A-Za-z +*/0-9-.,]+\)|[A-Za-z ()+*/0-9-]){1,4})'''
+    # For aa BB.ccc
+    LONG_CALC_PART = ur'''((?:\([A-Za-z +*/0-9-.,]+\)|[A-Za-z ()+*/0-9-]){1,7})'''
 
     @staticmethod
     def find(text, source):
         logger.debug("Start parsing...")
-        text = re.sub(ur'(?u)(°|<[^>]+?>|&[a-zA-Z]{,6};| +|%s|\b[^\W\d_]{4,}\b|\s[^\W\d_]{2,}\s)' % unichr(160), ' ', text)
+        text = re.sub(ur'(?u)(°|&[a-zA-Z]{,6};|%s)' % unichr(160), ' ', text)
+        text = re.sub(ur'(?u)( [a-z]{2,}(?= )|<[^>]+?>|\b[^\W\d_]{4,}\b|\s[^\W\d_]{2,}(?=\s))', '|', text)
         logger.debug("End Parsing, matching...")
-        matches = re.findall(ur'''(?<![a-zA-Z])([NSns])\s?([A-Z() -+*/0-9]+?)\s{1,2}%(calc)s[.,\s]%(calc)s['`\s,/]+([EOWeow])\s?([A-Z() -+*/0-9]+?)\s{1,2}%(calc)s[.,\s]%(calc)s[\s'`]*(?![a-zA-Z])''' % {'calc' : CalcCoordinate.SINGLE_CALC_PART}, text)
+        matches = re.findall(ur'''(?<![a-zA-Z])([NSns])\s?([A-Z() -+*/0-9]{1,5}?)\s{1,2}%(short)s\s?[.,]\s?%(long)s['`\s,/]+([EOWeow])\s?([A-Z() -+*/0-9]{1,5}?)\s{1,2}%(short)s\s?[.,]\s?%(long)s[\s'`]*(?![a-zA-Z])''' % {'short' : CalcCoordinate.SHORT_CALC_PART, 'long' : CalcCoordinate.LONG_CALC_PART}, text)
         logger.debug("From source %s with text: '''%s''' I found %d matches" % (source, text, len(matches)))
         return [CalcCoordinate(*match, **{'source': source}) for match in matches]
 
@@ -249,10 +281,10 @@ if __name__ == "__main__":
     from simplegui import SimpleGui
     print '\n\n========================================================='
     h = SimpleGui._strip_html(HTML) 
-    print h
+    #print h
     #for x in h:
     #    print "%d -> %s" % (ord(x), x)
     print '---------------------------------------------------------'
-    for instance in CalcCoordinate.find(h)[0]:
+    for instance in CalcCoordinate.find(h, "Example"):
         print "Found: %s" % (instance.orig)
 
