@@ -319,6 +319,8 @@ class Map(gtk.DrawingArea, AbstractMap):
                     requests.append(((id_string, tile, zoom, undersample, dx, dy, self._add_to_buffer), {}))
         self.surface_buffer = new_surface_buffer
 
+        # Worker threads now pick up the requests and run the tile loader
+        # TODO: Threadpool may not be the right choice here
         reqs = threadpool.makeRequests(self.__run_tile_loader, requests)
         cr = gtk.gdk.CairoContext(cairo.Context(self.cr_drawing_area_map))
         cr.set_source_rgba(0, 0, 0, 1)

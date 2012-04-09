@@ -91,31 +91,28 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
 
         @staticmethod
         def create_recursive(dpath):
-            if dpath != '/':
-                if not path.exists(dpath):
-                    head, tail = path.split(dpath)
-                    TileLoader.create_recursive(head)
-                    try:
-                        mkdir(dpath)
-                    except Exception:
-                        # let others fail here.
-                        pass
+            if not path.exists(dpath):
+                head, tail = path.split(dpath)
+                TileLoader.create_recursive(head)
+                try:
+                    mkdir(dpath)
+                except Exception:
+                    # let others fail here.
+                    pass
 
 
         def run(self):
-            answer = True
+            needs_download = True
             if not path.isfile(self.local_filename):
                 self.create_recursive(self.local_path)
                 self.draw(self.get_no_image(self.noimage_loading))
-                answer = self.__download(self.remote_filename, self.local_filename)
+                needs_download = self.__download(self.remote_filename, self.local_filename)
 
             # now the file hopefully exists
-            if answer == True:
+            if needs_download == True:
                 self.load()
                 self.draw(self.pbuf)
-                #gobject.idle_add(lambda: self.draw(self.pbuf))
-            elif answer == False:
-                #gobject.idle_add(lambda: self.draw(self.get_no_image(self.noimage_cantload)))
+            elif needs_download == False:
                 self.draw(self.get_no_image(self.noimage_cantload))
             else:
                 # Do nothing here, as the thread was told to stop
