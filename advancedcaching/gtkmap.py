@@ -321,11 +321,11 @@ class Map(gtk.DrawingArea, AbstractMap):
 
         # Worker threads now pick up the requests and run the tile loader
         # TODO: Threadpool may not be the right choice here
-        reqs = threadpool.makeRequests(self.__run_tile_loader, requests)
         cr = gtk.gdk.CairoContext(cairo.Context(self.cr_drawing_area_map))
         cr.set_source_rgba(0, 0, 0, 1)
         self.delay_expose = True
         cr.paint()
+        reqs = threadpool.makeRequests(self.__run_tile_loader, requests)
         for r in reqs:
             self.tile_loader_threadpool.putRequest(r)
         self.__draw_layers()

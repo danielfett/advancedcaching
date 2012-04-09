@@ -120,7 +120,6 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
 
         def run_again(self):
             self.load()
-            #gobject.idle_add(lambda: self.draw(self.pbuf))
             self.draw(self.pbuf)
             return False
 
@@ -169,7 +168,6 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
 
 
         def __download(self, remote, local):
-            
             if path.exists(local):
                 return True
             if connection.offline:
@@ -184,7 +182,8 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
                         return False
                     return True
                 except Exception, e:
-                    print "Download Error", e
+                    logger.error("Download error")
+                    logger.exception(e)
                     return False
 
         def download_tile_only(self):
