@@ -33,7 +33,7 @@ import connection
 setdefaulttimeout(30)
    
     
-CONCURRENT_THREADS = 10
+CONCURRENT_THREADS = 20
 
 
 
@@ -173,7 +173,7 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
             if path.exists(local):
                 return True
             if connection.offline:
-                return False    
+                return False
             with TileLoader.semaphore:
                 try:
                     if self.stop:
