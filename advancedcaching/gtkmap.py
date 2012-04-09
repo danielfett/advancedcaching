@@ -272,6 +272,9 @@ class Map(gtk.DrawingArea, AbstractMap):
                 x.halt()
         except IndexError:
             pass
+            
+        # Empty the surface buffer which contains tiles which need to be drawn
+        self.surface_buffer = {}
 
         # Do some calculations...
         zoom = self.zoom
@@ -284,7 +287,7 @@ class Map(gtk.DrawingArea, AbstractMap):
         offset_y = int(self.map_height / 2 -(self.map_center_y - int(self.map_center_y)) * size)
 
         undersample = self.double_size
-        # Request stores... TODO?
+        # Request stores tiles which need to be downloaded
         requests = []
         # New surface buffer TODO
         new_surface_buffer = {}
@@ -306,10 +309,13 @@ class Map(gtk.DrawingArea, AbstractMap):
                 # Store known tiles in tiles, because sometimes tiles occur twice
                 # TODO: Fix root cause
                 tiles += tile
+                # Re-Use the old surface buffer if possible.
+                # TODO: Check performance improvement
                 if id_string in old_surface_buffer and old_surface_buffer[id_string][0] != self.tile_loader.noimage_cantload and old_surface_buffer[id_string][0] != self.tile_loader.noimage_loading:
                     new_surface_buffer[id_string] = old_surface_buffer[id_string]
                     new_surface_buffer[id_string][1:3] = dx, dy
                 else:
+                    # This tile needs to be downloaded
                     requests.append(((id_string, tile, zoom, undersample, dx, dy, self._add_to_buffer), {}))
         self.surface_buffer = new_surface_buffer
 
