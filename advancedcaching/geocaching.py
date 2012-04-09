@@ -441,7 +441,6 @@ class GeocacheCoordinate(geo.Coordinate):
             clist[i] = coord
             i += 1
             logger.debug("Added coordinate, name=%r, title=%r, user_coordinate_id=%r" % (coord.name, coord.title, coord.user_coordinate_id))
-        logger.debug("Found %d coordinates" % len(clist))
         return clist
     
        
