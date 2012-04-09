@@ -254,18 +254,26 @@ class Map(gtk.DrawingArea, AbstractMap):
 
 
     def _draw_map(self):
+        # TODO: Check if an implementation with one tile loader per tile is fine
+        # If we are here too early, quit
         if not self.drawing_area_configured:
+            logger.info("Drawing area not yet configured; skipping map drawing.")
             return False
-        if self.map_width == 0 or self.map_height == 0:
+        # If there's no map size, quit
+        if self.map_width <= 0 or self.map_height <= 0:
+            logger.info("Map has no size; skipping map drawing.")
             return
 
+        # Now try to halt all tile loaders.
         try:
             while True:
                 x = self.active_tile_loaders.pop()
+                # set the stop bit for the tile loader 
                 x.halt()
         except IndexError:
             pass
 
+        # Do some calculations...
         zoom = self.zoom
         size = self.tile_loader.TILE_SIZE
         xi = int(self.map_center_x)
@@ -276,11 +284,14 @@ class Map(gtk.DrawingArea, AbstractMap):
         offset_y = int(self.map_height / 2 -(self.map_center_y - int(self.map_center_y)) * size)
 
         undersample = self.double_size
+        # Request stores... TODO?
         requests = []
+        # New surface buffer TODO
         new_surface_buffer = {}
+        # Old surface buffer TODO
         old_surface_buffer = self.surface_buffer
+        # Tiles 
         tiles = []
-
 
         for i in xrange(-span_x, span_x + 1, 1):
             for j in xrange(-span_y, span_y + 1, 1):
@@ -292,6 +303,9 @@ class Map(gtk.DrawingArea, AbstractMap):
                 tile = self.check_bounds(*tile)
                 if tile in tiles:
                     continue
+                # Store known tiles in tiles, because sometimes tiles occur twice
+                # TODO: Fix root cause
+                tiles += tile
                 if id_string in old_surface_buffer and old_surface_buffer[id_string][0] != self.tile_loader.noimage_cantload and old_surface_buffer[id_string][0] != self.tile_loader.noimage_loading:
                     new_surface_buffer[id_string] = old_surface_buffer[id_string]
                     new_surface_buffer[id_string][1:3] = dx, dy
@@ -338,7 +352,7 @@ class Map(gtk.DrawingArea, AbstractMap):
 
             if surface == None:
                 print "pbuf was none!"
-                return
+                continue
             size = self.tile_loader.TILE_SIZE
             if scale_source == None:
                 cr.set_source_surface(surface, x + off_x, y + off_y)
