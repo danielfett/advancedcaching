@@ -1606,9 +1606,6 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
             self.banner.show_all()
         else:
             self.banner.set_text(text)
-        gtk.gdk.threads_leave()
-        
-
 
     def show_error(self, errormsg):
         hildon.hildon_banner_show_information(self.window, "", "%s" % errormsg)
