@@ -54,10 +54,7 @@ class PointProvider():
             'CREATE INDEX IF NOT EXISTS %(table)s_fieldnote ON %(table)s (logas);' % {'table' : self.cache_table}
             )
 
-        #c.execute('CREATE TABLE IF NOT EXISTS %s (%s)' % (self.cache_table, ', '.join(' '.join(m) for m in self.ctype.SQLROW.items())))
-        #self.check_table()
-        #c.execute('CREATE INDEX IF NOT EXISTS %s_latlon ON %s (lat ASC, lon ASC)' % (self.cache_table, self.cache_table))
-        
+        self.to_replace_string = ', '.join("%s=:%s" % (x, x) for x in self.ctype.NON_USER_ATTRS)
 
     def check_table(self):
         c = self.conn.cursor()
@@ -97,8 +94,10 @@ class PointProvider():
             num = len(c.fetchall())
             existing = (num == 1)
             c.close()
+            
+             
             if existing:
-                self.conn.execute("UPDATE %s SET found = ?, type = ?, lat = ?, lon = ?, status = ? WHERE name = ?" % self.cache_table, (p.found, p.type, p.lat, p.lon, p.status, p.name))
+                self.conn.execute("UPDATE %s SET %s WHERE name=:name" % (self.cache_table, self.to_replace_string), p.__dict__)
                 return False
             else:
                 self.conn.execute("INSERT INTO %s (`%s`) VALUES (%s)" % (self.cache_table, '`, `'.join(self.ctype.SQLROW.keys()), ', '.join(':%s' % k for k in self.ctype.SQLROW.keys())), p.serialize())

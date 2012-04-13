@@ -841,12 +841,17 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/cache_details.aspx?wp=%s&log=y#ctl00_ContentBody_CacheLogs" % cache.name, 'All Logs'))
         p.attach(z, 1, 2, 8, 9)
 
+        # Cache has details
+        has_details = (len(cache.desc.strip()) + len(cache.shortdesc.strip()) > 0)
+        # This roughly equals cache.was_downloaded(), but the new definition of was_downloaded is not applicable here.
+
         # cache-was-not-downloaded-yet-warning
-        if not cache.was_downloaded():
+        if not has_details:
             p.attach(gtk.Label("Please download full details to see the description."), 0, 2, 9, 10)
         
         notebook.append_page(p, gtk.Label("Info"))
-        if cache.was_downloaded():
+        
+        if has_details: 
         
             # Description
             p = hildon.PannableArea()
@@ -902,8 +907,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                 p.set_property("mov-mode", hildon.MOVEMENT_MODE_BOTH)
                 p.add(widget_description)
                 text_longdesc = self._strip_html(text_longdesc)
-                
-
+           
             # logs&hints
             p = hildon.PannableArea()
             widget_hints = gtk.VBox()
@@ -939,6 +943,12 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                 widget_hints.pack_start(w_first, False, False)
                 widget_hints.pack_start(w_text, False, False)
                 widget_hints.pack_start(gtk.HSeparator(), False, False)
+            
+            if len(logs) == 0:
+                label_logs = gtk.Label()
+                label_logs.set_markup('<i>Select "Download all Details" to get logs, waypoints and images.</i>')
+                widget_hints.pack_start(label_logs, False, False)
+                
 
             hints = cache.hints.strip()
             if len(hints) > 0:
@@ -957,7 +967,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                 widget_hints.pack_start(label_hints, False, False)
             else:
                 label_hints = gtk.Label()
-                label_hints.set_markup('<i>No hints available</i>\nSelect "Download all Details" to get logs, waypoints and images.')
+                label_hints.set_markup('<i>No hints available</i>')
                 widget_hints.pack_start(label_hints, False, False)
 
             # images

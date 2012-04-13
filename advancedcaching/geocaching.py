@@ -96,6 +96,12 @@ class GeocacheCoordinate(geo.Coordinate):
              'images', 'notes', 'fieldnotes', 'logas', 'logdate', 'marked', \
              'logs', 'status', 'vars', 'alter_lat', 'alter_lon', 'updated', 'user_coordinates', 'attributes')
 
+    # These are the table fields which can safely be updated when
+    # the geocache is re-downloaded. User data should not be contained
+    # in them.
+    NON_USER_ATTRS = ('lat', 'lon', 'title', 'shortdesc', 'desc', 'hints', 'type', \
+             'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
+             'images', 'logs', 'status', 'attributes')
 
     SQLROW = {
         'lat': 'REAL',
