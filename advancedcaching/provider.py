@@ -50,7 +50,8 @@ class PointProvider():
         self.check_table()
         self.conn.executescript(
             'CREATE INDEX IF NOT EXISTS %(table)s_latlon ON %(table)s (lat ASC, lon ASC);' \
-            'CREATE INDEX IF NOT EXISTS %(table)s_name ON %(table)s (name ASC);' \
+            'DROP INDEX IF EXISTS %(table)s_name;'
+            'CREATE UNIQUE INDEX IF NOT EXISTS %(table)s_name_unique ON %(table)s (name ASC);' \
             'CREATE INDEX IF NOT EXISTS %(table)s_fieldnote ON %(table)s (logas);' % {'table' : self.cache_table}
             )
 
