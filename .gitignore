@@ -6,8 +6,4 @@
 *.changes
 *~
 *.egg*
-files/dist/
-files/build/
-files/advancedcaching/build/
 /*.zip
-freerunner/

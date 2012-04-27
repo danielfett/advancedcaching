@@ -1,0 +1,12 @@
+# This is a shell file
+SOURCE="../advancedcaching"
+RES="../res"
+eval `grep "VERSION=" $SOURCE/core.py` # Set VERSION from core.py file
+PKG="../dist/$DIST-$VERSION"
+PKGTMP=$PKG/temp/
+echo "Settings loaded:"
+echo " Python source path is $SOURCE"
+echo " Target path is $PKG"
+echo " VERSION is $VERSION"
+echo " Temporary path is $PKGTMP"
+echo " Resources are in $RES"

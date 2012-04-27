@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=AGTL-PSA
+Comment=Advanced Geocaching Tool For Linux
+Encoding=UTF-8
+Version=1.0.0
+Type=Application
+Exec=/usr/bin/agtl-maemo
+Icon=advancedcaching
+X-Icon-path=/usr/share/icons/hicolor/64x64/apps/
+X-Window-Icon=agtl-maemo.png
+
