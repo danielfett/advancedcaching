@@ -279,9 +279,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
         t = unicode(page, 'utf-8')
         doc = fromstring(t)
         
-        if doc.get_element_by_id('ctl00_ContentBody_ErrorText', None) != None:
+        if doc.get_element_by_id('ctl00_liNavProfile', None) == None:
             raise Exception("Wrong username or password!")
-        if len(doc.cssselect('.Success')) > 0:
+        elif doc.get_element_by_id('ctl00_liNavJoin', None) == None:
             logger.info("Great success.")
             return True
         raise Exception("Name/Password MAY be correct, but I encountered unexpected data while logging in.")
