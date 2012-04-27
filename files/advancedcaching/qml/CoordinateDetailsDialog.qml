@@ -11,7 +11,7 @@ Sheet {
     //titleText: coordinate ? coordinate.name : "undefined"
 
     onCoordinateChanged: {
-        if (coordinate.valid) {
+        if (coordinate && coordinate.valid) {
             map.visible = true;
             map.setCenterLatLon(coordinate.lat, coordinate.lon);
         } else {
