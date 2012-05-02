@@ -4,6 +4,9 @@ RES="../res"
 eval `grep "VERSION=" $SOURCE/core.py` # Set VERSION from core.py file
 PKG="../dist/$DIST-$VERSION"
 PKGTMP=$PKG/temp/
+PYSIDE_ASSISTANT=`pwd`/../PySideAssistant/psa
+PYSIDE_ROOT=`pwd`/../PySideAssistant/
+
 echo "Settings loaded:"
 echo " Python source path is $SOURCE"
 echo " Target path is $PKG"

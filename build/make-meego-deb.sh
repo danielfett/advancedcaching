@@ -3,8 +3,6 @@ DIST=meego
 source settings
 BUILD=0
 PKGROOT=meego
-PYSIDE_ASSISTANT=`pwd`/../PySideAssistant/psa
-PYSIDE_ROOT=`pwd`/../PySideAssistant/
 PYSIDE_PROJECT_NAME=agtl-meego
 echo " Build number is $BUILD"
 echo " Copying packaging files from $PKGROOT"

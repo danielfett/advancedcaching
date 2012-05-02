@@ -4,7 +4,7 @@ import os, sys, glob, shutil
 def read(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
-setup(name="agtl-maemo",
+setup(name="advancedcaching",
       scripts=[],
       version='___VERSION___',
       maintainer="daniel",
