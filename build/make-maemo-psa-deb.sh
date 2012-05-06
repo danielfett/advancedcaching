@@ -34,6 +34,7 @@ cp $RES/advancedcaching-64.png $PKGTMP/advancedcaching.png
 cp -r $SOURCE/data $PKGTMP/
 cp -r $SOURCE/actors $PKGTMP/
 cd $PKGTMP
-PSA_ROOT=$PYSIDE_ROOT $PYSIDE_ASSISTANT --project $PYSIDE_PROJECT_NAME build-deb
-cd -
-cp $PKGTMP/deb_dist/${PYSIDE_PROJECT_NAME}_${VERSION}-1_all.deb $PKG
+#PSA_ROOT=$PYSIDE_ROOT $PYSIDE_ASSISTANT --project $PYSIDE_PROJECT_NAME build-deb
+echo "RUN CMD NOW"
+#cd -
+#cp $PKGTMP/deb_dist/${PYSIDE_PROJECT_NAME}_${VERSION}-1_all.deb $PKG

@@ -1,0 +1,11 @@
+advancedcaching (0.9.0.1) stable; urgency=low
+  - Build with new build system
+  - Fix various errors in 0.9.0.9
+ -- Daniel Fett <advancedcaching@fragcom.de>  Sun, 06 May 2012 13:27:00 +0200
+
+advancedcaching (0.9.0.0) stable; urgency=low
+
+  - Fix after Website update in February
+  - Integrate some changes from N9 version
+
+ -- Daniel Fett <advancedcaching@fragcom.de>  Sat, 31 Mar 2012 18:23:58 +0000
