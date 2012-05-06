@@ -2,7 +2,7 @@
 SOURCE="../advancedcaching"
 RES="../res"
 eval `grep "VERSION=" $SOURCE/core.py` # Set VERSION from core.py file
-PKG="../dist/$DIST-$VERSION"
+PKG="../dist/$DIST/advancedcaching-$VERSION"
 PKGTMP=$PKG/temp/
 PYSIDE_ASSISTANT=`pwd`/../PySideAssistant/psa
 PYSIDE_ROOT=`pwd`/../PySideAssistant/
