@@ -807,6 +807,19 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                 
         # info
         p = gtk.Table(10, 2)
+
+        #Attributes (images). They are 30x30px. 10 is a maximum of attributes one cache can have
+        attribute_table = gtk.HBox()
+
+        #print "list'"+cache.attributes+"'"
+        #cache.attributes is comma separated list of filenames without path
+        #(ending comma, so drop it with [0,-1]
+        for attribute in cache.attributes.split(',')[0:-1]:
+            #print attribute
+            filename = path.join(self.settings['download_output_dir'], attribute)
+            attribute_table.pack_start(gtk.image_new_from_file(filename))
+
+
         labels = (
                   ('Full Name', cache.title),
                   ('ID', cache.name),
@@ -829,7 +842,17 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
             p.attach(w, 1, 2, i, i + 1)
             i += 1
             
+
+        #Attributes
+        l = gtk.Label()
+        l.set_alignment(0, 0.5)
+        l.set_markup("<b>Attributes</b>")
+        p.attach(l, 0, 1, i, i + 1)
+        p.attach(attribute_table, 1, 2, i, i + 1)
+
+
         # links for listing & log
+        '''
         l = gtk.Label()
         l.set_markup("<b>Open Website</b>")
         l.set_alignment(0, 0.5)
@@ -840,6 +863,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/log.aspx?wp=%s" % cache.name, 'Post Log'))
         z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/cache_details.aspx?wp=%s&log=y#ctl00_ContentBody_CacheLogs" % cache.name, 'All Logs'))
         p.attach(z, 1, 2, 8, 9)
+        '''
 
         # Cache has details
         has_details = (len(cache.desc.strip()) + len(cache.shortdesc.strip()) > 0)

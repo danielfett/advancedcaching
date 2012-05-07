@@ -409,11 +409,12 @@ class GeocachingComCacheDownloader(CacheDownloader):
             #    print userToken
             
         # Attributes
-        try:
-            coordinate.attributes = ','.join([x.get('title') for x in doc.cssselect('.CacheDetailNavigationWidget.BottomSpacing .WidgetBody img') if x.get('title') != 'blank'])
-        except Exception, e:
-            logger.error("Could not find/parse attributes")
-            raise e
+        ###These are loaded when preview is loaded.
+        #try:
+        #    coordinate.attributes = ','.join([x.get('title') for x in doc.cssselect('.CacheDetailNavigationWidget.BottomSpacing .WidgetBody img') if x.get('title') != 'blank'])
+        #except Exception, e:
+        #    logger.error("Could not find/parse attributes")
+        #    raise e
         
         # Image Handling
 
@@ -587,7 +588,31 @@ class GeocachingComCacheDownloader(CacheDownloader):
             
         # Attributes
         try:
-            coordinate.attributes = ','.join([x.get('title') for x in doc.cssselect('#Content .sortables .item-content')[5].cssselect('img') if x.get('title') != 'blank'])
+            for x in doc.cssselect('#Content .sortables .item-content')[5].cssselect('img'):
+                  if x.get('title') != 'blank':
+                    #print x.get('title'), x.get('src')
+                    attrib=x.get('src')[19:] #strip text '/images/attributes/'
+
+                    # Prepend local path to filename, and check do we have it already
+                    filename = os.path.join(self.path, attrib)
+                    if os.path.isfile(filename):
+                       logger.info("%s exists already, don't reload " % (filename))
+                    else:
+                       logger.info("Downloading %s to %s" % (url, filename))
+
+                       # Download file
+                       url="http://www.geocaching.com/images/attributes/"+attrib
+                       try:
+                         f = open(filename, 'wb')
+                         f.write(self.downloader.get_reader(url, login = False).read())
+                         f.close()
+                       except Exception, e:
+                         logger.exception(e)
+                         logger.error("Failed to download image from URL %s" % url)
+
+                    #store filename without path to the comma separated string
+                    coordinate.attributes = coordinate.attributes+attrib+","
+
         except Exception, e:
             logger.error("Could not find/parse attributes")
             raise e
