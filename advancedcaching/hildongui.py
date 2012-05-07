@@ -938,6 +938,27 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
             p.add_with_viewport(widget_hints)
             notebook.append_page(p, gtk.Label("Logs & Hints"))
 
+            hints = cache.hints.strip()
+            if len(hints) > 0:
+                button_hints = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
+                button_hints.set_label('Show Hints (%d chars)' % len(hints))
+                label_hints = gtk.Label()
+                label_hints.set_line_wrap(True)
+                label_hints.set_alignment(0, 0)
+                events.append(self.window.connect('configure-event', self._on_configure_label, label_hints))
+                label_hints.set_size_request(self.window.size_request()[0] - 10, -1)
+                def show_hints(widget):
+                    label_hints.set_text(hints)
+                    widget.hide()
+                button_hints.connect('clicked', show_hints)
+                widget_hints.pack_start(button_hints, False, False)
+                widget_hints.pack_start(label_hints, False, False)
+            else:
+                label_hints = gtk.Label()
+                label_hints.set_markup('<i>No hints available</i>')
+                widget_hints.pack_start(label_hints, False, False)
+
+
             logs = cache.get_logs()
             
             for l in logs:
@@ -973,26 +994,6 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                 label_logs.set_markup('<i>Select "Download all Details" to get logs, waypoints and images.</i>')
                 widget_hints.pack_start(label_logs, False, False)
                 
-
-            hints = cache.hints.strip()
-            if len(hints) > 0:
-                button_hints = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
-                button_hints.set_label('Show Hints (%d chars)' % len(hints))
-                label_hints = gtk.Label()
-                label_hints.set_line_wrap(True)
-                label_hints.set_alignment(0, 0)
-                events.append(self.window.connect('configure-event', self._on_configure_label, label_hints))
-                label_hints.set_size_request(self.window.size_request()[0] - 10, -1)
-                def show_hints(widget):
-                    label_hints.set_text(hints)
-                    widget.hide()
-                button_hints.connect('clicked', show_hints)
-                widget_hints.pack_start(button_hints, False, False)
-                widget_hints.pack_start(label_hints, False, False)
-            else:
-                label_hints = gtk.Label()
-                label_hints.set_markup('<i>No hints available</i>')
-                widget_hints.pack_start(label_hints, False, False)
 
             # images
             self.build_cache_images(cache, notebook)
