@@ -142,7 +142,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     
     MAX_REC_DEPTH = 3
 
-    MAX_DOWNLOAD_NUM = 80
+    MAX_DOWNLOAD_NUM = 800
 
 
     CTIDS = {
@@ -224,7 +224,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             # There are more pages...
             if page_current < page_max:
                 from urllib import urlencode
-                doc.forms[0].fields['__EVENTTARGET'] = 'ctl00$ContentBody$pgrTop$lbGoToPage_%d' % (page_current + 1)
+                doc.forms[0].fields['__EVENTTARGET'] = 'ctl00$ContentBody$pgrTop$ctl08'
                 values = urlencode(doc.forms[0].form_values())
                 action = "http://www.geocaching.com/seek/%s" % doc.forms[0].action
                 logger.info("Retrieving next page!")
