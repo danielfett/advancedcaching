@@ -598,10 +598,10 @@ class GeocachingComCacheDownloader(CacheDownloader):
                     if os.path.isfile(filename):
                        logger.info("%s exists already, don't reload " % (filename))
                     else:
-                       logger.info("Downloading %s to %s" % (url, filename))
-
                        # Download file
                        url="http://www.geocaching.com/images/attributes/"+attrib
+                       logger.info("Downloading %s to %s" % (url, filename))
+
                        try:
                          f = open(filename, 'wb')
                          f.write(self.downloader.get_reader(url, login = False).read())
