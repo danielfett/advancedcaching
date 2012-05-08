@@ -843,9 +843,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
         if returnTotalPages is True:
             pageinfo = r['pageInfo']
-            total = pageinfo['totalRows']
-            #print "total rows", total
-            total_page = total / 10
+            total_page = pageinfo['totalPages']
+            print "total pages", total_page
             return output,total_page
         
 
