@@ -394,6 +394,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         coordinate.set_waypoints(waypoints)
         
         # User token and Logs
+        '''
         for x in doc.cssselect('script'):
             if not x.text:
                 continue
@@ -407,7 +408,48 @@ class GeocachingComCacheDownloader(CacheDownloader):
             #    userToken = re.sub("(?s).*userToken = '", '', s)
             #    userToken = re.sub("(?s)'.*", '', userToken)
             #    print userToken
-            
+        '''
+        userToken =''
+        for x in doc.cssselect('script'):
+            if not x.text:
+                continue
+            s = x.text.strip()
+            if s.startswith('//<![CDATA[\r\nvar uvtoken'):
+                userToken = re.sub("(?s).*userToken = '", '', s)
+                userToken = re.sub("(?s)'.*", '', userToken)
+                print "userToken:", userToken
+
+
+        def generate_request(userToken,pageNumber):
+           #about logcount: 'how many logs per page is loaded'. Each page has 10 logs. Every bigger values are truncated to 10
+           #                 lower values are useful only if only first page is loaded
+           logcount="10"
+           request = 'http://www.geocaching.com/seek/geocache.logbook?tkn='+userToken+'&idx=' +str(pageNumber)+ '&num='+logcount+'&decrypt=true'
+           return request
+
+
+        #Ask first page of logs. And same time number of pages
+        logs = self.downloader.get_reader(generate_request(userToken,1),
+               login_callback = self.login_callback, check_login_callback = self.check_login_callback)
+        new_set_of_logs, total_page = self._parse_logs_json(logs.read(),True) #True=we want also number of page
+
+        page_of_logs=num_logs/10 #num_logs from parameter (which comes from settings 'download_num_logs')
+
+        #First page is already handled, so counter starts from 2
+        counter = 2
+        while (counter <= total_page and counter <= page_of_logs):
+            logs = self.downloader.get_reader(generate_request(userToken,counter),
+                   login_callback = self.login_callback, check_login_callback = self.check_login_callback)
+            temp_logs = self._parse_logs_json(logs.read())
+
+            for k in temp_logs:
+               new_set_of_logs.append(k)
+
+            counter = counter +1
+
+
+        coordinate.set_logs(new_set_of_logs)
+
         # Attributes
         ###These are loaded when preview is loaded.
         #try:
@@ -784,7 +826,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             hints = re.sub(r'\[([^\]]+)\]', lambda match: HTMLManipulations._rot13(match.group(0)), hints)
         return hints
         
-    def _parse_logs_json(self, logs):
+    def _parse_logs_json(self, logs, returnTotalPages=False):
         try:
             r = json.loads(logs)
         except Exception:
@@ -801,9 +843,16 @@ class GeocachingComCacheDownloader(CacheDownloader):
             text = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(l['LogText'])))
             output.append(dict(type=tpe, date=date, finder=finder, text=text))
         logger.debug("Read %d log entries" % len(output))
-        return output
+
+        if returnTotalPages is True:
+            pageinfo = r['pageInfo']
+            total = pageinfo['totalRows']
+            #print "total rows", total
+            total_page = total / 10
+            return output,total_page
         
 
+        return output
 
 BACKENDS = {
     'geocaching-com-new': {'class': GeocachingComCacheDownloader, 'name': 'geocaching.com', 'description': 'Backend for geocaching.com'},
