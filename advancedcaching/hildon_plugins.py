@@ -553,18 +553,19 @@ class HildonAboutDialog(object):
         notebook.append_page(page, gtk.Label('About'))
 
         copyright = '''Copyright (C) in most parts 2012 Daniel Fett
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
+
+This program is free software: you can redistribute it and/or modify \
+it under the terms of the GNU General Public License as published by \
+the Free Software Foundation, either version 3 of the License, or \
 (at your option) any later version.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+This program is distributed in the hope that it will be useful, \
+but WITHOUT ANY WARRANTY; without even the implied warranty of \
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the \
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see http://www.gnu.org/licenses/.
+You should have received a copy of the GNU General Public License \
+along with this program.  If not, see http://www.gnu.org/licenses/. \
 
 Author: Daniel Fett advancedcaching@fragcom.de'''
         additional = '''Neither the author nor the software is affiliated with or endorsed by any geocaching website.'''
@@ -580,7 +581,7 @@ Author: Daniel Fett advancedcaching@fragcom.de'''
         l = gtk.Label()
         l.set_line_wrap(True)
         l.set_alignment(0, 0)
-        l.set_size_request(self.window.size_request()[0] - 10, -1)
+        #l.set_size_request(self.window.size_request()[0] - 10, -1)
         l.set_markup(text)
         p = hildon.PannableArea()
         p.set_property('mov-mode', hildon.MOVEMENT_MODE_BOTH)
