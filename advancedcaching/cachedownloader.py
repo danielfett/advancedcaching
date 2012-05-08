@@ -440,10 +440,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         while (counter <= total_page and counter <= page_of_logs):
             logs = self.downloader.get_reader(generate_request(userToken,counter),
                    login_callback = self.login_callback, check_login_callback = self.check_login_callback)
-            temp_logs = self._parse_logs_json(logs.read())
-
-            for k in temp_logs:
-               new_set_of_logs.append(k)
+            new_set_of_logs.extend(self._parse_logs_json(logs.read()))
 
             counter = counter +1
 
