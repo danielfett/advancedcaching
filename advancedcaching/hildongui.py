@@ -909,18 +909,13 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         p.attach(z, 1, 2, 8, 9)
         '''
 
-        # Cache has details
-        has_details = (len(cache.desc.strip()) + len(cache.shortdesc.strip()) > 0)
-        # This roughly equals cache.was_downloaded(), but the new definition of was_downloaded is not applicable here.
-
         # cache-was-not-downloaded-yet-warning
-        if not has_details:
+        if not cache.was_downloaded():
             p.attach(gtk.Label("Please download full details to see the description."), 0, 2, 9, 10)
         
         notebook.append_page(p, gtk.Label("Info"))
         
-        if has_details: 
-        
+        if cache.was_downloaded():
             # Description
             p = hildon.PannableArea()
             notebook.append_page(p, gtk.Label("Description"))
