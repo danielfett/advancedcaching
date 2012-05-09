@@ -87,6 +87,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         geocaching.GeocacheCoordinate.LOG_TYPE_MAINTENANCE: 'wrench',
         geocaching.GeocacheCoordinate.LOG_TYPE_PUBLISHED: 'accept',
         geocaching.GeocacheCoordinate.LOG_TYPE_DISABLED: 'delete',
+        geocaching.GeocacheCoordinate.LOG_TYPE_ARCHIVED: 'traffic_cone',
         geocaching.GeocacheCoordinate.LOG_TYPE_NEEDS_MAINTENANCE: 'error',
         geocaching.GeocacheCoordinate.LOG_TYPE_WILLATTEND: 'calendar_edit',
         geocaching.GeocacheCoordinate.LOG_TYPE_ATTENDED: 'group',
