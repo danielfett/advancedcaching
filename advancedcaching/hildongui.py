@@ -81,7 +81,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
     CACHES_ZOOM_LOWER_BOUND = 8
 
     ICONS = {
-        geocaching.GeocacheCoordinate.LOG_TYPE_FOUND: 'emoticon_grin',
+        geocaching.GeocacheCoordinate.LOG_TYPE_FOUND: 'found',
         geocaching.GeocacheCoordinate.LOG_TYPE_NOTFOUND: 'cross',
         geocaching.GeocacheCoordinate.LOG_TYPE_NOTE: 'comment',
         geocaching.GeocacheCoordinate.LOG_TYPE_MAINTENANCE: 'wrench',
