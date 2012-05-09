@@ -626,7 +626,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
             coordinate.hints = ''
             
         # Attributes
-        try:
+        if len(doc.cssselect('#Content .sortables .item-content'))>5:
+          try:
             for x in doc.cssselect('#Content .sortables .item-content')[5].cssselect('img'):
                   if x.get('title') != 'blank':
                     #print x.get('title'), x.get('src')
@@ -652,9 +653,11 @@ class GeocachingComCacheDownloader(CacheDownloader):
                     #store filename without path to the comma separated string
                     coordinate.attributes = coordinate.attributes+attrib+","
 
-        except Exception, e:
+          except Exception, e:
             logger.error("Could not find/parse attributes")
             raise e
+        else:
+          logger.info("Attributes not found!")
 
         # Extract description...
         try:
