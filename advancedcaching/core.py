@@ -197,6 +197,9 @@ class Core(gobject.GObject):
             self.gps_thread = gpsreader.FakeGpsReader(self)
             gobject.timeout_add(1000, self.__read_gps)
             self.set_target(gpsreader.FakeGpsReader.get_target())
+        elif '--nogps' in argv:
+            self.gps_thread = gpsreader.FakeGpsReader(self)
+            self.set_target(gpsreader.FakeGpsReader.get_target())
         elif 'gpsprovider' in self.gui.USES:
             self.gps_thread = gpsreader.GpsReader()
             #self.gps_thread = gpsreader.FakeGpsReader(self)
