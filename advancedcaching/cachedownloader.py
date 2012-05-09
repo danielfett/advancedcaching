@@ -142,7 +142,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     
     MAX_REC_DEPTH = 3
 
-    MAX_DOWNLOAD_NUM = 80
+    MAX_DOWNLOAD_NUM = 800
 
 
     CTIDS = {
@@ -224,7 +224,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             # There are more pages...
             if page_current < page_max:
                 from urllib import urlencode
-                doc.forms[0].fields['__EVENTTARGET'] = 'ctl00$ContentBody$pgrTop$lbGoToPage_%d' % (page_current + 1)
+                doc.forms[0].fields['__EVENTTARGET'] = 'ctl00$ContentBody$pgrTop$ctl08'
                 values = urlencode(doc.forms[0].form_values())
                 action = "http://www.geocaching.com/seek/%s" % doc.forms[0].action
                 logger.info("Retrieving next page!")
@@ -394,6 +394,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         coordinate.set_waypoints(waypoints)
         
         # User token and Logs
+        '''
         for x in doc.cssselect('script'):
             if not x.text:
                 continue
@@ -407,13 +408,52 @@ class GeocachingComCacheDownloader(CacheDownloader):
             #    userToken = re.sub("(?s).*userToken = '", '', s)
             #    userToken = re.sub("(?s)'.*", '', userToken)
             #    print userToken
-            
+        '''
+        userToken =''
+        for x in doc.cssselect('script'):
+            if not x.text:
+                continue
+            s = x.text.strip()
+            if s.startswith('//<![CDATA[\r\nvar uvtoken'):
+                userToken = re.sub("(?s).*userToken = '", '', s)
+                userToken = re.sub("(?s)'.*", '', userToken)
+                print "userToken:", userToken
+
+
+        def generate_request(userToken,pageNumber):
+           #about logcount: 'how many logs per page is loaded'. Each page has 10 logs. Every bigger values are truncated to 10
+           #                 lower values are useful only if only first page is loaded
+           logcount="10"
+           request = 'http://www.geocaching.com/seek/geocache.logbook?tkn='+userToken+'&idx=' +str(pageNumber)+ '&num='+logcount+'&decrypt=true'
+           return request
+
+
+        #Ask first page of logs. And same time number of pages
+        logs = self.downloader.get_reader(generate_request(userToken,1),
+               login_callback = self.login_callback, check_login_callback = self.check_login_callback)
+        new_set_of_logs, total_page = self._parse_logs_json(logs.read(),True) #True=we want also number of page
+
+        page_of_logs=num_logs/10 #num_logs from parameter (which comes from settings 'download_num_logs')
+
+        #First page is already handled, so counter starts from 2
+        counter = 2
+        while (counter <= total_page and counter <= page_of_logs):
+            logs = self.downloader.get_reader(generate_request(userToken,counter),
+                   login_callback = self.login_callback, check_login_callback = self.check_login_callback)
+            new_set_of_logs.extend(self._parse_logs_json(logs.read()))
+
+            counter = counter +1
+
+
+        coordinate.set_logs(new_set_of_logs)
+
         # Attributes
-        try:
-            coordinate.attributes = ','.join([x.get('title') for x in doc.cssselect('.CacheDetailNavigationWidget.BottomSpacing .WidgetBody img') if x.get('title') != 'blank'])
-        except Exception, e:
-            logger.error("Could not find/parse attributes")
-            raise e
+        ###These are loaded when preview is loaded.
+        #try:
+        #    coordinate.attributes = ','.join([x.get('title') for x in doc.cssselect('.CacheDetailNavigationWidget.BottomSpacing .WidgetBody img') if x.get('title') != 'blank'])
+        #except Exception, e:
+        #    logger.error("Could not find/parse attributes")
+        #    raise e
         
         # Image Handling
 
@@ -586,11 +626,38 @@ class GeocachingComCacheDownloader(CacheDownloader):
             coordinate.hints = ''
             
         # Attributes
-        try:
-            coordinate.attributes = ','.join([x.get('title') for x in doc.cssselect('#Content .sortables .item-content')[5].cssselect('img') if x.get('title') != 'blank'])
-        except Exception, e:
+        if len(doc.cssselect('#Content .sortables .item-content'))>5:
+          try:
+            for x in doc.cssselect('#Content .sortables .item-content')[5].cssselect('img'):
+                  if x.get('title') != 'blank':
+                    #print x.get('title'), x.get('src')
+                    attrib=x.get('src')[19:] #strip text '/images/attributes/'
+
+                    # Prepend local path to filename, and check do we have it already
+                    filename = os.path.join(self.path, attrib)
+                    if os.path.isfile(filename):
+                       logger.info("%s exists already, don't reload " % (filename))
+                    else:
+                       # Download file
+                       url="http://www.geocaching.com/images/attributes/"+attrib
+                       logger.info("Downloading %s to %s" % (url, filename))
+
+                       try:
+                         f = open(filename, 'wb')
+                         f.write(self.downloader.get_reader(url, login = False).read())
+                         f.close()
+                       except Exception, e:
+                         logger.exception(e)
+                         logger.error("Failed to download image from URL %s" % url)
+
+                    #store filename without path to the comma separated string
+                    coordinate.attributes = coordinate.attributes+attrib+","
+
+          except Exception, e:
             logger.error("Could not find/parse attributes")
             raise e
+        else:
+          logger.info("Attributes not found!")
 
         # Extract description...
         try:
@@ -759,7 +826,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             hints = re.sub(r'\[([^\]]+)\]', lambda match: HTMLManipulations._rot13(match.group(0)), hints)
         return hints
         
-    def _parse_logs_json(self, logs):
+    def _parse_logs_json(self, logs, returnTotalPages=False):
         try:
             r = json.loads(logs)
         except Exception:
@@ -776,9 +843,15 @@ class GeocachingComCacheDownloader(CacheDownloader):
             text = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(l['LogText'])))
             output.append(dict(type=tpe, date=date, finder=finder, text=text))
         logger.debug("Read %d log entries" % len(output))
-        return output
+
+        if returnTotalPages is True:
+            pageinfo = r['pageInfo']
+            total_page = pageinfo['totalPages']
+            print "total pages", total_page
+            return output,total_page
         
 
+        return output
 
 BACKENDS = {
     'geocaching-com-new': {'class': GeocachingComCacheDownloader, 'name': 'geocaching.com', 'description': 'Backend for geocaching.com'},
