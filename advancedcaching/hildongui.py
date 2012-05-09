@@ -1003,7 +1003,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
             #button for showing list of all logs in another window/dialog
             if len(logs) > 10:
                 button_more_logs = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
-                button_more_logs .set_label('Show all logs (%d logs)' % len(logs))
+                button_more_logs .set_label('Show all logs (%d logs more)' % (len(logs)-10) ) #as 10 is already visible
                 button_more_logs.connect('clicked', self._on_show_more_logs,logs,events)
                 widget_hints.pack_start(button_more_logs, False, False)
             
