@@ -781,6 +781,50 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
             return current
         return None
         
+    def _on_show_more_logs(self, widget, logs, events):
+        '''
+        This is callback for button 'show all logs'. Will start new dialog with tabs
+        '''
+        #print "Show all logs:", len(logs)
+        dialog = gtk.Dialog("All logs", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, None)
+        dialog.set_decorated(False)    #No need for title, hide it.
+        dialog.set_size_request(800, 800) #this is needed
+
+        logs_in_page = 30  #how many logs in one tab
+
+        #One notebook (tab-set) inside this dialog
+        notebook = gtk.Notebook()
+        dialog.vbox.pack_start(notebook)
+
+        number_of_tabs = (len(logs)-10)/(float(logs_in_page))   #subtract 10 because they are visible in basic view
+        number_of_tabs = int(round(number_of_tabs+0.49999))     #round up
+        #print "Number of needed tabs:", number_of_tabs
+
+        for tab_number in range(number_of_tabs):
+            #Each tab has own pannable-area
+            panArea = hildon.PannableArea()
+            panArea.set_property('mov-mode', hildon.MOVEMENT_MODE_BOTH)
+
+            #Page=tab
+            page = gtk.VBox()
+
+            #logs are counted from zero (as it is array)
+            first_log = 10 + tab_number*logs_in_page #10=number of logs shown in basic view
+            last_log = first_log + logs_in_page
+            if last_log >= len(logs):
+               last_log = len(logs)
+            label = str(first_log+1) +"-"+ str(last_log) #add 1 to showing first log, so they are more human readable
+            notebook.append_page(page, gtk.Label(label))
+
+            content = self._generate_list_of_logs(logs[first_log:last_log],events,True)
+            #content inside pannable. pannable inside page.
+            panArea.add_with_viewport(content)
+            page.pack_start(panArea)
+
+
+        dialog.show_all()
+        dialog.run() #this will prevent multiple dialogs to open
+
 
     def show_cache(self, cache, select=True):
         if cache == None:
@@ -960,34 +1004,16 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
 
 
             logs = cache.get_logs()
+
+            #button for showing list of all logs in another window/dialog
+            if len(logs) > 10:
+                button_more_logs = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
+                button_more_logs .set_label('Show all logs (%d logs)' % len(logs))
+                button_more_logs.connect('clicked', self._on_show_more_logs,logs,events)
+                widget_hints.pack_start(button_more_logs, False, False)
             
-            for l in logs:
-                try:
-                    w_type = gtk.image_new_from_pixbuf(self.icon_pixbufs[l['type']])
-                except KeyError:
-                    w_type = gtk.Label(l['type'].upper())
-                    w_type.set_alignment(0, 0)
-                w_name = gtk.Label()
-                w_name.set_markup(" <b>%s</b>" % my_gtk_label_escape(HTMLManipulations._decode_htmlentities(l['finder'])))
-                w_name.set_alignment(0, 0)
-                w_date = gtk.Label()
-                if 'year' in l:
-                    w_date.set_markup("<b>%4d-%02d-%02d</b>" % (int(l['year']), int(l['month']), int(l['day'])))
-                else:
-                    w_date.set_markup("<b>%s</b>" % l['date'])
-                w_date.set_alignment(0.95, 0)
-                w_text = gtk.Label("%s\n" % l['text'].strip())
-                w_text.set_line_wrap(True)
-                w_text.set_alignment(0, 0)
-                w_text.set_size_request(self.window.size_request()[0] - 10, -1)
-                events.append(self.window.connect('configure-event', self._on_configure_label, w_text, True))
-                w_first = gtk.HBox()
-                w_first.pack_start(w_type, False, False)
-                w_first.pack_start(w_name)
-                w_first.pack_start(w_date)
-                widget_hints.pack_start(w_first, False, False)
-                widget_hints.pack_start(w_text, False, False)
-                widget_hints.pack_start(gtk.HSeparator(), False, False)
+            content = self._generate_list_of_logs(logs[0:10],events)
+            widget_hints.pack_start(content, False, False)
             
             if len(logs) == 0:
                 label_logs = gtk.Label()
@@ -1116,6 +1142,52 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         win.connect('delete_event', self.hide_cache_view)
         win.connect('unrealize', delete_events)
         self.current_cache_window_open = True
+
+
+    def _generate_list_of_logs(self, logs, events, dialog=False):
+            '''
+            return vbox container
+            logs should be some slice of cache.logs
+            dialog=True affects size_request
+            '''
+            container = gtk.VBox()
+            for l in logs:
+                try:
+                    w_type = gtk.image_new_from_pixbuf(self.icon_pixbufs[l['type']])
+                except KeyError:
+                    w_type = gtk.Label(l['type'].upper())
+                    w_type.set_alignment(0, 0)
+                w_finder = gtk.Label()
+                w_finder.set_markup(" <b>%s</b>" % my_gtk_label_escape(HTMLManipulations._decode_htmlentities(l['finder'])))
+                w_finder.set_alignment(0, 0)
+                w_date = gtk.Label()
+                if 'year' in l:
+                    w_date.set_markup("<b>%4d-%02d-%02d</b>" % (int(l['year']), int(l['month']), int(l['day'])))
+                else:
+                    w_date.set_markup("<b>%s</b>" % l['date'])
+                w_date.set_alignment(0.95, 0)
+                #w_text = gtk.Label("%s\n" % l['text'].strip())
+                w_text = gtk.Label("%s" % l['text'].strip()) #without linebreak
+                w_text.set_line_wrap(True)
+                w_text.set_alignment(0, 0)
+
+                if events != None:
+                   events.append(self.window.connect('configure-event', self._on_configure_label, w_text, True))
+
+                if dialog: #inside dialog (not window)
+                   w_text.set_size_request(self.window.size_request()[0] - 60, -1)
+                else:
+                   w_text.set_size_request(self.window.size_request()[0] - 10, -1)
+
+                w_first = gtk.HBox()
+                w_first.pack_start(w_type, False, False)
+                w_first.pack_start(w_finder)
+                w_first.pack_start(w_date)
+                container.pack_start(w_first, False, False)
+                container.pack_start(w_text, False, False)
+                container.pack_start(gtk.HSeparator(), False, False)
+
+            return container
 
 
     def _on_configure_label(self, source, event, widget, force=False, factor = 1):
