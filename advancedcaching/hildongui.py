@@ -81,12 +81,13 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
     CACHES_ZOOM_LOWER_BOUND = 8
 
     ICONS = {
-        geocaching.GeocacheCoordinate.LOG_TYPE_FOUND: 'emoticon_grin',
+        geocaching.GeocacheCoordinate.LOG_TYPE_FOUND: 'found',
         geocaching.GeocacheCoordinate.LOG_TYPE_NOTFOUND: 'cross',
         geocaching.GeocacheCoordinate.LOG_TYPE_NOTE: 'comment',
         geocaching.GeocacheCoordinate.LOG_TYPE_MAINTENANCE: 'wrench',
         geocaching.GeocacheCoordinate.LOG_TYPE_PUBLISHED: 'accept',
         geocaching.GeocacheCoordinate.LOG_TYPE_DISABLED: 'delete',
+        geocaching.GeocacheCoordinate.LOG_TYPE_ARCHIVED: 'traffic_cone',
         geocaching.GeocacheCoordinate.LOG_TYPE_NEEDS_MAINTENANCE: 'error',
         geocaching.GeocacheCoordinate.LOG_TYPE_WILLATTEND: 'calendar_edit',
         geocaching.GeocacheCoordinate.LOG_TYPE_ATTENDED: 'group',
@@ -781,6 +782,50 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
             return current
         return None
         
+    def _on_show_more_logs(self, widget, logs, events):
+        '''
+        This is callback for button 'show all logs'. Will start new dialog with tabs
+        '''
+        #print "Show all logs:", len(logs)
+        dialog = gtk.Dialog("All logs", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, None)
+        dialog.set_decorated(False)    #No need for title, hide it.
+        dialog.set_size_request(800, 800) #this is needed
+
+        logs_in_page = 30  #how many logs in one tab
+
+        #One notebook (tab-set) inside this dialog
+        notebook = gtk.Notebook()
+        dialog.vbox.pack_start(notebook)
+
+        number_of_tabs = (len(logs)-10)/(float(logs_in_page))   #subtract 10 because they are visible in basic view
+        number_of_tabs = int(round(number_of_tabs+0.49999))     #round up
+        #print "Number of needed tabs:", number_of_tabs
+
+        for tab_number in range(number_of_tabs):
+            #Each tab has own pannable-area
+            panArea = hildon.PannableArea()
+            panArea.set_property('mov-mode', hildon.MOVEMENT_MODE_BOTH)
+
+            #Page=tab
+            page = gtk.VBox()
+
+            #logs are counted from zero (as it is array)
+            first_log = 10 + tab_number*logs_in_page #10=number of logs shown in basic view
+            last_log = first_log + logs_in_page
+            if last_log >= len(logs):
+               last_log = len(logs)
+            label = str(first_log+1) +"-"+ str(last_log) #add 1 to showing first log, so they are more human readable
+            notebook.append_page(page, gtk.Label(label))
+
+            content = self._generate_list_of_logs(logs[first_log:last_log],events,True)
+            #content inside pannable. pannable inside page.
+            panArea.add_with_viewport(content)
+            page.pack_start(panArea)
+
+
+        dialog.show_all()
+        dialog.run() #this will prevent multiple dialogs to open
+
 
     def show_cache(self, cache, select=True):
         if cache == None:
@@ -807,6 +852,19 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                 
         # info
         p = gtk.Table(10, 2)
+
+        #Attributes (images). They are 30x30px. 10 is a maximum of attributes one cache can have
+        attribute_table = gtk.HBox()
+
+        #print "list'"+cache.attributes+"'"
+        #cache.attributes is comma separated list of filenames without path
+        #(ending comma, so drop it with [0,-1]
+        for attribute in cache.attributes.split(',')[0:-1]:
+            #print attribute
+            filename = path.join(self.settings['download_output_dir'], attribute)
+            attribute_table.pack_start(gtk.image_new_from_file(filename))
+
+
         labels = (
                   ('Full Name', cache.title),
                   ('ID', cache.name),
@@ -829,7 +887,17 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
             p.attach(w, 1, 2, i, i + 1)
             i += 1
             
+
+        #Attributes
+        l = gtk.Label()
+        l.set_alignment(0, 0.5)
+        l.set_markup("<b>Attributes</b>")
+        p.attach(l, 0, 1, i, i + 1)
+        p.attach(attribute_table, 1, 2, i, i + 1)
+
+
         # links for listing & log
+        '''
         l = gtk.Label()
         l.set_markup("<b>Open Website</b>")
         l.set_alignment(0, 0.5)
@@ -840,19 +908,15 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/log.aspx?wp=%s" % cache.name, 'Post Log'))
         z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/cache_details.aspx?wp=%s&log=y#ctl00_ContentBody_CacheLogs" % cache.name, 'All Logs'))
         p.attach(z, 1, 2, 8, 9)
-
-        # Cache has details
-        has_details = (len(cache.desc.strip()) + len(cache.shortdesc.strip()) > 0)
-        # This roughly equals cache.was_downloaded(), but the new definition of was_downloaded is not applicable here.
+        '''
 
         # cache-was-not-downloaded-yet-warning
-        if not has_details:
+        if not cache.was_downloaded():
             p.attach(gtk.Label("Please download full details to see the description."), 0, 2, 9, 10)
         
         notebook.append_page(p, gtk.Label("Info"))
         
-        if has_details: 
-        
+        if cache.was_downloaded():
             # Description
             p = hildon.PannableArea()
             notebook.append_page(p, gtk.Label("Description"))
@@ -914,42 +978,6 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
             p.add_with_viewport(widget_hints)
             notebook.append_page(p, gtk.Label("Logs & Hints"))
 
-            logs = cache.get_logs()
-            
-            for l in logs:
-                try:
-                    w_type = gtk.image_new_from_pixbuf(self.icon_pixbufs[l['type']])
-                except KeyError:
-                    w_type = gtk.Label(l['type'].upper())
-                    w_type.set_alignment(0, 0)
-                w_name = gtk.Label()
-                w_name.set_markup(" <b>%s</b>" % my_gtk_label_escape(HTMLManipulations._decode_htmlentities(l['finder'])))
-                w_name.set_alignment(0, 0)
-                w_date = gtk.Label()
-                if 'year' in l:
-                    w_date.set_markup("<b>%4d-%02d-%02d</b>" % (int(l['year']), int(l['month']), int(l['day'])))
-                else:
-                    w_date.set_markup("<b>%s</b>" % l['date'])
-                w_date.set_alignment(0.95, 0)
-                w_text = gtk.Label("%s\n" % l['text'].strip())
-                w_text.set_line_wrap(True)
-                w_text.set_alignment(0, 0)
-                w_text.set_size_request(self.window.size_request()[0] - 10, -1)
-                events.append(self.window.connect('configure-event', self._on_configure_label, w_text, True))
-                w_first = gtk.HBox()
-                w_first.pack_start(w_type, False, False)
-                w_first.pack_start(w_name)
-                w_first.pack_start(w_date)
-                widget_hints.pack_start(w_first, False, False)
-                widget_hints.pack_start(w_text, False, False)
-                widget_hints.pack_start(gtk.HSeparator(), False, False)
-            
-            if len(logs) == 0:
-                label_logs = gtk.Label()
-                label_logs.set_markup('<i>Select "Download all Details" to get logs, waypoints and images.</i>')
-                widget_hints.pack_start(label_logs, False, False)
-                
-
             hints = cache.hints.strip()
             if len(hints) > 0:
                 button_hints = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
@@ -969,6 +997,25 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                 label_hints = gtk.Label()
                 label_hints.set_markup('<i>No hints available</i>')
                 widget_hints.pack_start(label_hints, False, False)
+
+
+            logs = cache.get_logs()
+
+            #button for showing list of all logs in another window/dialog
+            if len(logs) > 10:
+                button_more_logs = hildon.GtkButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT)
+                button_more_logs .set_label('Show all logs (%d logs more)' % (len(logs)-10) ) #as 10 is already visible
+                button_more_logs.connect('clicked', self._on_show_more_logs,logs,events)
+                widget_hints.pack_start(button_more_logs, False, False)
+            
+            content = self._generate_list_of_logs(logs[0:10],events)
+            widget_hints.pack_start(content, False, False)
+            
+            if len(logs) == 0:
+                label_logs = gtk.Label()
+                label_logs.set_markup('<i>Select "Download all Details" to get logs, waypoints and images.</i>')
+                widget_hints.pack_start(label_logs, False, False)
+                
 
             # images
             self.build_cache_images(cache, notebook)
@@ -1091,6 +1138,52 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         win.connect('delete_event', self.hide_cache_view)
         win.connect('unrealize', delete_events)
         self.current_cache_window_open = True
+
+
+    def _generate_list_of_logs(self, logs, events, dialog=False):
+            '''
+            return vbox container
+            logs should be some slice of cache.logs
+            dialog=True affects size_request
+            '''
+            container = gtk.VBox()
+            for l in logs:
+                try:
+                    w_type = gtk.image_new_from_pixbuf(self.icon_pixbufs[l['type']])
+                except KeyError:
+                    w_type = gtk.Label(l['type'].upper())
+                    w_type.set_alignment(0, 0)
+                w_finder = gtk.Label()
+                w_finder.set_markup(" <b>%s</b>" % my_gtk_label_escape(HTMLManipulations._decode_htmlentities(l['finder'])))
+                w_finder.set_alignment(0, 0)
+                w_date = gtk.Label()
+                if 'year' in l:
+                    w_date.set_markup("<b>%4d-%02d-%02d</b>" % (int(l['year']), int(l['month']), int(l['day'])))
+                else:
+                    w_date.set_markup("<b>%s</b>" % l['date'])
+                w_date.set_alignment(0.95, 0)
+                #w_text = gtk.Label("%s\n" % l['text'].strip())
+                w_text = gtk.Label("%s" % l['text'].strip()) #without linebreak
+                w_text.set_line_wrap(True)
+                w_text.set_alignment(0, 0)
+
+                if events != None:
+                   events.append(self.window.connect('configure-event', self._on_configure_label, w_text, True))
+
+                if dialog: #inside dialog (not window)
+                   w_text.set_size_request(self.window.size_request()[0] - 60, -1)
+                else:
+                   w_text.set_size_request(self.window.size_request()[0] - 10, -1)
+
+                w_first = gtk.HBox()
+                w_first.pack_start(w_type, False, False)
+                w_first.pack_start(w_finder)
+                w_first.pack_start(w_date)
+                container.pack_start(w_first, False, False)
+                container.pack_start(w_text, False, False)
+                container.pack_start(gtk.HSeparator(), False, False)
+
+            return container
 
 
     def _on_configure_label(self, source, event, widget, force=False, factor = 1):
