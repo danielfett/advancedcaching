@@ -506,6 +506,8 @@ class GeocacheLayer(AbstractGeocacheLayer):
     COLOR_MULTI = gtk.gdk.color_parse('orange')
     COLOR_CACHE_CENTER = gtk.gdk.color_parse('black')
     COLOR_CURRENT_CACHE = gtk.gdk.color_parse('red')
+    COLOR_DISABLED = gtk.gdk.color_parse('red')
+    COLOR_ARCHIVED = gtk.gdk.color_parse('blue')
     COLOR_WAYPOINTS = gtk.gdk.color_parse('deeppink')
 
     def draw(self):
@@ -607,7 +609,16 @@ class GeocacheLayer(AbstractGeocacheLayer):
             # if this cache is disabled
             if c.status == geocaching.GeocacheCoordinate.STATUS_DISABLED:
                 cr.set_line_width(3)
-                cr.set_source_color(self.COLOR_CURRENT_CACHE)
+                cr.set_source_color(self.COLOR_DISABLED)
+                radius_disabled = 7
+                cr.move_to(p[0]-radius_disabled, p[1]-radius_disabled)
+                cr.line_to(p[0] + radius_disabled, p[1] + radius_disabled)
+                cr.stroke()
+
+            # if this cache is archived
+            if c.status == geocaching.GeocacheCoordinate.STATUS_ARCHIVED:
+                cr.set_line_width(3)
+                cr.set_source_color(self.COLOR_ARCHIVED)
                 radius_disabled = 7
                 cr.move_to(p[0]-radius_disabled, p[1]-radius_disabled)
                 cr.line_to(p[0] + radius_disabled, p[1] + radius_disabled)
