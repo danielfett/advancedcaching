@@ -27,6 +27,11 @@ import pango
 import threadpool
 import logging
 import geo
+# addition rob_kouw
+import math
+DUTCH_TOOLS = 0 #can easily be set zo 1
+#DUTCH_TOOLS = 1 #can easily be set zo 0
+# end addition rob_kouw
 logger = logging.getLogger('plugins')
 
 class HildonSearchPlace(object):
@@ -824,6 +829,21 @@ class HildonToolsDialog(object):
         button.connect("clicked", lambda caller: dialog.hide())
         list.pack_start(button)
         
+# addition rob_kouw
+        if DUTCH_TOOLS == 1:
+            button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+            button.set_label("Dutch Grid RD 2 WGS")
+            button.connect("clicked", self._show_tool_rd2wgs, None)
+            button.connect("clicked", lambda caller: dialog.hide())
+            list.pack_start(button)
+
+            button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
+            button.set_label("WGS 2 Dutch Grid RD")
+            button.connect("clicked", self._show_tool_wgs2rd, None)
+            button.connect("clicked", lambda caller: dialog.hide())
+            list.pack_start(button)
+# end addition rob_kouw
+
         dialog.show_all()
         dialog.run()
         dialog.hide()
@@ -899,6 +919,212 @@ class HildonToolsDialog(object):
         ('M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I')
     )
     
+# addition rob_kouw
+    def _show_tool_rd2wgs(self, caller, data = None):
+        RESULT_WPT, RESULT_TARGET = range(2)
+        dialog = gtk.Dialog("Dutch Grid RD 2 WGS", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ("as target", RESULT_TARGET))
+        if self.current_cache != None:
+            dialog.add_button("add waypoint", RESULT_WPT)
+        #dialog.set_size_request(800, 480)
+        
+        #---------------------------------------------------------------------        
+        # Inverse transformation of RD (Rijksdriehoek) coordinates (X, Y)
+        # into ellipsoid wgs84 coordinates (φ, λ or lat, lon)
+        # Intended as an example of how to implement the formulas from the pdf
+        # : http://www.dekoepel.nl/pdf/Transformatieformules.pdf, page 2
+        #
+        # Original Author: Ronald Vogelaar
+        # Date: March 11, 2010
+        # License: GNU General Public License Version 3
+        #    http://www.fsf.org/copyleft/gpl.html
+        #
+        # Copyright (c) 2010 Ronald Vogelaar (ronald.vogelaar@sogeti.nl)
+        # with permission from:
+        # Sogeti Nederland BV, Infrastructure Services division
+        # Ported to a Python library by Erik Romijn <erik@erik.io> in 2011
+        # Ported to AGTL/N900 by rob_kouw <geokouw at gmail dot com>
+        # 
+        # Source of inspiration:
+        # http://www.dekoepel.nl/pdf/Transformatieformules.pdf
+        #---------------------------------------------------------------------        
+        
+        # X0,Y0             Base RD coordinates Amersfoort
+        RDX_BASE = 155000.
+        RDY_BASE = 463000.
+        # φ0, λ0            Same base, but as wgs84 coordinates
+        LAT_BASE = 52.15517440
+        LON_BASE = 5.38720621
+
+        Kpq = []
+        Lpq = []
+
+        for p in range(0, 6):
+            Lpq.append([])
+            Kpq.append([])
+            for q in range (0, 5):
+                Lpq[p].append(0)
+                Kpq[p].append(0)
+        
+        #coefficients
+        Kpq[0][1] =     3235.65389
+        Kpq[2][0] =      -32.58297
+        Kpq[0][2] =       -0.24750
+        Kpq[2][1] =       -0.84978
+        Kpq[0][3] =       -0.06550
+        Kpq[2][2] =       -0.01709
+        Kpq[1][0] =       -0.00738
+        Kpq[4][0] =        0.00530
+        Kpq[2][3] =       -0.00039
+        Kpq[4][1] =        0.00033
+        Kpq[1][1] =       -0.00012
+        
+        Lpq[1][0] =       5260.52916
+        Lpq[1][1] =      105.94684
+        Lpq[1][2] =        2.45656
+        Lpq[3][0] =       -0.81885
+        Lpq[1][3] =        0.05594
+        Lpq[3][1] =       -0.05607
+        Lpq[0][1] =        0.01199
+        Lpq[3][2] =       -0.00256
+        Lpq[1][4] =        0.00128
+        Lpq[0][2] =        0.00022
+        Lpq[2][0] =       -0.00022
+        Lpq[5][0] =        0.00026
+     
+        rdx = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+        rdx.set_property("hildon-input-mode", gtk.HILDON_GTK_INPUT_MODE_NUMERIC)
+        
+        dialog.vbox.pack_start(hildon.Caption(None, "Dutch Grid X in Meters", rdx, None, 0))
+        
+        rdy = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+        rdy.set_property("hildon-input-mode", gtk.HILDON_GTK_INPUT_MODE_NUMERIC)
+        dialog.vbox.pack_start(hildon.Caption(None, "Dutch Grid Y in Meters", rdy, None, 0))
+        
+        result = gtk.Label()
+        dialog.vbox.pack_start(hildon.Caption(None, "Resulting Point", result, None, 0))
+        
+        resulting_coordinate = [None]
+        
+        def recalc(widget):
+            try:
+                if int(rdx.get_text()) > -7000 and int(rdx.get_text()) < 300000 and int(rdy.get_text()) > 289000 and int(rdy.get_text()) < 629000:
+                    deltaX = (float(rdx.get_text()) - RDX_BASE) * .00001
+                    deltaY = (float(rdy.get_text()) - RDY_BASE) * .00001
+                    reslat = 0.
+                    reslon = 0.
+                    
+                    for q in range(0,5):
+                        for p in range(0,6):
+                            reslat = reslat + Kpq[p][q] * math.pow(deltaX, p) * math.pow(deltaY, q)
+                            reslon = reslon + Lpq[p][q] * math.pow(deltaX, p) * math.pow(deltaY, q)
+                            
+                    res = geo.Coordinate( LAT_BASE + reslat / 3600., LON_BASE + reslon / 3600. )
+                    text = res.get_latlon()
+                else: 
+                    res = None
+                    text = "-7<X<300 km, 289<Y<629 km"
+
+            except Exception, e:
+                res = None
+                text = "-7<X<300 km, 289<Y<629 km"
+
+            resulting_coordinate[0] = res
+            result.set_text(text)
+            
+        rdx.connect('changed', recalc)
+        rdy.connect('changed', recalc)    
+        
+        dialog.show_all()
+        res = dialog.run()
+        dialog.hide()
+        if res == RESULT_WPT:
+            if resulting_coordinate[0] == None:
+                return
+            name = "RD X %s, Y %s" % (rdx.get_text(), rdy.get_text())
+            self.current_cache.get_user_coordinates(None)
+            self.current_cache.set_user_coordinate(geocaching.GeocacheCoordinate.USER_TYPE_COORDINATE, (resulting_coordinate[0].lat, resulting_coordinate[0].lon), name)
+            self.core.save_cache_attribute(self.current_cache, 'user_coordinates')
+            self._on_cache_changed(None, self.current_cache)
+            #self.update_coords()
+        elif res == RESULT_TARGET:
+            if resulting_coordinate[0] == None:
+                return
+            self.set_target(resulting_coordinate[0])
+        
+    def _show_tool_wgs2rd(self, widget, data):
+        dialog = gtk.Dialog("WGS 2 Dutch Grid RD", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        
+        origin = [self.core.current_target]
+
+        # X0,Y0             Base RD coordinates Amersfoort
+        RDX_BASE = 155000.
+        RDY_BASE = 463000.
+        # φ0, λ0            Same base, but as wgs84 coordinates
+        LAT_BASE = 52.15517440
+        LON_BASE = 5.38720621
+
+        Rpq = []
+        Spq = []
+
+        for p in range(0, 6):
+            Rpq.append([])
+            Spq.append([])
+            for q in range (0, 5):
+                Rpq[p].append(0)
+                Spq[p].append(0)
+        
+        #coefficients
+        Rpq[0][1] =   190094.945
+        Rpq[1][1] =   -11832.228
+        Rpq[2][1] =     -114.221
+        Rpq[0][3] =      -32.391
+        Rpq[1][0] =       -0.705
+        Rpq[3][1] =       -2.340
+        Rpq[1][3] =       -0.608
+        Rpq[0][2] =       -0.008
+        Rpq[2][3] =        0.148
+        
+        Spq[1][0] =   309056.544
+        Spq[0][2] =     3638.893
+        Spq[2][0] =       73.077
+        Spq[1][2] =     -157.984
+        Spq[3][0] =       59.788
+        Spq[0][1] =        0.433
+        Spq[2][2] =       -6.439
+        Spq[1][1] =       -0.032
+        Spq[0][4] =        0.092
+        Spq[1][4] =       -0.054
+     
+        #Calculate X, Y of origin
+        dlat = 0.36 * (origin[0].lat - LAT_BASE)
+        dlon = 0.36 * (origin[0].lon - LON_BASE)
+        Xorigin = 0
+        Yorigin = 0
+
+        for q in range(0,5):
+            for p in range(0,6):
+                Xorigin = Xorigin + Rpq[p][q] * math.pow(dlat, p) * math.pow(dlon, q)
+                Yorigin = Yorigin + Spq[p][q] * math.pow(dlat, p) * math.pow(dlon, q)
+                
+        Xorigin = int(Xorigin + RDX_BASE)
+        Yorigin = int(Yorigin + RDY_BASE)
+
+        wsg_text = "Current target:\n" + origin[0].get_latlon()   
+        rd_text = "RD X %s, Y %s" % (Xorigin, Yorigin)
+             
+        res_text = hildon.TextView()
+        res_text.get_buffer().set_text(rd_text)
+        dialog.vbox.pack_start(res_text)
+        l = gtk.Label()
+        l.set_alignment(0, 0.5)
+        l.set_markup(wsg_text)
+
+        dialog.vbox.pack_start(l)
+        dialog.show_all()
+        result = dialog.run()
+        dialog.hide()
+# end addition rob_kouw
+
     def _show_tool_heading(self, caller, data = None):
         RESULT_WPT, RESULT_TARGET = range(2)
         dialog = gtk.Dialog("Coordinate Projection", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, ("as target", RESULT_TARGET))
