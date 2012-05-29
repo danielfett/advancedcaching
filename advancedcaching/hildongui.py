@@ -916,11 +916,12 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         
         notebook.append_page(p, gtk.Label("Info"))
         
+        # Description
+        p = hildon.PannableArea()
+        notebook.append_page(p, gtk.Label("Description"))
+        text_longdesc = re.sub(r'(?i)<img[^>]+?>', ' [to get all images, re-download description] ', re.sub(r'\[\[img:([^\]]+)\]\]', lambda a: self._replace_image_callback(a, cache), cache.desc))
+
         if cache.was_downloaded():
-            # Description
-            p = hildon.PannableArea()
-            notebook.append_page(p, gtk.Label("Description"))
-            text_longdesc = re.sub(r'(?i)<img[^>]+?>', ' [to get all images, re-download description] ', re.sub(r'\[\[img:([^\]]+)\]\]', lambda a: self._replace_image_callback(a, cache), cache.desc))
             if not self.settings['options_show_html_description']:
                 
                 widget_description = gtk.Label()
@@ -1020,18 +1021,16 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
             # images
             self.build_cache_images(cache, notebook)
 
-            # calculated coords
-            cache_calc_box = gtk.VBox()
-            notebook.append_page(cache_calc_box, gtk.Label("Calc"))
+        # calculated coords
+        cache_calc_box = gtk.VBox()
+        notebook.append_page(cache_calc_box, gtk.Label("Calc"))
 
-            def rebuild_cache_calc():
-                cache.start_calc(self._strip_html(text_longdesc))
-                self.build_cache_calc(cache, cache_calc_box)
+        def rebuild_cache_calc():
+            cache.start_calc(self._strip_html(text_longdesc))
+            self.build_cache_calc(cache, cache_calc_box)
 
-            rebuild_cache_calc()
-            self.rebuild_cache_calc = rebuild_cache_calc
-
-
+        rebuild_cache_calc()
+        self.rebuild_cache_calc = rebuild_cache_calc
 
         # coords
         p = gtk.VBox()
