@@ -620,29 +620,30 @@ class GeocachingComCacheDownloader(CacheDownloader):
         # Attributes
         try:
             for x in doc.cssselect('#Content .sortables .item-content')[5].cssselect('img'):
-                if x.get('title') != 'blank':
-                    #print x.get('title'), x.get('src')
-                    attrib=x.get('src')[19:] #strip text '/images/attributes/'
+                if x.get('title') == 'blank':
+                    continue
 
-                    # Prepend local path to filename, and check do we have it already
-                    filename = os.path.join(self.path, attrib)
-                    if os.path.isfile(filename):
-                        logger.info("%s exists already, don't reload " % (filename))
-                    else:
-                        # Download file
-                        url="http://www.geocaching.com/images/attributes/"+attrib
-                        logger.info("Downloading %s to %s" % (url, filename))
+                attrib=x.get('src')[19:] #strip text '/images/attributes/'
 
-                        try:
-                            f = open(filename, 'wb')
-                            f.write(self.downloader.get_reader(url, login = False).read())
-                            f.close()
-                        except Exception, e:
-                            logger.exception(e)
-                            logger.error("Failed to download image from URL %s" % url)
+                # Prepend local path to filename, and check do we have it already
+                filename = os.path.join(self.path, attrib)
+                if os.path.isfile(filename):
+                    logger.info("%s exists already, don't reload " % filename)
+                else:
+                    # Download file
+                    url="http://www.geocaching.com/images/attributes/%s" % attrib
+                    logger.info("Downloading %s to %s" % (url, filename))
 
-                    #store filename without path to the comma separated string
-                    coordinate.attributes = coordinate.attributes+attrib+","
+                    try:
+                        f = open(filename, 'wb')
+                        f.write(self.downloader.get_reader(url, login = False).read())
+                        f.close()
+                    except Exception, e:
+                        logger.exception(e)
+                        logger.error("Failed to download image from URL %s" % url)
+
+                #store filename without path to the comma separated string
+                coordinate.attributes = coordinate.attributes+attrib+","
         except IndexError:
             # There are no attributes
             logger.info("Attributes not found!")
