@@ -260,7 +260,7 @@ class CalcCoordinate():
     # For aa bb.CCC
     SHORT_CALC_PART = ur'''((?:\([A-Za-z +*/0-9-.,]+\)|[A-Za-z ()+*/0-9-]){1,4})'''
     # For aa BB.ccc
-    LONG_CALC_PART = ur'''((?:\([A-Za-z +*/0-9-.,]+\)|[A-Za-z ()+*/0-9-]){1,7})'''
+    LONG_CALC_PART =  ur'''((?:\([A-Za-z +*/0-9-.,]+\)|[A-Za-z ()+*/0-9-]){1,7})'''
 
     @staticmethod
     def find(text, source):
@@ -274,7 +274,7 @@ class CalcCoordinate():
 
     @staticmethod
     def is_calc_string(text):
-        regex = ur'''^([NSns])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s['`\s,/]+([EOWeow])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s[\s'`]*$''' % {'calc' : CalcCoordinate.SINGLE_CALC_PART}
+        regex = ur'''^([NSns])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s['`\s,/]+([EOWeow])\s?([A-Z() -+*/0-9]+?)[\s|]{1,2}%(calc)s[.,\s]%(calc)s[\s'`]*$''' % {'calc' : CalcCoordinate.LONG_CALC_PART}
         return (re.match(regex, text) != None)
 
 if __name__ == "__main__":
