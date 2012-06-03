@@ -856,13 +856,14 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         #Attributes (images). They are 30x30px. 10 is a maximum of attributes one cache can have
         attribute_table = gtk.HBox()
 
-        #print "list'"+cache.attributes+"'"
-        #cache.attributes is comma separated list of filenames without path
-        #(ending comma, so drop it with [0,-1]
-        for attribute in cache.attributes.split(',')[0:-1]:
-            #print attribute
-            filename = path.join(self.settings['download_output_dir'], attribute)
-            attribute_table.pack_start(gtk.image_new_from_file(filename))
+        if cache.attributes != None:
+            for attribute in cache.attributes.split(',')[0:-1]:
+                filename = path.join(self.settings['download_output_dir'], attribute)
+                attribute_table.pack_start(gtk.image_new_from_file(filename))
+        else:
+            w = gtk.Label("None.")
+            w.set_alignment(0, 0.5)
+            attribute_table.pack_start(w)
 
 
         labels = (
@@ -894,27 +895,31 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         l.set_markup("<b>Attributes</b>")
         p.attach(l, 0, 1, i, i + 1)
         p.attach(attribute_table, 1, 2, i, i + 1)
+        i += 1
 
 
         # links for listing & log
-        '''
+        
         l = gtk.Label()
         l.set_markup("<b>Open Website</b>")
         l.set_alignment(0, 0.5)
-        p.attach(l, 0, 1, 8, 9)
+        p.attach(l, 0, 1, i, i+1)
         z = gtk.HBox(True)
 
         z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/cache_details.aspx?wp=%s" % cache.name, 'Listing'))
         z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/log.aspx?wp=%s" % cache.name, 'Post Log'))
         z.pack_start(gtk.LinkButton("http://www.geocaching.com/seek/cache_details.aspx?wp=%s&log=y#ctl00_ContentBody_CacheLogs" % cache.name, 'All Logs'))
-        p.attach(z, 1, 2, 8, 9)
-        '''
+        p.attach(z, 1, 2, i, i+1)
+        i += 1
 
         # cache-was-not-downloaded-yet-warning
         if not cache.was_downloaded():
-            p.attach(gtk.Label("Please download full details to see the description."), 0, 2, 9, 10)
+            p.attach(gtk.Label("Please download full details to see the description."), 0, 2, i, i+1)
         
-        notebook.append_page(p, gtk.Label("Info"))
+        
+        pan = hildon.PannableArea()
+        pan.add_with_viewport(p)        
+        notebook.append_page(pan, gtk.Label("Info"))
         
         if cache.was_downloaded():
             # Description
