@@ -33,7 +33,7 @@ Sheet {
                 text: coordinate.valid ? F.formatCoordinate(coordinate.lat, coordinate.lon, settings) : "undefined"
                 width: 400//showDescription.width
                 font.weight: Font.Light
-                color: UI.COLOR_DIALOG_TEXT
+                //color: UI.COLOR_DIALOG_TEXT
                 wrapMode: Text.WordWrap
                 font.pixelSize: UI.FONT_DEFAULT
                 visible: showDescription.coordinate && showDescription.coordinate.valid
@@ -43,14 +43,14 @@ Sheet {
                 width: showDescription.width
                 font.weight: Font.Light
                 wrapMode: Text.WordWrap
-                color: UI.COLOR_DIALOG_TEXT
+                //color: UI.COLOR_DIALOG_TEXT
                 font.pixelSize: UI.FONT_SMALL
             }*/
             Label {
                 text: coordinate ? coordinate.comment : "undefined"
                 width: 400//showDescription.width
                 wrapMode: Text.WordWrap
-                color: UI.COLOR_DIALOG_TEXT
+                //color: UI.COLOR_DIALOG_TEXT
                 font.pixelSize: UI.FONT_SMALL
             }
             PinchMap {

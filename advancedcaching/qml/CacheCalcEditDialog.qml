@@ -166,7 +166,7 @@ Sheet {
                     text: (coordinate && coordinate.hasRequires) ? F.formatCoordinate(coordinate.result.lat, coordinate.result.lon, settings) : "undefined"
                     width: 400
                     font.weight: Font.Light
-                    color: UI.COLOR_DIALOG_TEXT
+                    //color: UI.COLOR_DIALOG_TEXT
                     wrapMode: Text.WordWrap
                     font.pixelSize: UI.FONT_DEFAULT
                     anchors.horizontalCenter: parent.horizontalCenter
