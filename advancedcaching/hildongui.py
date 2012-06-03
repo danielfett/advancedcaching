@@ -914,14 +914,14 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
 
         # cache-was-not-downloaded-yet-warning
         if not cache.was_downloaded():
-            p.attach(gtk.Label("Please download full details to see the description."), 0, 2, i, i+1)
+            p.attach(gtk.Label("Please download full details to see logs and other information."), 0, 2, i, i+1)
         
         
         pan = hildon.PannableArea()
         pan.add_with_viewport(p)        
         notebook.append_page(pan, gtk.Label("Info"))
         
-        if cache.was_downloaded():
+        if len(cache.desc.strip()) > 0 or len(cache.shortdesc.strip()) > 0:
             # Description
             p = hildon.PannableArea()
             notebook.append_page(p, gtk.Label("Description"))
@@ -976,7 +976,8 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                 p.set_property("mov-mode", hildon.MOVEMENT_MODE_BOTH)
                 p.add(widget_description)
                 text_longdesc = self._strip_html(text_longdesc)
-           
+                
+        if cache.was_downloaded() or len(cache.hints.strip()) > 0:
             # logs&hints
             p = hildon.PannableArea()
             widget_hints = gtk.VBox()
@@ -1021,20 +1022,19 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                 label_logs.set_markup('<i>Select "Download all Details" to get logs, waypoints and images.</i>')
                 widget_hints.pack_start(label_logs, False, False)
                 
+        # images - will be skipped if no images available.
+        self.build_cache_images(cache, notebook)
 
-            # images
-            self.build_cache_images(cache, notebook)
+        # calculated coords
+        cache_calc_box = gtk.VBox()
+        notebook.append_page(cache_calc_box, gtk.Label("Calc"))
 
-            # calculated coords
-            cache_calc_box = gtk.VBox()
-            notebook.append_page(cache_calc_box, gtk.Label("Calc"))
+        def rebuild_cache_calc():
+            cache.start_calc(self._strip_html(text_longdesc))
+            self.build_cache_calc(cache, cache_calc_box)
 
-            def rebuild_cache_calc():
-                cache.start_calc(self._strip_html(text_longdesc))
-                self.build_cache_calc(cache, cache_calc_box)
-
-            rebuild_cache_calc()
-            self.rebuild_cache_calc = rebuild_cache_calc
+        rebuild_cache_calc()
+        self.rebuild_cache_calc = rebuild_cache_calc
 
 
 
