@@ -155,6 +155,17 @@ class GeocachingComCacheDownloader(CacheDownloader):
         137:GeocacheCoordinate.TYPE_EARTH
     }
     
+    # URL for log pages; fetches 10 logs by default
+    LOGBOOK_URL = 'http://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=%d&num=10&decrypt=true'
+    OVERVIEW_URL = 'http://www.geocaching.com/seek/nearest.aspx?lat=%f&lng=%f&dist=%f'
+    PRINT_PREVIEW_URL = 'http://www.geocaching.com/seek/cdpf.aspx?guid=%s'
+    SEEK_URL = "http://www.geocaching.com/seek/%s"
+    DETAILS_URL = 'http://www.geocaching.com/seek/cache_details.aspx?wp=%s'
+    LOGIN_URL = 'https://www.geocaching.com/login/default.aspx'
+    NEAREST_URL = 'http://www.geocaching.com/seek/nearest.aspx'
+    USER_TOKEN_URL = 'http://www.geocaching.com/map/default.aspx?lat=6&lng=9'
+    UPLOAD_FIELDNOTES_URL = 'http://www.geocaching.com/my/uploadfieldnotes.aspx'
+    
     def __init__(self, downloader, path = None, download_images = True):
         logger.info("Using new downloader.")
         CacheDownloader.__init__(self, downloader, path, download_images)
@@ -178,7 +189,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         logger.debug("Distance is %f meters" % dist)
         if dist > 100:
             raise Exception("Please select a smaller part of the map!")
-        url = 'http://www.geocaching.com/seek/nearest.aspx?lat=%f&lng=%f&dist=%f' % (center.lat, center.lon, dist)
+        url = OVERVIEW_URL % (center.lat, center.lon, dist)
         response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
         
         points = []
@@ -214,7 +225,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 coordinate.found = found
                 self.emit("progress", "Geocachepreview", len(points), count)
                 logger.info("Downloading %s..." % id)
-                url = 'http://www.geocaching.com/seek/cdpf.aspx?guid=%s' % guid
+                url = PRINT_PREVIEW_URL % guid
                 response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)                
                 result = self._parse_cache_page_print(response, coordinate, num_logs = 20)
                 if result != None and result.lat != -1:
@@ -226,7 +237,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 from urllib import urlencode
                 doc.forms[0].fields['__EVENTTARGET'] = 'ctl00$ContentBody$pgrTop$ctl08'
                 values = urlencode(doc.forms[0].form_values())
-                action = "http://www.geocaching.com/seek/%s" % doc.forms[0].action
+                action = SEEK_URL % doc.forms[0].action
                 logger.info("Retrieving next page!")
                 response = self.downloader.get_reader(action, data=('application/x-www-form-urlencoded', values), login_callback = self.login_callback, check_login_callback = self.check_login_callback)
                 cont = True
@@ -237,7 +248,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     def _update_coordinate(self, coordinate, num_logs = 20, outfile = None):
         coordinate = coordinate.clone()
         
-        url = 'http://www.geocaching.com/seek/cache_details.aspx?wp=%s' % coordinate.name
+        url = DETAILS_URL % coordinate.name
         response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
         if outfile != None:
             f = open(outfile, 'w')
@@ -250,8 +261,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     
     @staticmethod
     def check_login_callback(downloader):
-        url = 'http://www.geocaching.com/seek/nearest.aspx'
-        page = downloader.get_reader(url, login = False).read()
+        page = downloader.get_reader(NEAREST_URL, login = False).read()
 
         t = unicode(page, 'utf-8')
         doc = fromstring(t)
@@ -266,7 +276,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
         
     @staticmethod
     def login_callback(downloader, username, password):
-        url = 'https://www.geocaching.com/login/default.aspx'
         values = {'ctl00$ContentBody$tbUsername': username,
             'ctl00$ContentBody$tbPassword': password,
             'ctl00$ContentBody$cbRememberMe': 'on',
@@ -274,7 +283,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             '__EVENTTARGET': '',
             '__EVENTARGUMENT': ''
         }
-        page = downloader.get_reader(url, values, login = False).read()
+        page = downloader.get_reader(LOGIN_URL, values, login = False).read()
 
         t = unicode(page, 'utf-8')
         doc = fromstring(t)
@@ -287,7 +296,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         raise Exception("Name/Password MAY be correct, but I encountered unexpected data while logging in.")
         
     def _get_user_token(self):
-        page = self.downloader.get_reader('http://www.geocaching.com/map/default.aspx?lat=6&lng=9', login_callback = self.login_callback, check_login_callback = self.check_login_callback)
+        page = self.downloader.get_reader(USER_TOKEN_URL, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
         for line in page:
             if line.startswith('vxar uvtoken'):
                 user_token[0] = re.sub('[^A-Z0-9]+', '', line.split('=')[-1])
@@ -295,7 +304,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 return
         logger.error("Using fallback for user token search!")
         try:
-            page = self.downloader.get_reader('http://www.geocaching.com/map/default.aspx?lat=6&lng=9', login_callback = self.login_callback, check_login_callback = self.check_login_callback)
+            page = self.downloader.get_reader(USER_TOKEN_URL, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
             t = page.read()
             user_token[0] = re.search('[A-Z0-9]{128}', t).group(0)
         except Exception:
@@ -307,6 +316,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
         t = unicode(pg, 'utf-8')
         doc = fromstring(t)
         
+        with open('/tmp/geocache.html', 'w') as f:
+            f.write(pg)
+        
         # Basename - Image name without path and extension
         def basename(url):
             return url.split('/')[-1].split('.')[0]
@@ -315,8 +327,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
         try:
             coordinate.title = doc.cssselect('meta[name="og:title"]')[0].get('content')
         except Exception, e:
-            logger.error("Could not find title!")
-            raise e  
+            logger.error("Could not find title - cache is probably unpublished!")
+            coordinate.status = GeocacheCoordinate.STATUS_ARCHIVED
+            return None
             
         # Type 
         try:
@@ -370,7 +383,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         
         # Owner
         try:
-            coordinate.owner = doc.cssselect('#cacheDetails span.minorCacheDetails a')[0].text_content()
+            coordinate.owner = doc.cssselect('#cacheDetails .minorCacheDetails a')[0].text_content()
         except Exception, e:
             logger.error("Owner not found!")
             raise e
@@ -394,22 +407,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         coordinate.set_waypoints(waypoints)
         
         # User token and Logs
-        '''
-        for x in doc.cssselect('script'):
-            if not x.text:
-                continue
-            s = x.text.strip()
-            if s.startswith('//<![CDATA[\r\ninitalLogs'):
-                logs = s.replace('//<![CDATA[\r\ninitalLogs = ', '')
-                logs = re.sub('(?s)};\s*//]]>', '}', logs)
-                coordinate.set_logs(self._parse_logs_json(logs))
-            # User Token is not currently in use
-            #elif s.startswith('//<![CDATA[\r\nvar uvtoken'):
-            #    userToken = re.sub("(?s).*userToken = '", '', s)
-            #    userToken = re.sub("(?s)'.*", '', userToken)
-            #    print userToken
-        '''
-        userToken =''
+        userToken = ''
         for x in doc.cssselect('script'):
             if not x.text:
                 continue
@@ -420,12 +418,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 print "userToken:", userToken
 
 
-        def generate_request(userToken,pageNumber):
-           #about logcount: 'how many logs per page is loaded'. Each page has 10 logs. Every bigger values are truncated to 10
-           #                 lower values are useful only if only first page is loaded
-           logcount="10"
-           request = 'http://www.geocaching.com/seek/geocache.logbook?tkn='+userToken+'&idx=' +str(pageNumber)+ '&num='+logcount+'&decrypt=true'
-           return request
 
 
         #Ask first page of logs. And same time number of pages
@@ -626,38 +618,38 @@ class GeocachingComCacheDownloader(CacheDownloader):
             coordinate.hints = ''
             
         # Attributes
-        if len(doc.cssselect('#Content .sortables .item-content'))>5:
-          try:
+        try:
             for x in doc.cssselect('#Content .sortables .item-content')[5].cssselect('img'):
-                  if x.get('title') != 'blank':
+                if x.get('title') != 'blank':
                     #print x.get('title'), x.get('src')
                     attrib=x.get('src')[19:] #strip text '/images/attributes/'
 
                     # Prepend local path to filename, and check do we have it already
                     filename = os.path.join(self.path, attrib)
                     if os.path.isfile(filename):
-                       logger.info("%s exists already, don't reload " % (filename))
+                        logger.info("%s exists already, don't reload " % (filename))
                     else:
-                       # Download file
-                       url="http://www.geocaching.com/images/attributes/"+attrib
-                       logger.info("Downloading %s to %s" % (url, filename))
+                        # Download file
+                        url="http://www.geocaching.com/images/attributes/"+attrib
+                        logger.info("Downloading %s to %s" % (url, filename))
 
-                       try:
-                         f = open(filename, 'wb')
-                         f.write(self.downloader.get_reader(url, login = False).read())
-                         f.close()
-                       except Exception, e:
-                         logger.exception(e)
-                         logger.error("Failed to download image from URL %s" % url)
+                        try:
+                            f = open(filename, 'wb')
+                            f.write(self.downloader.get_reader(url, login = False).read())
+                            f.close()
+                        except Exception, e:
+                            logger.exception(e)
+                            logger.error("Failed to download image from URL %s" % url)
 
                     #store filename without path to the comma separated string
                     coordinate.attributes = coordinate.attributes+attrib+","
-
-          except Exception, e:
+        except IndexError:
+            # There are no attributes
+            logger.info("Attributes not found!")
+        except Exception, e:
             logger.error("Could not find/parse attributes")
             raise e
-        else:
-          logger.info("Attributes not found!")
+            
 
         # Extract description...
         try:
@@ -711,10 +703,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
             notes.append('%s,%sT10:00Z,%s,"%s"' % (geocache.name, geocache.logdate, log, text))
             
         logger.info("Uploading fieldnotes...")
-        url = 'http://www.geocaching.com/my/uploadfieldnotes.aspx'
         
         # First, download webpage to get the correct viewstate value
-        pg = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback).read()
+        pg = self.downloader.get_reader(UPLOAD_FIELDNOTES_URL, login_callback = self.login_callback, check_login_callback = self.check_login_callback).read()
         t = unicode(pg, 'utf-8')
         doc = fromstring(t)
         # Sometimes this field is not available
