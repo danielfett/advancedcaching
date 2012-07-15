@@ -64,6 +64,9 @@ if '-v' in argv or '--remote' in argv:
     import logging.handlers
     logging.getLogger('').setLevel(logging.DEBUG)
     logging.debug("Set log level to DEBUG")
+    
+if '--debug-http' in argv:
+    downloader.enable_http_debugging()
 
 if '--simple' in argv:
     import simplegui

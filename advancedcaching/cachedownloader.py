@@ -89,13 +89,13 @@ class CacheDownloader(gobject.GObject):
         return c
                 
     # Update a single coordinate
-    def update_coordinate(self, coordinate, num_logs = 20, outfile = None):
+    def update_coordinate(self, coordinate, num_logs = 20):
         if not CacheDownloader.lock.acquire(False):
             self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
             return
         try:
             logger.info("Downloading %s..." % (coordinate.name))
-            u = self._update_coordinate(coordinate, outfile = outfile, num_logs = num_logs)
+            u = self._update_coordinate(coordinate, num_logs = num_logs)
         except Exception, e:
             logger.exception(e)
             CacheDownloader.lock.release()
@@ -197,6 +197,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         while cont:
             # Count the number of results and pages
             text = response.read()
+            response.close()
             doc = self._parse(text)
             bs = doc.cssselect('#ctl00_ContentBody_ResultsPanel .PageBuilderWidget b')
             if len(bs) == 0:
@@ -223,7 +224,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             for guid, found, id in wpts:
                 coordinate = GeocacheCoordinate(-1, -1, id)
                 coordinate.found = found
-                self.emit("progress", "Geocachepreview", len(points), count)
+                self.emit("progress", "Geocache", len(points), count)
                 logger.info("Downloading %s..." % id)
                 url = self.PRINT_PREVIEW_URL % guid
                 response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)                
@@ -245,23 +246,20 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 
         return points
         
-    def _update_coordinate(self, coordinate, num_logs = 20, outfile = None):
+    def _update_coordinate(self, coordinate, num_logs = 20):
         coordinate = coordinate.clone()
         
         url = self.DETAILS_URL % coordinate.name
         response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
-        if outfile != None:
-            f = open(outfile, 'w')
-            f.write(response.read())
-            f.close()
-            response = open(outfile)
             
         return self._parse_cache_page(response, coordinate, num_logs)
 
     
     @staticmethod
     def check_login_callback(downloader):
-        page = downloader.get_reader(GeocachingComCacheDownloader.NEAREST_URL, login = False).read()
+        login_request = downloader.get_reader(GeocachingComCacheDownloader.NEAREST_URL, login = False)
+        page = login_request.read()
+        login_request.close()
 
         t = unicode(page, 'utf-8')
         doc = fromstring(t)
@@ -283,7 +281,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
             '__EVENTTARGET': '',
             '__EVENTARGUMENT': ''
         }
-        page = downloader.get_reader(GeocachingComCacheDownloader.LOGIN_URL, values, login = False).read()
+        request = downloader.get_reader(GeocachingComCacheDownloader.LOGIN_URL, values, login = False)
+        page = request.read()
+        request.close()
 
         t = unicode(page, 'utf-8')
         doc = fromstring(t)
@@ -306,6 +306,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         try:
             page = self.downloader.get_reader(self.USER_TOKEN_URL, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
             t = page.read()
+            page.close()
             user_token[0] = re.search('[A-Z0-9]{128}', t).group(0)
         except Exception:
             raise Exception("Website contents unexpected. Please check connection.")
@@ -313,6 +314,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     def _parse_cache_page(self, cache_page, coordinate, num_logs, download_images = True):
         logger.debug("Start parsing.")
         pg = cache_page.read()
+        cache_page.close()
         t = unicode(pg, 'utf-8')
         doc = fromstring(t)
                 
@@ -419,6 +421,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             login_callback = self.login_callback, 
             check_login_callback = self.check_login_callback)
         new_set_of_logs, total_page = self._parse_logs_json(logs.read(), True) #True=we want also number of page
+        logs.close()
 
         page_of_logs=num_logs/10 #num_logs from parameter (which comes from settings 'download_num_logs')
 
@@ -430,6 +433,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 login_callback = self.login_callback, 
                 check_login_callback = self.check_login_callback)
             new_set_of_logs.extend(self._parse_logs_json(logs.read()))
+            logs.close()
 
             counter += 1
 
@@ -540,6 +544,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     def _parse_cache_page_print(self, cache_page, coordinate, num_logs):
         logger.debug("Start parsing.")
         pg = cache_page.read()
+        cache_page.close()
         t = unicode(pg, 'utf-8')
         doc = fromstring(t)
         
@@ -702,7 +707,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
         logger.info("Uploading fieldnotes...")
         
         # First, download webpage to get the correct viewstate value
-        pg = self.downloader.get_reader(self.UPLOAD_FIELDNOTES_URL, login_callback = self.login_callback, check_login_callback = self.check_login_callback).read()
+        cache_page = self.downloader.get_reader(self.UPLOAD_FIELDNOTES_URL, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
+        pg = cache_page.read()
+        cache_page.close()
         t = unicode(pg, 'utf-8')
         doc = fromstring(t)
         # Sometimes this field is not available
@@ -720,6 +727,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             check_login_callback = self.check_login_callback)
 
         res = response.read()
+        response.close()
         t = unicode(res, 'utf-8')
         doc = fromstring(t)
         
@@ -752,7 +760,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
             url = 'http://www.geocaching.com/seek/log.aspx?wp=%s' % geocache.name
             
             # First, download webpage to get the correct viewstate value
-            pg = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback).read()
+            cache_page = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
+            pg = cache_page.read()
+            cache_page.close()
             t = unicode(pg, 'utf-8')
             doc = fromstring(t)
             doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$ddLogType'] = str(log)
@@ -769,6 +779,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 check_login_callback = self.check_login_callback)
 
             res = response.read()
+            res.close()
             t = unicode(res, 'utf-8')
             print t
             doc = fromstring(t)

@@ -21,9 +21,22 @@
 #
 
 
+from __future__ import with_statement
 import logging
 logger = logging.getLogger('downloader')
 import connection
+from sys import argv
+
+DEBUG_HTTP = False
+
+def enable_http_debugging():
+    global DEBUG_HTTP, DEBUG_PATH, DEBUG_COUNTER
+    DEBUG_HTTP = True
+    DEBUG_PATH = ''
+    DEBUG_COUNTER = 0
+    logger.info("Writing debug HTTP logs.")
+    
+
 class FileDownloader():
     USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.15 (KHTML, like Gecko) Ubuntu/11.10 Chromium/18.0.997.0 Chrome/18.0.997.0 Safari/535.15'
     opener_installed = False
@@ -108,6 +121,7 @@ class FileDownloader():
         if values == None and data == None:
             req = Request(url)
             self.add_headers(req)
+            self.debug_request(req)
             resp = urlopen(req)
 
         # There are only URL parameters, expected in values
@@ -116,6 +130,7 @@ class FileDownloader():
                 values = urlencode( values)
             req = Request(url, values)
             self.add_headers(req)
+            self.debug_request(req)
             resp = urlopen(req)
             
         # There are no URL parameters, but a content_type, body tuple in data
@@ -126,16 +141,45 @@ class FileDownloader():
             req.add_header('Content-Length', len(str(body)))
             self.add_headers(req)
             req.add_data(body)
+            self.debug_request(req)
             resp = urlopen(req)
         if resp.info().get('Content-Encoding') == 'gzip':
             from StringIO import StringIO
             import gzip
             buf = StringIO(resp.read())
             logger.debug("Got gzip encoded answer")
-            return gzip.GzipFile(fileobj=buf)
+            resp = gzip.GzipFile(fileobj=buf)
         else:
             logger.debug("Got unencoded answer")
+        resp = self.debug_response(resp)
+        return resp
+            
+    def debug_request(self, req):
+        global DEBUG_HTTP
+        if not DEBUG_HTTP:
+            return
+        global DEBUG_PATH, DEBUG_COUNTER
+        from os.path import join
+        path = join(DEBUG_PATH, '%d-REQUEST.txt' % DEBUG_COUNTER)
+        logger.debug("Writing debug HTTP request to %s" % path)
+        DEBUG_COUNTER += 1
+        with open(path, 'w') as f:
+            f.write("%s %s\n" % (req.get_method(), req.get_full_url()))
+            f.write("%s\n" % repr(req.header_items()))
+            f.write("\n\n%s" % repr(req.get_data()))
+                
+    def debug_response(self, resp):
+        global DEBUG_HTTP
+        if not DEBUG_HTTP:
             return resp
+        global DEBUG_PATH, DEBUG_COUNTER
+        from os.path import join
+        path = join(DEBUG_PATH, '%d-RESPONSE.txt' % DEBUG_COUNTER)
+        logger.debug("Writing debug HTTP response to %s" % path)
+        DEBUG_COUNTER += 1
+        with open(path, 'w') as f:
+            f.write(resp.read())    
+        return open(path, 'r')
             
     def encode_multipart_formdata(self, fields, files):
         """
