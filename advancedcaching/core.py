@@ -46,6 +46,7 @@ import provider
 from threading import Thread
 import cachedownloader
 from actors.tts import TTS
+from re import sub
 #from actors.notify import Notify
 
 import connection
@@ -142,7 +143,7 @@ class Core(gobject.GObject):
         'options_show_error': True,
         'options_show_html_description': False,
         'map_providers': [
-            ('OpenStreetMaps', {'remote_url': "http://a.tile.openstreetmap.org/%(zoom)d/%(x)d/%(y)d.png", 'prefix': 'OpenStreetMap I', 'max_zoom': 18}),
+            ('OpenStreetMaps', {'remote_url': "http://tile.openstreetmap.org/%(zoom)d/%(x)d/%(y)d.png", 'prefix': 'OpenStreetMap I', 'max_zoom': 18}),
             ('OpenCycleMaps', {'remote_url': 'http://a.tile.opencyclemap.org/cycle/%(zoom)d/%(x)d/%(y)d.png', 'prefix': 'OpenCycleMap', 'max_zoom': 18}),
         ],
         'options_map_double_size': False,
@@ -168,6 +169,14 @@ class Core(gobject.GObject):
         self._install_updates()
 
         self.__read_config()
+        
+        # Check tile URLs for outdated URLs after Openstreetmap URL change
+        for name, details in self.settings['map_providers']:
+            prev = details['remote_url']
+            details['remote_url'] = sub(r'//(.*).openstreetmap.org/', '//tile.openstreetmap.org/', prev)
+            if prev != details['remote_url']:
+                logger.info("Replaced url '%s' with '%s' because Openstreetmaps changed their URLs." % (prev, details['remote_url']))
+        
         self.connect('settings-changed', self.__on_settings_changed)
         self.connect('save-settings', self.__on_save_settings)
         self.create_recursive(self.settings['download_output_dir'])
@@ -183,6 +192,11 @@ class Core(gobject.GObject):
         #actor_tts = TTS(self)
         #actor_tts.connect('error', lambda caller, msg: self.emit('error', msg))
         #actor_notify = Notify(self)
+        
+        
+        
+        
+        
         self.emit('settings-changed', self.settings, self)
         self.emit('fieldnotes-changed')  
  
