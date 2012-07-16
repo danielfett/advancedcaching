@@ -38,7 +38,7 @@ def enable_http_debugging():
     
 
 class FileDownloader():
-    USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.15 (KHTML, like Gecko) Ubuntu/11.10 Chromium/18.0.997.0 Chrome/18.0.997.0 Safari/535.15'
+    USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.19 (KHTML, like Gecko) Ubuntu/12.04 Chromium/18.0.1025.168 Chrome/18.0.1025.168 Safari/535.19'
     opener_installed = False
 
     def __init__(self, username, password, cookiefile):
@@ -79,8 +79,8 @@ class FileDownloader():
         cj = LWPCookieJar(self.cookiefile)
 
         if not self.opener_installed:
-            from urllib2 import build_opener, install_opener, HTTPCookieProcessor
-            opener = build_opener(HTTPCookieProcessor(cj))
+            from urllib2 import build_opener, install_opener, HTTPCookieProcessor, HTTPHandler
+            opener = build_opener(HTTPHandler(debuglevel=1), HTTPCookieProcessor(cj))
             install_opener(opener)
             self.opener_installed = True
 
@@ -217,4 +217,6 @@ class FileDownloader():
         if not self.allow_minified_answers:
             req.add_header('Cache-Control', 'no-cache')
             req.add_header('Pragma', 'no-cache')
-        req.add_header('Accept-Encoding', 'gzip')
+        global DEBUG_HTTP
+        if not DEBUG_HTTP: # don't use gzip when debugging for easier access with wireshark.
+            req.add_header('Accept-Encoding', 'gzip')

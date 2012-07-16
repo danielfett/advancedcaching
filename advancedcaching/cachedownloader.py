@@ -38,7 +38,7 @@ import threading
 import re
 import gobject
 from utils import HTMLManipulations
-from lxml.html import fromstring, tostring
+from lxml.html import fromstring, tostring, submit_form
 
 #ugly workaround...
 user_token = [None]
@@ -172,14 +172,13 @@ class GeocachingComCacheDownloader(CacheDownloader):
         self.downloader.allow_minified_answers = True
 
     def _parse(self, text):
-        text2 = "%s test" % text
         try:
             t = unicode(text, 'utf-8')
             doc = fromstring(t)
         except Exception, e:
             logger.exception(e)
             from lxml.html.soupparser import fromstring as fromstring_soup
-            doc = fromstring_soup(text2)
+            doc = fromstring_soup(text)
         return doc
 
     def _get_overview(self, location, rec_depth = 0):
@@ -192,8 +191,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
         url = self.OVERVIEW_URL % (center.lat, center.lon, dist)
         response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
         
-        points = []
         cont = True
+        wpts = []
+        page_last = 0 # Stores the "old" value of the page counter; If it doesn't increment, abort!
         while cont:
             # Count the number of results and pages
             text = response.read()
@@ -204,6 +204,10 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 raise Exception("There are no geocaches in this area.")
             count = int(bs[0].text_content())
             page_current = int(bs[1].text_content())
+            if page_current == page_last:
+                raise Exception("Current page has the same number as the last page; aborting!")
+                break
+            page_last = page_current
             page_max = int(bs[2].text_content())
             logger.info("We are at page %d of %d, total %d geocaches" % (page_current, page_max, count))
             if count > self.MAX_DOWNLOAD_NUM:
@@ -211,7 +215,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 
                 
             # Extract waypoint information from the page
-            wpts = [(
+            w = [(
                 # Get the GUID from the link
                 x.getparent().getchildren()[0].get('href').split('guid=')[1], 
                 # See whether this cache was found or not
@@ -219,30 +223,35 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 # Get the GCID from the text
                 x.text_content().split('|')[1].strip()
                 ) for x in doc.cssselect(".SearchResultsTable .Merge .small")]
-                
-            # Download the geocaches using the print preview 
-            for guid, found, id in wpts:
-                coordinate = GeocacheCoordinate(-1, -1, id)
-                coordinate.found = found
-                self.emit("progress", "Geocache", len(points), count)
-                logger.info("Downloading %s..." % id)
-                url = self.PRINT_PREVIEW_URL % guid
-                response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)                
-                result = self._parse_cache_page_print(response, coordinate, num_logs = 20)
-                if result != None and result.lat != -1:
-                    points += [result]
+            wpts += w
                 
             cont = False  
             # There are more pages...
             if page_current < page_max:
                 from urllib import urlencode
                 doc.forms[0].fields['__EVENTTARGET'] = 'ctl00$ContentBody$pgrTop$ctl08'
+                logger.error(doc.forms[0].form_values())
                 values = urlencode(doc.forms[0].form_values())
                 action = self.SEEK_URL % doc.forms[0].action
                 logger.info("Retrieving next page!")
                 response = self.downloader.get_reader(action, data=('application/x-www-form-urlencoded', values), login_callback = self.login_callback, check_login_callback = self.check_login_callback)
+                
                 cont = True
-            
+        
+        # Download the geocaches using the print preview 
+        points = []
+        i = 0
+        for guid, found, id in wpts:
+            i += 1
+            coordinate = GeocacheCoordinate(-1, -1, id)
+            coordinate.found = found
+            self.emit("progress", "Geocache", i, len(wpts))
+            logger.info("Downloading %s..." % id)
+            url = self.PRINT_PREVIEW_URL % guid
+            response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)                
+            result = self._parse_cache_page_print(response, coordinate, num_logs = 20)
+            if result != None and result.lat != -1:
+                points += [result]
                 
         return points
         
