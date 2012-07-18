@@ -230,8 +230,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
             if page_current < page_max:
                 from urllib import urlencode
                 doc.forms[0].fields['__EVENTTARGET'] = 'ctl00$ContentBody$pgrTop$ctl08'
-                logger.error(doc.forms[0].form_values())
-                values = urlencode(doc.forms[0].form_values())
+                # Quick hack. Nicer solution would be to remove the element.
+                v = [x for x in doc.forms[0].form_values() if x[0] != 'ctl00$ContentBody$chkAll']
+                values = urlencode(v)
                 action = self.SEEK_URL % doc.forms[0].action
                 logger.info("Retrieving next page!")
                 response = self.downloader.get_reader(action, data=('application/x-www-form-urlencoded', values), login_callback = self.login_callback, check_login_callback = self.check_login_callback)
