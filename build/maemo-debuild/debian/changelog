@@ -1,3 +1,9 @@
+advancedcaching (0.9.0.2-maemo0) stable; urgency=low
+  - Quick fix for downloading
+  - Fix for OSM maps
+
+ -- Daniel Fett <advancedcaching@fragcom.de>  Wed, 18 July 2012 18:52:00 +0200
+
 advancedcaching (0.9.0.1-maemo0) stable; urgency=low
   - Fix building with debuild
 
