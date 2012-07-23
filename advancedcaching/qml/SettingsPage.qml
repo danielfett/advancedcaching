@@ -307,7 +307,7 @@ Page {
                 font.pixelSize: 20
                 wrapMode: Text.Wrap
                 width: col1.width
-                text: "This settings takes effect after restarting AGTL. Personal data may be transferred in the log messages."
+                text: "This settings takes effect only for the next launch of AGTL and is reset afterwards. Personal data may be transferred in the log messages."
             }
 
         }

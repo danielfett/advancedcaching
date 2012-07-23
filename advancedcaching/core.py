@@ -198,10 +198,6 @@ class Core(gobject.GObject):
         
         
         
-        
-        
-        self.emit('settings-changed', self.settings, self)
-        self.emit('fieldnotes-changed')  
  
         if ('debug_log_to_http' in self.settings and self.settings['debug_log_to_http']) or '--remote' in argv:
             http_handler = logging.handlers.HTTPHandler("danielfett.de", "http://www.danielfett.de/files/collect.php")
@@ -209,6 +205,12 @@ class Core(gobject.GObject):
             logging.getLogger('').addHandler(buffering_handler)
             logging.getLogger('').setLevel(logging.DEBUG)
             logging.debug("Remote logging activated!")
+            # Now reset the setting to default
+            self.settings['debug_log_to_http'] = False
+        
+        
+        self.emit('settings-changed', self.settings, self)
+        self.emit('fieldnotes-changed')  
 
         if '--sim' in argv:
             self.gps_thread = gpsreader.FakeGpsReader(self)
