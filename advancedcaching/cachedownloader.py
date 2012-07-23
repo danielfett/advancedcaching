@@ -731,7 +731,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         
         data = self.downloader.encode_multipart_formdata(values, [('ctl00$ContentBody$FieldNoteLoader', 'geocache_visits.txt', content)])
 
-        response = self.downloader.get_reader(url, 
+        response = self.downloader.get_reader(self.UPLOAD_FIELDNOTES_URL, 
             data=data, 
             login_callback = self.login_callback, 
             check_login_callback = self.check_login_callback)
