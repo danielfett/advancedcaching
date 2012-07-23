@@ -119,7 +119,8 @@ class Controller(QtCore.QObject):
         
     @QtCore.Slot(QtCore.QObject, float, float, float, float, result=bool)
     def getGeocaches(self, map, lat_start, lon_start, lat_end, lon_end):
-        if self.view.rootObject() == None:
+        if self.view.rootObject() == None or lat_start == -lat_end:
+            logger.debug("Declined getGeocaches request")
             return False
         
         points = self.core.pointprovider.get_points(geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end), self.MAX_POINTS + 1)

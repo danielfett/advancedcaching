@@ -399,15 +399,6 @@ Rectangle {
         font.pixelSize: 24
     }
 
-    /*
-    onCornerTileYChanged: {
-        updateGeocaches();
-    }
-
-    onCornerTileXChanged: {
-        updateGeocaches();
-    }*/
-
     function updateGeocaches () {
         console.debug("Update geocaches called")
         if (zoomLevel < minZoomLevelShowGeocaches) {

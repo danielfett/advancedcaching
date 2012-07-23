@@ -45,6 +45,7 @@ def _conic_connection_changed(connection, event, magic = None):
 def init():
     try: 
         import conic
+        logger.debug("Using conic library")
     except ImportError:
         logger.debug("Not using conic library")
         return
