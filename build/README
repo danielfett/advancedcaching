@@ -2,6 +2,6 @@ How to build AGTL?
 
 Currently, two build systems for Maemo and Meego are working. Just run:
 cd build
-./make-maemo-psa-deb.sh
+./make-maemo-debuild.sh
 or 
 ./make-meego-deb.sh

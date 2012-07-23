@@ -25,6 +25,7 @@ from __future__ import with_statement
 # This is also evaluated by the build scripts
 VERSION='0.9.0.2'
 import logging
+import logging.handlers
 logging.basicConfig(level=logging.WARNING,
                     format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s // %(filename)s:%(lineno)s',
                     )
@@ -61,7 +62,6 @@ if len(argv) == 1:
 
 if '-v' in argv or '--remote' in argv:
     import colorer
-    import logging.handlers
     logging.getLogger('').setLevel(logging.DEBUG)
     logging.debug("Set log level to DEBUG")
     

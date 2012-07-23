@@ -28,7 +28,7 @@ sed -e "s/___VERSION___/$VERSION/" $PKGROOT/setup.py > $PKGTMP/setup.py
 # Copy python sources 
 cp $SOURCE/utils.py $SOURCE/astral.py $SOURCE/connection.py $SOURCE/gpsreader.py $SOURCE/cachedownloader.py $SOURCE/coordfinder.py $SOURCE/geo.py $SOURCE/gui.py $SOURCE/cli.py $SOURCE/core.py $SOURCE/geocaching.py $SOURCE/provider.py $SOURCE/colorer.py $SOURCE/downloader.py $SOURCE/geonames.py $SOURCE/qmlgui.py $PKGTMP/
 # Copy icon
-cp $RES/advancedcaching-64.png $PKGTMP/agtl-meego.png
+cp $RES/advancedcaching-80.png $PKGTMP/agtl-meego.png
 cp $RES/splash.png $PKGTMP/splash.png
 # Copy additional resources
 cp -r $SOURCE/data $PKGTMP/
