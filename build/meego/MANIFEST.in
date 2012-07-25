@@ -1,4 +1,0 @@
-include *.desktop
-include qml/*.qml
-include *.png
-include agtl-meego.longdesc

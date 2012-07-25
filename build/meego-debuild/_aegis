@@ -3,7 +3,7 @@
                 <credential name="Location" />
                 <credential name="GRP::video" />
 		<credential name="GRP::pulse-access" />
-                <for path="/usr/bin/agtl-meego" />
+                <for path="/usr/bin/advancedcaching" />
         </request>
 
 </aegis>

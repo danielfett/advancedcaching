@@ -6,6 +6,7 @@ Version=1.0.0
 Type=Application
 Exec=/usr/bin/agtl-maemo
 Icon=agtl-maemo
-X-Icon-path=/usr/share/icons/hicolor/64x64/apps/
-X-Window-Icon=agtl-maemo.png
+X-Window-Icon=agtl-maemo
+X-Osso-Type=application/x-executable
+Terminal=false
 

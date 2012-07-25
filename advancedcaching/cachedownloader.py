@@ -21,8 +21,8 @@
 #
 
 
-VERSION = 27
-VERSION_DATE = '2012-05-02'
+VERSION = 28
+VERSION_DATE = '2012-07-23'
 
 import logging
 logger = logging.getLogger('cachedownloader')
