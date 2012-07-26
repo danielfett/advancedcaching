@@ -1,3 +1,8 @@
+advancedcaching (0.9.1.0) stable; urgency=low
+  - First version to appear in the Meego Store
+
+ -- Daniel Fett <advancedcaching@fragcom.de> Thu, 26 Jul 2012 11:04:40 +0200
+
 advancedcaching (0.9.0.4-1) stable; urgency=low
   - Fix packaging problem with N900 icon
 
