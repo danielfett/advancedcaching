@@ -70,6 +70,7 @@ class FileDownloader():
 
 
     def login(self, login_callback, check_login_callback):
+        global DEBUG_HTTP
         if connection.offline:
             raise Exception("Can't connect in offline mode.")
         if self.username == '' or self.password == '':
@@ -80,7 +81,10 @@ class FileDownloader():
 
         if not self.opener_installed:
             from urllib2 import build_opener, install_opener, HTTPCookieProcessor, HTTPHandler
-            opener = build_opener(HTTPHandler(debuglevel=1), HTTPCookieProcessor(cj))
+            if DEBUG_HTTP:
+                opener = build_opener(HTTPHandler(debuglevel=1), HTTPCookieProcessor(cj))
+            else:
+                opener = build_opener(HTTPCookieProcessor(cj))
             install_opener(opener)
             self.opener_installed = True
 

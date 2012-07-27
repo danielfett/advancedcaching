@@ -191,12 +191,11 @@ class Core(gobject.GObject):
 
         self.gui = guitype(self, self.dataroot)
         
-        
         #actor_tts = TTS(self)
         #actor_tts.connect('error', lambda caller, msg: self.emit('error', msg))
         #actor_notify = Notify(self)
         
-        
+        # self.cachedownloader is created in settings handling.
         
  
         if ('debug_log_to_http' in self.settings and self.settings['debug_log_to_http']) or '--remote' in argv:
@@ -334,6 +333,9 @@ class Core(gobject.GObject):
                 self.emit('error', Exception("Can't update in offline mode."))
             return False
             
+        class NoUpdateException(Exception):
+            pass
+            
             
         from urllib import urlretrieve
         from urllib2 import HTTPError
@@ -349,7 +351,7 @@ class Core(gobject.GObject):
                 reader = self.downloader.get_reader(url, login=False)
             except HTTPError, e:
                 logging.exception(e)
-                raise Exception("No updates available.")
+                raise NoUpdateException("No updates available.")
             except Exception, e:
                 logging.exception(e)
                 raise Exception("Could not connect to update server.")
@@ -362,10 +364,10 @@ class Core(gobject.GObject):
                     files.append((md5, name, temp))
             except Exception, e:
                 logging.exception(e)
-                raise Exception("No updates were found. (Could not process index file.)")
+                raise NoUpdateException("No updates were found. (Could not process index file.)")
 
             if len(files) == 0:
-                raise Exception("No updates available.")
+                raise NoUpdateException("No updates available.")
 
             for md5sum, name, temp in files:
                 url = '%s/%s' % (baseurl, name)
@@ -391,6 +393,16 @@ class Core(gobject.GObject):
                         remove(temp)
                     except Exception:
                         pass
+                        
+        except NoUpdateException, e:
+            if sync:
+                self.emit('hide-progress')
+            else:
+                def same_thread():
+                    self.emit('hide-progress')
+                    return False
+                gobject.idle_add(same_thread)
+            return self._install_updates()
         except Exception, e:
             if sync:
                 self.emit('error', e)
@@ -435,12 +447,20 @@ class Core(gobject.GObject):
     '''
     def __on_settings_changed(self, caller, settings, source):
         logger.debug("Settings where changed by %s." % source)
+        
+        if 'options_backend' in settings or 'download_output_dir' in settings or 'download_noimages' in settings:
+            self.cachedownloader = cachedownloader.get(self.settings['options_backend'], self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+            self.cachedownloader.connect("download-error", self.on_download_error)
+            self.cachedownloader.connect("already-downloading-error", self.on_already_downloading_error)
+            self.cachedownloader.connect('progress', self.on_download_progress)
+            
         if source == self:
             return
         if 'options_username' in settings:
             self.downloader.update_userdata(username = settings['options_username'])
         if 'options_password' in settings:
             self.downloader.update_userdata(password = settings['options_password'])
+        
 
     '''
     This is called when settings shall be saved, calling save_settings afterwards.
@@ -464,13 +484,6 @@ class Core(gobject.GObject):
         logger.debug("Somebody is being killed, saving the settings.")
         self.emit('save-settings')
         self.__write_config()
-
-    # called by gui
-    #def on_config_changed(self, new_settings):
-    #    self.settings = new_settings
-    #    self.downloader.update_userdata(self.settings['options_username'], self.settings['options_password'])
-    #    self.__write_config()
-
 
 
     def __read_config(self):
@@ -606,15 +619,6 @@ class Core(gobject.GObject):
         logging.info("Needing %d unique queries" % len(out))
         return out
 
-    ##############################################
-    #
-    # Deprecated
-    #
-    ##############################################
-
-    # called by gui
-    def on_cache_selected(self, cache):
-        self.gui.show_cache(cache)
 
     ##############################################
     #
@@ -624,8 +628,6 @@ class Core(gobject.GObject):
                 
     # called by gui
     def on_start_search_simple(self, text):
-        #m = re.search(r'/([NS]?)\s*(\d{1,2})\.(\d{1,2})\D+(\d+)\s*([WE]?)\s*(\d{1,3})\.(\d{1,2})\D+(\d+)', text, re.I)
-        #if m != None:
         self.__try_show_cache_by_search('%' + text + '%')
 
     # called by gui
@@ -673,7 +675,7 @@ class Core(gobject.GObject):
     def _check_auto_update(self):
         if 'options_auto_update' in self.settings and self.settings['options_auto_update'] and not self.auto_update_checked:
             self.emit('progress', 0.1, "Checking for Updates...")
-            updates = self.try_update(silent = True, sync = True)
+            updates = self.try_update(silent = True, sync = False)
             if updates not in [None, False]:
                 logger.info("Parser update installed.")
         self.auto_update_checked = True
@@ -682,25 +684,19 @@ class Core(gobject.GObject):
     def on_download(self, location, sync=False):
         self._check_auto_update()
         self.emit('progress', 0.5, "Downloading...")
-        cd = cachedownloader.get(self.settings['options_backend'], self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
-        cd.connect("download-error", self.on_download_error)
-        cd.connect("already-downloading-error", self.on_already_downloading_error)
-        cd.connect('progress', self.on_download_progress)
         if not sync:
-            def same_thread(arg1, arg2):
-                gobject.idle_add(self.on_download_complete, arg1, arg2)
-                return False
-
-            cd.connect("finished-overview", same_thread)
-            t = Thread(target=cd.get_geocaches, args=[location])
+            def same_thread(caches):
+                gobject.idle_add(self.on_download_complete, caches)
+                
+            t = Thread(target=self.cachedownloader.get_geocaches, args=[location], kwargs={'then':same_thread})
             t.daemon = True
             t.start()
             return False
         else:
-            return self.on_download_complete(None, cd.get_geocaches(location), True)
+            return self.on_download_complete(None, self.cachedownloader.get_geocaches(location), True)
 
     # called on signal by downloading thread
-    def on_download_complete(self, something, caches, sync=False):
+    def on_download_complete(self, caches, sync=False):
         new_caches = []
         for c in caches:
             point_new = self.pointprovider.add_point(c)
@@ -737,25 +733,21 @@ class Core(gobject.GObject):
         self._check_auto_update()
         self.emit('progress', 0.5, "Downloading %s..." % cache.name)
 
-        cd = cachedownloader.get(self.settings['options_backend'], self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
-        cd.connect("download-error", self.on_download_error)
-        cd.connect("already-downloading-error", self.on_already_downloading_error)
         if not sync:
-            def same_thread(arg1, arg2):
-                gobject.idle_add(self.on_download_cache_complete, arg1, arg2)
-                return False
-            cd.connect("finished-single", same_thread)
-            t = Thread(target=cd.update_coordinate, args=[cache, self.settings['download_num_logs']])
+            def same_thread(cache):
+                gobject.idle_add(self.on_download_cache_complete, cache)
+                
+            t = Thread(target=self.cachedownloader.update_coordinate, args=[cache, self.settings['download_num_logs']], kwargs={'then':same_thread})
             t.daemon = True
             t.start()
             #t.join()
             return False
         else:
-            full = cd.update_coordinate(cache, self.settings['download_num_logs'])
+            full = self.cachedownloader.update_coordinate(cache, self.settings['download_num_logs'])
             return full
 
     # called on signal by downloading thread
-    def on_download_cache_complete(self, something, cache):
+    def on_download_cache_complete(self, cache):
         self.pointprovider.add_point(cache, True)
         self.pointprovider.save()
         self.emit('hide-progress')
@@ -797,29 +789,17 @@ class Core(gobject.GObject):
 
     def update_coordinates(self, caches):
         self._check_auto_update()
-        cd = cachedownloader.get(self.settings['options_backend'], self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
-        cd.connect("download-error", self.on_download_error)
-        cd.connect("already-downloading-error", self.on_already_downloading_error)
 
+        def same_thread(caches):
+            gobject.idle_add(self.on_download_descriptions_complete, caches)
 
-        def same_thread(arg1, arg2):
-            gobject.idle_add(self.on_download_descriptions_complete, arg1, arg2)
-            return False
-
-        def same_thread_progress (arg1, arg2, arg3, arg4):
-            gobject.idle_add(self.on_download_progress, arg1, arg2, arg3, arg4)
-            return False
-
-        cd.connect('progress', self.on_download_progress)
-        cd.connect('finished-multiple', same_thread)
-
-        t = Thread(target=cd.update_coordinates, args=[caches, self.settings['download_num_logs']])
+        t = Thread(target=self.cachedownloader.update_coordinates, args=[caches, self.settings['download_num_logs']], kwargs={'then':same_thread})
         t.daemon = True
         t.start()
 
 
     # called on signal by downloading thread
-    def on_download_descriptions_complete(self, something, caches):
+    def on_download_descriptions_complete(self, caches):
         self._check_auto_update()
         for c in caches:
             self.pointprovider.add_point(c, True)
@@ -879,20 +859,15 @@ class Core(gobject.GObject):
         self.emit('progress', 0.5, "Uploading Fieldnotes...")
 
         caches = self.pointprovider.get_new_fieldnotes()
-        fn = cachedownloader.get(self.settings['options_backend'], self.downloader)
-        fn.connect("download-error", self.on_download_error)
         
-        def same_thread(arg1):
-            gobject.idle_add(self.on_upload_fieldnotes_finished, arg1, caches)
-            return False
-            
-        fn.connect('finished-uploading', same_thread)
+        def same_thread():
+            gobject.idle_add(self.on_upload_fieldnotes_finished, caches)
         
-        t = Thread(target=fn.upload_fieldnotes, args=[caches])
+        t = Thread(target=fn.upload_fieldnotes, args=[caches], kwargs={'then':same_thread})
         t.daemon = True
         t.start()
         
-    def on_upload_fieldnotes_finished(self, widget, caches):
+    def on_upload_fieldnotes_finished(self, caches):
         for c in caches:
             c.logas = geocaching.GeocacheCoordinate.LOG_NO_LOG
             self.save_cache_attribute(c, 'logas')

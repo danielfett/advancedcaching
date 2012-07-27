@@ -74,7 +74,8 @@ class CacheDownloader(gobject.GObject):
                 raise Exception("Path does not exist: %s" % path)
 
     # Update several coordinates
-    def update_coordinates(self, coordinates, num_logs = 20):
+    # "then" is the continuation; it is executed in the same thread when the method has finished.
+    def update_coordinates(self, coordinates, num_logs = 20, then = None):
         i = 0
         c = []
         if len(coordinates) > self.MAX_DOWNLOAD_NUM:
@@ -85,11 +86,12 @@ class CacheDownloader(gobject.GObject):
             u = self.update_coordinate(cache, num_logs = num_logs)
             c.append(u)
             i += 1
-        self.emit("finished-multiple", c)
+        if then != None: then(c)
         return c
                 
     # Update a single coordinate
-    def update_coordinate(self, coordinate, num_logs = 20):
+    # "then" is the continuation; it is executed in the same thread when the method has finished.
+    def update_coordinate(self, coordinate, num_logs = 20, then = None):
         if not CacheDownloader.lock.acquire(False):
             self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
             return
@@ -102,11 +104,12 @@ class CacheDownloader(gobject.GObject):
             self.emit('download-error', e)
             return coordinate
         CacheDownloader.lock.release()
-        self.emit('finished-single', u)
+        if then != None: then(u)
         return u
 
-    # Retrieve geocaches in the bounding box defined by location  
-    def get_geocaches(self, location):
+    # Retrieve geocaches in the bounding box defined by location 
+    # "then" is the continuation; it is executed in the same thread when the method has finished. 
+    def get_geocaches(self, location, then = None):
         if not CacheDownloader.lock.acquire(False):
             self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
             logger.warning("Download in progress")
@@ -120,12 +123,13 @@ class CacheDownloader(gobject.GObject):
             CacheDownloader.lock.release()
             return []
 
-        self.emit('finished-overview', points)
+        if then != None: then(points)
         CacheDownloader.lock.release()
         return points
         
     # Upload one or more fieldnotes
-    def upload_fieldnotes(self, geocaches, upload_as_logs = False):
+    # "then" is the continuation; it is executed in the same thread when the method has finished.
+    def upload_fieldnotes(self, geocaches, upload_as_logs = False, then = None):
         try:
             if not upload_as_logs:
                 self._upload_fieldnotes(geocaches)
@@ -134,7 +138,7 @@ class CacheDownloader(gobject.GObject):
         except Exception, e:
             self.emit('download-error', e)
             return False
-        self.emit('finished-uploading')
+        if then != None: then()
         return True
                 
         
