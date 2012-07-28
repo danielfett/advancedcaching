@@ -46,17 +46,10 @@ user_token = [None]
 
 
 class CacheDownloader(gobject.GObject):
-    __gsignals__ = { 'finished-overview': (gobject.SIGNAL_RUN_FIRST,\
-                                 gobject.TYPE_NONE,\
-                                 (gobject.TYPE_PYOBJECT,)),
-                    'progress' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (str, int, int, )),
+    __gsignals__ = {
+                    'progress' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (str, float, float, )),
                     'download-error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-                    'already-downloading-error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-                    'finished-single' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-                    'finished-multiple' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-                    'finished-uploading': (gobject.SIGNAL_RUN_FIRST,\
-                                 gobject.TYPE_NONE,\
-                                 ()),
+                    'already-downloading-error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
                     }
 
     lock = threading.Lock()
@@ -74,42 +67,36 @@ class CacheDownloader(gobject.GObject):
                 raise Exception("Path does not exist: %s" % path)
 
     # Update several coordinates
-    # "then" is the continuation; it is executed in the same thread when the method has finished.
-    def update_coordinates(self, coordinates, num_logs = 20, then = None):
+    def update_coordinates(self, coordinates, num_logs = 20):
         i = 0
         c = []
         if len(coordinates) > self.MAX_DOWNLOAD_NUM:
             self.emit("download-error", Exception("Downloading of more than %d descriptions is not supported." % self.MAX_DOWNLOAD_NUM))
             return
         for cache in coordinates:
-            self.emit("progress", cache.name, i, len(coordinates))
-            u = self.update_coordinate(cache, num_logs = num_logs)
+            u = self.update_coordinate(cache, num_logs = num_logs, progress_min = i, progress_max = i+1, progress_all = len(coordinates))
             c.append(u)
             i += 1
-        if then != None: then(c)
         return c
                 
     # Update a single coordinate
-    # "then" is the continuation; it is executed in the same thread when the method has finished.
-    def update_coordinate(self, coordinate, num_logs = 20, then = None):
+    def update_coordinate(self, coordinate, num_logs = 20, progress_min = 0.0, progress_max = 1.0, progress_all = 1.0):
         if not CacheDownloader.lock.acquire(False):
             self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
             return
         try:
             logger.info("Downloading %s..." % (coordinate.name))
-            u = self._update_coordinate(coordinate, num_logs = num_logs)
+            u = self._update_coordinate(coordinate, num_logs = num_logs, progress_min = progress_min, progress_max = progress_max, progress_all = progress_all)
         except Exception, e:
             logger.exception(e)
             CacheDownloader.lock.release()
             self.emit('download-error', e)
             return coordinate
         CacheDownloader.lock.release()
-        if then != None: then(u)
         return u
 
     # Retrieve geocaches in the bounding box defined by location 
-    # "then" is the continuation; it is executed in the same thread when the method has finished. 
-    def get_geocaches(self, location, then = None):
+    def get_geocaches(self, location):
         if not CacheDownloader.lock.acquire(False):
             self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
             logger.warning("Download in progress")
@@ -123,13 +110,12 @@ class CacheDownloader(gobject.GObject):
             CacheDownloader.lock.release()
             return []
 
-        if then != None: then(points)
         CacheDownloader.lock.release()
         return points
         
     # Upload one or more fieldnotes
-    # "then" is the continuation; it is executed in the same thread when the method has finished.
-    def upload_fieldnotes(self, geocaches, upload_as_logs = False, then = None):
+    def upload_fieldnotes(self, geocaches, upload_as_logs = False):
+    
         try:
             if not upload_as_logs:
                 self._upload_fieldnotes(geocaches)
@@ -137,9 +123,8 @@ class CacheDownloader(gobject.GObject):
                 self._upload_logs(geocaches)
         except Exception, e:
             self.emit('download-error', e)
-            return False
-        if then != None: then()
-        return True
+            return []
+        return geocaches
                 
         
 class GeocachingComCacheDownloader(CacheDownloader):
@@ -193,6 +178,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
         if dist > 100:
             raise Exception("Please select a smaller part of the map!")
         url = self.OVERVIEW_URL % (center.lat, center.lon, dist)
+        
+        self.emit("progress", "Fetching list", 0, 1)
         response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
         
         cont = True
@@ -239,6 +226,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 values = urlencode(v)
                 action = self.SEEK_URL % doc.forms[0].action
                 logger.info("Retrieving next page!")
+                self.emit("progress", "Fetching list (%d of %d)" % (page_current + 1, page_max), page_current, page_max)
                 response = self.downloader.get_reader(action, data=('application/x-www-form-urlencoded', values), login_callback = self.login_callback, check_login_callback = self.check_login_callback)
                 
                 cont = True
@@ -250,7 +238,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             i += 1
             coordinate = GeocacheCoordinate(-1, -1, id)
             coordinate.found = found
-            self.emit("progress", "Geocache", i, len(wpts))
+            self.emit("progress", "Geocache %d of %d" % (i, len(wpts)), i, len(wpts))
             logger.info("Downloading %s..." % id)
             url = self.PRINT_PREVIEW_URL % guid
             response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)                
@@ -260,13 +248,19 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 
         return points
         
-    def _update_coordinate(self, coordinate, num_logs = 20):
+    def _update_coordinate(self, coordinate, num_logs = 20, progress_min = 0.0, progress_max = 1.0, progress_all = 1.0):
         coordinate = coordinate.clone()
+        
+        logger.debug("_update_coordinate, pmin = %f, pmax = %f." % (progress_min, progress_max))
+        
+        # Progress should be displayed in the range between progress_min and progress_max. 
+        # This, therefore, is 10% into this range.
+        self.emit('progress', "Downloading %s" % coordinate.name, progress_min, progress_all)
         
         url = self.DETAILS_URL % coordinate.name
         response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
             
-        return self._parse_cache_page(response, coordinate, num_logs)
+        return self._parse_cache_page(response, coordinate, num_logs, progress_min = progress_min, progress_max = progress_max, progress_all = progress_all)
 
     
     @staticmethod
@@ -325,8 +319,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
         except Exception:
             raise Exception("Website contents unexpected. Please check connection.")
     
-    def _parse_cache_page(self, cache_page, coordinate, num_logs, download_images = True):
-        logger.debug("Start parsing.")
+    def _parse_cache_page(self, cache_page, coordinate, num_logs, download_images = True, progress_min = 0.0, progress_max = 1.0, progress_all = 1.0):
+        logger.debug("Start parsing, pmin = %f, pmax = %f." % (progress_min, progress_max))
         pg = cache_page.read()
         cache_page.close()
         t = unicode(pg, 'utf-8')
@@ -428,7 +422,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 userToken = re.sub("(?s).*userToken = '", '', s)
                 userToken = re.sub("(?s)'.*", '', userToken)
                 print "userToken:", userToken
-
+        
+        self.emit('progress', 'Logs', progress_min + 0.2 * (progress_max - progress_min), progress_all)
+        
         #Ask first page of logs. And same time number of pages
         logs = self.downloader.get_reader(
             self.LOGBOOK_URL % (userToken, 1),
@@ -436,12 +432,19 @@ class GeocachingComCacheDownloader(CacheDownloader):
             check_login_callback = self.check_login_callback)
         new_set_of_logs, total_page = self._parse_logs_json(logs.read(), True) #True=we want also number of page
         logs.close()
-
         page_of_logs=num_logs/10 #num_logs from parameter (which comes from settings 'download_num_logs')
 
         #First page is already handled, so counter starts from 2
         counter = 2
-        while (counter <= total_page and counter <= page_of_logs):
+        upper_limit = min(total_page, page_of_logs)
+        while (counter <= upper_limit):
+            # We want progress to be between 0.3 and 0.5 times of our own range.
+            # Our own range is progress_min -> progress_max
+            # Log range is 0.3 to 0.5
+            progress_internal = 0.3 + (float(counter-1)/float(upper_limit)) * 0.2
+            logger.debug("- Progress internal is %f" % progress_internal)
+            logger.debug("- Progress is %f of %f" % (progress_min + progress_internal * (progress_max - progress_min), progress_all))
+            self.emit('progress', "Logs (%d/%d)" % (counter, upper_limit), progress_min + progress_internal * (progress_max - progress_min), progress_all)
             logs = self.downloader.get_reader(
                 self.LOGBOOK_URL % (userToken, counter),
                 login_callback = self.login_callback, 
@@ -514,9 +517,16 @@ class GeocachingComCacheDownloader(CacheDownloader):
                                 parent[index-1].tail += replacement
                             del parent[index]
             
+        counter = 0
         if download_images:            
             # Download images
+            num = len(images)
             for url, data in images.items():
+                # We want progress to be between 0.5 and 1.0 times of our own range.
+                # Our own range is progress_min -> progress_max
+                # Log range is 0.5 to 1.0
+                progress_internal = 0.5 + (counter/float(num)) * 0.5
+                self.emit('progress', "Images (%d/%d)" % (counter + 1, num), progress_min + progress_internal * (progress_max - progress_min), progress_all)
                 # Prepend local path to filename
                 filename = os.path.join(self.path, data['filename'])
                 logger.info("Downloading %s to %s" % (url, filename))
@@ -529,6 +539,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 except Exception, e:
                     logger.exception(e)
                     logger.error("Failed to download image from URL %s" % url)
+                counter += 1
                 
         # And save Images to coordinate
         images_save = dict([x['filename'], x['title']] for x in images.values())
@@ -720,6 +731,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
             
         logger.info("Uploading fieldnotes...")
         
+        self.emit('progress', "Uploading Fieldnotes (Step 1 of 2)", 0, 2)
+        
         # First, download webpage to get the correct viewstate value
         cache_page = self.downloader.get_reader(self.UPLOAD_FIELDNOTES_URL, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
         pg = cache_page.read()
@@ -734,7 +747,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         content = '\r\n'.join(notes).encode("UTF-16")
         
         data = self.downloader.encode_multipart_formdata(values, [('ctl00$ContentBody$FieldNoteLoader', 'geocache_visits.txt', content)])
-
+        self.emit('progress', "Uploading Fieldnotes (Step 2 of 2)", 1, 2)
         response = self.downloader.get_reader(self.UPLOAD_FIELDNOTES_URL, 
             data=data, 
             login_callback = self.login_callback, 

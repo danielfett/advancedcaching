@@ -621,9 +621,11 @@ class SimpleGui(Gui):
             self.images = {}
         self._update_cache_image(reset=True)
 
+    # This downloads the geocache positions
     def on_download_clicked(self, widget, data=None):
         self.core.on_download(self.map.get_visible_area())
 
+    # Downloads the details for all visible geocaches
     def on_download_details_map_clicked(self, some, thing=None):
         logger.debug("Downloading geocaches on map.")
         self.core.on_download_descriptions(self.map.get_visible_area())
