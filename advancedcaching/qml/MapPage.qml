@@ -22,6 +22,7 @@ Page {
         //zoomLevel: 11
         url: settings.currentMapType.url
         maxZoomLevel: settings.currentMapType.maxZoom
+        status: tabMap.status
 
         Connections {
             target: gps

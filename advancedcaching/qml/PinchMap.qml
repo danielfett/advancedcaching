@@ -4,8 +4,6 @@ import "functions.js" as F
 
 Rectangle {
     id: pinchmap;
-    //property double centerLatitude: 0;
-    //property double centerLongitude: 0;
     property int zoomLevel: 10;
     property int oldZoomLevel: 99
     property int maxZoomLevel: 17;
@@ -43,6 +41,10 @@ Rectangle {
     property bool tooManyPoints: true
 
     property alias model: geocacheDisplay.model
+    
+    property int status: PageStatus.active
+    
+    property bool needsUpdate: false
 
     transform: Rotation {
         angle: 0
@@ -56,13 +58,28 @@ Rectangle {
             setZoomLevel(maxZoomLevel);
         }
     }
-
+    
+    onStatusChanged: {
+        if (status == PageStatus.active && needsUpdate) {
+            needsUpdate = false;
+            pinchmap.setCenterLatLon(pinchmap.latitude, pinchmap.longitude);
+        }
+    }
+    
     onWidthChanged: {
-        pinchmap.setCenterLatLon(pinchmap.latitude, pinchmap.longitude);
+        if (status != PageStatus.active) {
+            needsUpdate = true;
+        } else {
+            pinchmap.setCenterLatLon(pinchmap.latitude, pinchmap.longitude);
+        }
     }
 
     onHeightChanged: {
-        pinchmap.setCenterLatLon(pinchmap.latitude, pinchmap.longitude);
+        if (status != PageStatus.active) {
+            needsUpdate = true;
+        } else {
+            pinchmap.setCenterLatLon(pinchmap.latitude, pinchmap.longitude);
+        }
     }
 
 
