@@ -53,6 +53,32 @@ Page {
             }
             height: 70
         }
+        
+        ListButton {
+            text: "Last viewed"
+
+            onClicked: {
+                pageGeocacheList.source = "GeocacheListPage.qml";
+                pageGeocacheList.item.title = "History";
+                pageGeocacheList.item.model = controller.getLastViewedGeocaches();
+                pageGeocacheList.item.model.sort(4, gps);
+                showDetailsPage(pageGeocacheList.item);
+            }
+            height: 70
+        }
+        
+        ListButton {
+            text: "Recently updated"
+
+            onClicked: {
+                pageGeocacheList.source = "GeocacheListPage.qml";
+                pageGeocacheList.item.title = "Recently Updated";
+                pageGeocacheList.item.model = controller.getLastUpdatedGeocaches();
+                pageGeocacheList.item.model.sort(5, gps);
+                showDetailsPage(pageGeocacheList.item);
+            }
+            height: 70
+        }
     }
 
 

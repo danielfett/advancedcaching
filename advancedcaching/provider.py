@@ -147,6 +147,13 @@ class PointProvider():
         c = self.conn.execute('SELECT * FROM %s WHERE logas != %d' % (self.cache_table, self.ctype.LOG_NO_LOG))
         return self.pack_result(c)
 
+    def get_last_viewed(self, count):
+        c = self.conn.execute('SELECT * FROM %s ORDER BY last_viewed DESC LIMIT %d' % (self.cache_table, count))
+        return self.pack_result(c)
+        
+    def get_last_updated(self, count):
+        c = self.conn.execute('SELECT * FROM %s ORDER BY updated DESC LIMIT %d' % (self.cache_table, count))
+        return self.pack_result(c)
         
     def get_nearest_point_filter(self, center, c1, c2, found):
         filterstring = copy(self.filterstring)

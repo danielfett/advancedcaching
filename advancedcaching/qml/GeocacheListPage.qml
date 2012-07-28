@@ -173,6 +173,14 @@ Page {
             MenuItem { text: "Sort by Found, Type"; onClicked: {
                     model.sort(3, null);
                 } }
+
+            MenuItem { text: "Sort by last viewed"; onClicked: {
+                    model.sort(4, null);
+                } }
+
+            MenuItem { text: "Sort by latest update"; onClicked: {
+                    model.sort(5, null);
+                } }
             MenuItem { text: "Settings"; onClicked: { showSettings(); } }
         }
     }

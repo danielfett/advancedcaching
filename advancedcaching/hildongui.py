@@ -410,11 +410,6 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         
         menu.append(self._get_tools_button())
 
-    
-        
-
-
-
         menu.show_all()
         return menu
 

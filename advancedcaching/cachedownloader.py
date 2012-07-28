@@ -560,6 +560,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 break
         else:
             coordinate.stats = GeocacheCoordinate.STATUS_NORMAL
+            
+        # And finally, set last updated time
+        coordinate.touch_updated()
         
         logger.debug("End parsing.")
         return coordinate
@@ -704,6 +707,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 waypoints += [w]
                 w = {}
         coordinate.set_waypoints(waypoints)
+
+        # And finally, set last updated time
+        coordinate.touch_updated()
 
         logger.debug("End parsing.")
         return coordinate

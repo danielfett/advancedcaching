@@ -218,6 +218,16 @@ class Controller(QtCore.QObject):
         self.__pointmodel = GeocacheListModel(self.core, self.core.pointprovider.get_points_filter())
         self.core.pointprovider.pop_filter()
         return self.__pointmodel
+        
+    @QtCore.Slot(result = QtCore.QObject)
+    def getLastViewedGeocaches(self):
+        self.__pointmodel = GeocacheListModel(self.core, self.core.pointprovider.get_last_viewed(20))
+        return self.__pointmodel
+        
+    @QtCore.Slot(result = QtCore.QObject)
+    def getLastUpdatedGeocaches(self):
+        self.__pointmodel = GeocacheListModel(self.core, self.core.pointprovider.get_last_updated(40))
+        return self.__pointmodel
 
     def _progress(self):
         return self._progress
@@ -1057,6 +1067,10 @@ class GeocacheWrapper(QtCore.QObject):
         self.core.save_cache_attribute(self._geocache, 'marked')
         self.changed.emit()
         
+    def _updated(self):
+        date = self._geocache.get_updated()
+        return date.strftime('%Y-%m-%d') if (date != None) else 'unknown'
+        
     def _var_list(self):
         if self._var_list == None:
             if self._geocache.calc == None:
@@ -1101,6 +1115,11 @@ class GeocacheWrapper(QtCore.QObject):
         self._geocache.logdate = strftime('%Y-%m-%d', gmtime())
         self.core.save_fieldnote(self._geocache)
         self.changed.emit()
+        
+    @QtCore.Slot()
+    def setViewed(self):
+        self._geocache.touch_viewed()
+        self.core.save_cache_attribute(self._geocache, 'last_viewed')
 
     changed = QtCore.Signal()
     coordsChanged = QtCore.Signal()
@@ -1122,6 +1141,7 @@ class GeocacheWrapper(QtCore.QObject):
     images = QtCore.Property(QtCore.QObject, _images, notify=changed)
     status = QtCore.Property(int, _status, notify=changed)
     marked = QtCore.Property(bool, _marked, _set_marked, notify=changed)
+    updated = QtCore.Property(str, _updated, notify=changed)
     logs = QtCore.Property(QtCore.QObject, _logs, notify=changed)
     logsCount = QtCore.Property(int, _logs_count, notify=changed)
     coordinates = QtCore.Property(QtCore.QObject, _coordinates, notify=coordsChanged)
@@ -1141,6 +1161,8 @@ class GeocacheListModel(QtCore.QAbstractListModel):
     SORT_BY_NAME = 1
     SORT_BY_TYPE = 2
     SORT_BY_FOUND = 3
+    SORT_BY_LAST_VIEWED = 4
+    SORT_BY_LAST_UPDATED = 5
     
     def __init__(self, core, points = []):
         QtCore.QAbstractListModel.__init__(self)
@@ -1165,10 +1187,7 @@ class GeocacheListModel(QtCore.QAbstractListModel):
         return len(self._geocaches)
 
     def data(self, index, role):
-        #if index.isValid() and role == GeocacheListModel.COLUMNS.index('geocache'):
-        #logger.debug("Data called, asked for index %d which is currently %s" % (index.row(), self._geocaches[index.row()]._geocache.name))
         return self._geocaches[index.row()]
-        #return None
         
     @QtCore.Slot(int, QtCore.QObject)
     def sort(self, by, gpsWrapper):
@@ -1184,6 +1203,10 @@ class GeocacheListModel(QtCore.QAbstractListModel):
             key = lambda f: f._type() + ("b" if f._found() else "a")
         elif by == self.SORT_BY_FOUND:
             key = lambda f: ("b" if f._found() else "a") + f._type()
+        elif by == self.SORT_BY_LAST_VIEWED:
+            key = lambda f: -(f._geocache.last_viewed if f._geocache.last_viewed != None else 0)
+        elif by == self.SORT_BY_LAST_UPDATED:
+            key = lambda f: -(f._geocache.updated if f._geocache.updated != None else 0)
         self._geocaches.sort(key = key)
         self.dataChanged.emit(self.createIndex(0,0), self.createIndex(len(self._geocaches),0))
         

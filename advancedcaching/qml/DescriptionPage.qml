@@ -8,6 +8,9 @@ Page {
     onStatusChanged: {
         if (status == PageStatus.Inactive && tabDetailsPageStack.depth == 1) {
             pageDescription.source = "";
+        } 
+        if (status == PageStatus.Active && currentGeocache) {
+            currentGeocache.setViewed();
         }
     }
 
@@ -39,6 +42,21 @@ Page {
                 id: title
             }
 
+            Label {
+                font.pixelSize: 20
+                color: UI.COLOR_INFOLABEL
+                text: "Last updated"
+                id: labelUpdated
+            }
+            
+            Label {
+                id: updated
+                text: currentGeocache.updated
+                anchors.left: parent.left
+                anchors.right: parent.right
+                wrapMode: Text.Wrap
+            }
+            
             WebView {
                 anchors.left: parent.left
                 anchors.right: parent.right
@@ -89,7 +107,7 @@ Page {
 
         clip: true
         contentWidth: width
-        contentHeight: title.height + 16 + label.height + 16 + description.height + header.height + 16 + labelAttributes.height + 16 + attributes.height + 8
+        contentHeight: title.height + 16 + label.height + 16 + labelUpdated.height + 16 + updated.height + 16 + description.height + header.height + 16 + labelAttributes.height + 16 + attributes.height + 8
         
     }
 
