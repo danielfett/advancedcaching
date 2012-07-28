@@ -935,9 +935,9 @@ if __name__ == '__main__':
     else:
         logger.error("I don't know what you want to do...")
         sys.exit()
-    #res = a.update_coordinate(m, num_logs = 20, outfile = "/tmp/geocache.tmp")
-    res =m
-    print res
+    res = a.update_coordinate(m, num_logs = 20)
+    #res =m
+    #print res
     c = res
     
     if c.owner != 'webhamster':
@@ -954,8 +954,9 @@ if __name__ == '__main__':
         logger.error("Length of short description doesn't match (%d, expected at least %d chars)" % (len(c.shortdesc), 200))
     if len(c.get_waypoints()) != 4:
         logger.error("Expected 4 waypoints, got %d" % len(c.get_waypoints()))
-    if len(c.hints) != 83:
-        logger.error("Expected 83 characters of hints, got %d" % len(c.hints))
+    if len(c.hints) < 80 or len(c.hints) > 90:
+        # Hint text length depends on whether HTML is contained, how linebreaks are converted, etc.
+        logger.error("Expected 80-90 characters of hints, got %d" % len(c.hints))
     if len(c.attributes) < 20:
         logger.error("Expected 20 characters of attributes, got %d" % len(c.attributes))
     
