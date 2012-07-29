@@ -189,7 +189,7 @@ class Core(gobject.GObject):
 
         self.downloader = downloader.FileDownloader(self.settings['options_username'], self.settings['options_password'], self.COOKIE_FILE)
                 
-        self.pointprovider = provider.PointProvider(self.CACHES_DB, geocaching.GeocacheCoordinate, 'geocaches')
+        self.pointprovider = provider.PointProvider(self.CACHES_DB, geocaching.GeocacheCoordinate)
 
         self.gui = guitype(self, self.dataroot)
         
@@ -639,10 +639,6 @@ class Core(gobject.GObject):
     ##############################################
                 
     # called by gui
-    def on_start_search_simple(self, text):
-        self.__try_show_cache_by_search('%' + text + '%')
-
-    # called by gui
     def set_filter(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location=None, marked=None):
         self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked=marked)
         self.emit('map-marks-changed')
@@ -670,14 +666,6 @@ class Core(gobject.GObject):
     def get_geocache_by_name(self, name):
         return self.pointprovider.get_by_name(name)
 
-    def __try_show_cache_by_search(self, idstring):
-        cache = self.pointprovider.find_by_string(idstring)
-        if cache != None:
-            self.gui.show_cache(cache)
-            self.gui.set_center(cache)
-            return True
-        return False
-
     ##############################################
     #
     # Downloading
@@ -702,6 +690,13 @@ class Core(gobject.GObject):
 
     # called by gui
     def on_download(self, location, sync=False):
+        """
+        Downloads all geocaches within the boundaries given in location.
+        
+        location -- Geographic oundaries (see cachedownloader.get_geocaches for details)
+        sync -- Perform actions synchronized, i.e., don't use threads.
+        
+        """
         if not sync:                
             t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.get_geocaches', self.on_download_complete, location])
             t.daemon = True
@@ -712,6 +707,12 @@ class Core(gobject.GObject):
 
     # called on signal by downloading thread
     def on_download_complete(self, caches, sync=False):
+        """
+        Called upon completion of the download of all geocaches within a boundary.
+        
+        caches -- Updated geocache information.
+        sync -- Perform actions synchronized, i.e., don't use threads.
+        """
         new_caches = []
         for c in caches:
             point_new = self.pointprovider.add_point(c)
