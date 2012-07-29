@@ -21,8 +21,8 @@
 #
 
 
-VERSION = 28
-VERSION_DATE = '2012-07-23'
+VERSION = 29
+VERSION_DATE = '2012-07-29'
 
 import logging
 logger = logging.getLogger('cachedownloader')
@@ -421,9 +421,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
             if s.startswith('//<![CDATA[\r\nvar uvtoken'):
                 userToken = re.sub("(?s).*userToken = '", '', s)
                 userToken = re.sub("(?s)'.*", '', userToken)
-                print "userToken:", userToken
+                logger.debug("userToken: %s" % userToken)
         
-        self.emit('progress', 'Logs', progress_min + 0.2 * (progress_max - progress_min), progress_all)
+        self.emit('progress', 'Fetching logs', progress_min + 0.2 * (progress_max - progress_min), progress_all)
         
         #Ask first page of logs. And same time number of pages
         logs = self.downloader.get_reader(
@@ -814,7 +814,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
             res = response.read()
             res.close()
             t = unicode(res, 'utf-8')
-            print t
             doc = fromstring(t)
             
             # There's no real success/no success message on the website. 

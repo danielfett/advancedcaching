@@ -89,6 +89,7 @@ else:
     import cli
     gui = cli.Cli
     gps = None
+    extensions.append('geonames')
     
 if '--sim' in argv:
     gps = 'simulatingprovider'
@@ -385,7 +386,6 @@ class Core(gobject.GObject):
             try:
                 reader = self.downloader.get_reader(url, login=False)
             except HTTPError, e:
-                logging.exception(e)
                 raise NoUpdateException("No updates available.")
             except Exception, e:
                 logging.exception(e)
@@ -770,7 +770,7 @@ class Core(gobject.GObject):
             t.start()
             return False
         else:
-            return self._download_overview_complete(None, self.cachedownloader.get_geocaches(location), True)
+            return self._download_overview_complete(self.cachedownloader.get_geocaches(location), True)
 
     def _download_overview_complete(self, caches, sync=False):
         """
@@ -808,7 +808,7 @@ class Core(gobject.GObject):
             return False
         else:
             full = self.cachedownloader.update_coordinate(cache, self.settings['download_num_logs'])
-            return _download_cache_details_complete(full, sync)
+            return self._download_cache_details_complete(full, sync)
 
     def _download_cache_details_complete(self, cache, sync = False):
         """
@@ -859,16 +859,20 @@ class Core(gobject.GObject):
         self.pointprovider.pop_filter()
         self.download_cache_details_list(caches)
 
-    def download_cache_details_list(self, caches):
+    def download_cache_details_list(self, caches, sync=False):
         """
         Download/update *detailed* information for a list of geocaches.
         
         caches -- List of geocaches
         
         """
-        t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.update_coordinates', self._download_cache_details_list_complete, caches, self.settings['download_num_logs']])
-        t.daemon = True
-        t.start()
+        if not sync:
+            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.update_coordinates', self._download_cache_details_list_complete, caches, self.settings['download_num_logs']])
+            t.daemon = True
+            t.start()
+            return False
+        else:
+            return self._download_cache_details_list_complete(self.cachedownloader.update_coordinates(caches))
         
     def _download_cache_details_list_complete(self, caches):
         """

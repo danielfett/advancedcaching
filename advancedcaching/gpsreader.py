@@ -30,7 +30,7 @@ logger = logging.getLogger('gpsreader')
 try:
     import location
 except (ImportError):
-    logger.warning("If you're on maemo, please install python-location")
+    pass
 
 class Fix():
     BEARING_HOLD_EPD = 90 # arbitrary, yet non-random value
@@ -215,6 +215,10 @@ class LocationGpsReader():
     BEARING_HOLD_SPEED = 2.5 # km/h
 
     def __init__(self, cb_fix):
+        try:
+            location
+        except NameError:
+            logger.error('Please install python-location.')
         logger.info("Using liblocation GPS device")
 
         control = location.GPSDControl.get_default()

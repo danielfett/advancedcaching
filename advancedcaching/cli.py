@@ -32,8 +32,10 @@ usage = r'''Here's how to use this app:
 If you want to use the gui:
 %(name)s --simple
     Simple User Interface, for mobile devices such as the Openmoko Freerunner
-%(name)s --desktop
-    Full User Interface, for desktop usage (not implemented yet)
+%(name)s --hildon
+    For the Maemo/N900 user interface
+%(name)s --qml
+    For the QML/Meego/N9 user interface
 
 If you don't like your mouse:
 %(name)s update
@@ -102,7 +104,17 @@ actions:
                 Dumps HTML pages to given folder
         --command command
                 Runs command if more than one geocache has survived the filtering.
-                The placeholder %%s is replaced by a shell-escaped list of geocaches.
+                The placeholder %%s is replaced by a shell-escaped comma-separated 
+                list of titles and names of the geocaches.
+        --commands command
+                Run a command for each found geocache. The command is formatted using
+                python's .format() function and is provided with the geocache's 
+                properties. The strings are already bash-escaped.
+                Example: --commands "echo {name} {difficulty} {size} {owner}"
+                The names of other properties are roughly equivalent to the names
+                shown when you run "%(name)s sql"
+                See http://docs.python.org/library/string.html#formatstrings for
+                syntax details.
 
         Not implemented yet:
         --export-gpx folder
@@ -169,8 +181,6 @@ class Cli():
     #    self.settings = settings
         
     def show(self):
-        print "$ The command line interface is not fully implemented yet, feel"
-        print "$ free to contribute at git://github.com/webhamster/advancedcaching.git"
         
         try:
             self.parse_input()
@@ -216,7 +226,7 @@ class Cli():
             elif sys.argv[self.nt] == '-v':
                 self.nt += 1
             else: 
-                raise ParseError("Expected 'import', 'sql', 'filter' or 'do'", self.nt - 1)
+                raise ParseError("Expected 'import', 'sql', 'filter' or 'do' but found '%s'" % sys.argv[self.nt], self.nt - 1)
 
         self.core.prepare_for_disposal()
 
@@ -367,6 +377,9 @@ class Cli():
             elif token == '--command':
                 cmd = self.parse_string()
                 self.action_command(cmd)
+            elif token == '--commands':
+                cmd = self.parse_string()
+                self.action_command_split(cmd)
             else:
                 raise ParseError("Unknown action: %s" % token)
 
@@ -478,8 +491,9 @@ class Cli():
         
     def parse_decimal(self):
         if not self.has_next():
-            raise ParseError("Expected a number", self.nt - 1)
+            raise ParseError("Expected a decimal number", self.nt - 1)
         text = sys.argv[self.nt]
+        self.nt += 1
         try:
             return 10 * float(text)
         except:
@@ -554,22 +568,22 @@ class Cli():
         
     def add_filter_difficulty(self, op, diff):
         if op == self.EQ:
-            self.caches = filter(lambda x: x.diff == diff, self.caches)
+            self.caches = filter(lambda x: int(float(x.get_difficulty())*10) == diff, self.caches)
         elif op == self.MIN:
-            self.caches = filter(lambda x: x.diff >= diff, self.caches)
+            self.caches = filter(lambda x: int(float(x.get_difficulty())*10) >= diff, self.caches)
         elif op == self.MAX:
-            self.caches = filter(lambda x: x.diff <= diff, self.caches)
+            self.caches = filter(lambda x: int(float(x.get_difficulty())*10) <= diff, self.caches)
         else:
             raise RunError("What Happen? Somebody set us up the geocache.")
         print "* filter with difficulty: %d left" % len(self.caches)
             
     def add_filter_terrain(self, op, terr):
         if op == self.EQ:
-            self.caches = filter(lambda x: x.terr == terr, self.caches)
+            self.caches = filter(lambda x: int(float(x.get_terrain())*10) == terr, self.caches)
         elif op == self.MIN:
-            self.caches = filter(lambda x: x.terr >= terr, self.caches)
+            self.caches = filter(lambda x: int(float(x.get_terrain())*10) >= terr, self.caches)
         elif op == self.MAX:
-            self.caches = filter(lambda x: x.terr <= terr, self.caches)
+            self.caches = filter(lambda x: int(float(x.get_terrain())*10) <= terr, self.caches)
         else:
             raise RunError("What Happen? Somebody set us up the geocache.")
         print "* filter with terrain: %d left" % len(self.caches)
@@ -609,11 +623,7 @@ class Cli():
             
             
     def action_fetch_details(self):
-        i = 1 
-        for c in self.caches:
-            print "* (%d of %d)\tDownloading '%s'" % (i, len(self.caches), c.title)
-            self.core.download_cache_details(c, sync=True)
-            i += 1
+        self.core.download_cache_details_list(self.caches, sync=True)
     
     def action_export(self, format, folder):
         i = 1
@@ -628,6 +638,20 @@ class Cli():
             return
         list = " -- ".join([("%s (%s)" % (a.title, a.type)).encode('utf-8') for a in self.caches])
         os.system(commandline % ('"%s"' % list.encode('string-escape')))
+        
+    def action_command_split(self, commandline):
+        from pipes import quote
+        if len(self.caches) == 0:
+            print "* Not running command (no geocaches left)"
+            return
+        def my_encode(t):
+            try:
+                return quote(unicode(b).encode('utf-8'))
+            except Exception, e:
+                return ''
+        for a in self.caches:
+            cmd = commandline.format(**dict([(a, my_encode(b)) for a, b in a.__dict__.items()]))
+            os.system(cmd)
         
     def set_download_progress(self, some, thing):
         pass
