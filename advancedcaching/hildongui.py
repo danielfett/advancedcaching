@@ -58,8 +58,6 @@ logger = logging.getLogger('simplegui')
 
 class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, HildonAboutDialog, HildonDownloadMap, SimpleGui):
 
-    USES = ['locationgpsprovider', 'geonames']
-
     MIN_DRAG_REDRAW_DISTANCE = 2
     DRAG_RECHECK_SPEED = 40
 
@@ -100,8 +98,9 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
     CACHE_DRAW_SIZE = 13
     CACHE_DRAW_FONT = pango.FontDescription("Nokia Sans Maps 10")
 
-    def __init__(self, core, dataroot):
+    def __init__(self, core):
         gtk.gdk.threads_init()
+        dataroot = join(self._get_dataroot(), 'data')
         self._prepare_images(dataroot)
         
         self.core = core
@@ -1555,7 +1554,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
 
 
     def _on_download_cache_clicked(self, some, thing):
-        self.core.on_download_cache(self.current_cache)
+        self.core.download_cache_details(self.current_cache)
 
     def _on_cache_marked_toggle(self, widget, data):
         if self.current_cache == None:

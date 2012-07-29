@@ -47,7 +47,8 @@ try:
 except (ImportError):
     logger.info( "Please install glade if you're NOT on the maemo platform.")
 import pango
-from os import path, extsep
+from os import extsep
+from os.path import islink, realpath, dirname, abspath, join, exists
 import re
 from utils import HTMLManipulations
 from gtkmap import Map, GeocacheLayer, MarksLayer, OsdLayer
@@ -111,8 +112,8 @@ class SimpleGui(Gui):
         'download_map_path'
     ]
                 
-    def __init__(self, core, dataroot):
-    
+    def __init__(self, core):
+        dataroot = join(self._get_dataroot(), 'data')
         gtk.gdk.threads_init()
         self._prepare_images(dataroot)
         
@@ -158,19 +159,31 @@ class SimpleGui(Gui):
         self.astral = Astral()
         
         global xml
-        xml = gtk.glade.XML(path.join(dataroot, self.XMLFILE))
+        xml = gtk.glade.XML(join(dataroot, self.XMLFILE))
         self.load_ui()
         # self.build_tile_loaders()
 
+    def _get_dataroot(self):
+        """Borrowed from wxglade.py"""
+        try:
+            root = __file__
+            if islink (root):
+                root = realpath (root)
+            return dirname(abspath (root))
+        except:
+            logging.error("I'm sorry, but something is wrong.")
+            logging.error("There is no __file__ variable. Please contact the author.")
+            exit()
 
     def _get_geocaches_callback(self, visible_area, maxresults):
         return self.core.pointprovider.get_points_filter(visible_area, False if self.settings['options_hide_found'] else None, maxresults)
  
 
     def _prepare_images(self, dataroot):
-        p = "%s%s%%s" % (path.join(dataroot, '%s'), extsep)
+        p = "%s%s%%s" % (join(dataroot, '%s'), extsep)
         self.noimage_cantload = p % ('noimage-cantload', 'png')
         self.noimage_loading = p % ('noimage-loading', 'png')
+        logger.debug("noimage_cantload is %s" % self.noimage_cantload)
 
 
     def _on_cache_changed(self, something, cache):
@@ -380,7 +393,7 @@ class SimpleGui(Gui):
                 
         
     def on_window_destroy(self, target, more=None, data=None):
-        self.core.on_destroy()
+        self.core.prepare_for_disposal()
         gtk.main_quit()
 
     def _get_best_coordinate(self, start=None):
@@ -395,14 +408,14 @@ class SimpleGui(Gui):
         return c
                 
     # called by core
-    def display_results_advanced(self, caches):
+    def display_results_advanced(self, caches, truncated):
         label = xml.get_widget('label_too_much_results')
-        too_many = len(caches) > self.MAX_NUM_RESULTS
+        too_many = truncated or len(caches) > self.MAX_NUM_RESULTS
         if too_many:
-            text = 'Too many results. Only showing first %d.' % self.MAX_NUM_RESULTS
+            caches = caches[:self.MAX_NUM_RESULTS]
+            text = 'Too many results. Only showing first %d.' % len(caches)
             label.set_text(text)
             label.show()
-            caches = caches[:self.MAX_NUM_RESULTS]
         else:
             label.hide()
         self.cachelist_contents = caches
@@ -623,15 +636,15 @@ class SimpleGui(Gui):
 
     # This downloads the geocache positions
     def on_download_clicked(self, widget, data=None):
-        self.core.on_download(self.map.get_visible_area())
+        self.core.download_overview(self.map.get_visible_area())
 
     # Downloads the details for all visible geocaches
     def on_download_details_map_clicked(self, some, thing=None):
         logger.debug("Downloading geocaches on map.")
-        self.core.on_download_descriptions(self.map.get_visible_area())
+        self.core.download_cache_details_map(self.map.get_visible_area())
 
     def on_download_details_sync_clicked(self, something):
-        self.core.on_download_descriptions(self.map.get_visible_area())
+        self.core.download_cache_details_map(self.map.get_visible_area())
                 
     def on_actions_clicked(self, widget, event):
         xml.get_widget('menu_actions').popup(None, None, None, event.button, event.get_time())
@@ -665,13 +678,13 @@ class SimpleGui(Gui):
         self.map.redraw_layers()
                 
     def on_download_cache_clicked(self, something):
-        self.core.on_download_cache(self.current_cache)
+        self.core.download_cache_details(self.current_cache)
         
     def on_export_cache_clicked(self, something):
         if self.input_export_path.get_value().strip() == '':
             self.show_error("Please input path to export to.")
             return
-        self.core.on_export_cache(self.current_cache, self.input_export_path.get_value())
+        self.core.export_cache(self.current_cache, self.input_export_path.get_value())
         
     def _on_good_fix(self, core, gps_data, distance, bearing):
         self.gps_data = gps_data
@@ -708,7 +721,7 @@ class SimpleGui(Gui):
 
                 
     def on_list_marked_clicked(self, widget):
-        self.core.on_start_search_advanced(marked=True)
+        self.display_results_advanced(*self.core.get_points_filter(marked=True))
 
 
     def _on_no_fix(self, caller, gps_data, status):
@@ -836,7 +849,8 @@ class SimpleGui(Gui):
             self.filtermsg.hide()
         else:
             self.filtermsg.show()
-        self.core.on_start_search_advanced(found=found, name_search=name_search, size=sizes, terrain=search['terr'], diff=search['diff'], ctype=types, location=location, marked=marked)
+        
+        self.display_results_advanced(*self.core.get_points_filter(found=found, name_search=name_search, size=sizes, terrain=search['terr'], diff=search['diff'], ctype=types, location=location, marked=marked))
 
     def on_search_cache_clicked(self, listview, event, element):
         if element == None:
@@ -854,7 +868,8 @@ class SimpleGui(Gui):
                 
     def on_search_reset_clicked(self, something):
         self.filtermsg.hide()
-        self.core.on_start_search_advanced()
+        
+        self.display_results_advanced(*self.core.get_points_filter())
 
                 
     def on_set_target_clicked(self, something):
@@ -878,7 +893,7 @@ class SimpleGui(Gui):
         self.marks_layer.set_follow_position(widget.get_active())
 
     def on_upload_fieldnotes(self, something):
-        self.core.on_upload_fieldnotes()
+        self.core.upload_fieldnotes()
         
     def on_waypoint_clicked(self, listview, event, element):
         if event.type != gtk.gdk._2BUTTON_PRESS or element == None:
@@ -914,8 +929,8 @@ class SimpleGui(Gui):
             if self.current_cache == None or len(self.images) <= self.image_no:
                 self._update_cache_image(True)
                 return
-            filename = path.join(self.settings['download_output_dir'], self.images[self.image_no][0])
-            if not path.exists(filename):
+            filename = join(self.settings['download_output_dir'], self.images[self.image_no][0])
+            if not exists(filename):
                 self.image_cache_caption.set_text("not found: %s" % filename)
                 self.image_cache.set_from_stock(gtk.STOCK_GO_FORWARD, -1)
                 return

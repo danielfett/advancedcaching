@@ -155,7 +155,7 @@ class Cli():
     MIN = 1
     MAX = 2
 
-    def __init__(self, core, dataroot):
+    def __init__(self, core):
         self.nt = 1
         self.core = core
         self.caches = None
@@ -218,7 +218,7 @@ class Cli():
             else: 
                 raise ParseError("Expected 'import', 'sql', 'filter' or 'do'", self.nt - 1)
 
-        self.core.on_destroy()
+        self.core.prepare_for_disposal()
 
     def parse_set(self):
         self.nt += 1
@@ -496,7 +496,7 @@ class Cli():
     def import_points(self, c1, c2):
         if isinstance(c2, geo.Coordinate):
             print "* Downloading Caches between %s and %s" % (c1, c2)
-            self.caches, self.new_caches = self.core.on_download((c1, c2), sync=True)
+            self.caches, self.new_caches = self.core.download_overview((c1, c2), sync=True)
         else:
             # try to calculate some points northwest and southeast to the
             # given point with approximately correct distances
@@ -504,7 +504,7 @@ class Cli():
             new_c2 = c1.transform(-45 + 180, c2 * 1000 * math.sqrt(2))
             print "* Downloading Caches in %.3f km distance to %s" % (c2, c1)
             print "* Approximation: Caches between %s and %s" % (new_c1, new_c2)
-            self.caches, self.new_caches = self.core.on_download((new_c1, new_c2), sync=True)
+            self.caches, self.new_caches = self.core.download_overview((new_c1, new_c2), sync=True)
 
     def import_points_route(self, c1, c2, r):
         print "* Querying OpenRouteService for route from startpoint to endpoint"
@@ -612,14 +612,14 @@ class Cli():
         i = 1 
         for c in self.caches:
             print "* (%d of %d)\tDownloading '%s'" % (i, len(self.caches), c.title)
-            self.core.on_download_cache_complete(None, self.core.on_download_cache(c, sync=True))
+            self.core.download_cache_details(c, sync=True)
             i += 1
     
     def action_export(self, format, folder):
         i = 1
         for c in self.caches:
             print "* (%d of %d)\tExporting to %s: '%s'" % (i, len(self.caches), format, c.title)
-            self.core.on_export_cache(c, format, folder)
+            self.core.export_cache(c, format, folder)
             i += 1
 
     def action_command(self, commandline):

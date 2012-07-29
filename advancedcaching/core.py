@@ -49,12 +49,9 @@ import cachedownloader
 from actors.tts import TTS
 from re import sub
 import threading
-#from actors.notify import Notify
 
 import connection
 import gobject
-
-use_connection_handling = False
 
 if len(argv) == 1:
     import cli
@@ -69,22 +66,34 @@ if '-v' in argv or '--remote' in argv:
 if '--debug-http' in argv:
     downloader.enable_http_debugging()
 
+extensions = []
 if '--simple' in argv:
     import simplegui
     gui = simplegui.SimpleGui
+    gps = 'gpsdprovider'
 elif '--desktop' in argv:
     import biggui
     gui = biggui.BigGui
 elif '--qml' in argv:
     import qmlgui
     gui = qmlgui.QmlGui
+    gps = 'qmllocationprovider'
 elif '--hildon' in argv:
     connection.init() # is only used on the maemo platform
     import hildongui
     gui = hildongui.HildonGui
+    gps = 'locationgpsprovider'
+    extensions.append('geonames')
+    extensions.append('tts')
 else:
     import cli
     gui = cli.Cli
+    gps = None
+    
+if '--sim' in argv:
+    gps = 'simulatingprovider'
+elif '--nogps' in argv:
+    gps = None
 
 logger = logging.getLogger('core')
 
@@ -160,18 +169,23 @@ class Core(gobject.GObject):
         'options_backend': 'geocaching-com-new',
     }
             
-    def __init__(self, guitype, root):
+    def __init__(self, guitype, gpstype, extensions):
+        """
+        Initialize the application.
+        
+        guitype -- Python type of the gui which is to be used.
+        gpstype -- String indicating the desired GPS access method.
+        extensions -- List of strings indicating desired extensions.
+        """
         gobject.GObject.__init__(self)
         self.current_target = None
         self.current_position = None
         self.auto_update_checked = False
         self.create_recursive(self.SETTINGS_DIR)
 
-        self.dataroot = path.join(root, 'data')
-
+        # self.cachedownloader is populated in settings handling.
         self.cachedownloader = None
         self._install_updates()
-        # self.cachedownloader is created in settings handling.
 
         self.__read_config()
         
@@ -186,19 +200,14 @@ class Core(gobject.GObject):
         self.connect('save-settings', self.__on_save_settings)
         self.create_recursive(self.settings['download_output_dir'])
         self.create_recursive(self.settings['download_map_path'])
-
+        
         self.downloader = downloader.FileDownloader(self.settings['options_username'], self.settings['options_password'], self.COOKIE_FILE)
                 
         self.pointprovider = provider.PointProvider(self.CACHES_DB, geocaching.GeocacheCoordinate)
 
-        self.gui = guitype(self, self.dataroot)
-        
-        #actor_tts = TTS(self)
-        #actor_tts.connect('error', lambda caller, msg: self.emit('error', msg))
-        #actor_notify = Notify(self)
+        self.gui = guitype(self)
         
         
- 
         if ('debug_log_to_http' in self.settings and self.settings['debug_log_to_http']) or '--remote' in argv:
             http_handler = logging.handlers.HTTPHandler("danielfett.de", "http://www.danielfett.de/files/collect.php")
             buffering_handler = logging.handlers.MemoryHandler(100, target = http_handler)
@@ -212,30 +221,20 @@ class Core(gobject.GObject):
         self.emit('settings-changed', self.settings, self)
         self.emit('fieldnotes-changed')  
 
-        if '--sim' in argv:
-            self.gps_thread = gpsreader.FakeGpsReader(self)
-            gobject.timeout_add(1000, self.__read_gps)
-            self.set_target(gpsreader.FakeGpsReader.get_target())
-        elif '--nogps' in argv:
-            self.gps_thread = gpsreader.FakeGpsReader(self)
-            self.set_target(gpsreader.FakeGpsReader.get_target())
-        elif 'gpsprovider' in self.gui.USES:
-            self.gps_thread = gpsreader.GpsReader()
-            #self.gps_thread = gpsreader.FakeGpsReader(self)
-            gobject.timeout_add(1000, self.__read_gps)
-        elif 'locationgpsprovider' in self.gui.USES:
-            self.gps_thread = gpsreader.LocationGpsReader(self.__read_gps_cb_error, self.__read_gps_cb_changed)
-            gobject.idle_add(self.gps_thread.start)
-        elif 'qmllocationprovider' in self.gui.USES:
-            self.gui.get_gps(self.__read_gps)
-            self.gps_thread = None
-        if 'geonames' in self.gui.USES:
+        self.__setup_gps(gps)
+            
+        if 'geonames' in extensions:
             import geonames
             self.geonames = geonames.Geonames(self.downloader)
+            
+        if 'tts' in extensions:
+            from actors.notify import Notify
+            actor_tts = TTS(self)
+            actor_tts.connect('error', lambda caller, msg: self.emit('error', msg))
+            actor_notify = Notify(self)
 
         if '--startup-only' in argv:
             return
-
 
         self.gui.show()
         if not '--profile' in argv:
@@ -243,12 +242,16 @@ class Core(gobject.GObject):
 
     ##############################################
     #
-    # Misc
+    # Misc, File and Path operations
     #
     ##############################################
 
     @staticmethod
     def create_recursive(dpath):
+        """
+        Create dpath and all parent directories if necessary
+        
+        """
         if dpath != '/':
             if not path.exists(dpath):
                 head, tail = path.split(dpath)
@@ -260,6 +263,11 @@ class Core(gobject.GObject):
                     pass
 
     def optimize_data(self):
+        """
+        Clean up database and file system.
+        
+        Removes found geocaches and their images from the database or filesystem, respectively.
+        """
         self.pointprovider.push_filter()
         self.pointprovider.set_filter(found=True)
         old_geocaches = self.pointprovider.get_points_filter()
@@ -278,6 +286,10 @@ class Core(gobject.GObject):
         self.pointprovider.optimize()
 
     def get_file_sizes(self):
+        """
+        Return the accumulated size of the images in the download output directory (i.e., the images).
+        
+        """
         folder = self.settings['download_output_dir']
         folder_size = 0
         for (p, dirs, files) in walk(folder):
@@ -289,6 +301,10 @@ class Core(gobject.GObject):
 
     @staticmethod
     def format_file_size(size):
+        """
+        Format a file size to a human readable string.
+        
+        """
         if size < 1024:
             return "%d B" % size
         elif size < 1024 * 1024:
@@ -306,6 +322,11 @@ class Core(gobject.GObject):
     ##############################################
 
     def _install_updates(self):
+        """
+        Installs updated modules. 
+        
+        Checks the updates directory for new versions of one of the modules listed in self.UPDATE_MODULES and reloads the modules. Version check is performed by comparing the VERSION variable stored in the module.
+        """
         updated_modules = 0
         if path.exists(self.UPDATE_DIR):
             sys_path.insert(0, self.UPDATE_DIR)
@@ -318,6 +339,9 @@ class Core(gobject.GObject):
                             if line.startswith('VERSION'):
                                 exec line in v_dict
                                 break
+                        else:
+                            logger.error("Could not find VERSION string in file %s!" % modulefile) 
+                            continue
                     if v_dict['VERSION'] > m.VERSION:
                         logging.info("Reloading Module '%s', current version number: %d, new version number: %d" % (m.__name__, v_dict['VERSION'], m.VERSION))
                         reload(m)
@@ -331,7 +355,14 @@ class Core(gobject.GObject):
         return updated_modules
 
     def try_update(self, silent = False, sync = False):
+        """
+        Retrieve and install updates.
+        
+        This method connects to danielfett.de and tries to retrieve an md5sums file containing references to updated files for this AGTL version. If available, downloads the files and checks their md5sums before copying them to the updates folder. Calls self._install_updates afterwards to reload updated modules.
+        silent -- If possible, suppress errors. Useful for auto-updating.
+        sync -- Perform actions synchronously, i.e., don't use threads.
 
+        """
         if connection.offline:
             if not silent:
                 self.emit('error', Exception("Can't update in offline mode."))
@@ -437,19 +468,27 @@ class Core(gobject.GObject):
     #
     ##############################################
 
-    '''
-    This should be called to update the settings throughout all components.
-    '''
     def save_settings(self, settings, source):
+        '''
+        This should be called to update the settings throughout all components.
+        
+        When settings need to be changed, for example when the GUI updates the username, other components need to be notified. This method updates the settings and notifies the other components (including the core).
+        settings -- Subset of settings dictionary which is to be updated.
+        source -- Calling class instance, for example a HildonGui instance. This is passed on so that the triggering component can suppress reactions to its own updates.
+        '''
         logger.debug("Got settings update from %s" % source)
         
         self.settings.update(settings)
         self.emit('settings-changed', settings, source)
 
-    '''
-    This is called when settings have changed.
-    '''
+
     def __on_settings_changed(self, caller, settings, source):
+        '''
+        This is called when settings have changed.
+        
+        This method is connected to the settings-changed signal and indicates that someone has changed the settings. The new settings need to be applied, e.g., to the cachedownloader.
+        settings -- contains only the updated parts of the settings dictionary.
+        '''
         logger.debug("Settings where changed by %s." % source)
         
         if 'options_backend' in settings or 'download_output_dir' in settings or 'download_noimages' in settings:
@@ -461,12 +500,13 @@ class Core(gobject.GObject):
             self.downloader.update_userdata(username = settings['options_username'])
         if 'options_password' in settings:
             self.downloader.update_userdata(password = settings['options_password'])
-        
 
-    '''
-    This is called when settings shall be saved, calling save_settings afterwards.
-    '''
     def __on_save_settings(self, caller):
+        """
+        This is called when settings shall be saved, calling save_settings afterwards.
+        
+        The save-settings signal is emitted whenever the application is about to be destroyed. Therefore, we need to save some settings.
+        """
         logger.debug("Assembling update for settings, on behalf of %s" % caller)
         if self.current_target != None:
             settings = {
@@ -480,8 +520,11 @@ class Core(gobject.GObject):
         self.emit('save-settings')
         self.__write_config()
 
-    # called by gui
-    def on_destroy(self):
+    def prepare_for_disposal(self):
+        """
+        This is called by the GUI when it is about to be killed.
+        
+        """
         logger.debug("Somebody is being killed, saving the settings.")
         self.emit('save-settings')
         self.__write_config()
@@ -491,30 +534,32 @@ class Core(gobject.GObject):
         filename = path.join(self.SETTINGS_DIR, 'config')
         logger.debug("Loading config from %s" % filename)
         if not path.exists(filename):
+            logger.error("Did not find settings file (%s), loading default settings." % filename)
             self.settings = self.DEFAULT_SETTINGS
             return
-        f = file(filename, 'r')
-        string = f.read()
-        self.settings = {}
-        if string != '':
-            tmp_settings = loads(string)
-            for k, v in self.DEFAULT_SETTINGS.items():
-                if k in tmp_settings != None:
-                    self.settings[k] = tmp_settings[k]
-                else:
-                    self.settings[k] = v
-        else:
-            self.settings = self.DEFAULT_SETTINGS
+        with file(filename, 'r') as f:
+            string = f.read()
+            self.settings = {}
+            if string != '':
+                tmp_settings = loads(string)
+                for k, v in self.DEFAULT_SETTINGS.items():
+                    if k in tmp_settings != None:
+                        self.settings[k] = tmp_settings[k]
+                    else:
+                        self.settings[k] = v
+            else:
+                self.settings = self.DEFAULT_SETTINGS
 
 
     def __write_config(self):
         filename = path.join(self.SETTINGS_DIR, 'config')
         logger.debug("Writing settings to %s" % filename)
-        f = file(filename, 'w')
-        config = dumps(self.settings, sort_keys=True, indent=4)
-        f.write(config)
+        with file(filename, 'w') as f:
+            config = dumps(self.settings, sort_keys=True, indent=4)
+            f.write(config)
 
     def __install_cachedownloader(self):
+        logger.debug("Installing new cachedownloader")
         if self.cachedownloader != None:
             logger.debug("Disconnecting old signals.")
             for handler in self.__cachedownloader_signal_handlers:
@@ -534,11 +579,14 @@ class Core(gobject.GObject):
 
 
     def set_target(self, coordinate):
+        """
+        Sets the new target coordinate.
+        
+        Updates target distance and target bearing afterwards and emits target-changed signal.
+        """
         self.current_target = coordinate
         distance, bearing = self.__get_target_distance_bearing()
         self.emit('target-changed', coordinate, distance, bearing)
-        #self.emit('map-marks-changed')
-
 
     def __get_target_distance_bearing(self):
         if self.current_position != None and self.current_target != None:
@@ -548,11 +596,34 @@ class Core(gobject.GObject):
             distance = None
             bearing = None
         return distance, bearing
-
-    def __read_gps(self, fix = None):
-        if fix == None:
-            fix = self.gps_thread.get_data()
-
+        
+    def __setup_gps(self, gps):
+        """
+        Setup GPS provider according to the constant in gps.
+        
+        """
+        if gps == 'simulatingprovider':
+            self.gps_thread = gpsreader.FakeGpsReader(self)
+            gobject.timeout_add(1000, self.__read_gps)
+            self.set_target(gpsreader.FakeGpsReader.get_target())
+        elif gps == None:
+            self.gps_thread = gpsreader.FakeGpsReader(self)
+            self.set_target(gpsreader.FakeGpsReader.get_target())
+        elif gps == 'gpsdprovider':
+            self.gps_thread = gpsreader.GpsReader()
+            gobject.timeout_add(1000, lambda: self.__read_gps(self.gps_thread.get_data()))
+        elif gps == 'locationgpsprovider':
+            self.gps_thread = gpsreader.LocationGpsReader(self.__read_gps)
+            gobject.idle_add(self.gps_thread.start)
+        elif gps == 'qmllocationprovider':
+            self.gui.get_gps(self.__read_gps)
+            self.gps_thread = None
+            
+    def __read_gps(self, fix):
+        """
+        This callback method is called by the gpsreader to process a new fix.
+        
+        """
         if fix.position != None:
             self.current_position = fix.position
             distance, bearing = self.__get_target_distance_bearing()
@@ -561,24 +632,6 @@ class Core(gobject.GObject):
         else:
             logger.debug("Sending bad fix for fix %r" % fix)
             self.emit('no-fix', fix, self.gps_thread.status if self.gps_thread != None else "")
-        return True
-
-    def __read_gps_cb_error(self, control, error):
-        fix = gpsreader.Fix()
-        msg = gpsreader.LocationGpsReader.get_error_from_code(error)
-        self.emit('no-fix', fix, msg)
-        return True
-
-    def __read_gps_cb_changed(self, device):
-        fix = self.gps_thread.fix_from_tuple(device.fix, device)
-        # @type fix gpsreader.Fix
-
-        if fix.position != None:
-            self.current_position = fix.position
-            distance, bearing = self.__get_target_distance_bearing()
-            self.emit('good-fix', fix, distance, bearing)
-        else:
-            self.emit('no-fix', fix, 'No Fix')
         return True
 
 
@@ -638,32 +691,47 @@ class Core(gobject.GObject):
     #
     ##############################################
                 
-    # called by gui
     def set_filter(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location=None, marked=None):
+        """
+        Sets a new filter for the pointprovider. 
+        
+        Is mainly used to filter the map display. (Currently only in hildongui_plugins)
+        
+        """
         self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked=marked)
         self.emit('map-marks-changed')
                 
-    # called by gui
     def reset_filter(self):
+        """
+        Resets the filter for the pointprovider. 
+        
+        (Currently only in hildongui_plugins)
+        
+        """
         self.pointprovider.set_filter()
         self.emit('map-marks-changed')
 
-    # called by gui
-    def on_start_search_advanced(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location=None, marked=None):
-        self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked=marked)
-        points = self.pointprovider.get_points_filter(location)
-        self.gui.display_results_advanced(points)
-
-    def get_points_filter(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location=None, marked=None):
-        self.pointprovider.push_filter()
+    def get_points_filter(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location=None, marked=None, preserve_filter = False):
+        """
+        Performs a search according to the given criteria and returns the geocaches. Also returns information on whether the result was truncated due to the maximum number of search results configured in pointprovider.
+        preserve_filter -- Apply the filter and keep it active after this method. If set to False, the filtering remains unchanged after the method call.
+        
+        """
+        if not preserve_filter:
+            self.pointprovider.push_filter()
         self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked=marked)
         points = self.pointprovider.get_points_filter(location)
         truncated = (len(points) >= self.pointprovider.MAX_RESULTS)
-        self.pointprovider.pop_filter()
+        if not preserve_filter:
+            self.pointprovider.pop_filter()
         return (points, truncated)
 
 
     def get_geocache_by_name(self, name):
+        """
+        Return a geocache by its ID.
+        
+        """
         return self.pointprovider.get_by_name(name)
 
     ##############################################
@@ -688,25 +756,23 @@ class Core(gobject.GObject):
                 logger.info("Parser update installed.")
         self.auto_update_checked = True
 
-    # called by gui
-    def on_download(self, location, sync=False):
+    def download_overview(self, location, sync=False):
         """
-        Downloads all geocaches within the boundaries given in location.
+        Downloads an *overview* of geocaches within the boundaries given in location.
         
-        location -- Geographic oundaries (see cachedownloader.get_geocaches for details)
+        location -- Geographic boundaries (see cachedownloader.get_geocaches for details)
         sync -- Perform actions synchronized, i.e., don't use threads.
         
         """
         if not sync:                
-            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.get_geocaches', self.on_download_complete, location])
+            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.get_geocaches', self._download_overview_complete, location])
             t.daemon = True
             t.start()
             return False
         else:
-            return self.on_download_complete(None, self.cachedownloader.get_geocaches(location), True)
+            return self._download_overview_complete(None, self.cachedownloader.get_geocaches(location), True)
 
-    # called on signal by downloading thread
-    def on_download_complete(self, caches, sync=False):
+    def _download_overview_complete(self, caches, sync=False):
         """
         Called upon completion of the download of all geocaches within a boundary.
         
@@ -726,30 +792,47 @@ class Core(gobject.GObject):
         else:
             return False
 
-    # called by gui
-    def on_download_cache(self, cache, sync=False):
+    def download_cache_details(self, cache, sync=False):
+        """
+        Download or update *detailed* information for a specific geocache.
+        
+        location -- Geographic boundaries (see cachedownloader.get_geocaches for details)
+        sync -- Perform actions synchronized, i.e., don't use threads.
+        
+        """
         if not sync:                
-            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.update_coordinate', self.on_download_cache_complete, cache, self.settings['download_num_logs']])
+            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.update_coordinate', self._download_cache_details_complete, cache, self.settings['download_num_logs']])
             t.daemon = True
             t.start()
             #t.join()
             return False
         else:
             full = self.cachedownloader.update_coordinate(cache, self.settings['download_num_logs'])
-            return full
+            return _download_cache_details_complete(full, sync)
 
-    # called on signal by downloading thread
-    def on_download_cache_complete(self, cache):
+    def _download_cache_details_complete(self, cache, sync = False):
+        """
+        Called when a single geocache was successfully downloaded.
+
+        """
         self.pointprovider.add_point(cache, True)
         self.pointprovider.save()
         self.emit('hide-progress')
         self.emit('cache-changed', cache)
-        return False
+        if not sync:
+            return False
+        else:
+            return cache
 
 
-
-    # called by gui
-    def on_download_descriptions(self, location, visibleonly=False):
+    def download_cache_details_map(self, location, visibleonly=False):
+        """
+        Download *details* for all geocaches within a specific location.
+        
+        location -- Geographic boundaries (see cachedownloader.get_geocaches for details)
+        sync -- Perform actions synchronized, i.e., don't use threads.
+        
+        """
     
         self.pointprovider.push_filter()
 
@@ -774,15 +857,26 @@ class Core(gobject.GObject):
             caches = self.pointprovider.get_points_filter()
 
         self.pointprovider.pop_filter()
-        self.update_coordinates(caches)
+        self.download_cache_details_list(caches)
 
-    def update_coordinates(self, caches):
-        t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.update_coordinates', self.on_download_descriptions_complete, caches, self.settings['download_num_logs']])
+    def download_cache_details_list(self, caches):
+        """
+        Download/update *detailed* information for a list of geocaches.
+        
+        caches -- List of geocaches
+        
+        """
+        t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.update_coordinates', self._download_cache_details_list_complete, caches, self.settings['download_num_logs']])
         t.daemon = True
         t.start()
         
-    # called on signal by downloading thread
-    def on_download_descriptions_complete(self, caches):
+    def _download_cache_details_list_complete(self, caches):
+        """
+        Called when details for a list of geocaches were downloaded.
+        
+        caches -- List of geocaches
+        
+        """
         for c in caches:
             self.pointprovider.add_point(c, True)
         self.pointprovider.save()
@@ -792,23 +886,35 @@ class Core(gobject.GObject):
         self.emit('map-marks-changed')
         return False
 
-
-    # called on signal by downloading thread
-    def on_download_progress(self, something, cache_name, i, max_i):
+    def on_download_progress(self, something, text, i, max_i):
+        """
+        Signal handler which is called when the downloading process has made progress.
+        
+        something -- not used
+        text -- Text describing the current work item
+        i -- Progress in relation to max_i
+        max_i -- Expected maximum value of i (Actual displayed progress fraction is i/max_i)
+        
+        """
         logger.debug("Progress: %f of %f" % (i, max_i))
-        self.emit('progress', float(i) / float(max_i), "%s..." % cache_name)
+        self.emit('progress', float(i) / float(max_i), "%s..." % text)
         return False
 
-    # called on signal by downloading thread
     def on_already_downloading_error(self, something, error):
+        """
+        Signal handler which is called when the downloading thread cannot download because someone else is still downloading.
+        
+        """
         def same_thread(error):
             self.emit('error', error)
             return False
         gobject.idle_add(same_thread, error)
-        #self.emit('error', error)
-
-    # called on signal by downloading thread
+        
     def on_download_error(self, something, error):
+        """
+        Signal handler which is called when an error happened during a download (or upload).
+        
+        """
         extra_message = "Error:\n%s" % error
         logging.exception(error)
         def same_thread(error):
@@ -824,7 +930,11 @@ class Core(gobject.GObject):
     #
     ##############################################
                 
-    def on_export_cache(self, cache, format, folder):
+    def export_cache(self, cache, format, folder):
+        """
+        Export descriptions of geocaches. Not maintained at the moment.
+        
+        """
         from exporter import GpxExporter
         if (format == 'gpx'):
             exporter = GpxExporter()
@@ -846,8 +956,11 @@ class Core(gobject.GObject):
     #
     ##############################################
 
-
     def save_fieldnote(self, cache):
+        """
+        Save the fieldnote information for a geocache to the database.
+        
+        """
         if cache.logas == geocaching.GeocacheCoordinate.LOG_AS_FOUND:
             cache.found = 1
 
@@ -857,14 +970,23 @@ class Core(gobject.GObject):
         self.save_cache_attribute(cache, ('logas', 'logdate', 'fieldnotes', 'found'))
         self.emit('fieldnotes-changed')        
 
-    def on_upload_fieldnotes(self):
+    def upload_fieldnotes(self):
+        """
+        Upload fieldnotes to the web site. 
+        
+        """
         caches = self.pointprovider.get_new_fieldnotes()
         
-        t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.upload_fieldnotes', self.on_upload_fieldnotes_finished, caches])
+        t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.upload_fieldnotes', self._upload_fieldnotes_complete, caches])
         t.daemon = True
         t.start()
         
-    def on_upload_fieldnotes_finished(self, caches):
+    def _upload_fieldnotes_complete(self, caches):
+        """
+        Called when uploading of fieldnotes is complete.
+        
+        Resets the fieldnotes which were uploaded to "NO LOG".
+        """
         for c in caches:
             c.logas = geocaching.GeocacheCoordinate.LOG_NO_LOG
             self.save_cache_attribute(c, 'logas')
@@ -873,6 +995,10 @@ class Core(gobject.GObject):
         self.emit('fieldnotes-changed')
 
     def get_new_fieldnotes_count(self):
+        """
+        Return the number of pending fieldnotes.
+        
+        """
         return self.pointprovider.get_new_fieldnotes_count()
 
 
@@ -883,6 +1009,10 @@ class Core(gobject.GObject):
     ##############################################
 
     def save_cache_attribute(self, cache, attribute):
+        """
+        Save the attribute of a geocache to the database.
+        
+        """
         if type(attribute) == tuple:
             for a in attribute:
                 self.pointprovider.update_field(cache, a, cache.serialize_one(a), save=False)
@@ -890,33 +1020,30 @@ class Core(gobject.GObject):
         else:
             self.pointprovider.update_field(cache, attribute, cache.serialize_one(attribute))
 
-
     def set_alternative_position(self, cache, ap):
+        """
+        Sets the alternative position for a geocaches.
+        
+        An alternative position is a user-chosen geographic location for a geocache which differs from the original location. This is, for example, used for solved mystery geocaches.
+        """
         cache.set_alternative_position(ap)
         self.save_cache_attribute(cache, ('alter_lat', 'alter_lon'))
         self.emit('map-marks-changed')
 
 
-
-def determine_path ():
-    """Borrowed from wxglade.py"""
-    try:
-        root = __file__
-        if path.islink (root):
-            root = path.realpath (root)
-        return path.dirname(path.abspath (root))
-    except:
-        logging.error("I'm sorry, but something is wrong.")
-        logging.error("There is no __file__ variable. Please contact the author.")
-        exit()
-
-                        
-
 def start():
+    """
+    Start the application.
+    
+    """
     gobject.threads_init()
-    Core(gui, determine_path())
+    Core(gui, gps, extensions)
 
 def start_profile(what):
+    """
+    Uses cprofile to profile the method calls in the application. For developing only.
+    
+    """
     import cProfile
     p = cProfile.Profile()
     p.run(what)
@@ -955,10 +1082,6 @@ def start_profile(what):
         line.calls.sort(cmp=c)
         for line in line.calls[:10]:
             print "-- %d %4f %s" % (line.callcount, line.totaltime, line.code)
-
-
-
-        
 
 if __name__ == "__main__":
     if '--profile' in argv:

@@ -163,7 +163,7 @@ class HildonFieldnotes(object):
 
 
     def _on_upload_fieldnotes(self, some, thing):
-        self.core.on_upload_fieldnotes()
+        self.core.upload_fieldnotes()
 
     #emitted by core
     def _on_fieldnotes_changed(self, core):
@@ -489,7 +489,7 @@ class HildonSearchGeocaches(object):
             button.set_mode(False)
 
         def download_geocaches(widget):
-            self.core.update_coordinates(caches)
+            self.core.download_cache_details_list(caches)
 
 
 

@@ -214,22 +214,31 @@ class LocationGpsReader():
     TIMEOUT = 5
     BEARING_HOLD_SPEED = 2.5 # km/h
 
-    def __init__(self, cb_error, cb_changed):
+    def __init__(self, cb_fix):
         logger.info("Using liblocation GPS device")
 
         control = location.GPSDControl.get_default()
         device = location.GPSDevice()
         control.set_properties(preferred_method = location.METHOD_CWP | location.METHOD_ACWP | location.METHOD_GNSS | location.METHOD_AGNSS, preferred_interval=location.INTERVAL_1S)
-        control.connect("error-verbose", cb_error)
-        device.connect("changed", cb_changed)
+        control.connect("error-verbose", self.cb_error)
+        device.connect("changed", self.cb_changed)
         self.last_gps_bearing = 0
         self.control = control
         self.device = device
-
+        self.cb_fix = cb_fix
 
     def start(self):
         self.control.start()
         return False
+        
+    def cb_changed(self, device):
+        fix = self.fix_from_tuple(device.fix, device)
+        self.cb_fix(fix)
+    
+    def cb_error(self, control, error):
+        fix = gpsreader.Fix()
+        self.status = self.get_error_from_code(error)
+        self.cb_fix(fix)
 
     @staticmethod
     def get_error_from_code(error):

@@ -109,7 +109,7 @@ class Controller(QtCore.QObject):
 
     @QtCore.Slot(QtCore.QObject)
     def geocacheDownloadDetailsClicked(self, wrapper):
-        self.core.on_download_cache(wrapper._geocache)
+        self.core.download_cache_details(wrapper._geocache)
 
     @QtCore.Slot(QtCore.QObject)
     def geocacheSelected(self, wrapper):
@@ -136,11 +136,11 @@ class Controller(QtCore.QObject):
 
     @QtCore.Slot(float, float, float, float)
     def updateGeocaches(self, lat_start, lon_start, lat_end, lon_end):
-        self.core.on_download([geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end)])
+        self.core.download_overview([geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end)])
 
     @QtCore.Slot(float, float, float, float)
     def downloadGeocaches(self, lat_start, lon_start, lat_end, lon_end):
-        self.core.on_download_descriptions([geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end)])
+        self.core.download_cache_details_map([geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end)])
 
     @QtCore.Slot(float, float)
     def setTarget(self, lat, lon):
@@ -184,7 +184,7 @@ class Controller(QtCore.QObject):
         
     @QtCore.Slot()
     def uploadFieldnotes(self):
-        self.core.on_upload_fieldnotes()
+        self.core.upload_fieldnotes()
         
     @QtCore.Slot(QtCore.QObject, QtCore.QObject, result = QtCore.QObject)
     def getEditWrapper(self, cache, obj):
@@ -1217,7 +1217,7 @@ class GeocacheListModel(QtCore.QAbstractListModel):
             
     @QtCore.Slot()
     def downloadDetails(self):
-        self.core.update_coordinates([x._geocache for x in self._geocaches]);
+        self.core.download_cache_details_list([x._geocache for x in self._geocaches]);
 
 class LogsListModel(QtCore.QAbstractListModel):
     COLUMNS = ('log',)
@@ -1297,7 +1297,7 @@ class QmlGui(Gui):
 
     USES = ['geonames', 'qmllocationprovider']
 
-    def __init__(self, core, dataroot, parent=None):
+    def __init__(self, core, parent=None):
         self.app = QApplication(sys.argv)
         self.core = core
         self.view = QDeclarativeView()
@@ -1320,7 +1320,7 @@ class QmlGui(Gui):
     def show(self):
         self.view.showFullScreen()
         self.app.exec_()
-        self.core.on_destroy()
+        self.core.prepare_for_disposal()
 
     def _status_changed(self, error):
         logger.error(self.view.errors())
