@@ -22,4 +22,4 @@
 
 
 class Gui(object):
-    USES = []
+    pass

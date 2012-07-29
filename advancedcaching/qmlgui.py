@@ -1295,8 +1295,6 @@ class LogWrapper(QtCore.QObject):
 
 class QmlGui(Gui):
 
-    USES = ['geonames', 'qmllocationprovider']
-
     def __init__(self, core, parent=None):
         self.app = QApplication(sys.argv)
         self.core = core

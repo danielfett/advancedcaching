@@ -57,6 +57,8 @@ options:
         --pass(word) password
                 Your geocaching.com login data.
 importactions:
+        --skip-found
+                Must be the first importaction. If a geocache is marked as "found" on the web site, skip it. This can give a huge speed improvement.
         --in coord1 coord2
                 Fetches the index of geocaches between the given coordinates.
                 These are interpreted as the corners of a rectangle. All caches
@@ -160,12 +162,13 @@ class RunError(Exception):
         return repr(self.msg)
 
 class Cli():
-    USES = ['geonames'] 
 
     # operators
     EQ = 0
     MIN = 1
     MAX = 2
+    
+    skip_found = False
 
     def __init__(self, core):
         self.nt = 1
@@ -268,6 +271,11 @@ class Cli():
             coord2 = self.parse_coord()
             radius = self.parse_float()
             self.import_points_route(coord1, coord2, radius)
+        elif token == '--skip-found':
+            print "* Only downloading not-found geocaches"
+            self.skip_found = True
+            self.nt -= 1
+            self.parse_import()
         else:
             # undo what we did.
             self.nt -= 1
@@ -510,7 +518,7 @@ class Cli():
     def import_points(self, c1, c2):
         if isinstance(c2, geo.Coordinate):
             print "* Downloading Caches between %s and %s" % (c1, c2)
-            self.caches, self.new_caches = self.core.download_overview((c1, c2), sync=True)
+            self.caches, self.new_caches = self.core.download_overview((c1, c2), sync=True, skip_found = self.skip_found)
         else:
             # try to calculate some points northwest and southeast to the
             # given point with approximately correct distances
@@ -518,7 +526,7 @@ class Cli():
             new_c2 = c1.transform(-45 + 180, c2 * 1000 * math.sqrt(2))
             print "* Downloading Caches in %.3f km distance to %s" % (c2, c1)
             print "* Approximation: Caches between %s and %s" % (new_c1, new_c2)
-            self.caches, self.new_caches = self.core.download_overview((new_c1, new_c2), sync=True)
+            self.caches, self.new_caches = self.core.download_overview((new_c1, new_c2), sync=True, skip_found = self.skip_found)
 
     def import_points_route(self, c1, c2, r):
         print "* Querying OpenRouteService for route from startpoint to endpoint"

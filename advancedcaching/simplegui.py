@@ -57,7 +57,6 @@ from gui import Gui
 
 
 class SimpleGui(Gui):
-    USES = ['gpsprovider']
     XMLFILE = "freerunner.glade"
 
     REDRAW_DISTANCE_TRACKING = 50 # distance from center of visible map in px
