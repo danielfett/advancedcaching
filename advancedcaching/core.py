@@ -554,9 +554,13 @@ class Core(gobject.GObject):
     def __write_config(self):
         filename = path.join(self.SETTINGS_DIR, 'config')
         logger.debug("Writing settings to %s" % filename)
-        with file(filename, 'w') as f:
-            config = dumps(self.settings, sort_keys=True, indent=4)
-            f.write(config)
+        try:
+            with file(filename, 'w') as f:
+                config = dumps(self.settings, sort_keys=True, indent=4)
+                f.write(config)
+        except IOError, e:
+            logger.error("Can not write to config file (%s):" % filename)
+            logger.exception(e)
 
     def __install_cachedownloader(self):
         logger.debug("Installing new cachedownloader")
