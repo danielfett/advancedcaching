@@ -747,6 +747,7 @@ class SettingsWrapper(QtCore.QObject):
         self.settings[s] = t
         if notify:
             self.settingsChanged.emit()
+            self.core.save_settings({s:t}, self)
         else:
             logger.debug("Not notifying about %s settings change" % s)
 
