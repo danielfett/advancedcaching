@@ -96,7 +96,7 @@ class CacheDownloader(gobject.GObject):
         return u
 
     # Retrieve geocaches in the bounding box defined by location 
-    def get_geocaches(self, location, skip_found = False):
+    def get_overview(self, location, skip_found = False):
         if not CacheDownloader.lock.acquire(False):
             self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
             logger.warning("Download in progress")
@@ -256,7 +256,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
         logger.debug("_update_coordinate, pmin = %f, pmax = %f." % (progress_min, progress_max))
         
         # Progress should be displayed in the range between progress_min and progress_max. 
-        # This, therefore, is 10% into this range.
         self.emit('progress', "Downloading %s" % coordinate.name, progress_min, progress_all)
         
         url = self.DETAILS_URL % coordinate.name
@@ -919,7 +918,7 @@ if __name__ == '__main__':
         def pcache(c):
             print "--------------------\nName: '%s'\nTitle: '%s'\nType: %s" % (c.name, c.title, c.type)
         
-        coords = a.get_geocaches((geo.Coordinate(49.3513,6.583), geo.Coordinate(49.352,6.584)))
+        coords = a.get_overview((geo.Coordinate(49.3513,6.583), geo.Coordinate(49.352,6.584)))
         print "# Found %d coordinates" % len(coords)
         for x in coords:
             pcache(x)

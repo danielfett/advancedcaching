@@ -764,17 +764,17 @@ class Core(gobject.GObject):
         """
         Downloads an *overview* of geocaches within the boundaries given in location.
         
-        location -- Geographic boundaries (see cachedownloader.get_geocaches for details)
+        location -- Geographic boundaries (see cachedownloader.get_overview for details)
         sync -- Perform actions synchronized, i.e., don't use threads.
         skip_found -- If the geocache is marked as "found" (on the website), skip it.
         """
         if not sync:                
-            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.get_geocaches', self._download_overview_complete, location, skip_found])
+            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.get_overview', self._download_overview_complete, location, skip_found])
             t.daemon = True
             t.start()
             return False
         else:
-            return self._download_overview_complete(self.cachedownloader.get_geocaches(location, skip_found), True)
+            return self._download_overview_complete(self.cachedownloader.get_overview(location, skip_found), True)
 
     def _download_overview_complete(self, caches, sync=False):
         """
@@ -800,7 +800,7 @@ class Core(gobject.GObject):
         """
         Download or update *detailed* information for a specific geocache.
         
-        location -- Geographic boundaries (see cachedownloader.get_geocaches for details)
+        location -- Geographic boundaries (see cachedownloader.get_overview for details)
         sync -- Perform actions synchronized, i.e., don't use threads.
         
         """
@@ -833,7 +833,7 @@ class Core(gobject.GObject):
         """
         Download *details* for all geocaches within a specific location.
         
-        location -- Geographic boundaries (see cachedownloader.get_geocaches for details)
+        location -- Geographic boundaries (see cachedownloader.get_overview for details)
         sync -- Perform actions synchronized, i.e., don't use threads.
         
         """
