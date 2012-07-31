@@ -593,6 +593,17 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         list.pack_start(check_dl_images)
         
         
+        c_size_n = gtk.SizeGroup(gtk.SIZE_GROUP_HORIZONTAL)
+        redownload_after = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+        redownload_after.set_text(str(self.settings['options_redownload_after']))
+        list.pack_start(hildon.Caption(c_size, "Redownload after (days)", redownload_after, None, hildon.CAPTION_MANDATORY))
+        
+        label_redownload = gtk.Label()
+        label_redownload.set_markup("<small>(The number of days after which a geocache's details are downloaded again when the map overview is downloaded.)</small>")
+        label_redownload.set_line_wrap(True)
+        list.pack_start(label_redownload, False, False)
+        
+        
         auto_update = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         auto_update.set_label("Update cache parser on startup")
         auto_update.set_active(self.settings['options_auto_update'])
@@ -610,6 +621,11 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
             return
         if self.settings['options_show_html_description'] != check_show_html_description.get_active():
             self.old_cache_window = None
+        
+        try:
+            rd = int(redownload_after.get_text())
+        except ValueError:
+            rd = self.settings['options_redownload_after']
             
         update = {
                  'options_username': username.get_text(),
@@ -618,6 +634,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                  'options_show_name': check_show_cache_id.get_active(),
                  'options_auto_update': auto_update.get_active(),
                  'options_show_html_description': check_show_html_description.get_active(),
+                 'options_redownload_after': rd,
                  }
         self.settings.update(update)
         self.core.save_settings(update, self)

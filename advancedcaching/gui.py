@@ -20,6 +20,5 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
-
 class Gui(object):
     pass

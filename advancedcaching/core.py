@@ -49,6 +49,7 @@ import cachedownloader
 from actors.tts import TTS
 from re import sub
 import threading
+from datetime import datetime
 
 import connection
 import gobject
@@ -127,6 +128,7 @@ class Core(gobject.GObject):
     UPDATE_MODULES = [cachedownloader]
     
     updating_lock = threading.Lock()
+    _geocache_by_name_event = threading.Event()
     
     DEFAULT_SETTINGS = {
         'download_visible': True,
@@ -168,6 +170,7 @@ class Core(gobject.GObject):
         'options_night_view_mode': 0,
         'debug_log_to_http': False,
         'options_backend': 'geocaching-com-new',
+        'options_redownload_after': 14,
     }
             
     def __init__(self, guitype, gpstype, extensions):
@@ -930,7 +933,40 @@ class Core(gobject.GObject):
             self.emit('error', extra_message)
             return False
         gobject.idle_add(same_thread, error)
+    
+    def default_download_skip_callback(self, id, found):
+        """
+        This is a default callback for skip_callback in download_overview.
+        
+        It reads the settings and acts accordingly.
+        
+        """
+        if self.settings['download_notfound'] and found:
+            logger.debug("Geocache %s is marked as found, skipping!" % id)
+            return True
+        if self.settings['options_redownload_after'] > 0:
+            self._geocache_by_name_event.clear()
+            gobject.idle_add(self.get_geocache_by_name_async, id, priority=gobject.PRIORITY_HIGH)
+            res = self._geocache_by_name_event.wait(1)
+            if res == False:
+                logger.error("Screw it, I'll just redownload it.")
+                return False
 
+            gc = self._geocache_by_name_result
+            if gc == None or gc.get_updated() == None: 
+                logger.debug("Geocache %s was not in the database or had no update timestamp." % id)
+                return False # When the geocache is not in the database or when it was downloaded before we introduced timestamps, don't skip!
+            diff = datetime.now() - gc.get_updated() 
+            if diff.days >= self.settings['options_redownload_after']:
+                logger.debug("Geocache %s was not updated for %d days. It's time!" % (id, diff.days))
+                return False
+            logger.debug("Geocache %s was not updated for %d days. That's fine." % (id, diff.days))
+            return True
+        return False
+        
+    def get_geocache_by_name_async(self, id):
+        self._geocache_by_name_result = self.get_geocache_by_name(id)
+        self._geocache_by_name_event.set()
 
     ##############################################
     #

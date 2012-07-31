@@ -635,7 +635,7 @@ class SimpleGui(Gui):
 
     # This downloads the geocache positions
     def on_download_clicked(self, widget, data=None):
-        self.core.download_overview(self.map.get_visible_area())
+        self.core.download_overview(self.map.get_visible_area(), skip_callback = self.core.default_download_skip_callback)
 
     # Downloads the details for all visible geocaches
     def on_download_details_map_clicked(self, some, thing=None):

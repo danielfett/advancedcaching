@@ -527,10 +527,10 @@ class Cli():
             if self.skip_found and found:
                 print "* Geocache %s is marked as found, skipping!" % id
                 return True
-            if self.skip_existing and self.core.get_geocache_by_name != None:
+            if self.skip_existing and self.core.get_geocache_by_name(id) != None:
                 print "* Geocache %s is already in the database, skipping!" % id
                 return True
-            return None
+            return False
             
         if isinstance(c2, geo.Coordinate):
             print "* Downloading Caches between %s and %s" % (c1, c2)

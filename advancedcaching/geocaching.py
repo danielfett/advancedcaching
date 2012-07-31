@@ -101,7 +101,7 @@ class GeocacheCoordinate(geo.Coordinate):
     # in them.
     NON_USER_ATTRS = ('lat', 'lon', 'title', 'shortdesc', 'desc', 'hints', 'type', \
              'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
-             'images', 'logs', 'status', 'attributes')
+             'images', 'logs', 'status', 'attributes', 'updated')
 
     SQLROW = {
         'lat': 'REAL',

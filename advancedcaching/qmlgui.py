@@ -136,7 +136,7 @@ class Controller(QtCore.QObject):
 
     @QtCore.Slot(float, float, float, float)
     def updateGeocaches(self, lat_start, lon_start, lat_end, lon_end):
-        self.core.download_overview([geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end)])
+        self.core.download_overview([geo.Coordinate(lat_start, lon_start), geo.Coordinate(lat_end, lon_end)], skip_callback = self.core.default_download_skip_callback)
 
     @QtCore.Slot(float, float, float, float)
     def downloadGeocaches(self, lat_start, lon_start, lat_end, lon_end):
@@ -809,6 +809,8 @@ class SettingsWrapper(QtCore.QObject):
     downloadNumLogs = createSetting('download_num_logs', int, settingsChanged)
     optionsAutoUpdate = createSetting('options_auto_update', bool, settingsChanged)
     debugLogToHTTP = createSetting('debug_log_to_http', bool, settingsChanged)
+    optionsRedownloadAfter = createSetting('options_redownload_after', int, settingsChanged)
+    downloadNotFound = createSetting('download_not_found', bool, settingsChanged)
 
     currentMapType = QtCore.Property(QtCore.QObject, _get_current_map_type, _set_current_map_type, notify=settingsChanged)
     mapTypes = QtCore.Property(QtCore.QObject, _map_types, notify=settingsChanged)

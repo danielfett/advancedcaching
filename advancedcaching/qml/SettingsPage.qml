@@ -257,6 +257,68 @@ Page {
                     }
                 }
             }
+           
+           
+            Label {
+                font.pixelSize: 20
+                color: UI.COLOR_INFOLABEL
+                text: "When downloading map overview..."
+            }
+            
+            Item {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 60
+                Label {
+                    text: "Don't update found caches"
+                    font.weight: Font.Bold
+                    font.pixelSize: 26
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                Switch {
+                    anchors.right: parent.right
+                    onCheckedChanged: {
+                        settings.downloadNotFound = checked
+                    }
+                    checked: settings.downloadNotFound
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+            }
+            
+            
+            Item {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                height: 60
+                Label {
+                    text: "Update caches after (days)"
+                    font.weight: Font.Bold
+                    font.pixelSize: 26
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+
+                TextField {
+                    width: 90
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    inputMethodHints: Qt.ImhDigitsOnly
+
+                    text: settings.optionsRedownloadAfter
+                    onTextChanged: {
+                        if (parseInt(text) != settings.optionsRedownloadAfter) {
+                            settings.optionsRedownloadAfter = parseInt(text);
+                        }
+                    }
+                }
+            }
+            
+            Label {
+                font.pixelSize: 20
+                wrapMode: Text.Wrap
+                width: col1.width
+                text: "AGTL skips geocaches which have already been updated in the last " + settings.optionsRedownloadAfter + " day(s). Set to zero to always update all geocaches on the map." 
+            }
 
             Label {
                 font.pixelSize: 20
@@ -307,7 +369,7 @@ Page {
                 font.pixelSize: 20
                 wrapMode: Text.Wrap
                 width: col1.width
-                text: "This settings takes effect only for the next launch of AGTL and is reset afterwards. Personal data may be transferred in the log messages."
+                text: "This setting takes effect only for the next launch of AGTL and is reset afterwards. Personal data may be transferred in the log messages."
             }
 
         }
