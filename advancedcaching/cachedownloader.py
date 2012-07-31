@@ -96,14 +96,14 @@ class CacheDownloader(gobject.GObject):
         return u
 
     # Retrieve geocaches in the bounding box defined by location 
-    def get_overview(self, location, skip_found = False):
+    def get_overview(self, location, skip_callback = None):
         if not CacheDownloader.lock.acquire(False):
             self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
             logger.warning("Download in progress")
             return
             
         try:
-            points = self._get_overview(location, skip_found = skip_found)
+            points = self._get_overview(location, skip_callback = skip_callback)
         except Exception, e:
             logger.exception(e)
             self.emit('download-error', e)
@@ -170,7 +170,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             doc = fromstring_soup(text)
         return doc
 
-    def _get_overview(self, location, rec_depth = 0, skip_found = False):
+    def _get_overview(self, location, rec_depth = 0, skip_callback = None):
         c1, c2 = location
         center = geo.Coordinate((c1.lat + c2.lat)/2, (c1.lon + c2.lon)/2)
         dist = (center.distance_to(c1)/1000)/2
@@ -236,7 +236,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         i = 0
         for guid, found, id in wpts:
             i += 1
-            if found and skip_found:
+            if skip_callback != None and skip_callback(id, found):
                 continue
             coordinate = GeocacheCoordinate(-1, -1, id)
             coordinate.found = found

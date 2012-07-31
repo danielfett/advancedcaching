@@ -760,21 +760,21 @@ class Core(gobject.GObject):
                 logger.info("Parser update installed.")
         self.auto_update_checked = True
 
-    def download_overview(self, location, sync=False, skip_found = False):
+    def download_overview(self, location, sync=False, skip_callback = None):
         """
         Downloads an *overview* of geocaches within the boundaries given in location.
         
         location -- Geographic boundaries (see cachedownloader.get_overview for details)
         sync -- Perform actions synchronized, i.e., don't use threads.
-        skip_found -- If the geocache is marked as "found" (on the website), skip it.
+        skip_callback -- A callback function which gets the geocache id and its found status as input. If it returns true, the geocache's details are not downloaded.
         """
         if not sync:                
-            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.get_overview', self._download_overview_complete, location, skip_found])
+            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.get_overview', self._download_overview_complete, location, skip_callback])
             t.daemon = True
             t.start()
             return False
         else:
-            return self._download_overview_complete(self.cachedownloader.get_overview(location, skip_found), True)
+            return self._download_overview_complete(self.cachedownloader.get_overview(location, skip_callback), True)
 
     def _download_overview_complete(self, caches, sync=False):
         """
