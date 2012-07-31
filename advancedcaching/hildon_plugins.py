@@ -29,8 +29,8 @@ import logging
 import geo
 # addition rob_kouw
 import math
-DUTCH_TOOLS = 0 #can easily be set zo 1
-#DUTCH_TOOLS = 1 #can easily be set zo 0
+#DUTCH_TOOLS = 0 #can easily be set zo 1
+DUTCH_TOOLS = 1 #can easily be set zo 0
 # end addition rob_kouw
 logger = logging.getLogger('plugins')
 
@@ -927,8 +927,69 @@ class HildonToolsDialog(object):
             dialog.add_button("add waypoint", RESULT_WPT)
         #dialog.set_size_request(800, 480)
         
+        rdx = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+        rdx.set_property("hildon-input-mode", gtk.HILDON_GTK_INPUT_MODE_NUMERIC)
+        
+        dialog.vbox.pack_start(hildon.Caption(None, "Dutch Grid X in Meters", rdx, None, 0))
+        
+        rdy = hildon.Entry(gtk.HILDON_SIZE_AUTO)
+        rdy.set_property("hildon-input-mode", gtk.HILDON_GTK_INPUT_MODE_NUMERIC)
+        dialog.vbox.pack_start(hildon.Caption(None, "Dutch Grid Y in Meters", rdy, None, 0))
+        
+        result = gtk.Label()
+        dialog.vbox.pack_start(hildon.Caption(None, "Resulting Point", result, None, 0))
+        
+        resulting_coordinate = [None]
+        
+        def recalc(widget):
+            (res, text) = rd2wgs(rdx.get_text(), rdy.get_text())
+            resulting_coordinate[0] = res
+            result.set_text(text)
+            
+        rdx.connect('changed', recalc)
+        rdy.connect('changed', recalc)    
+        
+        dialog.show_all()
+        res = dialog.run()
+        dialog.hide()
+        if res == RESULT_WPT:
+            if resulting_coordinate[0] == None:
+                return
+            name = "RD X %s, Y %s" % (rdx.get_text(), rdy.get_text())
+            self.current_cache.get_user_coordinates(None)
+            self.current_cache.set_user_coordinate(geocaching.GeocacheCoordinate.USER_TYPE_COORDINATE, (resulting_coordinate[0].lat, resulting_coordinate[0].lon), name)
+            self.core.save_cache_attribute(self.current_cache, 'user_coordinates')
+            self._on_cache_changed(None, self.current_cache)
+            #self.update_coords()
+        elif res == RESULT_TARGET:
+            if resulting_coordinate[0] == None:
+                return
+            self.set_target(resulting_coordinate[0])
+        
+    def _show_tool_wgs2rd(self, widget, data):
+        dialog = gtk.Dialog("WGS 2 Dutch Grid RD", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        
+        # for now: the easy way, just converting current target into Dutch RD coordinate system
+        origin = [self.core.current_target]
+
+        (wsg_text, rd_text) = wgs2rd(origin)
+             
+        res_text = hildon.TextView()
+        res_text.get_buffer().set_text(rd_text)
+        dialog.vbox.pack_start(res_text)
+        l = gtk.Label()
+        l.set_alignment(0, 0.5)
+        l.set_markup(wsg_text)
+
+        dialog.vbox.pack_start(l)
+        dialog.show_all()
+        result = dialog.run()
+        dialog.hide()
+
+    def rd2wgs(rdx_text, rdy_text):
+
         #---------------------------------------------------------------------        
-        # Inverse transformation of RD (Rijksdriehoek) coordinates (X, Y)
+        # Inverse transformation of RD (Dutch Rijksdriehoek) coordinates (X, Y)
         # into ellipsoid wgs84 coordinates (φ, λ or lat, lon)
         # Intended as an example of how to implement the formulas from the pdf
         # : http://www.dekoepel.nl/pdf/Transformatieformules.pdf, page 2
@@ -991,71 +1052,37 @@ class HildonToolsDialog(object):
         Lpq[2][0] =       -0.00022
         Lpq[5][0] =        0.00026
      
-        rdx = hildon.Entry(gtk.HILDON_SIZE_AUTO)
-        rdx.set_property("hildon-input-mode", gtk.HILDON_GTK_INPUT_MODE_NUMERIC)
-        
-        dialog.vbox.pack_start(hildon.Caption(None, "Dutch Grid X in Meters", rdx, None, 0))
-        
-        rdy = hildon.Entry(gtk.HILDON_SIZE_AUTO)
-        rdy.set_property("hildon-input-mode", gtk.HILDON_GTK_INPUT_MODE_NUMERIC)
-        dialog.vbox.pack_start(hildon.Caption(None, "Dutch Grid Y in Meters", rdy, None, 0))
-        
-        result = gtk.Label()
-        dialog.vbox.pack_start(hildon.Caption(None, "Resulting Point", result, None, 0))
-        
-        resulting_coordinate = [None]
-        
-        def recalc(widget):
-            try:
-                if int(rdx.get_text()) > -7000 and int(rdx.get_text()) < 300000 and int(rdy.get_text()) > 289000 and int(rdy.get_text()) < 629000:
-                    deltaX = (float(rdx.get_text()) - RDX_BASE) * .00001
-                    deltaY = (float(rdy.get_text()) - RDY_BASE) * .00001
-                    reslat = 0.
-                    reslon = 0.
-                    
-                    for q in range(0,5):
-                        for p in range(0,6):
-                            reslat = reslat + Kpq[p][q] * math.pow(deltaX, p) * math.pow(deltaY, q)
-                            reslon = reslon + Lpq[p][q] * math.pow(deltaX, p) * math.pow(deltaY, q)
-                            
-                    res = geo.Coordinate( LAT_BASE + reslat / 3600., LON_BASE + reslon / 3600. )
-                    text = res.get_latlon()
-                else: 
-                    res = None
-                    text = "-7<X<300 km, 289<Y<629 km"
-
-            except Exception, e:
+        try:
+            if int(rdx_text()) > -7000 and int(rdx_text()) < 300000 and int(rdy_text()) > 289000 and int(rdy_text()) < 629000:
+                deltaX = (float(rdx_text()) - RDX_BASE) * .00001
+                deltaY = (float(rdy_text()) - RDY_BASE) * .00001
+                reslat = 0.
+                reslon = 0.
+                
+                for q in range(0,5):
+                    for p in range(0,6):
+                        reslat = reslat + Kpq[p][q] * math.pow(deltaX, p) * math.pow(deltaY, q)
+                        reslon = reslon + Lpq[p][q] * math.pow(deltaX, p) * math.pow(deltaY, q)
+                        
+                res = geo.Coordinate( LAT_BASE + reslat / 3600., LON_BASE + reslon / 3600. )
+                text = res.get_latlon()
+            else: 
                 res = None
                 text = "-7<X<300 km, 289<Y<629 km"
 
-            resulting_coordinate[0] = res
-            result.set_text(text)
-            
-        rdx.connect('changed', recalc)
-        rdy.connect('changed', recalc)    
+        except Exception, e:
+            res = None
+            text = "-7<X<300 km, 289<Y<629 km"
         
-        dialog.show_all()
-        res = dialog.run()
-        dialog.hide()
-        if res == RESULT_WPT:
-            if resulting_coordinate[0] == None:
-                return
-            name = "RD X %s, Y %s" % (rdx.get_text(), rdy.get_text())
-            self.current_cache.get_user_coordinates(None)
-            self.current_cache.set_user_coordinate(geocaching.GeocacheCoordinate.USER_TYPE_COORDINATE, (resulting_coordinate[0].lat, resulting_coordinate[0].lon), name)
-            self.core.save_cache_attribute(self.current_cache, 'user_coordinates')
-            self._on_cache_changed(None, self.current_cache)
-            #self.update_coords()
-        elif res == RESULT_TARGET:
-            if resulting_coordinate[0] == None:
-                return
-            self.set_target(resulting_coordinate[0])
-        
-    def _show_tool_wgs2rd(self, widget, data):
-        dialog = gtk.Dialog("WGS 2 Dutch Grid RD", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-        
-        origin = [self.core.current_target]
+        return tuple(text, resulting_coordinate)
 
+    def wgs2rd(origin):
+        #---------------------------------------------------------------------        
+        # Transformation of ellipsoid wgs84 coordinates (φ, λ or lat, lon)
+        # into RD (Dutch Rijksdriehoek) coordinates (X, Y)
+        # See above for copyright etc.
+        #---------------------------------------------------------------------  
+              
         # X0,Y0             Base RD coordinates Amersfoort
         RDX_BASE = 155000.
         RDY_BASE = 463000.
@@ -1111,18 +1138,9 @@ class HildonToolsDialog(object):
 
         wsg_text = "Current target:\n" + origin[0].get_latlon()   
         rd_text = "RD X %s, Y %s" % (Xorigin, Yorigin)
-             
-        res_text = hildon.TextView()
-        res_text.get_buffer().set_text(rd_text)
-        dialog.vbox.pack_start(res_text)
-        l = gtk.Label()
-        l.set_alignment(0, 0.5)
-        l.set_markup(wsg_text)
 
-        dialog.vbox.pack_start(l)
-        dialog.show_all()
-        result = dialog.run()
-        dialog.hide()
+        return tuple(wsg_text, rd_text)
+
 # end addition rob_kouw
 
     def _show_tool_heading(self, caller, data = None):
