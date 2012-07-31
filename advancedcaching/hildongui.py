@@ -27,8 +27,8 @@
 
 from math import ceil
 from os import extsep
-from os import path
 from os import system
+from os.path import join, exists
 import re
 
 from astral import Astral
@@ -163,7 +163,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         SimpleGui.on_window_destroy(self, target, more, data)
 
     def _prepare_images(self, dataroot):
-        p = "%s%s%%s" % (path.join(dataroot, '%s'), extsep)
+        p = "%s%s%%s" % (join(dataroot, '%s'), extsep)
         self.noimage_cantload = p % ('noimage-cantload', 'png')
         self.noimage_loading = p % ('noimage-loading', 'png')
 
@@ -572,37 +572,18 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         password.set_visibility(False)
         password.set_text(self.settings['options_password'])
         list.pack_start(hildon.Caption(c_size, "Password", password, None, hildon.CAPTION_MANDATORY))
-
         
 
-        
         list.pack_start(gtk.Label('Display'))
         check_show_cache_id = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         check_show_cache_id.set_label("Show Geocache Name on Map")
         check_show_cache_id.set_active(self.settings['options_show_name'])
         list.pack_start(check_show_cache_id)
 
-        #check_map_double_size = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
-        #check_map_double_size.set_label("Show Map in double size")
-        #check_map_double_size.set_active(self.settings['options_map_double_size'])
-        #list.pack_start(check_map_double_size)
-
-        #check_hide_found = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
-        #check_hide_found.set_label("Hide Found Geocaches on Map")
-        #check_hide_found.set_active(self.settings['options_hide_found'])
-        #list.pack_start(check_hide_found)
-
         check_show_html_description = hildon.CheckButton(gtk.HILDON_SIZE_FINGER_HEIGHT)
         check_show_html_description.set_label("Show Cache Description with HTML")
         check_show_html_description.set_active(self.settings['options_show_html_description'])
         list.pack_start(check_show_html_description)
-
-        #rotate_button, rotate_get_result = self._get_rotate_settings()
-        #list.pack_start(rotate_button)
-
-        #list.pack_start(gtk.Label('TTS Settings'))
-        #tts_button, tts_get_result = self._get_tts_settings()
-        #list.pack_start(tts_button)
 
         list.pack_start(gtk.Label('Other'))
 
@@ -620,7 +601,6 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
         button.set_label("Change default fieldnote text")
         button.connect("clicked", self._show_default_log_text_settings, None)
-        #button.connect("clicked", lambda caller: dialog.hide())
         list.pack_start(button)
         
         dialog.show_all()
@@ -637,15 +617,10 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                  'download_noimages': check_dl_images.get_active(),
                  'options_show_name': check_show_cache_id.get_active(),
                  'options_auto_update': auto_update.get_active(),
-                 #'options_map_double_size': check_map_double_size.get_active(),
-                 #'options_hide_found': check_hide_found.get_active(),
                  'options_show_html_description': check_show_html_description.get_active(),
-                 #'options_rotate_screen': rotate_get_result(),
-                 #'tts_interval':tts_get_result(),
                  }
         self.settings.update(update)
         self.core.save_settings(update, self)
-        #self.core.on_userdata_changed(self.settings['options_username'], self.settings['options_password'])
     
     def _show_default_log_text_settings(self, widget, data):
         dialog = gtk.Dialog("Default Fieldnote Text", None, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
@@ -852,7 +827,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
 
         if cache.attributes != None:
             for attribute in cache.attributes.split(',')[0:-1]:
-                filename = path.join(self.settings['download_output_dir'], attribute)
+                filename = join(self.settings['download_output_dir'], attribute)
                 attribute_table.pack_start(gtk.image_new_from_file(filename))
         else:
             w = gtk.Label("None.")
@@ -914,7 +889,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         pan = hildon.PannableArea()
         pan.add_with_viewport(p)        
         notebook.append_page(pan, gtk.Label("Info"))
-        
+        text_longdesc = ''
         if len(cache.desc.strip()) > 0 or len(cache.shortdesc.strip()) > 0:
             # Description
             p = hildon.PannableArea()
@@ -928,20 +903,20 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                 widget_description.set_size_request(self.window.size_request()[0] - 10, -1)
                 p.add_with_viewport(widget_description)
 
-                text_shortdesc = my_gtk_label_escape(self._strip_html(cache.shortdesc).strip())
-                text_longdesc = my_gtk_label_escape(self._strip_html(text_longdesc).strip())
+                text_shortdesc_esc = my_gtk_label_escape(self._strip_html(cache.shortdesc).strip())
+                text_longdesc_esc = my_gtk_label_escape(self._strip_html(text_longdesc).strip())
                 
                 if cache.status == geocaching.GeocacheCoordinate.STATUS_DISABLED:
                     text_shortdesc = '<u>This Cache is not available!</u>\n%s' % text_shortdesc
 
                 if text_longdesc != '' and text_shortdesc != '':
-                    showdesc = "<b>%s</b>\n\n%s" % (text_shortdesc, text_longdesc)
+                    showdesc = "<b>%s</b>\n\n%s" % (text_shortdesc_esc, text_longdesc_esc)
                 elif text_longdesc == '' and text_shortdesc == '':
                     showdesc = "<i>No description available</i>"
                 elif text_longdesc == '':
-                    showdesc = text_shortdesc
+                    showdesc = text_shortdesc_esc
                 else:
-                    showdesc = text_longdesc
+                    showdesc = text_longdesc_esc
                     
                 widget_description.set_markup(showdesc)
                 events.append(self.window.connect('configure-event', self._on_configure_label, widget_description))
@@ -969,7 +944,6 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                 widget_description.set_document(description)
                 p.set_property("mov-mode", hildon.MOVEMENT_MODE_BOTH)
                 p.add(widget_description)
-                text_longdesc = self._strip_html(text_longdesc)
                 
         if cache.was_downloaded() or len(cache.hints.strip()) > 0:
             # logs&hints
@@ -1511,8 +1485,8 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
 
         
     def _on_show_image(self, dpath, caption):
-        fullpath = path.join(self.settings['download_output_dir'], dpath)
-        if not path.exists(fullpath):
+        fullpath = join(self.settings['download_output_dir'], dpath)
+        if not exists(fullpath):
             print "file does not exist: " + fullpath
             return
         win = hildon.StackableWindow()
