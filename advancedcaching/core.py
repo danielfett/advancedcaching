@@ -23,7 +23,7 @@
 from __future__ import with_statement
 
 # This is also evaluated by the build scripts
-VERSION='0.9.1.0'
+VERSION='0.9.1.0-test'
 import logging
 import logging.handlers
 logging.basicConfig(level=logging.WARNING,
@@ -358,13 +358,12 @@ class Core(gobject.GObject):
                     logging.info("Skipping nonexistant update from" + path.join(self.UPDATE_DIR, "%s%spy" % (m.__name__, extsep)))
         return updated_modules
 
-    def try_update(self, silent = False, sync = False):
+    def try_update(self, silent = False):
         """
         Retrieve and install updates.
         
         This method connects to danielfett.de and tries to retrieve an md5sums file containing references to updated files for this AGTL version. If available, downloads the files and checks their md5sums before copying them to the updates folder. Calls self._install_updates afterwards to reload updated modules.
         silent -- If possible, suppress errors. Useful for auto-updating.
-        sync -- Perform actions synchronously, i.e., don't use threads.
 
         """
         if connection.offline:
@@ -433,34 +432,13 @@ class Core(gobject.GObject):
                         pass
                         
         except NoUpdateException, e:
-            if sync:
-                self.emit('hide-progress')
-            else:
-                def same_thread():
-                    self.emit('hide-progress')
-                    return False
-                gobject.idle_add(same_thread)
+            self.emit('hide-progress')
             return self._install_updates()
         except Exception, e:
-            if sync:
-                self.emit('error', e)
-                return None
-            def same_thread(error):
-                logging.exception(e)
-                self.emit('hide-progress')
-                if not silent:
-                    self.emit('error', error)
-                return False
-            gobject.idle_add(same_thread, e)
+            self.emit('error', e)
             return None
 
-        if sync:
-            self.emit('hide-progress')
-        else:
-            def same_thread():
-                self.emit('hide-progress')
-                return False
-            gobject.idle_add(same_thread)
+        self.emit('hide-progress')
         return self._install_updates()
 
 
@@ -758,7 +736,7 @@ class Core(gobject.GObject):
     def _check_auto_update(self):
         if 'options_auto_update' in self.settings and self.settings['options_auto_update'] and not self.auto_update_checked:
             self.emit('progress', 0.1, "Checking for Updates...")
-            updates = self.try_update(silent = True, sync = False)
+            updates = self.try_update(silent = True)
             if updates not in [None, False]:
                 logger.info("Parser update installed.")
         self.auto_update_checked = True
@@ -916,10 +894,7 @@ class Core(gobject.GObject):
         Signal handler which is called when the downloading thread cannot download because someone else is still downloading.
         
         """
-        def same_thread(error):
-            self.emit('error', error)
-            return False
-        gobject.idle_add(same_thread, error)
+        self.emit('error', error)
         
     def on_download_error(self, something, error):
         """
@@ -928,11 +903,8 @@ class Core(gobject.GObject):
         """
         extra_message = "Error:\n%s" % error
         logging.exception(error)
-        def same_thread(error):
-            self.emit('hide-progress')
-            self.emit('error', extra_message)
-            return False
-        gobject.idle_add(same_thread, error)
+        self.emit('hide-progress')
+        self.emit('error', extra_message)
     
     def default_download_skip_callback(self, id, found):
         """
@@ -946,7 +918,7 @@ class Core(gobject.GObject):
             return True
         if self.settings['options_redownload_after'] > 0:
             self._geocache_by_name_event.clear()
-            gobject.idle_add(self.get_geocache_by_name_async, id, priority=gobject.PRIORITY_HIGH)
+            gobject.idle_add(self._get_geocache_by_name_async, id, priority=gobject.PRIORITY_HIGH)
             res = self._geocache_by_name_event.wait(1)
             if res == False:
                 logger.error("Screw it, I'll just redownload it.")
@@ -964,7 +936,7 @@ class Core(gobject.GObject):
             return True
         return False
         
-    def get_geocache_by_name_async(self, id):
+    def _get_geocache_by_name_async(self, id):
         self._geocache_by_name_result = self.get_geocache_by_name(id)
         self._geocache_by_name_event.set()
 
