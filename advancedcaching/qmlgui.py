@@ -980,7 +980,6 @@ class GeocacheWrapper(QtCore.QObject):
         return GeocacheWrapper.GEOCACHE_CACHE[geocache.name]
 
     def update(self, geocache):
-        logger.exception("Geocache %s updated." % self._geocache.title)
         self._geocache = geocache
         self._coordinate_list = None
         self._logs_list = None
