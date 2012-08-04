@@ -766,6 +766,7 @@ class Core(gobject.GObject):
         """
         new_caches = []
         for c in caches:
+            self.emit('cache-changed', c)
             point_new = self.pointprovider.add_point(c)
             if point_new:
                 new_caches.append(c)

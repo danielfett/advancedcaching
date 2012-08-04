@@ -41,6 +41,7 @@ Rectangle {
     property bool tooManyPoints: true
 
     property alias model: geocacheDisplay.model
+    property alias waypointModel: waypointDisplay.model
     
     property int status: PageStatus.active
     
@@ -334,6 +335,18 @@ Rectangle {
             }
         }
 
+        Item {
+            id: waypointDisplayContainer
+            Repeater {
+                id: waypointDisplay
+                delegate: Waypoint {
+                    coordinate: model.coordinate
+                    targetPoint: getMappointFromCoord(model.coordinate.lat, model.coordinate.lon)
+                    verticalSpacing: model.numSimilar
+                    z: 2000
+                }
+            }
+        }
 
     }
     
@@ -350,17 +363,6 @@ Rectangle {
             origin.x: targetIndicator.width/2
             origin.y: targetIndicator.height/2
         }
-        /*
-        NumberAnimation {
-            running: true
-            target: rotationTarget;
-            property: "angle";
-            from: 0;
-            to: 359;
-            duration: 2000
-            loops: Animation.Infinite
-        }*/
-
     }
 
     Rectangle {
@@ -436,17 +438,6 @@ Rectangle {
         anchors.fill: parent;
 
         function calcZoomDelta(p) {
-            /*var newScale = zoom * p.scale
-            //pinchmap.zoomLevel += Math.floor(newScale / 2)
-            scalemap.setScale(newScale % 2)
-            var panX = -(((p.center.x - map.rootX) * newScale)-(p.center.x - map.rootX) )
-            //console.log("Scale is now " + newScale +
-
-            pan(panX, -(((p.center.y - map.rootY) * newScale) - (p.center.y - map.rootY)))
-            //map.pan(
-            //__oldZoom = (newScale % 2)
-            //console.log("Now, __oldZoom is " + __oldZoom + " and Map is at " + pinchmap.zoomLevel)
-             */
             pinchmap.setZoomLevelPoint(Math.round((Math.log(p.scale)/Math.log(2)) + __oldZoom), p.center.x, p.center.y);
             if (rotationEnabled) {
                 rot.angle = p.rotation

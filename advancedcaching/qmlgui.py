@@ -830,6 +830,12 @@ class CoordinateWrapper(QtCore.QObject):
                 float(self._coordinate.lon)
             except ValueError:
                 self._is_valid = False
+                
+    def __repr__(self):
+        try:
+            return "Coordinate %10.7f %10.7f" % (self._coordinate.lat, self._coordinate.lon)
+        except TypeError:
+            return "None"
 
     def _name(self):
         return self._coordinate.name
@@ -865,11 +871,16 @@ class CoordinateWrapper(QtCore.QObject):
     valid = QtCore.Property(bool, _is_valid_coordinate, notify=changed)
 
 class CoordinateListModel(QtCore.QAbstractListModel):
-    COLUMNS = ('coordinate',)
+    COLUMNS = ('coordinate','numSimilar')
 
     def __init__(self, core, coordinates = []):
         QtCore.QAbstractListModel.__init__(self)
         self._coordinates = coordinates
+        self._num_similar_by_coordinate = {} # Holds how many times the same coordinate appeared
+        self._num_similar_by_index = {} # Holds, how many times the same coordinate appeared up until this point
+        # It is important, that the "order" in which the indexes are given
+        # depends on the order in which numSimilar was queried for the
+        # coordinates.
         self.setRoleNames(dict(enumerate(CoordinateListModel.COLUMNS)))
 
     def update(self, new):
@@ -879,10 +890,27 @@ class CoordinateListModel(QtCore.QAbstractListModel):
 
     def rowCount(self, parent=QtCore.QModelIndex()):
         return len(self._coordinates)
-
+        
     def data(self, index, role):
         if index.isValid() and role == CoordinateListModel.COLUMNS.index('coordinate'):
             return self._coordinates[index.row()]
+        if index.isValid() and role == CoordinateListModel.COLUMNS.index('numSimilar'):
+            logger.debug("numSimilar called with index %d" % index.row())
+            if index.row() in self._num_similar_by_index:
+                # If a number was assigned to this index before, return it
+                return self._num_similar_by_index[index.row()]
+            unified = repr(self._coordinates[index.row()])
+            logger.debug("unified is: %s" % unified)
+            if unified in self._num_similar_by_coordinate:
+                # If the same coordinate already appeared
+                self._num_similar_by_coordinate[unified] += 1
+                self._num_similar_by_index[index.row()] = self._num_similar_by_coordinate[unified]
+                return self._num_similar_by_index[index.row()]
+            # If it's a new coordinate
+            self._num_similar_by_coordinate[unified] = 0
+            self._num_similar_by_index[index.row()] = 0
+            return 0
+                
         return None
         
     changed = QtCore.Signal()
@@ -947,11 +975,12 @@ class GeocacheWrapper(QtCore.QObject):
         if geocache.name not in GeocacheWrapper.GEOCACHE_CACHE:
             logger.debug("Not in cache: %s" % geocache.name)
             GeocacheWrapper.GEOCACHE_CACHE[geocache.name] = GeocacheWrapper(geocache, core)
-        else:
-            GeocacheWrapper.GEOCACHE_CACHE[geocache.name].update(geocache)
+        #else:
+        #    GeocacheWrapper.GEOCACHE_CACHE[geocache.name].update(geocache)
         return GeocacheWrapper.GEOCACHE_CACHE[geocache.name]
 
     def update(self, geocache):
+        logger.exception("Geocache %s updated." % self._geocache.title)
         self._geocache = geocache
         self._coordinate_list = None
         self._logs_list = None

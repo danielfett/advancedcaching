@@ -23,6 +23,7 @@ Page {
         url: settings.currentMapType.url
         maxZoomLevel: settings.currentMapType.maxZoom
         status: tabMap.status
+        waypointModel: currentGeocache.coordinates
 
         Connections {
             target: gps
