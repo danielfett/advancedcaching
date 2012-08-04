@@ -347,7 +347,7 @@ class SimpleGui(Gui):
             zoom = 6
 
         self.map = Map(center=coord, zoom=zoom)
-        self.geocache_layer = GeocacheLayer(self._get_geocaches_callback, self.show_cache)
+        self.geocache_layer = GeocacheLayer(self._get_geocaches_callback, self._show_cache_select)
         self.marks_layer = MarksLayer()
         self.map.add_layer(self.geocache_layer)
         self.map.add_layer(self.marks_layer)
@@ -1000,7 +1000,24 @@ class SimpleGui(Gui):
     def show(self):
         self.window.show_all()
         gtk.main()
-                
+        
+    def _show_cache_select(self, caches):
+        if len(caches) == 0:
+            return
+        if len(caches) == 1:
+            self.show_cache(caches[0])
+            return
+        menu = gtk.Menu()
+        for c in caches:
+            entry = gtk.MenuItem(self.shorten_name(c.title, 30))
+            entry.connect("activate", lambda x: self.show_cache(c))
+            menu.append(entry)
+        menu.show_all()
+        menu.popup(None, None, None, 0, 0)
+            
+        # and now... show list, let user select, show geocache.
+    
+    
                         
     # called by core
     def show_cache(self, cache):

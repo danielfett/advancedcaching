@@ -415,16 +415,15 @@ class AbstractGeocacheLayer(AbstractMapLayer):
 
     def clicked_coordinate(self, center, topleft, bottomright):
         mindistance = (center.lat - topleft.lat) ** 2 + (center.lon - topleft.lon) ** 2
-        mincache = None
+        caches = []
         for c in self.visualized_geocaches:
             dist = (c.lat - center.lat) ** 2 + (c.lon - center.lon) ** 2
 
             if dist < mindistance:
-                mindistance = dist
-                mincache = c
+                caches.append(c)
 
-        if mincache != None:
-            self.show_cache_callback(mincache)
+        if len(caches) > 0:
+            self.show_cache_callback(caches)
         return False
 
 
