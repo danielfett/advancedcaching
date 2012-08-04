@@ -622,9 +622,9 @@ class SimpleGui(Gui):
 
     def hide_progress(self):
     
-        gtk.threads_enter()
+        gtk.gdk.threads_enter()
         self.progressbar.hide()
-        gtk.threads_leave()
+        gtk.gdk.threads_leave()
                 
     def _load_images(self):
         if self.current_cache == None:
@@ -979,11 +979,11 @@ class SimpleGui(Gui):
                 
     def set_progress(self, fraction, text):
     
-        gtk.threads_enter()
+        gtk.gdk.threads_enter()
         self.progressbar.show()
         self.progressbar.set_text(text)
         self.progressbar.set_fraction(fraction)
-        gtk.threads_leave()
+        gtk.gdk.threads_leave()
 
 
     def set_target(self, cache):

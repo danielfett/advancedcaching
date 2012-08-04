@@ -1665,12 +1665,12 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         ##############################################
 
     def hide_progress(self):
-        gtk.threads_enter()
+        gtk.gdk.threads_enter()
         hildon.hildon_gtk_window_set_progress_indicator(self.window, 0)
         if self.banner != None:
             self.banner.hide()
             self.banner = None
-        gtk.threads_leave()
+        gtk.gdk.threads_leave()
 
 
     def hide_cache_view(self, widget=None, data=None, go_to_map = False):
@@ -1693,7 +1693,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                 
     def set_progress(self, fraction, text = ''):
     
-        gtk.threads_enter()
+        gtk.gdk.threads_enter()
         hildon.hildon_gtk_window_set_progress_indicator(self.window, 1)
         if text == '':
             text = 'Please wait...'
@@ -1704,7 +1704,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         else:
             self.banner.set_text(text)
             
-        gtk.threads_leave()
+        gtk.gdk.threads_leave()
 
     def show_error(self, errormsg):
         hildon.hildon_banner_show_information(self.window, "", "%s" % errormsg)
