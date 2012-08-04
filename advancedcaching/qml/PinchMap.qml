@@ -494,10 +494,29 @@ Rectangle {
                 panEnd();
             } else {
                 var n = mousearea.mapToItem(geocacheDisplayContainer, mouse.x, mouse.y)
-                var g = geocacheDisplayContainer.childAt(n.x, n.y)
-                if (g != null) {
-                    showAndResetDetailsPage()
-                    controller.geocacheSelected(g.cache)
+                var geocaches = new Array();
+                var g;
+                while ((g = geocacheDisplayContainer.childAt(n.x, n.y)) != null) {
+                    geocaches.push(g);
+                    g.visible = false;
+                }
+                if (geocaches.length == 1) {
+                    geocaches[0].visible = true;
+                    showAndResetDetailsPage();
+                    controller.geocacheSelected(geocaches[0].cache);
+                } else if (geocaches.length > 1) {
+                    var m = new Array();
+                    var i;
+                    for (i in geocaches) {
+                        console.debug("Found geocache: " + geocaches[i].cache.name);
+                        geocaches[i].visible = true;
+                        m.push(geocaches[i].cache.title);
+                    }
+                    // show selection window
+                    geocacheSelectionDialog.model = m;
+                    geocacheSelectionDialog.fullList = geocaches;
+                    geocacheSelectionDialog.open();
+                    
                 }
             }
 
@@ -522,6 +541,17 @@ Rectangle {
 
         onCanceled: {
             __isPanning = false;
+        }
+    }
+    
+    SelectionDialog {
+        id: geocacheSelectionDialog
+        titleText: "Select geocache"
+        model: []
+        property variant fullList: []
+        onAccepted: {
+            showAndResetDetailsPage();
+            controller.geocacheSelected(fullList[selectedIndex].cache);
         }
     }
 }
