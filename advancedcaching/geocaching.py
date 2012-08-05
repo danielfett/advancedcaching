@@ -309,6 +309,14 @@ class GeocacheCoordinate(geo.Coordinate):
         else:
             return self.SIZES[self.size]
 
+    def add_attribute(self, attr):
+        if not self.attributes:
+            self.attributes = attr
+        else:
+            s = ','.split(self.attributes)            
+            if not attr in s:
+                s.append(attr)
+            self.attributes = ','.join(s)
 
     def get_gs_type(self):
         if self.TYPE_MAPPING.has_key(self.type):

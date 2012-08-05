@@ -20,8 +20,8 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
-VERSION = 29
-VERSION_DATE = '2012-07-29'
+VERSION = 31
+VERSION_DATE = '2012-08-05'
 
 import logging
 logger = logging.getLogger('cachedownloader')
@@ -689,7 +689,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                     continue
 
                 attrib=x.get('src')[19:] #strip text '/images/attributes/'
-
+                logger.debug("attrib is %r, self.path is %r" % (attrib, self.path))
                 # Prepend local path to filename, and check do we have it already
                 filename = os.path.join(self.path, attrib)
                 if os.path.isfile(filename):
@@ -708,7 +708,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                         logger.error("Failed to download image from URL %s" % url)
 
                 #store filename without path to the comma separated string
-                coordinate.attributes = coordinate.attributes+attrib+","
+                coordinate.add_attribute(attrib)
         except IndexError:
             # There are no attributes
             logger.info("Attributes not found!")
