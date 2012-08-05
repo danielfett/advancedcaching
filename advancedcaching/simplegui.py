@@ -393,6 +393,7 @@ class SimpleGui(Gui):
         
     def on_window_destroy(self, target, more=None, data=None):
         self.core.prepare_for_disposal()
+        self.map.shutdown()
         gtk.main_quit()
 
     def _get_best_coordinate(self, start=None):

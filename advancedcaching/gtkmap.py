@@ -82,7 +82,9 @@ class Map(gtk.DrawingArea, AbstractMap):
 
         self.modify_bg(gtk.STATE_NORMAL, gtk.gdk.color_parse("white"))
 
-
+    def shutdown(self):
+        self.tile_loader_threadpool.dismissWorkers(openstreetmap.CONCURRENT_THREADS * 2)
+        self.tile_loader_threadpool.joinAllDismissedWorkers()
 
         ##############################################
         #
