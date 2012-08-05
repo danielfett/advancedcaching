@@ -120,7 +120,7 @@ class PointProvider():
         """
         Add a geocache to the database.
         
-        p -- Geocachae
+        p -- Geocache
         replace -- If False, update the existing geocache, but only the fields listed in self.ctype.NON_USER_ATTRS. This is useful when existing user data, such as notes, should not be overwritten. If True, replace existing geocaches, deleting user data (unless user data was manually retained).
         
         """
@@ -418,8 +418,10 @@ class PointProvider():
         """
         Return a geocache by its name (where name is the ID)
         
+        Returns None if the geocache was not found.
+        
         """
-        query = 'SELECT * FROM %s WHERE name LIKE ? LIMIT 2' % self.cache_table
+        query = 'SELECT * FROM %s WHERE name LIKE ? LIMIT 1' % self.cache_table
         c = self.conn.execute(query, (gcname,))
         row = c.fetchone()
         if row != None:

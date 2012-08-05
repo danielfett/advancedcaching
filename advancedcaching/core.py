@@ -23,7 +23,7 @@
 from __future__ import with_statement
 
 # This is also evaluated by the build scripts
-VERSION='0.9.1.0-test'
+VERSION='0.9.1.0'
 import logging
 import logging.handlers
 logging.basicConfig(level=logging.WARNING,
@@ -66,7 +66,7 @@ if '-v' in argv or '--remote' in argv:
     
 if '--debug-http' in argv:
     downloader.enable_http_debugging()
-
+    
 extensions = []
 if '--simple' in argv:
     import simplegui
@@ -750,12 +750,12 @@ class Core(gobject.GObject):
         skip_callback -- A callback function which gets the geocache id and its found status as input. If it returns true, the geocache's details are not downloaded.
         """
         if not sync:                
-            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.get_overview', self._download_overview_complete, location, skip_callback])
+            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.get_overview', self._download_overview_complete, location, self.get_geocache_by_name_async, skip_callback])
             t.daemon = True
             t.start()
             return False
         else:
-            return self._download_overview_complete(self.cachedownloader.get_overview(location, skip_callback), True)
+            return self._download_overview_complete(self.cachedownloader.get_overview(location, self.get_geocache_by_name, skip_callback), True)
 
     def _download_overview_complete(self, caches, sync=False):
         """
@@ -771,6 +771,10 @@ class Core(gobject.GObject):
             if point_new:
                 new_caches.append(c)
         self.pointprovider.save()
+        
+        for c in caches:
+            self.emit('cache-changed', c)
+            
         self.emit('hide-progress')
         self.emit('map-marks-changed')
         if sync:
@@ -907,37 +911,41 @@ class Core(gobject.GObject):
         self.emit('hide-progress')
         self.emit('error', extra_message)
     
-    def default_download_skip_callback(self, id, found):
+    def default_download_skip_callback(self, geocache, found):
         """
-        This is a default callback for skip_callback in download_overview.
+        This is a default callback for skip_callback in download_overview. 
         
-        It reads the settings and acts accordingly.
+        This callback is called after the cachedownloader fetched a list of geocaches which are in a certain area and before it actually downloads the geocache's details. If the callback returns True, the cachedownloader will skip downloading details. It reads the settings and acts accordingly.
+        
+        geocache -- is None or the geocache which was fetched from the database before its details were updated
+        found -- the (new) found status, as read from the web page
         
         """
         if self.settings['download_notfound'] and found:
-            logger.debug("Geocache %s is marked as found, skipping!" % id)
+            logger.debug("Geocache is marked as found, skipping!")
             return True
+        if geocache == None or geocache.get_updated() == None: 
+            logger.debug("Geocache %r was not in the database or had no update timestamp." % geocache)
+            return False # When the geocache is not in the database or when it was downloaded before we introduced timestamps, don't skip!
         if self.settings['options_redownload_after'] > 0:
-            self._geocache_by_name_event.clear()
-            gobject.idle_add(self._get_geocache_by_name_async, id, priority=gobject.PRIORITY_HIGH)
-            res = self._geocache_by_name_event.wait(1)
-            if res == False:
-                logger.error("Screw it, I'll just redownload it.")
-                return False
-
-            gc = self._geocache_by_name_result
-            if gc == None or gc.get_updated() == None: 
-                logger.debug("Geocache %s was not in the database or had no update timestamp." % id)
-                return False # When the geocache is not in the database or when it was downloaded before we introduced timestamps, don't skip!
-            diff = datetime.now() - gc.get_updated() 
+            diff = datetime.now() - geocache.get_updated() 
             if diff.days >= self.settings['options_redownload_after']:
-                logger.debug("Geocache %s was not updated for %d days. It's time!" % (id, diff.days))
+                logger.debug("Geocache %s was not updated for %d days. It's time!" % (geocache.name, diff.days))
                 return False
-            logger.debug("Geocache %s was not updated for %d days. That's fine." % (id, diff.days))
+            logger.debug("Geocache %s was not updated for %d days. That's fine." % (geocache.name, diff.days))
             return True
         return False
         
-    def _get_geocache_by_name_async(self, id):
+    def get_geocache_by_name_async(self, id):
+        self._geocache_by_name_event.clear()
+        gobject.idle_add(self._get_geocache_by_name_async_idle, id, priority=gobject.PRIORITY_HIGH)
+        res = self._geocache_by_name_event.wait(1)
+        if res == False:
+            logger.error("Screw it!")
+            return None
+        return self._geocache_by_name_result
+        
+    def _get_geocache_by_name_async_idle(self, id):
         self._geocache_by_name_result = self.get_geocache_by_name(id)
         self._geocache_by_name_event.set()
 

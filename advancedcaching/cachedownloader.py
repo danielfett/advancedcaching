@@ -20,7 +20,6 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
-
 VERSION = 29
 VERSION_DATE = '2012-07-29'
 
@@ -96,14 +95,14 @@ class CacheDownloader(gobject.GObject):
         return u
 
     # Retrieve geocaches in the bounding box defined by location 
-    def get_overview(self, location, skip_callback = None):
+    def get_overview(self, location, get_geocache_callback, skip_callback = None):
         if not CacheDownloader.lock.acquire(False):
             self.emit('already-downloading-error', Exception("There's a download in progress. Please wait."))
             logger.warning("Download in progress")
             return
             
         try:
-            points = self._get_overview(location, skip_callback = skip_callback)
+            points = self._get_overview(location, get_geocache_callback, skip_callback = skip_callback)
         except Exception, e:
             logger.exception(e)
             self.emit('download-error', e)
@@ -170,7 +169,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             doc = fromstring_soup(text)
         return doc
 
-    def _get_overview(self, location, rec_depth = 0, skip_callback = None):
+    def _get_overview(self, location, get_geocache_callback, skip_callback = None):
         c1, c2 = location
         center = geo.Coordinate((c1.lat + c2.lat)/2, (c1.lon + c2.lon)/2)
         dist = (center.distance_to(c1)/1000)/2
@@ -231,24 +230,60 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 
                 cont = True
         
-        # Download the geocaches using the print preview 
-        points = []
-        i = 0
+        # Now, split wpts into three groups:
+        points_that_need_downloading = [] # Geocaches that need to be downloaded
+        points_finished = []              # Geocaches that only need to be updated in the database
+        # and Geocaches which don't need any update (they will be removed)
         for guid, found, id in wpts:
-            i += 1
-            if skip_callback != None and skip_callback(id, found):
+            # Check if geocache exists in DB
+            coordinate = get_geocache_callback(id)
+            
+            if coordinate == None:
+                # If the coordinate was not in the DB
+                if skip_callback != None and skip_callback(None, found):
+                    # Skip it, for example when it is marked as found
+                    logger.info("Skipping %s. It was not in the DB." % id)
+                    continue
+                # Else always download
+                points_that_need_downloading.append((guid, found, id, GeocacheCoordinate(-1, -1, id)))
+                logger.info("Downloading %s. It was not in the DB." % id)
                 continue
-            coordinate = GeocacheCoordinate(-1, -1, id)
+            
+            if coordinate.found != found:
+                coordinate.found = found
+                needs_update = True
+            else:
+                needs_update = False
+                
+            if skip_callback != None and skip_callback(coordinate, found):
+                if not needs_update:
+                    logger.info("Skipping %s. It was in the DB, but its found status was correct." % id)
+                    continue
+                # If the coordinate is to be skipped, put it into points_finished anyway
+                # because the found status was updated
+                points_finished.append(coordinate)
+                logger.info("Updating %s. It was in the DB, but its found status was not correct." % id)
+                continue
+            logger.info("Downloading %s. It was in the DB, but it was not to be skipped." % id)
+            points_that_need_downloading.append((guid, found, id, coordinate))
+                    
+        
+        # Download the geocaches using the print preview 
+
+        i = 0
+        for guid, found, id, coordinate in points_that_need_downloading:
+            i += 1
             coordinate.found = found
-            self.emit("progress", "Geocache %d of %d" % (i, len(wpts)), i, len(wpts))
+            logger.debug("Coordinate %s, found=%r" % (coordinate.name, found))
+            self.emit("progress", "Geocache %d of %d" % (i, len(points_that_need_downloading)), i, len(points_that_need_downloading))
             logger.info("Downloading %s..." % id)
             url = self.PRINT_PREVIEW_URL % guid
             response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)                
             result = self._parse_cache_page_print(response, coordinate, num_logs = 20)
             if result != None and result.lat != -1:
-                points += [result]
+                points_finished.append(result)
                 
-        return points
+        return points_finished
         
     def _update_coordinate(self, coordinate, num_logs = 20, progress_min = 0.0, progress_max = 1.0, progress_all = 1.0):
         coordinate = coordinate.clone()
