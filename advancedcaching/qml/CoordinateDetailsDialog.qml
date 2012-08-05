@@ -31,38 +31,30 @@ Sheet {
             spacing: 8
             Label {
                 text: coordinate.valid ? F.formatCoordinate(coordinate.lat, coordinate.lon, settings) : "undefined"
-                width: 400//showDescription.width
+                width: 400
                 font.weight: Font.Light
-                //color: UI.COLOR_DIALOG_TEXT
                 wrapMode: Text.WordWrap
                 font.pixelSize: UI.FONT_DEFAULT
-                visible: showDescription.coordinate && showDescription.coordinate.valid
-            }/*
-            Label {
-                text: showDescription.coordinate.display_text || "undefined"
-                width: showDescription.width
-                font.weight: Font.Light
-                wrapMode: Text.WordWrap
-                //color: UI.COLOR_DIALOG_TEXT
-                font.pixelSize: UI.FONT_SMALL
-            }*/
+                visible: (showDescription.coordinate && showDescription.coordinate.valid) || false
+            }
             Label {
                 text: coordinate ? coordinate.comment : "undefined"
-                width: 400//showDescription.width
+                width: 400
                 wrapMode: Text.WordWrap
-                //color: UI.COLOR_DIALOG_TEXT
                 font.pixelSize: UI.FONT_SMALL
             }
             PinchMap {
                 id: map
                 zoomLevel: 15
-                width: 400//showDescription.width
+                width: 400
                 height: 300
                 clip: true
                 showTargetIndicator: true
                 showTargetAtLat: coordinate.lat || 0
                 showTargetAtLon: coordinate.lon || 0
                 visible: false
+                status: showDescription.status
+                url: settings.currentMapType.url
             }
         }
 
