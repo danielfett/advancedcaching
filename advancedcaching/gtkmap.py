@@ -36,6 +36,8 @@ import openstreetmap
 import pango
 import threadpool
 logger = logging.getLogger('gtkmap')
+from os.path import getsize
+from hashlib import md5
 
 
 class Map(gtk.DrawingArea, AbstractMap):
@@ -339,6 +341,11 @@ class Map(gtk.DrawingArea, AbstractMap):
         surface = cairo.ImageSurface.create_from_png(filename)
         if surface.get_width() != surface.get_height():
             raise Exception("Image too small, probably corrupted file")
+            
+        # Filter out OpenStreetMap illegal URL tile
+        if surface.get_format() == cairo.FORMAT_ARGB32: # Check format first, because it's very fast.
+            if getsize(filename) == 3713 and md5(surface.get_data()).hexdigest() == '6d9afab2f24e9660b7689b11bf11c880':
+                raise Exception("Illegal OSM tile.")
         return surface
 
     def __run_tile_loader(self, id_string, tile, zoom, undersample, x, y, callback_draw):

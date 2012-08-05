@@ -156,8 +156,8 @@ def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, fil
         def recover(self):
             try:
                 remove(self.local_filename)
-            except:
-                pass
+            except Exception, e:
+                logger.critical("Exception occured while removing file: %s" % e)
             self.__download(self.remote_filename, self.local_filename)
             return self.load(1)
 

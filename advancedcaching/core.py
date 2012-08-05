@@ -196,7 +196,7 @@ class Core(gobject.GObject):
         # Check tile URLs for outdated URLs after Openstreetmap URL change
         for name, details in self.settings['map_providers']:
             prev = details['remote_url']
-            details['remote_url'] = sub(r'//(.*).openstreetmap.org/', '//tile.openstreetmap.org/', prev)
+            details['remote_url'] = sub(r'//(.*).openstreetmap.org/([a-z]*/)?', '//tile.openstreetmap.org/', prev)
             if prev != details['remote_url']:
                 logger.info("Replaced url '%s' with '%s' because Openstreetmaps changed their URLs." % (prev, details['remote_url']))
         
