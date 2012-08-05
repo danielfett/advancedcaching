@@ -24,6 +24,8 @@ from math import sqrt
 from sqlite3 import connect, Row
 
 from copy import copy
+import logging
+logger = logging.getLogger(__name__)
 
 
 class PointProvider():
@@ -421,7 +423,7 @@ class PointProvider():
         Returns None if the geocache was not found.
         
         """
-        query = 'SELECT * FROM %s WHERE name LIKE ? LIMIT 1' % self.cache_table
+        query = 'SELECT * FROM %s WHERE name = ? LIMIT 1' % self.cache_table
         c = self.conn.execute(query, (gcname,))
         row = c.fetchone()
         if row != None:
