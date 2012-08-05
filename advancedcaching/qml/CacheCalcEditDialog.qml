@@ -178,6 +178,7 @@ Sheet {
                     height: 300
                     clip: true
                     anchors.horizontalCenter: parent.horizontalCenter
+                    url: settings.currentMapType.url
                 }
 
             }
