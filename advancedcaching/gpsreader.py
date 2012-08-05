@@ -230,6 +230,7 @@ class LocationGpsReader():
         self.control = control
         self.device = device
         self.cb_fix = cb_fix
+        self.status = ''
 
     def start(self):
         self.control.start()
@@ -237,6 +238,7 @@ class LocationGpsReader():
         
     def cb_changed(self, device):
         fix = self.fix_from_tuple(device.fix, device)
+        self.status = ''
         self.cb_fix(fix)
     
     def cb_error(self, control, error):
