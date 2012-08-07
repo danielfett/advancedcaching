@@ -241,6 +241,35 @@ Sheet {
                     anchors.horizontalCenter: parent.horizontalCenter
                     visible: text != ""
                 }
+                
+                Item {
+                    Button {
+                        id: useTargetAsCoordinateButton
+                        text: "Set to target"
+                        onClicked: {
+                            cs.setValue(gps.target.lat, gps.target.lon);
+                        }
+                        anchors.left: parent.left
+                        width: parent.width/2 - 20
+                        anchors.top: parent.top
+                        anchors.topMargin: 16
+                    }
+                    Button {
+                        id: usePositionAsCoordinateButton
+                        text: "Set to position"
+                        enabled: gps.hasFix
+                        onClicked: {
+                            cs.setValue(gps.lastGoodFix.lat, gps.lastGoodFix.lon);
+                        }
+                        anchors.right: parent.right
+                        width: parent.width/2 - 20
+                        anchors.top: parent.top
+                        anchors.topMargin: 16
+                    }
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    height: 20
+                }
             }
 
         }
