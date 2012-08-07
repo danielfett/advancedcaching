@@ -58,7 +58,7 @@ Column {
         Label {
             text: "°"
             font.pixelSize:  UI.FONT_LARGE
-            color: "white"
+            color: theme.inverted ? UI.COLOR_DIALOG_TEXT : UI.COLOR_DIALOG_TEXT_NIGHT
             anchors.verticalCenter: parent.verticalCenter
         }
 
@@ -75,7 +75,7 @@ Column {
             text: "."
             font.pixelSize:  UI.FONT_LARGE
             anchors.verticalCenter: parent.verticalCenter
-            color: "white"
+            color: theme.inverted ? UI.COLOR_DIALOG_TEXT : UI.COLOR_DIALOG_TEXT_NIGHT
         }
 
         UpDownSelect {
@@ -117,7 +117,7 @@ Column {
             text: "°"
             font.pixelSize:  UI.FONT_LARGE
             anchors.verticalCenter: parent.verticalCenter
-            color: "white"
+            color: theme.inverted ? UI.COLOR_DIALOG_TEXT : UI.COLOR_DIALOG_TEXT_NIGHT
         }
 
         UpDownSelect {
@@ -133,7 +133,7 @@ Column {
             text: "."
             font.pixelSize:  UI.FONT_LARGE
             anchors.verticalCenter: parent.verticalCenter
-            color: "white"
+            color: theme.inverted ? UI.COLOR_DIALOG_TEXT : UI.COLOR_DIALOG_TEXT_NIGHT
         }
 
         UpDownSelect {

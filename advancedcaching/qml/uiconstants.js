@@ -11,6 +11,7 @@ var COLOR_INFOLABEL = "grey"
 var COLOR_DESCRIPTION = "mediumblue"
 var COLOR_DESCRIPTION_NIGHT = "lightblue"
 var COLOR_DIALOG_TEXT = "white"
+var COLOR_DIALOG_TEXT_NIGHT = "black"
 var WIDTH_SELECTOR = 53;
 var COLOR_WARNING_NIGHT = "yellow"
 var COLOR_WARNING = "darkred"

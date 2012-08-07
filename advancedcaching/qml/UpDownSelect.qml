@@ -15,7 +15,7 @@ Column {
         font.pixelSize: UI.FONT_LARGE
         text: value
         anchors.horizontalCenter: parent.horizontalCenter
-        color: "white"
+        color: theme.inverted ? UI.COLOR_DIALOG_TEXT : UI.COLOR_DIALOG_TEXT_NIGHT
     }
     Button {
         iconSource: theme.inverted ? "image://theme/icon-m-input-remove" : "image://theme/icon-m-common-remove"
