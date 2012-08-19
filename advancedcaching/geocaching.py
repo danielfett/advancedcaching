@@ -94,14 +94,14 @@ class GeocacheCoordinate(geo.Coordinate):
     ATTRS = ('lat', 'lon', 'title', 'name', 'shortdesc', 'desc', 'hints', 'type', \
              'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
              'images', 'notes', 'fieldnotes', 'logas', 'logdate', 'marked', \
-             'logs', 'status', 'vars', 'alter_lat', 'alter_lon', 'updated', 'user_coordinates', 'attributes')
+             'logs', 'status', 'vars', 'alter_lat', 'alter_lon', 'updated', 'user_coordinates', 'attributes', 'last_viewed')
 
     # These are the table fields which can safely be updated when
     # the geocache is re-downloaded. User data should not be contained
     # in them.
     NON_USER_ATTRS = ('lat', 'lon', 'title', 'shortdesc', 'desc', 'hints', 'type', \
              'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
-             'images', 'logs', 'status', 'attributes')
+             'images', 'logs', 'status', 'attributes', 'updated')
 
     SQLROW = {
         'lat': 'REAL',
@@ -132,6 +132,7 @@ class GeocacheCoordinate(geo.Coordinate):
         'updated' : 'INTEGER',
         'user_coordinates' : 'TEXT',
         'attributes' : 'TEXT',
+        'last_viewed' : 'INTEGER', # SQLite doesn't have real DATETIME data type
         }
     def __init__(self, lat, lon=None, name='', data=None):
         geo.Coordinate.__init__(self, lat, lon, name)
@@ -166,6 +167,7 @@ class GeocacheCoordinate(geo.Coordinate):
         self.updated = 0
         self.user_coordinates = ''
         self.attributes = ''
+        self.last_viewed = 0
 
     def clone(self):
         n = GeocacheCoordinate(self.lat, self.lon)
@@ -173,11 +175,17 @@ class GeocacheCoordinate(geo.Coordinate):
             setattr(n, k, getattr(self, k))
         return n
 
-    def updated(self):
+    def touch_updated(self):
         self.updated = int(time.mktime(datetime.now().timetuple()))
 
     def get_updated(self):
-        return datetime.fromtimestamp(self.updated)
+        return datetime.fromtimestamp(self.updated) if (self.updated != 0) else None
+        
+    def touch_viewed(self):
+        self.last_viewed = int(time.mktime(datetime.now().timetuple()))
+        
+    def get_last_viewed(self):
+        return datetime.fromtimestamp(self.last_viewed)
         
     def get_difficulty(self):
         return "%.1f" % (self.difficulty / 10.0) if self.difficulty != -1 else '?'
@@ -301,6 +309,14 @@ class GeocacheCoordinate(geo.Coordinate):
         else:
             return self.SIZES[self.size]
 
+    def add_attribute(self, attr):
+        if not self.attributes:
+            self.attributes = attr
+        else:
+            s = ','.split(self.attributes)            
+            if not attr in s:
+                s.append(attr)
+            self.attributes = ','.join(s)
 
     def get_gs_type(self):
         if self.TYPE_MAPPING.has_key(self.type):
@@ -439,9 +455,12 @@ class GeocacheCoordinate(geo.Coordinate):
                 logger.debug("Added coordinate, name=%r, title=%r, user_coordinate_id=%r" % (coord.name, coord.title, coord.user_coordinate_id))
 
         # parsed from notes
+        # alternative - short! naming of the Notes section, by separate numbering of all coordinates through variable ii
+        ii = 1
         for coord in geo.search_coordinates(self.notes):
             coord.title = "From Notes"
-            coord.display_text = "from notes: %s" % coord.get_latlon(format)
+            #coord.display_text = "from notes: %s" % coord.get_latlon(format)
+            coord.display_text = "notes %s" % ii
             coord.comment = "This coordinate was manually entered in the notes field."
             coord.user_coordinate_id = None
             clist[i] = coord
