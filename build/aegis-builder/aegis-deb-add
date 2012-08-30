@@ -1,0 +1,166 @@
+#!/usr/bin/perl
+
+my $debfile = shift;
+
+if ($debfile eq '-control')
+{
+    # Automatic generation of the package file
+    # name from the debian control file. The
+    my $control = shift;
+    die "Can't open control '$control'"
+	unless open(CONTROL, "<$control");
+    my $name;
+    my $version;
+    my $arch;
+    while (<CONTROL>)
+    {
+	chomp;
+	$name = $1 if (/^Package:\s*(\S+)\s*$/);
+	$version = $1 if (/^Version:\s*(\S+)\s*$/);
+	$arch = $1 if (/^Architecture:\s*(\S+)\s*$/);
+    }
+    close CONTROL;
+    # dpkg-buildpackage seems to ignore the 'epoch', when
+    # creating the .deb file -- thus strip away, if present.
+    $version =~ s/^[0-9]*://;
+    $debfile = shift; # control file needs be followed by directory
+    $debfile .= "/${name}_${version}_${arch}.deb";
+}
+
+die "Can't find file \"$debfile\""
+    unless -f $debfile;
+
+die "Still failed to opening \"$debfile\""
+    unless open(DEB, "<$debfile");
+binmode DEB;
+
+my $magic;
+die "Could not read magic"
+    unless read(DEB,$magic, 8) == 8;
+
+die "Magic '$magic' is not for .deb ar"
+    unless $magic eq "!<arch>\n";
+
+my @files;
+
+while (@ARGV)
+{
+    my $file = shift;
+    my $base;
+
+    $base = $1 if ($file =~ s/=([^\/=]*)$//);
+
+    die "Cannot read the file '$file' to include"
+	unless -r $file;
+
+    my ($dev,$ino,$mode,$nlink,$uid,$gid,$rdev,$size,
+	$atime,$mtime,$ctime,$blksize,$blocks)
+	= stat($file);
+    if (!$base)
+    	{
+	    die "Filename must have base part"
+		unless $file =~ /([^\/]+)$/;
+	    $base = $1;
+	}
+    die "Length of '$base' exceeds the max length of the base part (16)"
+	unless length($base) <= 16;
+    die "File must be a plain file"
+	unless -f $file;
+
+    push @files, [$file, $mtime, $size, $base];
+}
+
+die "No files specified to change in '$debfile'"
+    unless scalar @files;
+
+die "Cannot open the output file '${debfile}.new'"
+    unless open(NEW, ">${debfile}.new");
+binmode NEW;
+
+print NEW $magic;
+
+# ar_name[16];    +00
+# ar_date[12];    +16 (= seconds since)
+# ar_uid[6]       +28 (= "0     ")
+# ar_gid[6]       +34 (= "0     ")
+# ar_mode[8]      +40 (= "100644  ")
+# ar_size[10];    +48
+# ar_fmag[2];     +58 (= "`\n")
+# -------------------
+#                 =60
+my $hdr;
+MEMBER: while (read(DEB, $hdr, 60) == 60)
+{
+    my $member = substr($hdr, 0, 16);
+    $member =~ s/\s*$//g;
+    my $size = substr($hdr, 48, 10);
+    if (substr($hdr, 58, 2) ne "`\n")
+    {
+	print "\thas bad header magic\n";
+	last;
+    }
+    $size += 1 if ($size & 1);
+    foreach my $repl (@files)
+    {
+	my $buf;
+	my $newhdr = sprintf("%-16s%-12s%-6s%-6s%-8s%-10s`\n",
+			    $repl->[3],
+			    $repl->[1],
+			    '0',
+			    '0',
+			    '100644',
+			    $repl->[2]);
+			    
+	next unless ($repl->[3] eq $member);
+	my $newsize = $repl->[2];
+	substr($hdr, 16, 12) = sprintf('%-12s', $repl->[1]);
+	substr($hdr, 48, 10) = sprintf('%-10s', $newsize);
+	print NEW $hdr;
+	die "Cannot open '$repl->[0]' for reading"
+	    unless open(TMP, "<$repl->[0]");
+	binmode TMP;
+	die "Failed read '$repl->[0]' fully"
+	    unless read (TMP, $buf, $newsize) == $newsize;
+	close TMP;
+	print NEW $buf;
+	print NEW "\n" if ($newsize & 1);
+	print "Replacing: $hdr";
+	seek DEB,$size,1;
+	undef $repl->[3];
+	next MEMBER;
+    }
+    print "Copying:   $hdr";
+    die "Failed read '$member' fully"
+	unless read (DEB, $buf, $size) == $size;
+    print NEW $hdr;
+    print NEW $buf;
+}
+
+foreach my $repl (@files)
+{
+    next if (!$repl->[3]);
+    my $buf;
+    my $hdr = sprintf("%-16s%-12s%-6s%-6s%-8s%-10s`\n",
+		     $repl->[3],
+		     $repl->[1],
+		     '0',
+		     '0',
+		     '100644',
+		     $repl->[2]);
+    print NEW $hdr;
+    die "Cannot open '$repl->[0]' for reading"
+	unless open(TMP, "<$repl->[0]");
+    binmode TMP;
+    my $size = $repl->[2];
+    die "Failed read '$repl->[0]' fully"
+	unless read (TMP, $buf, $size) == $size;
+    close TMP;
+    print NEW $buf;
+    print NEW "\n" if ($size & 1);
+    print "Appending: $hdr";
+}
+close NEW;
+close DEB;
+die "Failed to rename the debian archive \"${debfile}.new\""
+    unless rename("${debfile}.new", $debfile);
+

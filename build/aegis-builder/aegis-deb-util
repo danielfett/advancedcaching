@@ -1,0 +1,232 @@
+#!/usr/bin/perl -w
+
+use strict;
+use Getopt::Long;
+use Pod::Usage;
+use File::Temp qw/ tempdir /;
+
+=head1 NAME
+
+aegis-deb-util - Modifies debian package for mssf (aegis) security.
+
+=head1 SYNOPSIS
+
+aegis-deb-util [options] [package]
+
+Mandatory package argument can be full debian package name or just 
+package base name when aegis-deb-util is executed in package's build root.
+See the examples in manual page (use option --man).
+
+=head1 OPTIONS
+
+=over 8
+
+=item B<--help>
+
+Prints a brief help message and exits.
+
+=item B<--man>
+
+Prints the manual page and exits.
+
+=item B<--verbose>
+
+Print out some debugging aid.
+
+=item B<--add-manifest>
+
+Add manifest into the debian package, calls aegis-deb-add. 
+
+=item B<--manifest=path/to/manifest>
+
+Use given manifest file. Default is debian/[package-name].aegis.
+
+=item B<--add-digsigsums=/path/to/files>
+
+Add digsigsums of the file(s) into control digsigsums file. Value can
+have wildcards, and must be given as absolute path in the target system. 
+This parameter can be given multiple times.
+
+=back
+
+=head1 DESCRIPTION
+
+B<aegis-deb-util> will operate on the debian package archive.
+It can be used to add manifest and additional file digsigsums into the 
+archive. B<aegis-deb-util> is usually called from the package build root 
+just like the other build scripts (dh_* scripts from debhelper).
+
+=head1 EXAMPLES
+
+To add manifest into my-package deb archive:
+
+ $ aegis-deb-util --add-manifest my-package
+
+Specify manifest manually (previous example used the default):
+
+ $ aegis-deb-util --add-manifest --manifest=debian/my-package.aegis \
+   my-package
+
+Specify manifest manually and use full debian package name:
+
+ $ aegis-deb-util --add-manifest --manifest=my-package.aegis \
+   my-package_0.205+0m6_armel.deb
+
+Add manifest and digsigsums for some files:
+
+ $ aegis-deb-util --add-manifest --add-digsigsums=/etc/init/*.conf \
+   --add-digsigsums=/etc/init.conf my-package
+
+Don't add anything, just verify files and directories:
+
+ $ aegis-deb-util my-package
+
+=cut
+
+my $manifest = 0;
+my $add_manifest = 0;
+my @add_digsigsums;
+my $verbose = 0;
+my $man = 0;
+my $help = 0;
+
+GetOptions("manifest=s" => \$manifest,
+	   "add-manifest" => \$add_manifest,
+	   "add-digsigsums=s" => \@add_digsigsums,
+	   "verbose" => \$verbose,
+	   "help|?" => \$help, man => \$man) || pod2usage(2);
+
+pod2usage(1) if $help;
+pod2usage(-exitstatus => 0, -verbose => 2) if $man;
+
+# check arguments first
+if ($manifest) {
+    die("Cannot open manifest $manifest") unless -f $manifest;
+}
+
+# allow only one package for now
+pod2usage(1) unless @ARGV;
+my $debfile = shift @ARGV;
+pod2usage(1) if @ARGV;
+my $pkgname = 0;
+
+if (!($debfile =~ /\.deb$/)) {
+    # we are in build root, generate .deb name (copied from aegis-deb-add)
+    my $control = "debian/$debfile/DEBIAN/control";
+    die "Can't open control file in $control" 
+	unless open(CONTROL, "<$control");
+    my $version;
+    my $arch;
+    while (<CONTROL>) {
+	chomp;
+	$pkgname = $1 if (/^Package:\s*(\S+)\s*$/);
+	$version = $1 if (/^Version:\s*(\S+)\s*$/);
+	$arch = $1 if (/^Architecture:\s*(\S+)\s*$/);
+    }
+    close CONTROL;
+    $version =~ s/^[0-9]*://;
+    $debfile = "../${pkgname}_${version}_${arch}.deb";
+}
+die("Package $debfile doesn't exist") unless -f $debfile;
+die("Cannot find manifest") if ($add_manifest && !$manifest && !$pkgname); 
+
+my $tmp_control = tempdir(CLEANUP => 1);
+die("Cannot create temp dir") unless $tmp_control;
+my $tmp_extract = tempdir(CLEANUP => 1);
+die("Cannot create temp dir") unless $tmp_extract;
+
+system("dpkg-deb --control $debfile $tmp_control") && 
+    die("Failed to extract control info from $debfile");
+system("dpkg-deb --extract $debfile $tmp_extract") && 
+    die("Failed to extract files from $debfile");
+
+# add digsigsums, expand wildcards first
+my @digsigfiles;
+foreach (@add_digsigsums) {
+    my @files = glob("$tmp_extract" . $_);
+    if ($verbose) {
+	print "adding $_ ";
+	$_ = "@files";
+	s/$tmp_extract//g;
+	print "digsigsums for files: $_\n";
+    }
+    foreach (@files) {
+	if (-f $_) {
+	    s/$tmp_extract/\./;
+	    push @digsigfiles, $_;
+	} else {
+	    print "skipping digsigsum for $_\n" if $verbose;
+	}
+    }
+}
+
+if (@digsigfiles) {
+    # add new digsigsums to the end of the file
+    # note hack: setting x bits first for refhashmake
+    system("cd $tmp_extract; chmod u+x @digsigfiles");
+    print "cd $tmp_extract; refhashmake -c -a -o com.nokia.maemo -r -f @digsigfiles >>$tmp_control/digsigsums";
+    system("cd $tmp_extract; refhashmake -c -a -o com.nokia.maemo -r -f @digsigfiles >>$tmp_control/digsigsums") && die("Failed to run refhashmake");
+    # read digsigsums file to an array
+    open(DIGSIGSUMS, "$tmp_control/digsigsums") || 
+	die("Cannot open $tmp_control/digsigsums");
+    my @digsigsums = <DIGSIGSUMS>;
+    close(DIGSIGSUMS);
+    # move digsigsums to hash, use path as the key
+    my %hash;
+    foreach (@digsigsums) {
+	my @fields = split(/ /, $_);
+	$hash{$fields[8]} = $_;
+    }
+    my @unique = values %hash;
+    # print values back to digsigsums file, there are no duplicates any more
+    open(DIGSIGSUMS, ">$tmp_control/digsigsums") || 
+	die("Cannot open $tmp_control/digsigsums");
+    print DIGSIGSUMS @unique;
+    close(DIGSIGSUMS);
+}
+
+# Make sure conffiles doesn't have any files listed in digsigsums to avoid
+# dpkg.real config file processing. Config files are processed too late for
+# dpkg wrapper resulting in incorrect digsigsums during installation. 
+if (open(OLDFILES, "$tmp_control/conffiles") &&
+    open(DIGSIGSUMS, "$tmp_control/digsigsums")) {
+    # we have something to check
+    open(NEWFILES, ">$tmp_control/conffiles.tmp") || 
+	die("Cannot open $tmp_control/conffiles.tmp");
+
+    my @digsigsums = <DIGSIGSUMS>;
+
+    while (<OLDFILES>) {
+	chomp;
+	my $path = substr $_, 1;
+
+	# do we have digsigsum for this file?
+	if (grep {/$path/}@digsigsums) {
+	    print "/" . $path . " has digsigsum, taking out from conffiles\n" if $verbose;
+	} else {
+	    # no match, normal conffile, print into conffiles
+	    print NEWFILES "/" . $path . "\n";
+	}
+    }
+    close(NEWFILES);
+    close(DIGSIGSUMS);
+    close(OLDFILES);
+
+    rename "$tmp_control/conffiles.tmp", "$tmp_control/conffiles";
+}
+
+# create new control archive 
+system("cd $tmp_control; tar cvfz control.tar.gz * >/dev/null") && 
+    die("Failed to create new control for $debfile");
+
+# add control archive and manifest file into .deb
+my $aegis_deb_add = "$tmp_control/control.tar.gz=control.tar.gz";
+if ($add_manifest) {
+    if ($manifest) {
+	$aegis_deb_add .= " $manifest=_aegis";
+    } else {
+	$aegis_deb_add .= " debian/$pkgname.aegis=_aegis" if ($pkgname);
+    }
+}
+system("aegis-deb-add $debfile $aegis_deb_add") &&
+    die("Failed to modify $debfile");

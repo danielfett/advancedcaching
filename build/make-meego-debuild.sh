@@ -50,5 +50,6 @@ cp -r $SOURCE/actors $PKGTMP/src/opt/advancedcaching/
 cp -r $SOURCE/qml $PKGTMP/src/opt/advancedcaching/
 cp $RES/advancedcaching-80.png $PKGTMP/src/usr/share/icons/hicolor/80x80/apps/advancedcaching.png
 cd $PKGTMP/
-debuild -aarmel 
-echo "Now, add the _aegis file by running  ar qf {DEBFILE} ${PKGROOT}/_aegis"
+debuild --no-lintian -aarmel 
+cd -
+echo "Now run PATH=\$PATH:`pwd`aegis-builder/ perl aegis-builder/aegis-deb-util --verbose --add-manifest --manifest=meego-debuild/_aegis --add-digsigsums='/usr/bin/advancedcaching' <debfile>"
