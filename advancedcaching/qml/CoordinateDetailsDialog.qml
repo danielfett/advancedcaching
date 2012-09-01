@@ -37,11 +37,19 @@ Sheet {
                 font.pixelSize: UI.FONT_DEFAULT
                 visible: (showDescription.coordinate && showDescription.coordinate.valid) || false
             }
-            Label {
-                text: coordinate ? coordinate.comment : "undefined"
+            Flickable {
                 width: 400
-                wrapMode: Text.WordWrap
-                font.pixelSize: UI.FONT_SMALL
+                height: Math.min(400, coordinateText.height)
+                contentHeight: coordinateText.height
+                clip: true
+                
+                Label {
+                    id: coordinateText
+                    text: coordinate ? coordinate.comment : "undefined"
+                    width: 400
+                    wrapMode: Text.WordWrap
+                    font.pixelSize: UI.FONT_SMALL
+                }
             }
             PinchMap {
                 id: map
