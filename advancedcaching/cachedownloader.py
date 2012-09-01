@@ -155,7 +155,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
     UPLOAD_FIELDNOTES_URL = 'http://www.geocaching.com/my/uploadfieldnotes.aspx'
     
     def __init__(self, downloader, path = None, download_images = True):
-        logger.info("Using new downloader.")
         CacheDownloader.__init__(self, downloader, path, download_images)
         self.downloader.allow_minified_answers = True
 
