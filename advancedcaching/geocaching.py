@@ -311,12 +311,15 @@ class GeocacheCoordinate(geo.Coordinate):
             return '?'
         else:
             return self.SIZES[self.size]
+            
+    def clear_attributes(self):
+        self.attributes = ''
 
     def add_attribute(self, attr):
         if not self.attributes:
             self.attributes = attr
         else:
-            s = ','.split(self.attributes)            
+            s = self.attributes.split(',')
             if not attr in s:
                 s.append(attr)
             self.attributes = ','.join(s)

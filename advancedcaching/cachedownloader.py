@@ -499,12 +499,21 @@ class GeocachingComCacheDownloader(CacheDownloader):
         coordinate.set_logs(new_set_of_logs)
 
         # Attributes
-        ###These are loaded when preview is loaded.
-        #try:
-        #    coordinate.attributes = ','.join([x.get('title') for x in doc.cssselect('.CacheDetailNavigationWidget.BottomSpacing .WidgetBody img') if x.get('title') != 'blank'])
-        #except Exception, e:
-        #    logger.error("Could not find/parse attributes")
-        #    raise e
+        '''if not coordinate.attributes:
+            logger.warn("No attributes set for this geocache yet.")
+            try:
+                attr_xml = doc.cssselect('.CacheDetailNavigationWidget.BottomSpacing .WidgetBody img')
+                attributes = self._parse_attributes_from_doc(attr_xml)
+                coordinate.clear_attributes()
+                for x in attributes: 
+                    coordinate.add_attribute(x)
+            except IndexError:
+                # There are no attributes
+                logger.info("Attributes not found!")
+            except Exception, e:
+                logger.error("Could not find/parse attributes")
+                raise e
+        '''     
         
         # Image Handling
 
@@ -690,38 +699,20 @@ class GeocachingComCacheDownloader(CacheDownloader):
             
         # Attributes
         try:
-            for x in doc.cssselect('#Content .sortables .item-content')[5].cssselect('img'):
-                if x.get('title') == 'blank':
-                    continue
-
-                attrib=x.get('src')[19:] #strip text '/images/attributes/'
-                logger.debug("attrib is %r, self.path is %r" % (attrib, self.path))
-                # Prepend local path to filename, and check do we have it already
-                filename = os.path.join(self.path, attrib)
-                if os.path.isfile(filename):
-                    logger.info("%s exists already, don't reload " % filename)
-                else:
-                    # Download file
-                    url="http://www.geocaching.com/images/attributes/%s" % attrib
-                    logger.info("Downloading %s to %s" % (url, filename))
-
-                    try:
-                        f = open(filename, 'wb')
-                        f.write(self.downloader.get_reader(url, login = False).read())
-                        f.close()
-                    except Exception, e:
-                        logger.exception(e)
-                        logger.error("Failed to download image from URL %s" % url)
-
-                #store filename without path to the comma separated string
-                coordinate.add_attribute(attrib)
+            attr_xml = doc.cssselect('#Content .sortables .item-content')[5].cssselect('img')
+            attributes = self._parse_attributes_from_doc(attr_xml)
+            logger.debug("Found the following attributes: %r" % attributes)
+            coordinate.clear_attributes()
+            for x in attributes: 
+                coordinate.add_attribute(x)
         except IndexError:
             # There are no attributes
             logger.info("Attributes not found!")
         except Exception, e:
+            logger.exception(e)
             logger.error("Could not find/parse attributes")
             raise e
-            
+                
 
         # Extract description...
         try:
@@ -755,6 +746,41 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
         logger.debug("End parsing.")
         return coordinate
+        
+    
+
+    def _parse_attributes_from_doc(self, imgs):
+        """
+        Takes a document tree representing the attribute images as input and parses the attributes. Downloads any attribute images which are not in the file system yet.
+        
+        """
+        attributes = []
+        for x in imgs:
+            if x.get('title') == 'blank':
+                continue
+
+            attrib = x.get('src')[19:] #strip text '/images/attributes/'
+            logger.debug("attrib is %r, self.path is %r" % (attrib, self.path))
+            # Prepend local path to filename, and check if we have it already
+            filename = os.path.join(self.path, attrib)
+            if os.path.isfile(filename):
+                logger.info("%s exists already, don't reload " % filename)
+            else:
+                # Download file
+                url="http://www.geocaching.com/images/attributes/%s" % attrib
+                logger.info("Downloading %s to %s" % (url, filename))
+
+                try:
+                    f = open(filename, 'wb')
+                    f.write(self.downloader.get_reader(url, login = False).read())
+                    f.close()
+                except Exception, e:
+                    logger.exception(e)
+                    logger.error("Failed to download image from URL %s" % url)
+
+            # store filename without path to the comma separated string
+            attributes.append(attrib)
+        return attributes
         
     # Upload one or more fieldnotes
     def _upload_fieldnotes(self, geocaches):
@@ -1006,7 +1032,7 @@ if __name__ == '__main__':
         logger.error("Expected 80-90 characters of hints, got %d" % len(c.hints))
         errors += 1
     if len(c.attributes) < 20:
-        logger.error("Expected 20 characters of attributes, got %d" % len(c.attributes))
+        logger.error("Expected 20 characters of attributes, got %d: '%s'" % (len(c.attributes), c.attributes))
         errors += 1
         
     link = 'http://wandern-plus.de/saarland/rehlingen-siersburg/weg_2_info.html'
