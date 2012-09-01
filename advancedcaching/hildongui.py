@@ -907,6 +907,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         pan.add_with_viewport(p)        
         notebook.append_page(pan, gtk.Label("Info"))
         text_longdesc = ''
+        text_shortdesc = ''
         if len(cache.desc.strip()) > 0 or len(cache.shortdesc.strip()) > 0:
             # Description
             p = hildon.PannableArea()
