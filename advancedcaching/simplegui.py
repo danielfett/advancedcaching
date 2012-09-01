@@ -1011,7 +1011,7 @@ class SimpleGui(Gui):
         menu = gtk.Menu()
         for c in caches:
             entry = gtk.MenuItem(self.shorten_name(c.title, 30))
-            entry.connect("activate", lambda x: self.show_cache(c))
+            entry.connect("activate", lambda x, cache=c: self.show_cache(cache))
             menu.append(entry)
         menu.show_all()
         menu.popup(None, None, None, 0, 0)
