@@ -491,7 +491,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 self.LOGBOOK_URL % (userToken, counter),
                 login_callback = self.login_callback, 
                 check_login_callback = self.check_login_callback)
-            new_set_of_logs.extend(self._parse_logs_json(logs.read()))
+            new_set_of_logs.extend(self._parse_logs_json(logs.read())[0])
             logs.close()
 
             counter += 1
@@ -925,7 +925,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
             hints = re.sub(r'\[([^\]]+)\]', lambda match: HTMLManipulations._rot13(match.group(0)), hints)
         return hints
         
-    def _parse_logs_json(self, logs, returnTotalPages=False):
+    def _parse_logs_json(self, logs):
+        logger.debug("Start json logs parsing")
         try:
             r = json.loads(logs)
         except Exception, e:
@@ -943,13 +944,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
             text = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(l['LogText'])))
             output.append(dict(type=tpe, date=date, finder=finder, text=text))
         logger.debug("Read %d log entries" % len(output))
-
-        if returnTotalPages:
-            pageinfo = r['pageInfo']
-            total_page = pageinfo['totalPages']
-            return output,total_page
         
-        return output
+        total_page = r['pageInfo']['totalPages']
+        return output,total_page
 
 BACKENDS = {
     'geocaching-com-new': {'class': GeocachingComCacheDownloader, 'name': 'geocaching.com', 'description': 'Backend for geocaching.com'},
