@@ -380,6 +380,13 @@ class GeocachingComCacheDownloader(CacheDownloader):
         except Exception, e:
             logger.error("Could not find type!")
             raise e    
+            
+        # Website
+        try:
+            coordinate.websitelink = doc.get_element_by_id('ctl00_ContentBody_uxCacheUrl').get('href')
+        except KeyError, e:
+            logger.info("No website link found, skipping.")
+            coordinate.websitelink = ''
         
         # Short Description - Long Desc. is added after the image handling (see below)
         try:
@@ -1000,6 +1007,10 @@ if __name__ == '__main__':
         logger.error("Expected 80-90 characters of hints, got %d" % len(c.hints))
     if len(c.attributes) < 20:
         logger.error("Expected 20 characters of attributes, got %d" % len(c.attributes))
+        
+    link = 'http://wandern-plus.de/saarland/rehlingen-siersburg/weg_2_info.html'
+    if c.websitelink != link:
+        logger.error("Expected website link to be '%s', found '%s'." % (link, c.websitelink))
     
     if len(c.get_logs()) < 2:
         logger.error("Expected at least 2 logs, got %d" % len(c.get_logs()))

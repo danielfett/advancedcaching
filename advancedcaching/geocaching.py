@@ -94,14 +94,15 @@ class GeocacheCoordinate(geo.Coordinate):
     ATTRS = ('lat', 'lon', 'title', 'name', 'shortdesc', 'desc', 'hints', 'type', \
              'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
              'images', 'notes', 'fieldnotes', 'logas', 'logdate', 'marked', \
-             'logs', 'status', 'vars', 'alter_lat', 'alter_lon', 'updated', 'user_coordinates', 'attributes', 'last_viewed')
+             'logs', 'status', 'vars', 'alter_lat', 'alter_lon', 'updated', \
+             'user_coordinates', 'attributes', 'last_viewed', 'websitelink')
 
     # These are the table fields which can safely be updated when
     # the geocache is re-downloaded. User data should not be contained
     # in them.
     NON_USER_ATTRS = ('lat', 'lon', 'title', 'shortdesc', 'desc', 'hints', 'type', \
              'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
-             'images', 'logs', 'status', 'attributes', 'updated')
+             'images', 'logs', 'status', 'attributes', 'updated', 'websitelink')
 
     SQLROW = {
         'lat': 'REAL',
@@ -133,6 +134,7 @@ class GeocacheCoordinate(geo.Coordinate):
         'user_coordinates' : 'TEXT',
         'attributes' : 'TEXT',
         'last_viewed' : 'INTEGER', # SQLite doesn't have real DATETIME data type
+        'websitelink' : 'TEXT',
         }
     def __init__(self, lat, lon=None, name='', data=None):
         geo.Coordinate.__init__(self, lat, lon, name)
@@ -168,6 +170,7 @@ class GeocacheCoordinate(geo.Coordinate):
         self.user_coordinates = ''
         self.attributes = ''
         self.last_viewed = 0
+        self.websitelink = ''
 
     def clone(self):
         n = GeocacheCoordinate(self.lat, self.lon)
