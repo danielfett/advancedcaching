@@ -948,77 +948,84 @@ if __name__ == '__main__':
     
    
     outfile = None
-    if len(sys.argv) == 2: # cachedownloder.py filename
-        print "Reading from file %s" % sys.argv[1]
-        inp = open(sys.argv[1])
-        m = GeocacheCoordinate(0, 0, 'GC1N8G6')
-        a = parser(downloader.FileDownloader('dummy', 'dummy', '/tmp/cookies'), '/tmp/', True)
-    elif len(sys.argv) == 3: # cachedownloader.py username password
-        name, password = sys.argv[1:3]
-        a = parser(downloader.FileDownloader(name, password, '/tmp/cookies'), '/tmp/', True)
+    if len(sys.argv) != 3: 
+        logger.error("Please provide username and password on the command line.")
+        sys.exit(2)
 
-        print "Using Username %s" % name
+    name, password = sys.argv[1:3]
+    a = parser(downloader.FileDownloader(name, password, '/tmp/cookies'), '/tmp/', True)
 
-        def pcache(c):
-            print "--------------------\nName: '%s'\nTitle: '%s'\nType: %s" % (c.name, c.title, c.type)
+    logger.info("Using Username %s" % name)
+
+    def pcache(c):
+        logger.info("--------------------\nName: '%s'\nTitle: '%s'\nType: %s" % (c.name, c.title, c.type))
+    
+    def dummy_callback(x):
+        return None
+    coords = a.get_overview((geo.Coordinate(49.3513,6.583), geo.Coordinate(49.352,6.584)), dummy_callback)
+    logger.info("Found %d coordinates" % len(coords))
+    for x in coords:
+        pcache(x)
+        if x.name == 'GC1N8G6':
+            if x.type != GeocacheCoordinate.TYPE_REGULAR or x.title != 'Druidenpfad':
+                sys.exit("Wrong type or title (Type is %d, Title is '%s')" % (x.type, x.title))
+            m = x
+            break
         
-        def dummy_callback(x):
-            return None
-        coords = a.get_overview((geo.Coordinate(49.3513,6.583), geo.Coordinate(49.352,6.584)), dummy_callback)
-        print "# Found %d coordinates" % len(coords)
-        for x in coords:
-            pcache(x)
-            if x.name == 'GC1N8G6':
-                if x.type != GeocacheCoordinate.TYPE_REGULAR or x.title != 'Druidenpfad':
-                    print "# Wrong type or title"
-                    sys.exit()
-                m = x
-                break
-            
-        else:
-            print "# Didn't find my own geocache :-("
-            m = GeocacheCoordinate(0, 0, 'GC1N8G6')
-    elif len(sys.argv) == 4: # cachedownloader.py geocache username password
-        geocache, name, password = sys.argv[1:4]
-        a = parser(downloader.FileDownloader(name, password, '/tmp/cookies'), '/tmp/', True)
-
-        print "Using Username %s" % name
-        m = GeocacheCoordinate(0, 0, geocache)
     else:
-        logger.error("I don't know what you want to do...")
-        sys.exit()
+        logger.error("Didn't find my own geocache :-(")
+        sys.exit(-1)
+        
     res = a.update_coordinate(m, num_logs = 20)
-    #res =m
-    #print res
+
     c = res
     
+    errors = 0
     if c.owner != 'webhamster':
         logger.error("Owner doesn't match ('%s', expected webhamster)" % c.owner)
+        errors += 1
     if c.title != 'Druidenpfad':
         logger.error( "Title doesn't match ('%s', expected 'Druidenpfad')" % c.title)
+        errors += 1
     if c.get_terrain() != '3.0':
         logger.error("Terrain doesn't match (%s, expected 3.0) " % c.get_terrain())
+        errors += 1
     if c.get_difficulty() != '2.0':
         logger.error("Diff. doesn't match (%s, expected 2.0)" % c.get_difficulty())
+        errors += 1
     if len(c.desc) < 1760:
         logger.error("Length of text doesn't match (%d, expected at least %d chars)" % (len(c.desc), 1760))
+        errors += 1
     if len(c.shortdesc) < 160:
         logger.error("Length of short description doesn't match (%d, expected at least %d chars)" % (len(c.shortdesc), 200))
+        errors += 1
     if len(c.get_waypoints()) != 4:
         logger.error("Expected 4 waypoints, got %d" % len(c.get_waypoints()))
+        errors += 1
     if len(c.hints) < 80 or len(c.hints) > 90:
         # Hint text length depends on whether HTML is contained, how linebreaks are converted, etc.
         logger.error("Expected 80-90 characters of hints, got %d" % len(c.hints))
+        errors += 1
     if len(c.attributes) < 20:
         logger.error("Expected 20 characters of attributes, got %d" % len(c.attributes))
+        errors += 1
         
     link = 'http://wandern-plus.de/saarland/rehlingen-siersburg/weg_2_info.html'
     if c.websitelink != link:
         logger.error("Expected website link to be '%s', found '%s'." % (link, c.websitelink))
+        errors += 1
     
     if len(c.get_logs()) < 2:
         logger.error("Expected at least 2 logs, got %d" % len(c.get_logs()))
-    print u"Owner:%r (type %r)\nTitle:%r (type %r)\nTerrain:%r\nDifficulty:%r\nDescription:%r (type %r)\nShortdesc:%r (type %r)\nHints:%r (type %r)\nLogs: %r\nAttributes: %r" % (c.owner, type(c.owner), c.title, type(c.title), c.get_terrain(), c.get_difficulty(), c.desc[:200], type(c.desc), c.shortdesc, type(c.shortdesc), c.hints, type(c.hints), c.get_logs()[:3], c.attributes)
-    print c.get_waypoints()
+        errors += 1
+        
+    logger.info(u"Owner:%r (type %r)\nTitle:%r (type %r)\nTerrain:%r\nDifficulty:%r\nDescription:%r (type %r)\nShortdesc:%r (type %r)\nHints:%r (type %r)\nLogs: %r\nAttributes: %r" % (c.owner, type(c.owner), c.title, type(c.title), c.get_terrain(), c.get_difficulty(), c.desc[:200], type(c.desc), c.shortdesc, type(c.shortdesc), c.hints, type(c.hints), c.get_logs()[:3], c.attributes))
+    logger.info(c.get_waypoints())
+    
+    if errors > 0:
+        sys.exit("Found %d error(s)." % errors)
+        
+    logger.info("Seems to be okay.")
+    sys.exit(0)
     
     
