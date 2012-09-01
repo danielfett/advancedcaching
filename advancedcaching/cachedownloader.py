@@ -945,6 +945,8 @@ if __name__ == '__main__':
                     format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s',
                     )
     parser = GeocachingComCacheDownloader
+    
+   
     outfile = None
     if len(sys.argv) == 2: # cachedownloder.py filename
         print "Reading from file %s" % sys.argv[1]
@@ -960,7 +962,9 @@ if __name__ == '__main__':
         def pcache(c):
             print "--------------------\nName: '%s'\nTitle: '%s'\nType: %s" % (c.name, c.title, c.type)
         
-        coords = a.get_overview((geo.Coordinate(49.3513,6.583), geo.Coordinate(49.352,6.584)))
+        def dummy_callback(x):
+            return None
+        coords = a.get_overview((geo.Coordinate(49.3513,6.583), geo.Coordinate(49.352,6.584)), dummy_callback)
         print "# Found %d coordinates" % len(coords)
         for x in coords:
             pcache(x)
