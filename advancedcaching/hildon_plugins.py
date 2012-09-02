@@ -27,6 +27,7 @@ import pango
 import threadpool
 import logging
 import geo
+from utils import HTMLManipulations
 logger = logging.getLogger('plugins')
 
 class HildonSearchPlace(object):
@@ -841,7 +842,7 @@ class HildonToolsDialog(object):
         def do_rot(widget):
             import cachedownloader
             try:
-                text = cachedownloader.CacheDownloader._rot13(source.get_buffer().get_text(source.get_buffer().get_start_iter(), source.get_buffer().get_end_iter()))
+                text = HTMLManipulations._rot13(source.get_buffer().get_text(source.get_buffer().get_start_iter(), source.get_buffer().get_end_iter()))
             except Exception:
                 text = ''
                 
