@@ -1,3 +1,0 @@
-#!/bin/sh
-cd /opt/advancedcaching
-python ./core.py --qml 
