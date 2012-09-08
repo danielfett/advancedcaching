@@ -114,7 +114,6 @@ class CacheDownloader(gobject.GObject):
         
     # Upload one or more fieldnotes
     def upload_fieldnotes(self, geocaches, upload_as_logs = False):
-    
         try:
             if not upload_as_logs:
                 self._upload_fieldnotes(geocaches)
@@ -132,7 +131,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
     MAX_DOWNLOAD_NUM = 800
 
-
     CTIDS = {
         2:GeocacheCoordinate.TYPE_REGULAR,
         3:GeocacheCoordinate.TYPE_MULTI,
@@ -142,6 +140,12 @@ class GeocachingComCacheDownloader(CacheDownloader):
         11:GeocacheCoordinate.TYPE_WEBCAM,
         137:GeocacheCoordinate.TYPE_EARTH
     }
+    
+    TRANS_FIELDNOTE_TYPE = {
+        GeocacheCoordinate.LOG_AS_FOUND: "Found it",
+        GeocacheCoordinate.LOG_AS_NOTFOUND: "Didn't find it",
+        GeocacheCoordinate.LOG_AS_NOTE: "Write note"
+        }
     
     # URL for log pages; fetches 10 logs by default
     LOGBOOK_URL = 'http://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=%d&num=10&decrypt=true'
@@ -780,6 +784,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             attributes.append(attrib)
         return attributes
         
+        
     # Upload one or more fieldnotes
     def _upload_fieldnotes(self, geocaches):
         notes = []
@@ -787,14 +792,10 @@ class GeocachingComCacheDownloader(CacheDownloader):
         for geocache in geocaches:
             if geocache.logdate == '':
                 raise Exception("Illegal Date.")
-
-            if geocache.logas == GeocacheCoordinate.LOG_AS_FOUND:
-                log = "Found it"
-            elif geocache.logas == GeocacheCoordinate.LOG_AS_NOTFOUND:
-                log = "Didn't find it"
-            elif geocache.logas == GeocacheCoordinate.LOG_AS_NOTE:
-                log = "Write note"
-            else:
+            
+            try:
+                log = self.TRANS_FIELDNOTE_TYPE[geocache.logas]
+            except KeyError, e:
                 raise Exception("Illegal status: %s" % geocache.logas)
 
             text = geocache.fieldnotes.replace('"', "'")
