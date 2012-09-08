@@ -145,7 +145,14 @@ class GeocachingComCacheDownloader(CacheDownloader):
         GeocacheCoordinate.LOG_AS_FOUND: "Found it",
         GeocacheCoordinate.LOG_AS_NOTFOUND: "Didn't find it",
         GeocacheCoordinate.LOG_AS_NOTE: "Write note"
-        }
+    }
+        
+       
+    TRANS_LOG_TYPE = {
+        GeocacheCoordinate.LOG_AS_FOUND: 2,
+        GeocacheCoordinate.LOG_AS_NOTFOUND: 3,
+        GeocacheCoordinate.LOG_AS_NOTE: 4
+    }
     
     # URL for log pages; fetches 10 logs by default
     LOGBOOK_URL = 'http://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=%d&num=10&decrypt=true'
@@ -845,13 +852,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
             if geocache.logdate == '':
                 raise Exception("Illegal Date.")
 
-            if geocache.logas == GeocacheCoordinate.LOG_AS_FOUND:
-                log = 2
-            elif geocache.logas == GeocacheCoordinate.LOG_AS_NOTFOUND:
-                log = 3
-            elif geocache.logas == GeocacheCoordinate.LOG_AS_NOTE:
-                log = 4
-            else:
+            try:
+                log = self.TRANS_LOG_TYPE[geocache.logas]
+            except KeyError, e:
                 raise Exception("Illegal status: %s" % geocache.logas)
 
             text = geocache.fieldnotes
