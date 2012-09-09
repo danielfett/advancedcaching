@@ -858,6 +858,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 raise Exception("Illegal status: %s" % geocache.logas)
 
             text = geocache.fieldnotes
+            
             year, month, day = geocache.logdate.split('-')
             
             url = 'http://www.geocaching.com/seek/log.aspx?wp=%s' % geocache.name
@@ -875,14 +876,18 @@ class GeocachingComCacheDownloader(CacheDownloader):
             doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$uxLogInfo'] = text
             values = dict(doc.forms[0].form_values())
             values['ctl00$ContentBody$LogBookPanel1$LogButton'] = doc.get_element_by_id('ctl00_ContentBody_LogBookPanel1_LogButton').get('value')
-            logger.debug("Field values are %r" % values)
+            
+            # Now, manually re-encoding the text
+            # Normally, get_reader (below) expects unicode-encoded values, but lxml (above) does not allow that.
+            values['ctl00$ContentBody$LogBookPanel1$uxLogInfo'] = values['ctl00$ContentBody$LogBookPanel1$uxLogInfo'].encode('utf-8')
+            
             response = self.downloader.get_reader(url, 
                 values=values, 
                 login_callback = self.login_callback, 
                 check_login_callback = self.check_login_callback)
 
             res = response.read()
-            res.close()
+            response.close()
             t = unicode(res, 'utf-8')
             doc = fromstring(t)
             

@@ -995,16 +995,19 @@ class Core(gobject.GObject):
         self.save_cache_attribute(cache, ('logas', 'logdate', 'fieldnotes', 'found'))
         self.emit('fieldnotes-changed')        
 
-    def upload_fieldnotes(self):
+    def upload_fieldnotes(self, upload_as_logs = False, sync = False):
         """
         Upload fieldnotes to the web site. 
         
         """
         caches = self.pointprovider.get_new_fieldnotes()
-        
-        t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.upload_fieldnotes', self._upload_fieldnotes_complete, caches])
-        t.daemon = True
-        t.start()
+        if not sync:
+            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.upload_fieldnotes', self._upload_fieldnotes_complete, caches, upload_as_logs])
+            t.daemon = True
+            t.start()
+        else:
+            res = self.cachedownloader.upload_fieldnotes(caches, upload_as_logs)
+            self._upload_fieldnotes_complete(res)
         
     def _upload_fieldnotes_complete(self, caches):
         """
