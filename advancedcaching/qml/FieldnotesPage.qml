@@ -86,17 +86,14 @@ Page {
         anchors.topMargin: 8
         anchors.bottom: row1.top
         anchors.bottomMargin: 8
-        onActiveFocusChanged: {
-            if (! activeFocus) {
-                saveFieldnote();
-            }
-        }
         textFormat: TextEdit.PlainText
         wrapMode: TextEdit.Wrap
         text: currentGeocache.fieldnotes
+        enabled: false
         
         anchors.leftMargin: 16
         anchors.rightMargin: 16
+        
     }
     
     Row {
@@ -122,11 +119,8 @@ Page {
         model: logModel
         onSelectedIndexChanged: {
             if (selectedIndex != currentGeocache.logas) {
-                saveFieldnote();
+                currentGeocache.logas = Math.max(logAsDialog.selectedIndex, 0);
             }
-        }
-        onAccepted: {
-            console.debug("HI!");
         }
     }
 
@@ -141,6 +135,19 @@ Page {
             anchors.right: parent.right
             text: "Fieldnotes are temporary log entries, which can be reviewed and submitted as regular logs later on.<br><br>After uploading, you will find them in your account overview on the web page. If you don't upload them now, they are stored here for later uploading."
         }]
+    }
+    
+    
+    MouseArea {
+        anchors.fill: fieldnoteText
+        onClicked: {
+            fieldnoteDialogLoader.source = "FieldnoteDialog.qml";
+            fieldnoteDialogLoader.item.accepted.connect(function() {
+                currentGeocache.fieldnotes = fieldnoteDialogLoader.item.getValue();
+            });
+            fieldnoteDialogLoader.item.setValue(currentGeocache.fieldnotes ? currentGeocache.fieldnotes : settings.getFieldnoteDefaultText());
+            fieldnoteDialogLoader.item.open();
+        }
     }
 
     Connections {
@@ -159,16 +166,16 @@ Page {
         ListElement{ name: "Write a note" }
     }
     
-    function saveFieldnote() {
-        var logas = Math.max(logAsDialog.selectedIndex, 0)
-        var text = fieldnoteText.text
-        currentGeocache.setFieldnote(logas, text)
-    }
-
 
     function openMenu() {
         menu.open();
     }
+    
+    
+    Loader {
+        id: fieldnoteDialogLoader
+    }
+    
 
     Menu {
         id: menu

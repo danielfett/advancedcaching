@@ -313,11 +313,31 @@ Page {
                 }
             }
             
+            
             Label {
                 font.pixelSize: 20
                 wrapMode: Text.Wrap
                 width: col1.width
                 text: "AGTL skips geocaches which have already been updated in the last " + settings.optionsRedownloadAfter + " day(s). Set to zero to always update all geocaches on the map." 
+            }
+            
+            Label {
+                font.pixelSize: 20
+                color: UI.COLOR_INFOLABEL
+                text: "Field Notes and Logs"
+            }
+            
+            Button {
+                anchors.right: parent.right
+                text: "Change default text"
+                onClicked: {
+                    // defaultTextDialogLoader
+                    defaultTextDialogLoader.source = "DefaultTextDialog.qml";
+                    defaultTextDialogLoader.item.accepted.connect(function() {
+                        settings.optionsDefaultLogText = defaultTextDialogLoader.item.getValue();
+                    });
+                    defaultTextDialogLoader.item.open()
+                }
             }
 
             Label {
@@ -376,6 +396,9 @@ Page {
     }
     
     
+    Loader {
+        id: defaultTextDialogLoader
+    }
     
     ToolBarLayout {
         id: settingsTools
