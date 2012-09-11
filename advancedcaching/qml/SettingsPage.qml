@@ -324,7 +324,7 @@ Page {
             Label {
                 font.pixelSize: 20
                 color: UI.COLOR_INFOLABEL
-                text: "Field Notes and Logs"
+                text: "Fieldnotes and Logs"
             }
             
             Button {

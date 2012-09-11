@@ -152,7 +152,7 @@ Page {
         
         
         ListButton {
-            text: "Fieldnote/Share"
+            text: "Log/Fieldnote/Share"
 
             onClicked: {
                 pageFieldnotes.source = "FieldnotesPage.qml";

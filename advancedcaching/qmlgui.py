@@ -1103,6 +1103,18 @@ class GeocacheWrapper(QtCore.QObject):
         self.core.save_fieldnote(self._geocache)
         self.changed.emit()
         
+        
+    def _upload_as(self):
+        try:
+            return int(self._geocache.upload_as)
+        except (TypeError, ValueError):
+            return 0
+            
+    def _set_upload_as(self, upload_as):
+        self._geocache.upload_as = upload_as
+        self.core.save_fieldnote(self._geocache)
+        self.changed.emit()
+        
     def _fieldnotes(self):
         return self._geocache.fieldnotes
         
@@ -1199,6 +1211,7 @@ class GeocacheWrapper(QtCore.QObject):
     varList = QtCore.Property(QtCore.QObject, _var_list, notify=coordsChanged)
     attributes = QtCore.Property(str, _attributes, notify=changed)
     calcCoordinates = QtCore.Property(QtCore.QObject, _calc_coordinates, notify=coordsChanged)
+    uploadAs = QtCore.Property(int, _upload_as, _set_upload_as, notify=changed)
 
 class GeocacheListModel(QtCore.QAbstractListModel):
     COLUMNS = ('geocache',)
