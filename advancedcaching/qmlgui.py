@@ -38,8 +38,6 @@ from os import path
 from gui import Gui
 #from astral import Astral
 
-d = lambda x: x#.decode('utf-8', 'replace')
-
 class Controller(QtCore.QObject):
 
     progressChanged = QtCore.Signal()
@@ -857,10 +855,10 @@ class CoordinateWrapper(QtCore.QObject):
         return self._coordinate.lon if self._is_valid else -1
 
     def _display_text(self):
-        return d(self._coordinate.display_text)
+        return self._coordinate.display_text
 
     def _comment(self):
-        return d(self._coordinate.comment)
+        return self._coordinate.comment
 
     def _user_coordinate_id(self):
         return self._coordinate.user_coordinate_id if self._coordinate.user_coordinate_id != None else -1
