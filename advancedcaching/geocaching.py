@@ -37,6 +37,9 @@ class GeocacheCoordinate(geo.Coordinate):
     LOG_AS_FOUND = 1
     LOG_AS_NOTFOUND = 2
     LOG_AS_NOTE = 3
+    
+    UPLOAD_AS_FIELDNOTE = 0
+    UPLOAD_AS_LOG = 1
 
     TYPE_REGULAR = 'regular'
     TYPE_MULTI = 'multi'
@@ -95,7 +98,8 @@ class GeocacheCoordinate(geo.Coordinate):
              'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
              'images', 'notes', 'fieldnotes', 'logas', 'logdate', 'marked', \
              'logs', 'status', 'vars', 'alter_lat', 'alter_lon', 'updated', \
-             'user_coordinates', 'attributes', 'last_viewed', 'websitelink')
+             'user_coordinates', 'attributes', 'last_viewed', 'websitelink', \
+             'upload_as')
 
     # These are the table fields which can safely be updated when
     # the geocache is re-downloaded. User data should not be contained
@@ -135,6 +139,7 @@ class GeocacheCoordinate(geo.Coordinate):
         'attributes' : 'TEXT',
         'last_viewed' : 'INTEGER', # SQLite doesn't have real DATETIME data type
         'websitelink' : 'TEXT',
+        'upload_as' : 'INTEGER',
         }
     def __init__(self, lat, lon=None, name='', data=None):
         geo.Coordinate.__init__(self, lat, lon, name)
@@ -171,6 +176,7 @@ class GeocacheCoordinate(geo.Coordinate):
         self.attributes = ''
         self.last_viewed = 0
         self.websitelink = ''
+        self.upload_as = self.UPLOAD_AS_FIELDNOTE
 
     def clone(self):
         n = GeocacheCoordinate(self.lat, self.lon)

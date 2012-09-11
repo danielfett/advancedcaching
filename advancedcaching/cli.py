@@ -52,20 +52,20 @@ If you don't like your mouse:
         Import geocaches, put them into the internal database, filter the imported geocaches and run the actions.
 %(name)s sql "SELECT * FROM geocaches WHERE ... ORDER BY ... LIMIT ..." do [actions]
         Select geocaches from local database and run the actions afterwards. Additional use of the filter is also supported. To get more information, run "%(name)s sql".
-%(name)s note [geocache-id] [type] [date] [text]
-        Write (but don't upload) a note of type [type] for the geocache defined by [geocache-id] with text [text]. See the upload-* commands for uploading options.
+%(name)s fieldnote [geocache-id] [type] [date] [text]
+        Write (but don't upload) a fieldnote of type [type] for the geocache defined by [geocache-id] with text [text].
         Date must be given in the following format: YYYY-MM-DD
         Available log types:
             0 - just store the text, never upload this note
             1 - log as found
             2 - log as not found
             3 - write note
+%(name)s log [geocache-id] [type] [date] [text]
+        As above, but this will create a log entry on the web page.
 %(name)s show-notes
         List all stored logs/fieldnotes.
-%(name)s upload-fieldnotes
-        Upload stored logs/fieldnotes as fieldnotes.
-%(name)s upload-logs
-        Upload stored logs/fieldnotes as logs.
+%(name)s upload
+        Upload stored logs/fieldnotes.
 options:
         --user(name) username
         --pass(word) password
@@ -242,18 +242,18 @@ class Cli():
                 self.parse_actions()
             elif sys.argv[self.nt] == 'update':
                 self.perform_update()
-            elif sys.argv[self.nt] == 'note':
-                self.parse_note()
+            elif sys.argv[self.nt] == 'fieldnote':
+                self.parse_note(geocaching.GeocacheCoordinate.UPLOAD_AS_FIELDNOTE)
+            elif sys.argv[self.nt] == 'log':
+                self.parse_note(geocaching.GeocacheCoordinate.UPLOAD_AS_LOG)
             elif sys.argv[self.nt] == 'show-notes':
                 self.parse_show_notes()
-            elif sys.argv[self.nt] == 'upload-fieldnotes':
-                self.parse_upload_fieldnotes()
-            elif sys.argv[self.nt] == 'upload-logs':
-                self.parse_upload_logs()
+            elif sys.argv[self.nt] == 'upload':
+                self.parse_upload()
             elif sys.argv[self.nt] == '-v':
                 self.nt += 1
             else: 
-                raise ParseError("Expected 'import', 'sql', 'filter', 'do', 'update', 'note', 'show-notes', 'upload-fieldnotes', 'upload-logs', but found '%s'" % sys.argv[self.nt], self.nt - 1)
+                raise ParseError("Expected 'import', 'sql', 'filter', 'do', 'update', 'fieldnote', 'log', 'show-notes', 'upload', but found '%s'" % sys.argv[self.nt], self.nt - 1)
 
         self.core.prepare_for_disposal()
 
@@ -274,7 +274,7 @@ class Cli():
                 raise ParseError("I don't understand '%s'" % token)
         print "* Finished setting options."
         
-    def parse_note(self):
+    def parse_note(self, t):
         self.nt += 1
         try:
             geocache, logtype, logdate, logtext = sys.argv[self.nt:self.nt+4]
@@ -290,6 +290,7 @@ class Cli():
         c.logas = logtype
         c.logdate = logdate
         c.fieldnotes = unicode(logtext, sys.stdin.encoding)
+        c.upload_as = t
         self.core.save_fieldnote(c)
         
     def parse_show_notes(self):
@@ -298,15 +299,12 @@ class Cli():
         print "Geocaches with fieldnotes"
         print "-------------------------"
         for c in l:
-            print '%s (%s) - Type %d - Date %s - Text "%s"' % (c.name, c.title, c.logas, c.logdate, c.fieldnotes)
+            t = "Log" if (geocaching.GeocacheCoordinate.UPLOAD_AS_LOG == c.upload_as) else "Fieldnote"
+            print '%s: %s (%s) - Type %d - Date %s - Text "%s"' % (t, c.name, c.title, c.logas, c.logdate, c.fieldnotes)
             
-    def parse_upload_fieldnotes(self):
+    def parse_upload(self):
         self.nt += 1
         self.core.upload_fieldnotes(sync=True)
-        
-    def parse_upload_logs(self):
-        self.nt += 1
-        self.core.upload_fieldnotes(upload_as_logs=True, sync=True)
         
         
     def parse_import(self):

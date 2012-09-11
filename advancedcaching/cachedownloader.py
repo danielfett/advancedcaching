@@ -113,16 +113,14 @@ class CacheDownloader(gobject.GObject):
         return points
         
     # Upload one or more fieldnotes
-    def upload_fieldnotes(self, geocaches, upload_as_logs = False):
+    def upload_fieldnotes_and_logs(self, geocaches):
         try:
-            if not upload_as_logs:
-                self._upload_fieldnotes(geocaches)
-            else:
-                self._upload_logs(geocaches)
+            success = self._upload_fieldnotes_and_logs(geocaches)
         except Exception, e:
+            logger.exception(e)
             self.emit('download-error', e)
             return []
-        return geocaches
+        return success
                 
         
 class GeocachingComCacheDownloader(CacheDownloader):
@@ -164,6 +162,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     NEAREST_URL = 'http://www.geocaching.com/seek/nearest.aspx'
     USER_TOKEN_URL = 'http://www.geocaching.com/map/default.aspx?lat=6&lng=9'
     UPLOAD_FIELDNOTES_URL = 'http://www.geocaching.com/my/uploadfieldnotes.aspx'
+    UPLOAD_LOG_URL = 'http://www.geocaching.com/seek/log.aspx?wp=%s'
     
     def __init__(self, downloader, path = None, download_images = True):
         CacheDownloader.__init__(self, downloader, path, download_images)
@@ -793,98 +792,78 @@ class GeocachingComCacheDownloader(CacheDownloader):
             attributes.append(attrib)
         return attributes
         
+    def _upload_fieldnotes_and_logs(self, geocaches):
+        '''
+        Upload all fieldnotes and logs of the geocaches given in the first argument and return a list of geocaches, for which uploading worked.
+        
+        '''
+        upload_fieldnotes = []
+        upload_logs = []
+        for geocache in geocaches:
+            if geocache.upload_as == GeocacheCoordinate.UPLOAD_AS_LOG:
+                upload_logs.append(geocache)
+            else:
+                upload_fieldnotes.append(geocache)
+                
+                
+        logger.info("Will try to upload %d fieldnotes and %d logs." % (len(upload_fieldnotes), len(upload_logs)))
+        
+        success_fieldnotes = self.__upload_fieldnotes(upload_fieldnotes)
+        success_logs = self.__upload_logs(upload_logs)
+        
+        before = len(geocaches)
+        after = len(success_fieldnotes) + len(success_logs)
+        
+        if after == 0 and before != 0:
+            self.emit("download-error", Exception("Uploading of fieldnotes and logs failed."))
+        elif after < before:
+            self.emit("download-error", Exception("Uploading failed for some fieldnotes or logs."))
+        
+        return success_fieldnotes + success_logs
+                        
         
     # Upload one or more fieldnotes
-    def _upload_fieldnotes(self, geocaches):
+    def __upload_fieldnotes(self, geocaches):
         notes = []
+        if len(geocaches) == 0:
+            return []
         logger.info("Preparing fieldnotes (new downloader)...")
-        for geocache in geocaches:
-            if geocache.logdate == '':
-                raise Exception("Illegal Date.")
+        try:
+            for geocache in geocaches:
+                name, logdate, logtype, fieldnotes = geocache.name, geocache.logdate, geocache.logas, geocache.fieldnotes
+                if logdate == '':
+                    raise Exception("Illegal Date.")
+                
+                try:
+                    logtype_trans = self.TRANS_FIELDNOTE_TYPE[logtype]
+                except KeyError, e:
+                    raise Exception("Illegal status: %s" % logtype)
+
+                text = fieldnotes.replace('"', "'")
+
+                notes.append('%s,%sT10:00Z,%s,"%s"' % (name, logdate, logtype_trans, text))
+                
+            logger.info("Uploading fieldnotes...")
             
-            try:
-                log = self.TRANS_FIELDNOTE_TYPE[geocache.logas]
-            except KeyError, e:
-                raise Exception("Illegal status: %s" % geocache.logas)
-
-            text = geocache.fieldnotes.replace('"', "'")
-
-            notes.append('%s,%sT10:00Z,%s,"%s"' % (geocache.name, geocache.logdate, log, text))
-            
-        logger.info("Uploading fieldnotes...")
-        
-        self.emit('progress', "Uploading Fieldnotes (Step 1 of 2)", 0, 2)
-        
-        # First, download webpage to get the correct viewstate value
-        cache_page = self.downloader.get_reader(self.UPLOAD_FIELDNOTES_URL, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
-        pg = cache_page.read()
-        cache_page.close()
-        t = unicode(pg, 'utf-8')
-        doc = fromstring(t)
-        # Sometimes this field is not available
-        if 'ctl00$ContentBody$chkSuppressDate' in doc.forms[0].fields:
-            doc.forms[0].fields['ctl00$ContentBody$chkSuppressDate'] = ''
-        values = doc.forms[0].form_values()
-        values += [('ctl00$ContentBody$btnUpload', 'Upload Field Note')]
-        content = '\r\n'.join(notes).encode("UTF-16")
-        
-        data = self.downloader.encode_multipart_formdata(values, [('ctl00$ContentBody$FieldNoteLoader', 'geocache_visits.txt', content)])
-        self.emit('progress', "Uploading Fieldnotes (Step 2 of 2)", 1, 2)
-        response = self.downloader.get_reader(self.UPLOAD_FIELDNOTES_URL, 
-            data=data, 
-            login_callback = self.login_callback, 
-            check_login_callback = self.check_login_callback)
-
-        res = response.read()
-        response.close()
-        t = unicode(res, 'utf-8')
-        doc = fromstring(t)
-        
-        # There's no real success/no success message on the website. 
-        # We therefore assume success, if this element is in the response
-        if doc.get_element_by_id('ctl00_ContentBody_lnkFieldNotes', None) == None:
-            raise Exception("Something went wrong while uploading the field notes.")
-        else:
-            logger.info("Finished upload!")
-       
-    # Upload one or more logs
-    def _upload_logs(self, geocaches):
-        logger.info("Preparing logs...")
-        for geocache in geocaches:
-            if geocache.logdate == '':
-                raise Exception("Illegal Date.")
-
-            try:
-                log = self.TRANS_LOG_TYPE[geocache.logas]
-            except KeyError, e:
-                raise Exception("Illegal status: %s" % geocache.logas)
-
-            text = geocache.fieldnotes
-            
-            year, month, day = geocache.logdate.split('-')
-            
-            url = 'http://www.geocaching.com/seek/log.aspx?wp=%s' % geocache.name
+            self.emit('progress', "Uploading Fieldnotes (Step 1 of 2)", 0, 2)
             
             # First, download webpage to get the correct viewstate value
-            cache_page = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
+            cache_page = self.downloader.get_reader(self.UPLOAD_FIELDNOTES_URL, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
             pg = cache_page.read()
             cache_page.close()
             t = unicode(pg, 'utf-8')
             doc = fromstring(t)
-            doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$ddLogType'] = str(log)
-            doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$DateTimeLogged$Day'] = str(int(day))
-            doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$DateTimeLogged$Month'] = str(int(month))
-            doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$DateTimeLogged$Year'] = str(int(year))
-            doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$uxLogInfo'] = text
-            values = dict(doc.forms[0].form_values())
-            values['ctl00$ContentBody$LogBookPanel1$LogButton'] = doc.get_element_by_id('ctl00_ContentBody_LogBookPanel1_LogButton').get('value')
+            # Sometimes this field is not available
+            if 'ctl00$ContentBody$chkSuppressDate' in doc.forms[0].fields:
+                doc.forms[0].fields['ctl00$ContentBody$chkSuppressDate'] = ''
+            values = doc.forms[0].form_values()
+            values += [('ctl00$ContentBody$btnUpload', 'Upload Field Note')]
+            content = '\r\n'.join(notes).encode("UTF-16")
             
-            # Now, manually re-encoding the text
-            # Normally, get_reader (below) expects unicode-encoded values, but lxml (above) does not allow that.
-            values['ctl00$ContentBody$LogBookPanel1$uxLogInfo'] = values['ctl00$ContentBody$LogBookPanel1$uxLogInfo'].encode('utf-8')
-            
-            response = self.downloader.get_reader(url, 
-                values=values, 
+            data = self.downloader.encode_multipart_formdata(values, [('ctl00$ContentBody$FieldNoteLoader', 'geocache_visits.txt', content)])
+            self.emit('progress', "Uploading Fieldnotes (Step 2 of 2)", 1, 2)
+            response = self.downloader.get_reader(self.UPLOAD_FIELDNOTES_URL, 
+                data = data, 
                 login_callback = self.login_callback, 
                 check_login_callback = self.check_login_callback)
 
@@ -895,10 +874,80 @@ class GeocachingComCacheDownloader(CacheDownloader):
             
             # There's no real success/no success message on the website. 
             # We therefore assume success, if this element is in the response
-            if doc.get_element_by_id('ctl00_ContentBody_LogBookPanel1_ViewLogPanel', None) == None:
-                raise Exception("Something went wrong while uploading the log.")
+            if doc.get_element_by_id('ctl00_ContentBody_lnkFieldNotes', None) == None:
+                raise Exception("Something went wrong while uploading the field notes.")
             else:
                 logger.info("Finished upload!")
+            return geocaches
+        except Exception, e:
+            logger.exception(e)
+        
+            
+       
+    # Upload one or more logs
+    def __upload_logs(self, geocaches):
+        if len(geocaches) == 0:
+            return []
+        success = []
+        logger.info("Preparing logs...")
+        i = 0
+        for geocache in geocaches:
+            try:
+                name, logdate, logtype, fieldnotes = geocache.name, geocache.logdate, geocache.logas, geocache.fieldnotes
+                
+                if logdate == '':
+                    raise Exception("Illegal Date.")
+
+                try:
+                    logtype_trans = self.TRANS_LOG_TYPE[logtype]
+                except KeyError, e:
+                    raise Exception("Illegal status: %s" % logtype)
+                
+                year, month, day = logdate.split('-')
+                
+                url = self.UPLOAD_LOG_URL % name
+                
+                # First, download webpage to get the correct viewstate value
+                self.emit('progress', "Uploading Logs (%d of %d)..." % (i, len(geocaches)), i, len(geocaches))
+                cache_page = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
+                pg = cache_page.read()
+                cache_page.close()
+                t = unicode(pg, 'utf-8')
+                doc = fromstring(t)
+                doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$ddLogType'] = str(logtype_trans)
+                doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$DateTimeLogged$Day'] = str(int(day))
+                doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$DateTimeLogged$Month'] = str(int(month))
+                doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$DateTimeLogged$Year'] = str(int(year))
+                doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$uxLogInfo'] = fieldnotes
+                values = dict(doc.forms[0].form_values())
+                values['ctl00$ContentBody$LogBookPanel1$LogButton'] = doc.get_element_by_id('ctl00_ContentBody_LogBookPanel1_LogButton').get('value')
+                
+                # Now, manually re-encoding the text
+                # Normally, get_reader (below) expects unicode-encoded values, but lxml (above) does not allow that.
+                values['ctl00$ContentBody$LogBookPanel1$uxLogInfo'] = values['ctl00$ContentBody$LogBookPanel1$uxLogInfo'].encode('utf-8')
+                
+                response = self.downloader.get_reader(url, 
+                    values = values, 
+                    login_callback = self.login_callback, 
+                    check_login_callback = self.check_login_callback)
+
+                res = response.read()
+                response.close()
+                t = unicode(res, 'utf-8')
+                doc = fromstring(t)
+                
+                # There's no real success/no success message on the website. 
+                # We therefore assume success, if this element is in the response
+                if doc.get_element_by_id('ctl00_ContentBody_LogBookPanel1_ViewLogPanel', None) == None:
+                    raise Exception("Something went wrong while uploading the log.")
+                else:
+                    logger.info("Finished upload!")
+                i += 1
+                success.append(geocache)
+            except Exception, e:
+                logger.exception(e)
+        return success
+            
                  
     # Only return the contents of a node, not the node tag itself, as text
     def _extract_node_contents(self, el):

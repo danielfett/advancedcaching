@@ -992,26 +992,27 @@ class Core(gobject.GObject):
         elif cache.logas == geocaching.GeocacheCoordinate.LOG_AS_NOTFOUND:
             cache.found = 0
 
-        self.save_cache_attribute(cache, ('logas', 'logdate', 'fieldnotes', 'found'))
+        self.save_cache_attribute(cache, ('logas', 'logdate', 'fieldnotes', 'found', 'upload_as'))
         self.emit('fieldnotes-changed')        
+        self.emit('cache-changed', cache)
 
-    def upload_fieldnotes(self, upload_as_logs = False, sync = False):
+    def upload_fieldnotes(self, sync = False):
         """
-        Upload fieldnotes to the web site. 
+        Upload fieldnotes and logs to the web site. 
         
         """
         caches = self.pointprovider.get_new_fieldnotes()
         if not sync:
-            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.upload_fieldnotes', self._upload_fieldnotes_complete, caches, upload_as_logs])
+            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.upload_fieldnotes', self._upload_fieldnotes_complete, caches])
             t.daemon = True
             t.start()
         else:
-            res = self.cachedownloader.upload_fieldnotes(caches, upload_as_logs)
+            res = self.cachedownloader.upload_fieldnotes_and_logs(caches)
             self._upload_fieldnotes_complete(res)
         
     def _upload_fieldnotes_complete(self, caches):
         """
-        Called when uploading of fieldnotes is complete.
+        Called when uploading of fieldnotes and logs is complete.
         
         Resets the fieldnotes which were uploaded to "NO LOG".
         """
