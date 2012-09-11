@@ -20,8 +20,8 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
-VERSION = 32
-VERSION_DATE = '2012-09-02'
+VERSION = 33
+VERSION_DATE = '2012-09-11'
 
 import logging
 logger = logging.getLogger('cachedownloader')

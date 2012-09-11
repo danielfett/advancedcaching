@@ -1,3 +1,8 @@
+advancedcaching (0.9.1.2) stable; urgency=low
+  - Fix JSON parse error
+
+ -- Daniel Fett <advancedcaching@fragcom.de> Tue, 11 Sep 2012 16:51:05 +0200
+
 advancedcaching (0.9.1.1) stable; urgency=low
   - Fix Issue #150
   - Fix display of long waypoint descriptions in QML gui
