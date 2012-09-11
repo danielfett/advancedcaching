@@ -795,6 +795,15 @@ class SettingsWrapper(QtCore.QObject):
 
     def createSetting(name, type, signal, inputNotify = True):
         return QtCore.Property(type, lambda x: x._setting(name, type), lambda x, m: x._set_setting(name, m, inputNotify), notify=signal)
+        
+    @QtCore.Slot(result=str)
+    def getFieldnoteDefaultText(self):
+        from time import gmtime
+        from time import localtime
+        from time import strftime
+        
+        self._last_fieldnote_text = strftime(self.settings['options_default_log_text'], localtime()) % {'machine': 'Nokia N9'}
+        return self._last_fieldnote_text
 
     mapPositionLat = createSetting('map_position_lat', float, settingsChanged, False)
     mapPositionLon = createSetting('map_position_lon', float, settingsChanged, False)
@@ -811,6 +820,7 @@ class SettingsWrapper(QtCore.QObject):
     debugLogToHTTP = createSetting('debug_log_to_http', bool, settingsChanged)
     optionsRedownloadAfter = createSetting('options_redownload_after', int, settingsChanged)
     downloadNotFound = createSetting('download_not_found', bool, settingsChanged)
+    optionsDefaultLogText = createSetting('options_default_log_text', str, settingsChanged)
 
     currentMapType = QtCore.Property(QtCore.QObject, _get_current_map_type, _set_current_map_type, notify=settingsChanged)
     mapTypes = QtCore.Property(QtCore.QObject, _map_types, notify=settingsChanged)
@@ -1086,9 +1096,25 @@ class GeocacheWrapper(QtCore.QObject):
             return int(self._geocache.logas)
         except ValueError:
             return 0
+            
+    def _set_logas(self, logas):
+        from time import gmtime
+        from time import strftime
+        self._geocache.logas = logas
+        self._geocache.logdate = strftime('%Y-%m-%d', gmtime())
+        self.core.save_fieldnote(self._geocache)
+        self.changed.emit()
         
     def _fieldnotes(self):
         return self._geocache.fieldnotes
+        
+    def _set_fieldnotes(self, text):
+        from time import gmtime
+        from time import strftime
+        self._geocache.fieldnotes = text
+        self._geocache.logdate = strftime('%Y-%m-%d', gmtime())
+        self.core.save_fieldnote(self._geocache)
+        self.changed.emit()
         
     def _marked(self):
         return self._geocache.marked
@@ -1136,16 +1162,7 @@ class GeocacheWrapper(QtCore.QObject):
         return self._calc_coordinate_list
             
     
-    @QtCore.Slot(str, str)
-    def setFieldnote(self, logas, text):
-        from time import gmtime
-        from time import strftime
-        logger.debug("Setting fieldnote, logas=%r, text=%r" % (logas, text))
-        self._geocache.logas = logas
-        self._geocache.fieldnotes = text
-        self._geocache.logdate = strftime('%Y-%m-%d', gmtime())
-        self.core.save_fieldnote(self._geocache)
-        self.changed.emit()
+        
         
     @QtCore.Slot()
     def setViewed(self):
@@ -1179,8 +1196,8 @@ class GeocacheWrapper(QtCore.QObject):
     coordinatesCount = QtCore.Property(int, _coordinates_count, notify=coordsChanged)
     hasDetails = QtCore.Property(bool, _has_details, notify=changed)
     hints = QtCore.Property(str, _hints, notify=changed)
-    logas = QtCore.Property(int, _logas, notify=changed)
-    fieldnotes = QtCore.Property(str, _fieldnotes, notify=changed)
+    logas = QtCore.Property(int, _logas, _set_logas, notify=changed)
+    fieldnotes = QtCore.Property(str, _fieldnotes, _set_fieldnotes, notify=changed)
     varList = QtCore.Property(QtCore.QObject, _var_list, notify=coordsChanged)
     attributes = QtCore.Property(str, _attributes, notify=changed)
     calcCoordinates = QtCore.Property(QtCore.QObject, _calc_coordinates, notify=coordsChanged)
