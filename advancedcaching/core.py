@@ -1003,7 +1003,7 @@ class Core(gobject.GObject):
         """
         caches = self.pointprovider.get_new_fieldnotes()
         if not sync:
-            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.upload_fieldnotes', self._upload_fieldnotes_complete, caches])
+            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.upload_fieldnotes_and_logs', self._upload_fieldnotes_complete, caches])
             t.daemon = True
             t.start()
         else:
