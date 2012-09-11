@@ -472,7 +472,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             self.LOGBOOK_URL % (userToken, 1),
             login_callback = self.login_callback, 
             check_login_callback = self.check_login_callback)
-        new_set_of_logs, total_page = self._parse_logs_json(logs.read(), True) #True=we want also number of page
+        new_set_of_logs, total_page = self._parse_logs_json(logs.read()) #True=we want also number of page
         logs.close()
         page_of_logs=num_logs/10 #num_logs from parameter (which comes from settings 'download_num_logs')
 

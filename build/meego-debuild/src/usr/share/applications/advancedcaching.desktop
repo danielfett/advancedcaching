@@ -3,6 +3,6 @@ Encoding=UTF-8
 Version=1.0
 Type=Application
 Name=AGTL
-Exec=invoker --single-instance --type=e -S /opt/advancedcaching/splash.png /usr/bin/advancedcaching
+Exec=invoker --single-instance --type=e -S /opt/advancedcaching/splash.png /opt/advancedcaching/launch
 Icon=/usr/share/icons/hicolor/80x80/apps/advancedcaching.png
 Categories=Development;

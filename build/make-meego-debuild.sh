@@ -52,4 +52,4 @@ cp $RES/advancedcaching-80.png $PKGTMP/src/usr/share/icons/hicolor/80x80/apps/ad
 cd $PKGTMP/
 debuild --no-lintian -aarmel 
 cd -
-echo "Now run PATH=\$PATH:`pwd`/aegis-builder/ perl aegis-builder/aegis-deb-util --verbose --add-manifest --manifest=meego-debuild/_aegis --add-digsigsums='/usr/bin/advancedcaching' <debfile>"
+echo "Now run PATH=\$PATH:`pwd`/aegis-builder/ perl aegis-builder/aegis-deb-util --verbose --add-manifest --manifest=meego-debuild/_aegis --add-digsigsums='/opt/advancedcaching/launch' <debfile>"
