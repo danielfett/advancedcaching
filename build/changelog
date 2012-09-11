@@ -1,3 +1,56 @@
+advancedcaching (0.9.1.2) stable; urgency=low
+  - Fix JSON parse error
+
+ -- Daniel Fett <advancedcaching@fragcom.de> Tue, 11 Sep 2012 16:51:05 +0200
+
+advancedcaching (0.9.1.1) stable; urgency=low
+  - Fix Issue #150
+  - Fix display of long waypoint descriptions in QML gui
+  - Fix multi geocache selection on simple and hildon gui
+  - Fix short description error for Hildon gui
+  - Clean json parsing
+  - Fix attribute parsing
+  - Remove unnecessary info message
+  - Nicer testing function for cachedownloader
+  - Fix testing routine for cachedownloader
+  - Add website link parsing
+  - Fix missing file
+  - Fix make system with aegis
+  - Fix color issue for light theme
+  - Fix Issue #136: Use current coordinate for new waypoint
+  - Fix broken map in cache calc edit dialog
+  - Fix broken map in Coordinate Details
+  - Add proper shutdown for Threadpool
+  - Speed up startup and downloading by removing LIKE operator in SQLITE statement.
+  - Avoid attributes bug in cachedownloader
+  - Fix status for Locationgpsreader
+  - Filter out Openstreetmap illegal URL tiles.
+  - Fix three Issues: When downloading the overview, the displayed number was incorrect. Updating geocaches lead to loss of data. Found status was not updated correctly.
+  - Remove logging exception
+  - Improve performance of N9 map; Fix Issue # 108: Show all waypoints on map (N9)
+  - Fix deprecation warning
+  - Fix Issue #68 for Hildongui and Simplegui
+  - Fix Issue #68 for QML gui
+  - Remove unnecessary idle_add calls. Add locks to hildongui.
+  - Add redownload-after setting to hildongui; set setting into effect for hildongui and QML
+  - Fix bug which prevented geocaches from showing details in hildongui
+  - Introduce feature to skip geocaches which are already in the database; Implement it for CLI
+  - Rename get_geocaches in cachedownloader
+  - Fix Issue #75, Settings update not working properly
+  - Fix issue #135, process left running when config file is not writeable
+  - Introduce --skip-found option for CLI, remove USES
+  - Add CLI test script
+  - Remove debugging messages; Improve progress messages; Check and repair CLI; Introduce new --commands for CLI; Remove Warning in gpsreader
+  - Document core.py; Refactor several methods; Remove on_* names for non-signal-handlers
+  - Document provider.py, remove deprecated methods from provider.py and core.py
+  - Slightly speed up display rotation for N9
+  - Add last updated, last viewed properties to geocaches and introduce new lists for N900 gui
+  - Fix bug #125: Test function of cachedownloader doesn't work
+  - Clean up core; Remove signals; Clean up threads
+  - Clean up core: Use single cachedownloader instance; Remove unwanted HTTP debugging
+
+ -- Daniel Fett <advancedcaching@fragcom.de> Sun, 02 Sep 2012 11:33:03 +0200
+
 advancedcaching (0.9.1.0) stable; urgency=low
   - First version to appear in the Meego Store
 
