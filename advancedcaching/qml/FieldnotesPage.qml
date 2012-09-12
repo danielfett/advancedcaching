@@ -152,7 +152,7 @@ Page {
             anchors.left: parent.left
             anchors.right: parent.right
             text: "Fieldnotes are temporary log entries, which can be reviewed and submitted as regular logs later on.<br><br>After uploading, you will find them in your account overview on the web page. If you don't upload them now, they are stored here for later uploading."
-            color: theme.inverted ? UI.COLOR_DIALOG_TEXT_NIGHT : UI.COLOR_DIALOG_TEXT
+            color: UI.COLOR_DIALOG_TEXT
         }]
     }
     
