@@ -906,7 +906,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 url = self.UPLOAD_LOG_URL % name
                 
                 # First, download webpage to get the correct viewstate value
-                self.emit('progress', "Uploading Logs (%d of %d)..." % (i, len(geocaches)), i, len(geocaches))
+                self.emit('progress', "Uploading Logs (%d of %d)..." % (i, len(geocaches)), i + 1, len(geocaches))
                 cache_page = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
                 pg = cache_page.read()
                 cache_page.close()
