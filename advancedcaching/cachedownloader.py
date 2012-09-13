@@ -278,7 +278,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             logger.info("Downloading %s..." % id)
             url = self.PRINT_PREVIEW_URL % guid
             response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)                
-            result = self._parse_cache_page_print(response, coordinate, num_logs = 20)
+            result = self.__parse_cache_page_print(response, coordinate, num_logs = 20)
             if result != None and result.lat != -1:
                 points_finished.append(result)
                 
@@ -295,7 +295,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         url = self.DETAILS_URL % coordinate.name
         response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
             
-        return self._parse_cache_page(response, coordinate, num_logs, progress_min = progress_min, progress_max = progress_max, progress_all = progress_all)
+        return self.__parse_cache_page(response, coordinate, num_logs, progress_min = progress_min, progress_max = progress_max, progress_all = progress_all)
 
     
     @staticmethod
@@ -354,7 +354,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         except Exception:
             raise Exception("Website contents unexpected. Please check connection.")
     
-    def _parse_cache_page(self, cache_page, coordinate, num_logs, download_images = True, progress_min = 0.0, progress_max = 1.0, progress_all = 1.0):
+    def __parse_cache_page(self, cache_page, coordinate, num_logs, download_images = True, progress_min = 0.0, progress_max = 1.0, progress_all = 1.0):
         logger.debug("Start parsing, pmin = %f, pmax = %f." % (progress_min, progress_max))
         pg = cache_page.read()
         cache_page.close()
@@ -620,7 +620,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         
     # This parses the print preview of a geocache
     # It currently omits images, waypoints and logs.
-    def _parse_cache_page_print(self, cache_page, coordinate, num_logs):
+    def __parse_cache_page_print(self, cache_page, coordinate, num_logs):
         logger.debug("Start parsing.")
         pg = cache_page.read()
         cache_page.close()
