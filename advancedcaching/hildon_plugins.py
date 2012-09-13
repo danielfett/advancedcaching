@@ -86,8 +86,8 @@ class HildonFieldnotes(object):
         logger.info("Using Fieldnotes plugin")
 
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        button.set_title("Upload Fieldnote(s)")
-        button.set_value("You have not created any fieldnotes.")
+        button.set_title("Upload Logs/Fieldnotes")
+        button.set_value("You have not created any logs/fieldnotes.")
         button.connect("clicked", self._on_upload_fieldnotes, None)
         self.button_fieldnotes = button
 
@@ -98,7 +98,7 @@ class HildonFieldnotes(object):
 
     def _get_write_fieldnote_button(self):
         button = hildon.Button(gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_VERTICAL)
-        button.set_label("Write Fieldnote")
+        button.set_label("Write Log/Fieldnote")
         button.connect("clicked", self._on_show_log_fieldnote_dialog, None)
         return button
 
@@ -110,16 +110,26 @@ class HildonFieldnotes(object):
         
         if self.current_cache == None:
             return
+            
+        sel_type = hildon.TouchSelector(text=True)
+        sel_type.append_text('Post as Log')
+        sel_type.append_text('Upload as Fieldnote')
+        #sel_type.set_column_selection_mode(hildon.TOUCH_SELECTOR_SELECTION_MODE_MULTIPLE)
+        pick_type = hildon.PickerButton(gtk.HILDON_SIZE_AUTO_WIDTH | gtk.HILDON_SIZE_FINGER_HEIGHT, hildon.BUTTON_ARRANGEMENT_HORIZONTAL)
+        pick_type.set_selector(sel_size)
+        pick_type.set_title("Select Type")
+        selected = cache.upload_as if (cache.upload_as != Null) else 0
+        sel_type.select_iter(0, sel_type.get_model(0).get_iter(selected), False)
 
         statuses = [
-            ("Don't upload a fieldnote", geocaching.GeocacheCoordinate.LOG_NO_LOG),
+            ("Don't upload", geocaching.GeocacheCoordinate.LOG_NO_LOG),
             ("Found it", geocaching.GeocacheCoordinate.LOG_AS_FOUND),
             ("Did not find it", geocaching.GeocacheCoordinate.LOG_AS_NOTFOUND),
             ("Post a note", geocaching.GeocacheCoordinate.LOG_AS_NOTE)
         ]
 
         cache = self.current_cache
-        dialog = gtk.Dialog("Write Fieldnote", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+        dialog = gtk.Dialog("Write Log/Fieldnote", self.window, gtk.DIALOG_DESTROY_WITH_PARENT, (gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 
         if cache.logdate == '':
             try:
@@ -147,6 +157,7 @@ class HildonFieldnotes(object):
         fieldnotes_log_as.set_title('Log Type')
         fieldnotes_log_as.set_selector(fieldnotes_log_as_selector)
 
+        dialog.vbox.pack_start(sel_type, False)
         dialog.vbox.pack_start(fieldnotes_log_as, False)
         dialog.vbox.pack_start(fieldnotes, True)
         #dialog.vbox.pack_start(hildon.Caption(None, "Text", fieldnotes, None, hildon.CAPTION_OPTIONAL))
@@ -157,6 +168,7 @@ class HildonFieldnotes(object):
             logger.debug('Not logging this fieldnote')
             return
 
+        cache.upload_as = sel_type.get_selected_rows(0)[0][0]
         cache.logas = statuses[fieldnotes_log_as_selector.get_selected_rows(0)[0][0]][1]
         cache.logdate = strftime('%Y-%m-%d', gmtime())
         cache.fieldnotes = fieldnotes.get_buffer().get_text(fieldnotes.get_buffer().get_start_iter(), fieldnotes.get_buffer().get_end_iter())
@@ -177,7 +189,7 @@ class HildonFieldnotes(object):
             w.set_value("Nothing to upload.")
             w.set_sensitive(False)
         else:
-            w.set_value("You have %d fieldnotes." % count)
+            w.set_value("You have %d logs/fieldnotes." % count)
             w.set_sensitive(True)
 
 class HildonSearchGeocaches(object):
