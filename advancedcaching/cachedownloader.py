@@ -364,22 +364,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
             return False
         raise Exception("Name/Password MAY be correct, but I encountered unexpected data while logging in.")
         
-    def _get_user_token(self):
-        page = self.downloader.get_reader(self.USER_TOKEN_URL, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
-        for line in page:
-            if line.startswith('vxar uvtoken'):
-                user_token[0] = re.sub('[^A-Z0-9]+', '', line.split('=')[-1])
-                page.close()
-                return
-        logger.error("Using fallback for user token search!")
-        try:
-            page = self.downloader.get_reader(self.USER_TOKEN_URL, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
-            t = page.read()
-            page.close()
-            user_token[0] = re.search('[A-Z0-9]{128}', t).group(0)
-        except Exception:
-            raise Exception("Website contents unexpected. Please check connection.")
-    
     def __parse_cache_page(self, cache_page, coordinate, num_logs, download_images = True, progress_min = 0.0, progress_max = 1.0, progress_all = 1.0):
         logger.debug("Start parsing, pmin = %f, pmax = %f." % (progress_min, progress_max))
         doc = self.__read_document(cache_page)
