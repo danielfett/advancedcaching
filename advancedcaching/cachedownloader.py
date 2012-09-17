@@ -49,6 +49,7 @@ class CacheDownloader(gobject.GObject):
                     'progress' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (str, float, float, )),
                     'download-error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
                     'already-downloading-error' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+                    'need-auth-data' : (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE, (str)),
                     }
 
     lock = threading.Lock()
@@ -64,6 +65,20 @@ class CacheDownloader(gobject.GObject):
                 os.mkdir(path)
             except:
                 raise Exception("Path does not exist: %s" % path)
+                
+    def update_userdata(self, username = None, password = None):
+        '''
+        Change the settings for the user data and reset the cookies afterwards so that a new login will be performed.
+        
+        #todo: check if username can actually be change by calling this method.
+        
+        '''
+        
+        if username != None:
+            self.username = username
+        if password != None:
+            self.password = password
+        self.downloader.reset_cookies()
 
     # Update several coordinates
     def update_coordinates(self, coordinates, num_logs = 20):
@@ -124,7 +139,28 @@ class CacheDownloader(gobject.GObject):
             self.emit('download-error', e)
             return []
         return geocaches
-                
+
+"""
+class OpenCachingComCacheDownloader(CacheDownloader):
+    '''
+    New Backend for Opencaching.com
+    
+    '''
+    
+    def __init__(self, downloader, path = None, download_images = True):
+        CacheDownloader.__init__(self, downloader, path, download_images)
+        
+    def _get_overview(self, location, get_geocache_callback, skip_callback = None):
+    
+    def _update_coordinate(self, coordinate, num_logs = 20, progress_min = 0.0, progress_max = 1.0, progress_all = 1.0):
+    
+    @staticmethod
+    def check_login_callback(downloader):
+    
+    @staticmethod
+    def login_callback(downloader, username, password):
+""" 
+        
         
 class GeocachingComCacheDownloader(CacheDownloader):
     
@@ -158,7 +194,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
         CacheDownloader.__init__(self, downloader, path, download_images)
         self.downloader.allow_minified_answers = True
 
-    def _parse(self, text):
+    def __read_document(self, page):
+        text = page.read()
         try:
             t = unicode(text, 'utf-8')
             doc = fromstring(t)
@@ -166,6 +203,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
             logger.exception(e)
             from lxml.html.soupparser import fromstring as fromstring_soup
             doc = fromstring_soup(text)
+        finally:
+            page.close()
         return doc
 
     def _get_overview(self, location, get_geocache_callback, skip_callback = None):
@@ -185,9 +224,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         page_last = 0 # Stores the "old" value of the page counter; If it doesn't increment, abort!
         while cont:
             # Count the number of results and pages
-            text = response.read()
-            response.close()
-            doc = self._parse(text)
+            doc = self.__read_document(response)
             bs = doc.cssselect('#ctl00_ContentBody_ResultsPanel .PageBuilderWidget b')
             if len(bs) == 0:
                 raise Exception("There are no geocaches in this area.")
@@ -298,25 +335,17 @@ class GeocachingComCacheDownloader(CacheDownloader):
         return self.__parse_cache_page(response, coordinate, num_logs, progress_min = progress_min, progress_max = progress_max, progress_all = progress_all)
 
     
-    @staticmethod
-    def check_login_callback(downloader):
-        login_request = downloader.get_reader(GeocachingComCacheDownloader.NEAREST_URL, login = False)
-        page = login_request.read()
-        login_request.close()
-
-        t = unicode(page, 'utf-8')
-        doc = fromstring(t)
-        if len(doc.cssselect('.NotSignedInText')) > 0:
-            logger.info("Probably not signed in anymore.")
-            return False
-        elif len(doc.cssselect('.SignedInText')) > 0:
+    def check_and_perform_login(self, doc, username, password):
+        '''
+        Checks the document doc to see whether we are logged in or not. If not, performs the login. 
+        
+        Returns whether doc was logged in. 
+        
+        '''
+        if len(doc.cssselect('.SignedInText')) > 0:
             logger.info("Probably still signed in.")
             return True
-        logger.exception("Could not reliably determine logged in status, assuming No")
-        return False
         
-    @staticmethod
-    def login_callback(downloader, username, password):
         values = {'ctl00$ContentBody$tbUsername': username,
             'ctl00$ContentBody$tbPassword': password,
             'ctl00$ContentBody$cbRememberMe': 'on',
@@ -324,18 +353,15 @@ class GeocachingComCacheDownloader(CacheDownloader):
             '__EVENTTARGET': '',
             '__EVENTARGUMENT': ''
         }
-        request = downloader.get_reader(GeocachingComCacheDownloader.LOGIN_URL, values, login = False)
-        page = request.read()
-        request.close()
-
-        t = unicode(page, 'utf-8')
-        doc = fromstring(t)
+        request = self.downloader.get_reader(GeocachingComCacheDownloader.LOGIN_URL, values, login = False)
+        doc = self.__read_document(request)
         
         if doc.get_element_by_id('ctl00_liNavProfile', None) == None:
+            self.emit('need-auth-data', self.__class__.__name__)
             raise Exception("Wrong username or password!")
         elif doc.get_element_by_id('ctl00_liNavJoin', None) == None:
             logger.info("Great success.")
-            return True
+            return False
         raise Exception("Name/Password MAY be correct, but I encountered unexpected data while logging in.")
         
     def _get_user_token(self):
@@ -356,10 +382,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     
     def __parse_cache_page(self, cache_page, coordinate, num_logs, download_images = True, progress_min = 0.0, progress_max = 1.0, progress_all = 1.0):
         logger.debug("Start parsing, pmin = %f, pmax = %f." % (progress_min, progress_max))
-        pg = cache_page.read()
-        cache_page.close()
-        t = unicode(pg, 'utf-8')
-        doc = fromstring(t)
+        doc = self.__read_document(cache_page)
                 
         # Basename - Image name without path and extension
         def basename(url):
@@ -622,10 +645,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     # It currently omits images, waypoints and logs.
     def __parse_cache_page_print(self, cache_page, coordinate, num_logs):
         logger.debug("Start parsing.")
-        pg = cache_page.read()
-        cache_page.close()
-        t = unicode(pg, 'utf-8')
-        doc = fromstring(t)
+        doc = self.__read_document(cache_page)
         
         # Basename - Image name without path and extension
         def basename(url):
@@ -809,10 +829,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         
         # First, download webpage to get the correct viewstate value
         cache_page = self.downloader.get_reader(self.UPLOAD_FIELDNOTES_URL, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
-        pg = cache_page.read()
-        cache_page.close()
-        t = unicode(pg, 'utf-8')
-        doc = fromstring(t)
+        doc = self.__read_document(cache_page)
         # Sometimes this field is not available
         if 'ctl00$ContentBody$chkSuppressDate' in doc.forms[0].fields:
             doc.forms[0].fields['ctl00$ContentBody$chkSuppressDate'] = ''
@@ -827,10 +844,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             login_callback = self.login_callback, 
             check_login_callback = self.check_login_callback)
 
-        res = response.read()
-        response.close()
-        t = unicode(res, 'utf-8')
-        doc = fromstring(t)
+        doc = self.__read_document(response)
         
         # There's no real success/no success message on the website. 
         # We therefore assume success, if this element is in the response
@@ -862,10 +876,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             
             # First, download webpage to get the correct viewstate value
             cache_page = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
-            pg = cache_page.read()
-            cache_page.close()
-            t = unicode(pg, 'utf-8')
-            doc = fromstring(t)
+            doc = self.__read_document(cache_page)
             doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$ddLogType'] = str(log)
             doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$DateTimeLogged$Day'] = str(int(day))
             doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$DateTimeLogged$Month'] = str(int(month))
@@ -879,10 +890,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 login_callback = self.login_callback, 
                 check_login_callback = self.check_login_callback)
 
-            res = response.read()
-            res.close()
-            t = unicode(res, 'utf-8')
-            doc = fromstring(t)
+            doc = self.__read_document(response)
             
             # There's no real success/no success message on the website. 
             # We therefore assume success, if this element is in the response
@@ -950,6 +958,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
 BACKENDS = {
     'geocaching-com-new': {'class': GeocachingComCacheDownloader, 'name': 'geocaching.com', 'description': 'Backend for geocaching.com'},
+    'opencaching-com': {'class': OpenCachingComCacheDownloader, 'name': 'opencaching.com', 'description': 'Backend for opencaching.com'},
     }
 
 def get(name, *args, **kwargs):
@@ -975,7 +984,8 @@ if __name__ == '__main__':
         sys.exit(2)
 
     name, password = sys.argv[1:3]
-    a = parser(downloader.FileDownloader(name, password, '/tmp/cookies'), '/tmp/', True)
+    a = parser(downloader.FileDownloader('/tmp/cookies'), '/tmp/', True)
+    a.update_userdata(username = name, password = password)
 
     logger.info("Using Username %s" % name)
 
