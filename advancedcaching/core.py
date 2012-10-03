@@ -386,7 +386,7 @@ class Core(gobject.GObject):
         self.emit('progress', 0.5, "Checking for updates...")
         try:
             try:
-                reader = self.downloader.get_reader(url, login=False)
+                reader = self.downloader.get_reader(url)
             except HTTPError, e:
                 raise NoUpdateException("No updates available.")
             except Exception, e:
@@ -551,6 +551,8 @@ class Core(gobject.GObject):
                 self.cachedownloader.disconnect(handler)
         self.__cachedownloader_signal_handlers = []
         self.cachedownloader = cachedownloader.get(self.settings['options_backend'], self.downloader, self.settings['download_output_dir'], not self.settings['download_noimages'])
+        self.cachedownloader.update_userdata(username = self.settings['options_username'])
+        self.cachedownloader.update_userdata(password = self.settings['options_password'])
         a = self.cachedownloader.connect("download-error", self.on_download_error)
         b = self.cachedownloader.connect("already-downloading-error", self.on_already_downloading_error)
         c = self.cachedownloader.connect('progress', self.on_download_progress)
