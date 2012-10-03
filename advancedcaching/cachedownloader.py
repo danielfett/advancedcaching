@@ -920,7 +920,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 url = self.UPLOAD_LOG_URL % name
                 
                 # First, download webpage to get the correct viewstate value
-                self.emit('progress', "Uploading Logs (%d of %d)..." % (i, len(geocaches)), i, len(geocaches))
+
+                self.emit('progress', "Uploading Logs (%d of %d)..." % (i, len(geocaches)), i + 1, len(geocaches))
 
                 doc = self.__download(url)
                 doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$ddLogType'] = str(logtype_trans)
