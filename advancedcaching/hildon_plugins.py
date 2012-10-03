@@ -852,7 +852,6 @@ class HildonToolsDialog(object):
         dialog.vbox.pack_start(destination)
         
         def do_rot(widget):
-            import cachedownloader
             try:
                 text = HTMLManipulations._rot13(source.get_buffer().get_text(source.get_buffer().get_start_iter(), source.get_buffer().get_end_iter()))
             except Exception:

@@ -72,9 +72,6 @@ if '--simple' in argv:
     import simplegui
     gui = simplegui.SimpleGui
     gps = 'gpsdprovider'
-elif '--desktop' in argv:
-    import biggui
-    gui = biggui.BigGui
 elif '--qml' in argv:
     import qmlgui
     gui = qmlgui.QmlGui
@@ -1098,14 +1095,14 @@ def start_profile(what):
 
     
     print "BY TOTALTIME:\n------------------------------------------------------------"
-    def c(x, y):
+    def c2(x, y):
         if x.totaltime < y.totaltime:
             return 1
         elif x.totaltime == y.totaltime:
             return 0
         else:
             return -1
-    stats.sort(cmp=c)
+    stats.sort(cmp=c2)
     for line in stats[:30]:
         print "%d %4f %s" % (line.callcount, line.totaltime, line.code)
         if line.calls == None:

@@ -18,7 +18,6 @@
 #   Author: Daniel Fett agtl@danielfett.de
 #   Jabber: fett.daniel@jaber.ccc.de
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
-#
 
  
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
@@ -36,7 +35,6 @@ from astral import Astral
 import geo
 import geocaching
 import gobject
-import gtk
 
 import logging
 logger = logging.getLogger('simplegui')

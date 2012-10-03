@@ -75,11 +75,9 @@ class FileDownloader():
             
         if core != None:
             core.connect('save-settings', self._on_save_settings)
+           
             
-        #todo : username and password need to go to cachedownloader
-        #todo: 
-            
-    def _on_save_settings(settings, source):
+    def _on_save_settings(self, settings, source):
         try:
             self.cj.save()
         except Exception, e:

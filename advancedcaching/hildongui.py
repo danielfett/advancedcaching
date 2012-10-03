@@ -799,7 +799,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
             first_log = 10 + tab_number*logs_in_page #10=number of logs shown in basic view
             last_log = first_log + logs_in_page
             if last_log >= len(logs):
-               last_log = len(logs)
+                last_log = len(logs)
             label = str(first_log+1) +"-"+ str(last_log) #add 1 to showing first log, so they are more human readable
             notebook.append_page(page, gtk.Label(label))
 
@@ -1159,12 +1159,12 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                 w_text.set_alignment(0, 0)
 
                 if events != None:
-                   events.append(self.window.connect('configure-event', self._on_configure_label, w_text, True))
+                    events.append(self.window.connect('configure-event', self._on_configure_label, w_text, True))
 
                 if dialog: #inside dialog (not window)
-                   w_text.set_size_request(self.window.size_request()[0] - 60, -1)
+                    w_text.set_size_request(self.window.size_request()[0] - 60, -1)
                 else:
-                   w_text.set_size_request(self.window.size_request()[0] - 10, -1)
+                    w_text.set_size_request(self.window.size_request()[0] - 10, -1)
 
                 w_first = gtk.HBox()
                 w_first.pack_start(w_type, False, False)
