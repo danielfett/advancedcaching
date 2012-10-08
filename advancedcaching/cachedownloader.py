@@ -138,18 +138,68 @@ class CacheDownloader(gobject.GObject):
 
         return success
 
-"""
+
 class OpenCachingComCacheDownloader(CacheDownloader):
     '''
     New Backend for Opencaching.com
     
     '''
     
-    def _get_overview(self, location, get_geocache_callback, skip_callback = None):
-    def _update_coordinate(self, coordinate, num_logs = 20, progress_min = 0.0, progress_max = 1.0, progress_all = 1.0):
+    API_URL = 'http://www.opencaching.com/api/%s'
+    API_KEY = 'dvEr3zVZDHv62DgP'
     
+    def __init__(self, downloader, path = None, download_images = True):
+        CacheDownloader.__init__(self, downloader, path, download_images)
+        self.downloader.allow_minified_answers = True
     
-""" 
+
+    def _get_overview(self, location, get_geocache_callback, skip_callback=None):
+        '''
+        Get geocaches in the bounding box given by location.
+        
+        get_geocache_callback - a callback function that provides existing information about the geocache in order to check whether this information needs updating
+        skip_callback - a callback function which can be used to check whether details for a specific geocache need to be retrieved.
+        '''
+        south = min(location[0].lat, location[1].lat)
+        west = min(location[0].lon, location[1].lon)
+        north = max(location[0].lat, location[1].lat)
+        east = max(location[0].lon, location[1].lon)
+         
+        reply = self.__json_request('geocache', {'bbox' : '%f,%f,%f,%f' % (south, west, north, east), 'description': 'html', 'hint' : 'true', 'log_limit' : 0})
+        geocaches = [self.__parse_geocache(g) for g in reply]
+        return geocaches
+
+
+    def _update_coordinate(self, coordinate, num_logs=20, progress_min=0.0, progress_max=1.0, progress_all=1.0):
+        reply = self.__json_request('geocache', {'description': 'html', 'hint': 'true', 'log_limit': num_logs}) 
+        return self.__parse_geocache(reply)
+    
+    def __json_request(self, call, parameters):
+        url = self.API_URL % call
+        parameters['Authorization'] = self.API_KEY
+        print parameters
+        response = self.downloader.get_reader(url, url_parameters = parameters)
+        return json.loads(response.read())
+    
+    def __parse_geocache(self, d):
+        '''
+        Parse a single geocache from the dictionary d
+        '''
+        
+        g = GeocacheCoordinate(d['location']['lat'], d['location']['lon'], d['oxcode'])
+        g.desc = d['description']
+        g.difficulty = 10 * d['difficulty']
+        g.found = d['found'] if d['found'] in (True, False) else False
+        g.hints = d['hint'] if d['hint'] else ''
+        g.title = d['name']
+        g.size = int(d['size'])
+        g.terrain = 10 * d['terrain']
+        logger.warn("Type: %s" % d['type'])
+        return g
+        
+    def _upload_fieldnotes_and_logs(self, geocaches):
+        raise Exception("Not implemented yet!")
+
         
         
 class GeocachingComCacheDownloader(CacheDownloader):
@@ -1023,6 +1073,17 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG,
                     format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s',
                     )
+    
+    parser = OpenCachingComCacheDownloader
+    a = parser(downloader.FileDownloader('/tmp/cookies'), '/tmp/', True)
+    def dummy_callback(x):
+        return None
+    coords = a.get_overview((geo.Coordinate(49.3513,6.583), geo.Coordinate(49.352,6.584)), dummy_callback)
+    
+    print coords
+    
+    sys.exit(0)
+    
     parser = GeocachingComCacheDownloader
     
    

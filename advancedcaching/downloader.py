@@ -93,11 +93,21 @@ class FileDownloader():
                 logger.error("Could not remove cookie file?!")
                 pass
 
-    def get_reader(self, url, values=None, data=None):
+    def get_reader(self, url, values=None, data=None, url_parameters=None):
+        '''
+        Retrieve a web page and return a file-like object for reading from it.
+        
+        values - POST values
+        data - additional POST data
+        url_parameters - are added to the URL if given
+        '''
         if connection.offline:
             raise Exception("Can't connect in offline mode.")
 
         logger.info("Sending request to %s" % url)
+        
+        if url_parameters != None:
+            url = '%s?%s' % (url, urlencode(url_parameters))
         
         # No additional parameters or data
         if values == None and data == None:
@@ -109,7 +119,7 @@ class FileDownloader():
         # There are only URL parameters, expected in values
         elif data == None:
             if (isinstance(values, dict)):
-                values = urlencode( values)
+                values = urlencode(values)
             req = Request(url, values)
             self.add_headers(req)
             self.debug_request(req)
