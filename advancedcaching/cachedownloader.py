@@ -342,7 +342,12 @@ class GeocachingComCacheDownloader(CacheDownloader):
             url = self.PRINT_PREVIEW_URL % guid
 
             doc = self.__download(url, skip_login = True) # login check doesn't work with print preview, therefore skipping it.
-            result = self.__parse_cache_page_print(doc, coordinate, num_logs = 20)
+            try:
+                result = self.__parse_cache_page_print(doc, coordinate, num_logs = 20)
+            except (ValueError, TypeError, LookupError):
+                # Ignore parsing errors, but continue with other caches.
+                logging.warning("Skipping cache %s: error in parsing details.", id)
+                continue
             if result != None and result.lat != -1:
                 points_finished.append(result)
 
