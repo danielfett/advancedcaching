@@ -20,18 +20,20 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
-import geocaching
 import gtk
 import hildon
-import pango
-import threadpool
 import logging
-import geo
-from utils import HTMLManipulations
+import pango
+
+from advancedcaching import geo, geocaching, threadpool
+from advancedcaching.constants import TYPE_UNKNOWN, TYPES
+from advancedcaching.utils import HTMLManipulations
+
+
 logger = logging.getLogger('plugins')
 
+
 class HildonSearchPlace(object):
-    
     def plugin_init(self):
         self.last_searched_text = ''
         logger.info("Using Search Place plugin")
@@ -355,18 +357,8 @@ class HildonSearchGeocaches(object):
             if sizes == [1, 2, 3, 4, 5]:
                 sizes = None
 
-            typelist = [
-                geocaching.GeocacheCoordinate.TYPE_REGULAR,
-                geocaching.GeocacheCoordinate.TYPE_MULTI,
-                geocaching.GeocacheCoordinate.TYPE_VIRTUAL,
-                geocaching.GeocacheCoordinate.TYPE_EARTH,
-                geocaching.GeocacheCoordinate.TYPE_EVENT,
-                geocaching.GeocacheCoordinate.TYPE_MYSTERY,
-                geocaching.GeocacheCoordinate.TYPE_UNKNOWN
-            ]
-
-            types = [typelist[x] for x, in sel_type.get_selected_rows(0)]
-            if geocaching.GeocacheCoordinate.TYPE_UNKNOWN in types:
+            types = [TYPES[x] for x, in sel_type.get_selected_rows(0)]
+            if TYPE_UNKNOWN in types:
                 types = None
 
             # found, marked

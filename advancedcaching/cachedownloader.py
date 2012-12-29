@@ -23,21 +23,27 @@
 VERSION = 34
 VERSION_DATE = '2012-09-11'
 
+import gobject
 import logging
-logger = logging.getLogger('cachedownloader')
+import os
+import re
+import threading
+
+from lxml.html import fromstring, tostring
+from urlparse import urlparse
 try:
     import json
     json.dumps
 except (ImportError, AttributeError):
     import simplejson as json
-from geocaching import GeocacheCoordinate
-import geo
-import os
-import threading
-import re
-import gobject
-from utils import HTMLManipulations
-from lxml.html import fromstring, tostring
+
+from advancedcaching import geo
+from advancedcaching.constants import TYPE_UNKNOWN, TYPE_REGULAR, GC_TYPE_MAP
+from advancedcaching.geocaching import GeocacheCoordinate
+from advancedcaching.utils import HTMLManipulations
+
+
+logger = logging.getLogger('cachedownloader')
 
 #ugly workaround...
 user_token = [None]
@@ -45,6 +51,15 @@ user_token = [None]
 
 MESSAGE_DISABLED = 'This cache is temporarily unavailable. Read the logs below to read the status for this cache.'
 MESSAGE_ARCHIVED = 'This cache has been archived, but is available for viewing for archival purposes.'
+
+
+def url_basename(url):
+    """
+    Returns last part of URL path without filename extension.
+    """
+    chunks = urlparse(url)
+    filename = chunks[2].rsplit('/', 1)[1]
+    return os.path.splitext(filename)[0]
 
 
 class CacheDownloader(gobject.GObject):
@@ -159,16 +174,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
     MAX_DOWNLOAD_NUM = 800
 
-    CTIDS = {
-        2:GeocacheCoordinate.TYPE_REGULAR,
-        3:GeocacheCoordinate.TYPE_MULTI,
-        4:GeocacheCoordinate.TYPE_VIRTUAL,
-        6:GeocacheCoordinate.TYPE_EVENT,
-        8:GeocacheCoordinate.TYPE_MYSTERY,
-        11:GeocacheCoordinate.TYPE_WEBCAM,
-        137:GeocacheCoordinate.TYPE_EARTH
-    }
-
     TRANS_FIELDNOTE_TYPE = {
         GeocacheCoordinate.LOG_AS_FOUND: "Found it",
         GeocacheCoordinate.LOG_AS_NOTFOUND: "Didn't find it",
@@ -281,7 +286,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 action = self.SEEK_URL % doc.forms[0].action
                 logger.info("Retrieving next page!")
                 self.emit("progress", "Fetching list (%d of %d)" % (page_current + 1, page_max), page_current, page_max)
-                doc = self.__download(action, data=('application/x-www-form-urlencoded', values))
+                doc = self.__download(action, data=values)
 
                 cont = True
 
@@ -410,11 +415,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
     def __parse_cache_page(self, doc, coordinate, num_logs, download_images = True, progress_min = 0.0, progress_max = 1.0, progress_all = 1.0):
         logger.debug("Start parsing, pmin = %f, pmax = %f." % (progress_min, progress_max))
-
-        # Basename - Image name without path and extension
-        def basename(url):
-            return url.split('/')[-1].split('.')[0]
-
         # Title
         try:
             coordinate.title = doc.cssselect('meta[name="og:title"]')[0].get('content')
@@ -423,12 +423,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             raise Exception("Geocache not found.")
 
         # Type
-        try:
-            t = int(basename(doc.cssselect('.cacheImage img')[0].get('src')).split('.')[0])
-            coordinate.type = self.CTIDS[t] if t in self.CTIDS else GeocacheCoordinate.TYPE_UNKNOWN
-        except Exception, e:
-            logger.error("Could not find type!")
-            raise e
+        coordinate.type = self._parse_type(doc, '.cacheImage img')
 
         # Website
         try:
@@ -460,14 +455,14 @@ class GeocachingComCacheDownloader(CacheDownloader):
         try:
             # src is URL to image of the cache size
             # src.split('/')[-1].split('.')[0] is the basename minus extension
-            coordinate.size = self._handle_size(basename(doc.cssselect('.CacheSize p span img')[0].get('src')))
+            coordinate.size = self._handle_size(url_basename(doc.cssselect('.CacheSize p span img')[0].get('src')))
         except Exception, e:
             logger.error("Could not find/parse size string")
             raise e
 
         # Terrain/Difficulty
         try:
-            coordinate.difficulty, coordinate.terrain = [self._handle_stars(basename(x.get('src'))) for x in doc.cssselect('.CacheStarImgs span img')]
+            coordinate.difficulty, coordinate.terrain = [self._handle_stars(url_basename(x.get('src'))) for x in doc.cssselect('.CacheStarImgs span img')]
         except Exception, e:
             logger.error("Could not find/parse star ratings")
 
@@ -667,15 +662,22 @@ class GeocachingComCacheDownloader(CacheDownloader):
             logger.error("Unknown cache status.")
             return GeocacheCoordinate.STATUS_NORMAL
 
+    def _parse_type(self, doc, selector):
+        img_elements = doc.cssselect(selector)
+        if len(img_elements) != 1:
+            raise ValueError('Cache type element not found in document.')
+
+        try:
+            t_id = int(url_basename(img_elements[0].get('src')))
+        except (AttributeError, ValueError, TypeError):
+            logger.error("Could not find type!")
+            raise
+        return GC_TYPE_MAP.get(t_id, TYPE_UNKNOWN)
+
     # This parses the print preview of a geocache
     # It currently omits images, waypoints and logs.
     def __parse_cache_page_print(self, doc, coordinate, num_logs):
         logger.debug("Start parsing.")
-
-        # Basename - Image name without path and extension
-        def basename(url):
-            return url.split('/')[-1].split('.')[0]
-
         # Title, ID and Owner
         try:
             text = doc.cssselect('title')[0].text_content()
@@ -688,12 +690,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             raise e
 
         # Type
-        try:
-            t = int(basename(doc.cssselect('#Content h2 img')[0].get('src')).split('.')[0])
-            coordinate.type = self.CTIDS[t] if t in self.CTIDS else GeocacheCoordinate.TYPE_UNKNOWN
-        except Exception, e:
-            logger.error("Could not find type - probably premium cache!")
-            return None
+        coordinate.type = self._parse_type(doc, '#Content h2 img')
 
         # Short Description - Long Desc. is added after the image handling (see below)
         try:
@@ -721,7 +718,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         try:
             # src is URL to image of the cache size
             # src.split('/')[-1].split('.')[0] is the basename minus extension
-            coordinate.size = self._handle_size(basename(doc.cssselect('.Third .Meta img')[0].get('src')))
+            coordinate.size = self._handle_size(url_basename(doc.cssselect('.Third .Meta img')[0].get('src')))
         except Exception, e:
             logger.error("Could not find/parse size string")
             logger.exception(e)
@@ -729,7 +726,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
         # Terrain/Difficulty
         try:
-            coordinate.difficulty, coordinate.terrain = [self._handle_stars(basename(x.get('src'))) for x in doc.cssselect('.Third .Meta img')[1:]]
+            coordinate.difficulty, coordinate.terrain = [self._handle_stars(url_basename(x.get('src'))) for x in doc.cssselect('.Third .Meta img')[1:]]
         except Exception, e:
             logger.error("Could not find/parse star ratings")
             logger.exception(e)
@@ -1054,7 +1051,7 @@ if __name__ == '__main__':
     for x in coords:
         pcache(x)
         if x.name == 'GC1N8G6':
-            if x.type != GeocacheCoordinate.TYPE_REGULAR or x.title != 'Druidenpfad':
+            if x.type != TYPE_REGULAR or x.title != 'Druidenpfad':
                 sys.exit("Wrong type or title (Type is %d, Title is '%s')" % (x.type, x.title))
             m = x
             break

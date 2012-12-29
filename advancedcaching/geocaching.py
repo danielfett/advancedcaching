@@ -20,45 +20,29 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
+import logging
+import time
+from datetime import datetime
 try:
     from simplejson import dumps, loads
 except (ImportError, AttributeError):
     from json import loads, dumps
 
-from datetime import datetime
-import logging
-import time
+from advancedcaching import geo
+from advancedcaching.constants import TYPE_LABELS, TYPE_UNKNOWN
 
-import geo
+
 logger = logging.getLogger('geocaching')
+
 
 class GeocacheCoordinate(geo.Coordinate):
     LOG_NO_LOG = 0
     LOG_AS_FOUND = 1
     LOG_AS_NOTFOUND = 2
     LOG_AS_NOTE = 3
-    
+
     UPLOAD_AS_FIELDNOTE = 0
     UPLOAD_AS_LOG = 1
-
-    TYPE_REGULAR = 'regular'
-    TYPE_MULTI = 'multi'
-    TYPE_VIRTUAL = 'virtual'
-    TYPE_EVENT = 'event'
-    TYPE_MYSTERY = 'mystery'
-    TYPE_WEBCAM = 'webcam'
-    TYPE_UNKNOWN = 'unknown'
-    TYPE_EARTH = 'earth'
-    TYPES = [
-        TYPE_REGULAR,
-        TYPE_MULTI,
-        TYPE_VIRTUAL,
-        TYPE_EVENT,
-        TYPE_MYSTERY,
-        TYPE_WEBCAM,
-        TYPE_UNKNOWN,
-        TYPE_EARTH
-    ]
 
     STATUS_NORMAL = 0
     STATUS_DISABLED = 1
@@ -79,16 +63,6 @@ class GeocacheCoordinate(geo.Coordinate):
     LOG_TYPE_UPDATE = 'coord_update'
 
     SIZES = ['other', 'micro', 'small', 'regular', 'big', 'other']
-
-    TYPE_MAPPING = {
-        TYPE_MULTI: 'Multi-cache',
-        TYPE_REGULAR: 'Traditional Cache',
-        TYPE_EARTH: 'Earthcache',
-        TYPE_UNKNOWN: 'Unknown Cache',
-        TYPE_EVENT: 'Event Cache',
-        TYPE_WEBCAM: 'Webcam Cache',
-        TYPE_VIRTUAL: 'Virtual Cache'
-    }
 
     USER_TYPE_COORDINATE = 0
     USER_TYPE_CALC_STRING = 1
@@ -141,6 +115,7 @@ class GeocacheCoordinate(geo.Coordinate):
         'websitelink' : 'TEXT',
         'upload_as' : 'INTEGER',
         }
+
     def __init__(self, lat, lon=None, name='', data=None):
         geo.Coordinate.__init__(self, lat, lon, name)
         if data != None:
@@ -331,10 +306,10 @@ class GeocacheCoordinate(geo.Coordinate):
             self.attributes = ','.join(s)
 
     def get_gs_type(self):
-        if self.TYPE_MAPPING.has_key(self.type):
-            return self.TYPE_MAPPING[self.type]
+        if self.type in TYPE_LABELS:
+            return TYPE_LABELS[self.type]
         else:
-            return self.TYPE_MAPPING[self.TYPE_UNKNOWN]
+            return TYPE_LABELS[TYPE_UNKNOWN]
 
     def set_alternative_position(self, coord):
         self.alter_lat = coord.lat
@@ -476,5 +451,3 @@ class GeocacheCoordinate(geo.Coordinate):
             i += 1
             logger.debug("Added coordinate, name=%r, title=%r, user_coordinate_id=%r" % (coord.name, coord.title, coord.user_coordinate_id))
         return clist
-    
-       

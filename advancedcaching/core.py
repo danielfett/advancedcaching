@@ -22,37 +22,37 @@
 
 from __future__ import with_statement
 
-# This is also evaluated by the build scripts
-VERSION='0.9.1.2'
+import gobject
 import logging
 import logging.handlers
-logging.basicConfig(level=logging.WARNING,
-                    format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s // %(filename)s:%(lineno)s',
-                    )
+import os
+import threading
 
-
-from geo import Coordinate
+from actors.tts import TTS
+from datetime import datetime
+from os import path, mkdir, extsep, remove, walk
+from re import sub
+from sys import argv, exit, path as sys_path
 try:
     from json import loads, dumps
 except (ImportError, AttributeError):
     from simplejson import loads, dumps
-from sys import argv, exit
-from sys import path as sys_path
 
-import downloader
-import geocaching
-import gpsreader
-from os import path, mkdir, extsep, remove, walk
-import provider
-from threading import Thread
-import cachedownloader
-from actors.tts import TTS
-from re import sub
-import threading
-from datetime import datetime
 
-import connection
-import gobject
+# Add parent directory to the path, so we can use advancedcaching in imports
+sys_path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+
+from advancedcaching import cachedownloader, connection, downloader, geocaching, gpsreader, provider
+from advancedcaching.geo import Coordinate
+
+
+# This is also evaluated by the build scripts
+VERSION='0.9.1.2'
+
+
+logging.basicConfig(level=logging.WARNING,
+                    format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s // %(filename)s:%(lineno)s')
+
 
 if len(argv) == 1:
     import cli
@@ -749,7 +749,7 @@ class Core(gobject.GObject):
         skip_callback -- A callback function which gets the geocache id and its found status as input. If it returns true, the geocache's details are not downloaded.
         """
         if not sync:                
-            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.get_overview', self._download_overview_complete, location, self.get_geocache_by_name_async, skip_callback])
+            t = threading.Thread(target=self._download_upload_helper, args=['self.cachedownloader.get_overview', self._download_overview_complete, location, self.get_geocache_by_name_async, skip_callback])
             t.daemon = True
             t.start()
             return False
@@ -790,7 +790,7 @@ class Core(gobject.GObject):
         
         """
         if not sync:                
-            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.update_coordinate', self._download_cache_details_complete, cache, self.settings['download_num_logs']])
+            t = threading.Thread(target=self._download_upload_helper, args=['self.cachedownloader.update_coordinate', self._download_cache_details_complete, cache, self.settings['download_num_logs']])
             t.daemon = True
             t.start()
             #t.join()
@@ -856,7 +856,7 @@ class Core(gobject.GObject):
         
         """
         if not sync:
-            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.update_coordinates', self._download_cache_details_list_complete, caches, self.settings['download_num_logs']])
+            t = thrading.Thread(target=self._download_upload_helper, args=['self.cachedownloader.update_coordinates', self._download_cache_details_list_complete, caches, self.settings['download_num_logs']])
             t.daemon = True
             t.start()
             return False
@@ -1002,7 +1002,7 @@ class Core(gobject.GObject):
         """
         caches = self.pointprovider.get_new_fieldnotes()
         if not sync:
-            t = Thread(target=self._download_upload_helper, args=['self.cachedownloader.upload_fieldnotes_and_logs', self._upload_fieldnotes_complete, caches])
+            t = threading.Thread(target=self._download_upload_helper, args=['self.cachedownloader.upload_fieldnotes_and_logs', self._upload_fieldnotes_complete, caches])
             t.daemon = True
             t.start()
         else:
