@@ -25,11 +25,18 @@ from __future__ import with_statement
 import logging
 logger = logging.getLogger('downloader')
 import connection
+import socket
+from httplib import HTTPSConnection
 from sys import argv
-from urllib2 import build_opener, install_opener, HTTPCookieProcessor, HTTPHandler
+from urllib2 import build_opener, install_opener, HTTPCookieProcessor, HTTPHandler, HTTPSHandler
 from urllib2 import Request, urlopen
 from urllib import urlencode
 from cookielib import LWPCookieJar
+
+try:
+    import ssl
+except ImportError:
+    ssl = None
 
 
 DEBUG_HTTP = False
@@ -40,7 +47,27 @@ def enable_http_debugging():
     DEBUG_PATH = ''
     DEBUG_COUNTER = 0
     logger.info("Writing debug HTTP logs.")
-    
+
+
+# SSLv3 classes that bypass bug in openssl library when connecting to geocaching.com ugins SSLv23 protocol.
+class SSLv3HTTPSConnection(HTTPSConnection):
+    """
+    Connect using SSLv3.
+    """
+    def connect(self):
+        "Connect to a host on a given (SSL) port."
+
+        sock = socket.create_connection((self.host, self.port), self.timeout)
+        if self._tunnel_host:
+            self.sock = sock
+            self._tunnel()
+        self.sock = ssl.wrap_socket(sock, self.key_file, self.cert_file, ssl_version=ssl.PROTOCOL_SSLv3)
+
+
+class SSLv3HTTPSHandler(HTTPSHandler):
+    def https_open(self, req):
+        return self.do_open(SSLv3HTTPSConnection, req)
+
 
 class FileDownloader():
     USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.19 (KHTML, like Gecko) Ubuntu/12.04 Chromium/18.0.1025.168 Chrome/18.0.1025.168 Safari/535.19'
@@ -52,19 +79,19 @@ class FileDownloader():
         from socket import setdefaulttimeout
         setdefaulttimeout(30)
         self.opener_installed = False
-        
+
         # This controls the use of the cache-headers in requests to allow/deny minified answers
         # as provided by some mobile operators.
         self.allow_minified_answers = True
-        
-        
+
         self.cj = LWPCookieJar(self.cookiefile)
 
-        
+        handlers = [HTTPCookieProcessor(self.cj)]
         if DEBUG_HTTP:
-            opener = build_opener(HTTPHandler(debuglevel=1), HTTPCookieProcessor(self.cj))
-        else:
-            opener = build_opener(HTTPCookieProcessor(self.cj))
+            handlers.append(HTTPHandler(debuglevel=1))
+        if hasattr(ssl, 'PROTOCOL_SSLv3'):
+            handlers.append(SSLv3HTTPSHandler())
+        opener = build_opener(*handlers)
         install_opener(opener)
 
         try:
@@ -72,11 +99,10 @@ class FileDownloader():
             logger.info("Loaded cookie file")
         except IOError, e:
             logger.info("Couldn't load cookie file")
-            
+
         if core != None:
             core.connect('save-settings', self._on_save_settings)
-           
-            
+
     def _on_save_settings(self, settings, source):
         try:
             self.cj.save()
