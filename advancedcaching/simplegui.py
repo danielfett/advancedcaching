@@ -35,6 +35,7 @@ from astral import Astral
 import geo
 import geocaching
 import gobject
+import gtk
 
 import logging
 logger = logging.getLogger('simplegui')
