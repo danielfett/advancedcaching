@@ -29,7 +29,7 @@ import logging.handlers
 logging.basicConfig(level=logging.WARNING,
                     format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s // %(filename)s:%(lineno)s',
                     )
-                    
+
 
 from geo import Coordinate
 try:
@@ -512,7 +512,7 @@ class Core(gobject.GObject):
         filename = path.join(self.SETTINGS_DIR, 'config')
         logger.debug("Loading config from %s" % filename)
         if not path.exists(filename):
-            logger.error("Did not find settings file (%s), loading default settings." % filename)
+            logger.warning("Did not find settings file (%s), loading default settings." % filename)
             self.settings = self.DEFAULT_SETTINGS
             return
         with file(filename, 'r') as f:
@@ -580,15 +580,15 @@ class Core(gobject.GObject):
             distance = None
             bearing = None
         return distance, bearing
-        
+
     def __setup_gps(self, gps):
         """
         Setup GPS provider according to the constant in gps.
-        
+
         """
         if gps == 'simulatingprovider':
             self.gps_thread = gpsreader.FakeGpsReader(self)
-            gobject.timeout_add(1000, self.__read_gps)
+            gobject.timeout_add(1000, lambda: self.__read_gps(self.gps_thread.get_data()))
             self.set_target(gpsreader.FakeGpsReader.get_target())
         elif gps == None:
             self.gps_thread = gpsreader.FakeGpsReader(self)
@@ -602,11 +602,11 @@ class Core(gobject.GObject):
         elif gps == 'qmllocationprovider':
             self.gui.get_gps(self.__read_gps)
             self.gps_thread = None
-            
+
     def __read_gps(self, fix):
         """
         This callback method is called by the gpsreader to process a new fix.
-        
+
         """
         if fix.position != None:
             self.current_position = fix.position
