@@ -23,22 +23,19 @@
 from __future__ import with_statement
 
 import logging
-logger = logging.getLogger('openstreetmap')
-
 from os import path, mkdir, extsep, remove
+from socket import setdefaulttimeout
 from threading import Semaphore
 from urllib import urlretrieve
-from socket import setdefaulttimeout
-import connection
+
+from advancedcaching import connection
+
+logger = logging.getLogger('openstreetmap')
 setdefaulttimeout(30)
-   
-    
+
+
 CONCURRENT_THREADS = 20
 
-
-
-
-    
 
 def get_tile_loader(prefix, remote_url, max_zoom = 18, reverse_zoom = False, file_type = 'png', size = 256):
     class TileLoader():

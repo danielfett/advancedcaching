@@ -21,22 +21,22 @@
 #
 
 import logging
-logger = logging.getLogger('qmlgui')
-
-from PySide.QtGui import QApplication
-from PySide.QtDeclarative import QDeclarativeView
-from PySide.QtOpenGL import QGLWidget
-from PySide import QtCore
 import os
-import sys
-import geo
-geo.DEGREES = geo.DEGREES.decode('utf-8')
 import re
-import geocaching
-import gpsreader
+import sys
 from os import path
-from gui import Gui
-#from astral import Astral
+from PySide import QtCore
+from PySide.QtDeclarative import QDeclarativeView
+from PySide.QtGui import QApplication
+from PySide.QtOpenGL import QGLWidget
+
+from advancedcaching import geo, geocaching, gpsreader
+from advancedcaching.gui import Gui
+
+
+logger = logging.getLogger('qmlgui')
+geo.DEGREES = geo.DEGREES.decode('utf-8')
+
 
 class Controller(QtCore.QObject):
 
@@ -237,15 +237,15 @@ class Controller(QtCore.QObject):
         return self._progress_message
         
     def _core_version(self):
-        import core
+        from advancedcaching import core
         return core.VERSION
         
     def _parser_version(self):
-        import cachedownloader
+        from advancedcaching import cachedownloader
         return cachedownloader.VERSION
         
     def _parser_date(self):
-        import cachedownloader
+        from advancedcaching import cachedownloader
         return cachedownloader.VERSION_DATE
         
     @QtCore.Slot()
@@ -1013,7 +1013,7 @@ class GeocacheWrapper(QtCore.QObject):
         return self._geocache.shortdesc
         
     def _stripped_shortdesc(self):
-        from utils import HTMLManipulations
+        from advancedcaching.utils import HTMLManipulations
         return HTMLManipulations.strip_html_visual(self._geocache.shortdesc)
 
     def _desc(self):

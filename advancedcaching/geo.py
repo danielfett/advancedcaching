@@ -22,6 +22,7 @@
 
 import math
 import re
+
 try:
     from location import distance_between
     def distance_to_liblocation(src, target):

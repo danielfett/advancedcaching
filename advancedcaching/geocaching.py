@@ -318,7 +318,7 @@ class GeocacheCoordinate(geo.Coordinate):
     def start_calc(self, stripped_desc = None):
         if stripped_desc == None:
             stripped_desc = self.desc
-        from coordfinder import CalcCoordinateManager
+        from advancedcaching.coordfinder import CalcCoordinateManager
         if self.vars == None or self.vars == '':
             vars = {}
         else:

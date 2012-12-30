@@ -34,11 +34,11 @@ import logging
 import math
 import pango
 import re
-from astral import Astral
 from os import extsep
 from os.path import islink, realpath, dirname, abspath, join, exists
 
 from advancedcaching import geo, geocaching
+from advancedcaching.astral import Astral
 from advancedcaching.constants import TYPE_REGULAR, TYPE_MULTI, TYPE_MYSTERY, TYPE_VIRTUAL
 from advancedcaching.gtkmap import Map, GeocacheLayer, MarksLayer, OsdLayer
 from advancedcaching.gui import Gui
@@ -50,7 +50,7 @@ logger = logging.getLogger('simplegui')
 
 try:
     import gtk.glade
-    import extListview
+    from advancedcaching import extListview
 except (ImportError):
     logger.info( "Please install glade if you're NOT on the maemo platform.")
 

@@ -28,7 +28,6 @@ import logging.handlers
 import os
 import threading
 
-from actors.tts import TTS
 from datetime import datetime
 from os import path, mkdir, extsep, remove, walk
 from re import sub
@@ -38,11 +37,11 @@ try:
 except (ImportError, AttributeError):
     from simplejson import loads, dumps
 
-
 # Add parent directory to the path, so we can use advancedcaching in imports
 sys_path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 from advancedcaching import cachedownloader, connection, downloader, geocaching, gpsreader, provider
+from advancedcaching.actors.tts import TTS
 from advancedcaching.geo import Coordinate
 
 
@@ -55,40 +54,40 @@ logging.basicConfig(level=logging.WARNING,
 
 
 if len(argv) == 1:
-    import cli
+    from advancedcaching import cli
     print cli.usage % ({'name': argv[0]})
     exit()
 
 if '-v' in argv or '--remote' in argv:
-    import colorer
+    from advancedcaching import colorer
     logging.getLogger('').setLevel(logging.DEBUG)
     logging.debug("Set log level to DEBUG")
-    
+
 if '--debug-http' in argv:
     downloader.enable_http_debugging()
-    
+
 extensions = []
 if '--simple' in argv:
-    import simplegui
+    from advancedcaching import simplegui
     gui = simplegui.SimpleGui
     gps = 'gpsdprovider'
 elif '--qml' in argv:
-    import qmlgui
+    from advancedcaching import qmlgui
     gui = qmlgui.QmlGui
     gps = 'qmllocationprovider'
 elif '--hildon' in argv:
     connection.init() # is only used on the maemo platform
-    import hildongui
+    from advancedcaching import hildongui
     gui = hildongui.HildonGui
     gps = 'locationgpsprovider'
     extensions.append('geonames')
     extensions.append('tts')
 else:
-    import cli
+    from advancedcaching import cli
     gui = cli.Cli
     gps = None
     extensions.append('geonames')
-    
+
 if '--sim' in argv:
     gps = 'simulatingprovider'
 elif '--nogps' in argv:
@@ -123,10 +122,10 @@ class Core(gobject.GObject):
     DATA_DIR = path.expanduser(path.join('~', '')) if not path.exists(MAEMO_HOME) else MAEMO_HOME
 
     UPDATE_MODULES = [cachedownloader]
-    
+
     updating_lock = threading.Lock()
     _geocache_by_name_event = threading.Event()
-    
+
     DEFAULT_SETTINGS = {
         'download_visible': True,
         'download_notfound': True,
@@ -169,11 +168,11 @@ class Core(gobject.GObject):
         'options_backend': 'geocaching-com-new',
         'options_redownload_after': 14,
     }
-            
+
     def __init__(self, guitype, gpstype, extensions):
         """
         Initialize the application.
-        
+
         guitype -- Python type of the gui which is to be used.
         gpstype -- String indicating the desired GPS access method.
         extensions -- List of strings indicating desired extensions.
@@ -189,26 +188,25 @@ class Core(gobject.GObject):
         self._install_updates()
 
         self.__read_config()
-        
+
         # Check tile URLs for outdated URLs after Openstreetmap URL change
         for name, details in self.settings['map_providers']:
             prev = details['remote_url']
             details['remote_url'] = sub(r'//(.*).openstreetmap.org/([a-z]*/)?', '//tile.openstreetmap.org/', prev)
             if prev != details['remote_url']:
                 logger.info("Replaced url '%s' with '%s' because Openstreetmaps changed their URLs." % (prev, details['remote_url']))
-        
+
         self.connect('settings-changed', self.__on_settings_changed)
         self.connect('save-settings', self.__on_save_settings)
         self.create_recursive(self.settings['download_output_dir'])
         self.create_recursive(self.settings['download_map_path'])
-        
+
         self.downloader = downloader.FileDownloader(self.COOKIE_FILE)
-                
+
         self.pointprovider = provider.PointProvider(self.CACHES_DB, geocaching.GeocacheCoordinate)
 
         self.gui = guitype(self)
-        
-        
+
         if ('debug_log_to_http' in self.settings and self.settings['debug_log_to_http']) or '--remote' in argv:
             http_handler = logging.handlers.HTTPHandler("danielfett.de", "http://www.danielfett.de/files/collect.php")
             buffering_handler = logging.handlers.MemoryHandler(100, target = http_handler)
@@ -217,19 +215,18 @@ class Core(gobject.GObject):
             logging.debug("Remote logging activated!")
             # Now reset the setting to default
             self.settings['debug_log_to_http'] = False
-        
-        
+
         self.emit('settings-changed', self.settings, self)
-        self.emit('fieldnotes-changed')  
+        self.emit('fieldnotes-changed')
 
         self.__setup_gps(gps)
-            
+
         if 'geonames' in extensions:
-            import geonames
+            from advancedcaching import geonames
             self.geonames = geonames.Geonames(self.downloader)
-            
+
         if 'tts' in extensions:
-            from actors.notify import Notify
+            from advancedcaching.actors.notify import Notify
             actor_tts = TTS(self)
             actor_tts.connect('error', lambda caller, msg: self.emit('error', msg))
             actor_notify = Notify(self)
@@ -251,7 +248,7 @@ class Core(gobject.GObject):
     def create_recursive(dpath):
         """
         Create dpath and all parent directories if necessary
-        
+
         """
         if dpath != '/':
             if not path.exists(dpath):
@@ -266,7 +263,7 @@ class Core(gobject.GObject):
     def optimize_data(self):
         """
         Clean up database and file system.
-        
+
         Removes found geocaches and their images from the database or filesystem, respectively.
         """
         self.pointprovider.push_filter()
@@ -289,7 +286,7 @@ class Core(gobject.GObject):
     def get_file_sizes(self):
         """
         Return the accumulated size of the images in the download output directory (i.e., the images).
-        
+
         """
         folder = self.settings['download_output_dir']
         folder_size = 0
@@ -304,7 +301,7 @@ class Core(gobject.GObject):
     def format_file_size(size):
         """
         Format a file size to a human readable string.
-        
+
         """
         if size < 1024:
             return "%d B" % size
@@ -314,7 +311,6 @@ class Core(gobject.GObject):
             return "%d MiB" % (size / (1024 * 1024))
         else:
             return "%d GiB" % (size / (1024 * 1024 * 1024))
-            
 
     ##############################################
     #
@@ -324,8 +320,8 @@ class Core(gobject.GObject):
 
     def _install_updates(self):
         """
-        Installs updated modules. 
-        
+        Installs updated modules.
+
         Checks the updates directory for new versions of one of the modules listed in self.UPDATE_MODULES and reloads the modules. Version check is performed by comparing the VERSION variable stored in the module.
         """
         updated_modules = 0
@@ -341,7 +337,7 @@ class Core(gobject.GObject):
                                 exec line in v_dict
                                 break
                         else:
-                            logger.error("Could not find VERSION string in file %s!" % modulefile) 
+                            logger.error("Could not find VERSION string in file %s!" % modulefile)
                             continue
                     if v_dict['VERSION'] > m.VERSION:
                         logging.info("Reloading Module '%s', current version number: %d, new version number: %d" % (m.__name__, v_dict['VERSION'], m.VERSION))
@@ -358,7 +354,7 @@ class Core(gobject.GObject):
     def try_update(self, silent = False):
         """
         Retrieve and install updates.
-        
+
         This method connects to danielfett.de and tries to retrieve an md5sums file containing references to updated files for this AGTL version. If available, downloads the files and checks their md5sums before copying them to the updates folder. Calls self._install_updates afterwards to reload updated modules.
         silent -- If possible, suppress errors. Useful for auto-updating.
 
@@ -367,16 +363,16 @@ class Core(gobject.GObject):
             if not silent:
                 self.emit('error', Exception("Can't update in offline mode."))
             return False
-            
+
         class NoUpdateException(Exception):
             pass
-            
-            
+
+        import hashlib
+        import tempfile
+        from shutil import copyfile
         from urllib import urlretrieve
         from urllib2 import HTTPError
-        import tempfile
-        import hashlib
-        from shutil import copyfile
+
         self.create_recursive(self.UPDATE_DIR)
         baseurl = 'http://www.danielfett.de/files/agtl-updates/%s' % VERSION
         url = "%s/updates" % baseurl
@@ -427,7 +423,7 @@ class Core(gobject.GObject):
                         remove(temp)
                     except Exception:
                         pass
-                        
+
         except NoUpdateException, e:
             self.emit('hide-progress')
             return self._install_updates()
@@ -449,13 +445,13 @@ class Core(gobject.GObject):
     def save_settings(self, settings, source):
         '''
         This should be called to update the settings throughout all components.
-        
+
         When settings need to be changed, for example when the GUI updates the username, other components need to be notified. This method updates the settings and notifies the other components (including the core).
         settings -- Subset of settings dictionary which is to be updated.
         source -- Calling class instance, for example a HildonGui instance. This is passed on so that the triggering component can suppress reactions to its own updates.
         '''
         logger.debug("Got settings update from %s" % source)
-        
+
         self.settings.update(settings)
         self.emit('settings-changed', settings, source)
 
@@ -463,15 +459,15 @@ class Core(gobject.GObject):
     def __on_settings_changed(self, caller, settings, source):
         '''
         This is called when settings have changed.
-        
+
         This method is connected to the settings-changed signal and indicates that someone has changed the settings. The new settings need to be applied, e.g., to the cachedownloader.
         settings -- contains only the updated parts of the settings dictionary.
         '''
         logger.debug("Settings where changed by %s." % source)
-        
+
         if 'options_backend' in settings or 'download_output_dir' in settings or 'download_noimages' in settings:
             self.__install_cachedownloader()
-            
+
         if source == self:
             return
         if 'options_username' in settings:
@@ -482,7 +478,7 @@ class Core(gobject.GObject):
     def __on_save_settings(self, caller):
         """
         This is called when settings shall be saved, calling save_settings afterwards.
-        
+
         The save-settings signal is emitted whenever the application is about to be destroyed. Therefore, we need to save some settings.
         """
         logger.debug("Assembling update for settings, on behalf of %s" % caller)
@@ -492,7 +488,7 @@ class Core(gobject.GObject):
                 'last_target_lon': self.current_target.lon
             }
             caller.save_settings(settings, self)
-    
+
     def __del__(self):
         logger.debug("Somebody is trying to kill me, saving the settings.")
         self.emit('save-settings')
@@ -501,7 +497,7 @@ class Core(gobject.GObject):
     def prepare_for_disposal(self):
         """
         This is called by the GUI when it is about to be killed.
-        
+
         """
         logger.debug("Somebody is being killed, saving the settings.")
         self.emit('save-settings')
@@ -565,7 +561,7 @@ class Core(gobject.GObject):
     def set_target(self, coordinate):
         """
         Sets the new target coordinate.
-        
+
         Updates target distance and target bearing afterwards and emits target-changed signal.
         """
         self.current_target = coordinate
@@ -624,7 +620,7 @@ class Core(gobject.GObject):
     # Geonames & Routing
     #
     ##############################################
-                                
+
     def get_coord_by_name(self, query):
         return self.geonames.search(query)
 
@@ -641,10 +637,10 @@ class Core(gobject.GObject):
         MAX_TOGETHER = 20
         for i in range(len(route)):
             if len(together) == 0:
-                together = [route[i]] 
+                together = [route[i]]
             if (i < len(route) - 1):
                 brg = route[i].bearing_to(route[i + 1])
-                
+
             if len(together) < MAX_TOGETHER \
                 and (i < len(route) - 1) \
                 and (abs(brg - 90) < TOL
@@ -674,23 +670,23 @@ class Core(gobject.GObject):
     # Filters, Searching & Pointprovider
     #
     ##############################################
-                
+
     def set_filter(self, found=None, owner_search='', name_search='', size=None, terrain=None, diff=None, ctype=None, location=None, marked=None):
         """
-        Sets a new filter for the pointprovider. 
-        
+        Sets a new filter for the pointprovider.
+
         Is mainly used to filter the map display. (Currently only in hildongui_plugins)
-        
+
         """
         self.pointprovider.set_filter(found=found, owner_search=owner_search, name_search=name_search, size=size, terrain=terrain, diff=diff, ctype=ctype, marked=marked)
         self.emit('map-marks-changed')
-                
+
     def reset_filter(self):
         """
-        Resets the filter for the pointprovider. 
-        
+        Resets the filter for the pointprovider.
+
         (Currently only in hildongui_plugins)
-        
+
         """
         self.pointprovider.set_filter()
         self.emit('map-marks-changed')
@@ -699,7 +695,7 @@ class Core(gobject.GObject):
         """
         Performs a search according to the given criteria and returns the geocaches. Also returns information on whether the result was truncated due to the maximum number of search results configured in pointprovider.
         preserve_filter -- Apply the filter and keep it active after this method. If set to False, the filtering remains unchanged after the method call.
-        
+
         """
         if not preserve_filter:
             self.pointprovider.push_filter()
@@ -714,7 +710,7 @@ class Core(gobject.GObject):
     def get_geocache_by_name(self, name):
         """
         Return a geocache by its ID.
-        
+
         """
         return self.pointprovider.get_by_name(name)
 
@@ -723,7 +719,7 @@ class Core(gobject.GObject):
     # Downloading
     #
     ##############################################
-    
+
     def _download_upload_helper(self, action, then, *args, **kwargs):
         with Core.updating_lock:
             self._check_auto_update()
@@ -743,12 +739,12 @@ class Core(gobject.GObject):
     def download_overview(self, location, sync=False, skip_callback = None):
         """
         Downloads an *overview* of geocaches within the boundaries given in location.
-        
+
         location -- Geographic boundaries (see cachedownloader.get_overview for details)
         sync -- Perform actions synchronized, i.e., don't use threads.
         skip_callback -- A callback function which gets the geocache id and its found status as input. If it returns true, the geocache's details are not downloaded.
         """
-        if not sync:                
+        if not sync:
             t = threading.Thread(target=self._download_upload_helper, args=['self.cachedownloader.get_overview', self._download_overview_complete, location, self.get_geocache_by_name_async, skip_callback])
             t.daemon = True
             t.start()
@@ -759,7 +755,7 @@ class Core(gobject.GObject):
     def _download_overview_complete(self, caches, sync=False):
         """
         Called upon completion of the download of all geocaches within a boundary.
-        
+
         caches -- Updated geocache information.
         sync -- Perform actions synchronized, i.e., don't use threads.
         """
@@ -770,10 +766,10 @@ class Core(gobject.GObject):
             if point_new:
                 new_caches.append(c)
         self.pointprovider.save()
-        
+
         for c in caches:
             self.emit('cache-changed', c)
-            
+
         self.emit('hide-progress')
         self.emit('map-marks-changed')
         if sync:
@@ -784,12 +780,12 @@ class Core(gobject.GObject):
     def download_cache_details(self, cache, sync=False):
         """
         Download or update *detailed* information for a specific geocache.
-        
+
         location -- Geographic boundaries (see cachedownloader.get_overview for details)
         sync -- Perform actions synchronized, i.e., don't use threads.
-        
+
         """
-        if not sync:                
+        if not sync:
             t = threading.Thread(target=self._download_upload_helper, args=['self.cachedownloader.update_coordinate', self._download_cache_details_complete, cache, self.settings['download_num_logs']])
             t.daemon = True
             t.start()
@@ -817,12 +813,11 @@ class Core(gobject.GObject):
     def download_cache_details_map(self, location, visibleonly=False):
         """
         Download *details* for all geocaches within a specific location.
-        
+
         location -- Geographic boundaries (see cachedownloader.get_overview for details)
         sync -- Perform actions synchronized, i.e., don't use threads.
-        
+
         """
-    
         self.pointprovider.push_filter()
 
         if self.settings['download_notfound'] or visibleonly:
@@ -851,9 +846,9 @@ class Core(gobject.GObject):
     def download_cache_details_list(self, caches, sync=False):
         """
         Download/update *detailed* information for a list of geocaches.
-        
+
         caches -- List of geocaches
-        
+
         """
         if not sync:
             t = thrading.Thread(target=self._download_upload_helper, args=['self.cachedownloader.update_coordinates', self._download_cache_details_list_complete, caches, self.settings['download_num_logs']])
@@ -862,13 +857,13 @@ class Core(gobject.GObject):
             return False
         else:
             return self._download_cache_details_list_complete(self.cachedownloader.update_coordinates(caches))
-        
+
     def _download_cache_details_list_complete(self, caches):
         """
         Called when details for a list of geocaches were downloaded.
-        
+
         caches -- List of geocaches
-        
+
         """
         for c in caches:
             self.pointprovider.add_point(c, True)
@@ -882,12 +877,12 @@ class Core(gobject.GObject):
     def on_download_progress(self, something, text, i, max_i):
         """
         Signal handler which is called when the downloading process has made progress.
-        
+
         something -- not used
         text -- Text describing the current work item
         i -- Progress in relation to max_i
         max_i -- Expected maximum value of i (Actual displayed progress fraction is i/max_i)
-        
+
         """
         logger.debug("Progress: %f of %f" % (i, max_i))
         self.emit('progress', float(i) / float(max_i), "%s..." % text)
@@ -896,45 +891,44 @@ class Core(gobject.GObject):
     def on_already_downloading_error(self, something, error):
         """
         Signal handler which is called when the downloading thread cannot download because someone else is still downloading.
-        
+
         """
         self.emit('error', error)
-        
+
     def on_download_error(self, something, error):
         """
         Signal handler which is called when an error happened during a download (or upload).
-        
+
         """
         extra_message = "Error:\n%s" % error
         logging.exception(error)
         self.emit('hide-progress')
         self.emit('error', extra_message)
-    
+
     def default_download_skip_callback(self, geocache, found):
         """
-        This is a default callback for skip_callback in download_overview. 
-        
+        This is a default callback for skip_callback in download_overview.
+
         This callback is called after the cachedownloader fetched a list of geocaches which are in a certain area and before it actually downloads the geocache's details. If the callback returns True, the cachedownloader will skip downloading details. It reads the settings and acts accordingly.
-        
+
         geocache -- is None or the geocache which was fetched from the database before its details were updated
         found -- the (new) found status, as read from the web page
-        
         """
         if self.settings['download_notfound'] and found:
             logger.debug("Geocache is marked as found, skipping!")
             return True
-        if geocache == None or geocache.get_updated() == None: 
+        if geocache == None or geocache.get_updated() == None:
             logger.debug("Geocache %r was not in the database or had no update timestamp." % geocache)
             return False # When the geocache is not in the database or when it was downloaded before we introduced timestamps, don't skip!
         if self.settings['options_redownload_after'] > 0:
-            diff = datetime.now() - geocache.get_updated() 
+            diff = datetime.now() - geocache.get_updated()
             if diff.days >= self.settings['options_redownload_after']:
                 logger.debug("Geocache %s was not updated for %d days. It's time!" % (geocache.name, diff.days))
                 return False
             logger.debug("Geocache %s was not updated for %d days. That's fine." % (geocache.name, diff.days))
             return True
         return False
-        
+
     def get_geocache_by_name_async(self, id):
         self._geocache_by_name_event.clear()
         gobject.idle_add(self._get_geocache_by_name_async_idle, id, priority=gobject.PRIORITY_HIGH)
@@ -943,7 +937,7 @@ class Core(gobject.GObject):
             logger.error("Screw it!")
             return None
         return self._geocache_by_name_result
-        
+
     def _get_geocache_by_name_async_idle(self, id):
         self._geocache_by_name_result = self.get_geocache_by_name(id)
         self._geocache_by_name_event.set()
@@ -953,13 +947,13 @@ class Core(gobject.GObject):
     # Exporting
     #
     ##############################################
-                
+
     def export_cache(self, cache, format, folder):
         """
         Export descriptions of geocaches. Not maintained at the moment.
-        
+
         """
-        from exporter import GpxExporter
+        from advancedcaching.exporter import GpxExporter
         if (format == 'gpx'):
             exporter = GpxExporter()
         else:
@@ -972,7 +966,6 @@ class Core(gobject.GObject):
             self.emit('error', e)
         finally:
             self.emit('hide-progress')
-        
 
     ##############################################
     #
@@ -983,7 +976,7 @@ class Core(gobject.GObject):
     def save_fieldnote(self, cache):
         """
         Save the fieldnote information for a geocache to the database.
-        
+
         """
         if cache.logas == geocaching.GeocacheCoordinate.LOG_AS_FOUND:
             cache.found = 1
@@ -992,13 +985,13 @@ class Core(gobject.GObject):
             cache.found = 0
 
         self.save_cache_attribute(cache, ('logas', 'logdate', 'fieldnotes', 'found', 'upload_as'))
-        self.emit('fieldnotes-changed')        
+        self.emit('fieldnotes-changed')
         self.emit('cache-changed', cache)
 
     def upload_fieldnotes(self, sync = False):
         """
-        Upload fieldnotes and logs to the web site. 
-        
+        Upload fieldnotes and logs to the web site.
+
         """
         caches = self.pointprovider.get_new_fieldnotes()
         if not sync:
@@ -1008,11 +1001,11 @@ class Core(gobject.GObject):
         else:
             res = self.cachedownloader.upload_fieldnotes_and_logs(caches)
             self._upload_fieldnotes_complete(res)
-        
+
     def _upload_fieldnotes_complete(self, caches):
         """
         Called when uploading of fieldnotes and logs is complete.
-        
+
         Resets the fieldnotes which were uploaded to "NO LOG".
         """
         for c in caches:
@@ -1025,7 +1018,7 @@ class Core(gobject.GObject):
     def get_new_fieldnotes_count(self):
         """
         Return the number of pending fieldnotes.
-        
+
         """
         return self.pointprovider.get_new_fieldnotes_count()
 
@@ -1039,7 +1032,7 @@ class Core(gobject.GObject):
     def save_cache_attribute(self, cache, attribute):
         """
         Save the attribute of a geocache to the database.
-        
+
         """
         if type(attribute) == tuple:
             for a in attribute:
@@ -1051,7 +1044,7 @@ class Core(gobject.GObject):
     def set_alternative_position(self, cache, ap):
         """
         Sets the alternative position for a geocaches.
-        
+
         An alternative position is a user-chosen geographic location for a geocache which differs from the original location. This is, for example, used for solved mystery geocaches.
         """
         cache.set_alternative_position(ap)
@@ -1062,7 +1055,7 @@ class Core(gobject.GObject):
 def start():
     """
     Start the application.
-    
+
     """
     gobject.threads_init()
     Core(gui, gps, extensions)
@@ -1070,7 +1063,7 @@ def start():
 def start_profile(what):
     """
     Uses cprofile to profile the method calls in the application. For developing only.
-    
+
     """
     import cProfile
     p = cProfile.Profile()
@@ -1093,7 +1086,7 @@ def start_profile(what):
         for line in line.calls[:10]:
             print "-- %d %4f %s" % (line.callcount, line.totaltime, line.code)
 
-    
+
     print "BY TOTALTIME:\n------------------------------------------------------------"
     def c2(x, y):
         if x.totaltime < y.totaltime:
@@ -1116,4 +1109,3 @@ if __name__ == "__main__":
         start_profile('start()')
     else:
         start()
-

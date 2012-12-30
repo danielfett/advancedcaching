@@ -578,7 +578,7 @@ Author: Daniel Fett advancedcaching@fragcom.de'''
         text = "%s\n\n%s\n\n" % (copyright, additional)
 
         l = gtk.Label('')
-        import core
+        from advancedcaching import core
         l.set_markup("<b><u>AGTL version %s</u></b>" % core.VERSION)
         l.set_alignment(0, 0)
         page.pack_start(l, False)
@@ -598,7 +598,7 @@ Author: Daniel Fett advancedcaching@fragcom.de'''
         notebook.append_page(page, gtk.Label('Update'))
 
         l = gtk.Label('')
-        import cachedownloader
+        from advancedcaching import cachedownloader
         l.set_markup("Website parser version %d (from %s)\n\nIf you're having trouble downloading geocaches or uploading fieldnotes, try clicking 'update' to fetch the latest website parser.\n\nAlso check the regular maemo updates from time to time." % (cachedownloader.VERSION, cachedownloader.VERSION_DATE))
         l.set_alignment(0, 0)
         l.set_line_wrap(True)

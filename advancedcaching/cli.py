@@ -20,12 +20,13 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
-import geocaching
-import sys
-import geo
 import math
 import os
 import re
+import sys
+
+from advancedcaching import geo, geocaching
+
 
 usage = r'''Here's how to use this app:
 

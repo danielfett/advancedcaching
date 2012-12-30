@@ -1022,8 +1022,7 @@ def get(name, *args, **kwargs):
 
 if __name__ == '__main__':
     import sys
-    import downloader
-    import colorer
+    from advancedcaching import colorer, downloader
     logger.setLevel(logging.DEBUG)
     logging.basicConfig(level=logging.DEBUG,
                     format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s',

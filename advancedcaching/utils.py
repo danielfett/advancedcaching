@@ -96,7 +96,7 @@ if __name__ == '__main__':
     
     import logging
     logger = logging.getLogger('utils')
-    import colorer
+    from advancedcaching import colorer
     logger.setLevel(logging.DEBUG)
     logging.basicConfig(level=logging.DEBUG,
                     format='%(relativeCreated)6d %(levelname)10s %(name)-20s %(message)s',

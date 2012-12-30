@@ -20,23 +20,25 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
-
 from __future__ import with_statement
+
 import logging
-logger = logging.getLogger('downloader')
-import connection
 import socket
+from cookielib import LWPCookieJar
 from httplib import HTTPSConnection
 from sys import argv
-from urllib2 import build_opener, install_opener, HTTPCookieProcessor, HTTPHandler, HTTPSHandler
-from urllib2 import Request, urlopen
 from urllib import urlencode
-from cookielib import LWPCookieJar
+from urllib2 import build_opener, install_opener, HTTPCookieProcessor, HTTPHandler, HTTPSHandler, Request, urlopen
+
+from advancedcaching import connection
 
 try:
     import ssl
 except ImportError:
     ssl = None
+
+
+logger = logging.getLogger('downloader')
 
 
 DEBUG_HTTP = False
