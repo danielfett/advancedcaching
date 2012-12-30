@@ -21,6 +21,13 @@
 #
 
 from __future__ import division
+
+import logging
+import re
+
+from advancedcaching import geo
+
+
 TEST = ('''
 
 
@@ -80,9 +87,6 @@ Cache ist bei N 49° qy.act, E 006° ac.ab*(b+d)*2<br />
 <br />
 
 '''
-import geo
-import re
-import logging
 logger = logging.getLogger('coordfinder')
 
 class CalcCoordinateManager(object):
@@ -278,7 +282,7 @@ class CalcCoordinate():
         return (re.match(regex, text) != None)
 
 if __name__ == "__main__":
-    from simplegui import SimpleGui
+    from advancedcaching.simplegui import SimpleGui
     print '\n\n========================================================='
     h = SimpleGui._strip_html(HTML) 
     #print h

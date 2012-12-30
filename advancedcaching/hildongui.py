@@ -20,41 +20,35 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
- 
+
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
- 
+
 ### For the gui :-)
 
-from math import ceil
-from os import extsep
-from os import system
-from os.path import join, exists
-import re
-
-from astral import Astral
-import geo
-import geocaching
 import gobject
 import gtk
 import hildon
-from utils import HTMLManipulations
-from hildon_plugins import HildonFieldnotes
-from hildon_plugins import HildonSearchPlace
-from hildon_plugins import HildonSearchGeocaches
-from hildon_plugins import HildonAboutDialog
-from hildon_plugins import HildonDownloadMap
-from hildon_plugins import HildonToolsDialog
-import pango
-from portrait import FremantleRotation
-from simplegui import SimpleGui
-from simplegui import UpdownRows
-from xml.sax.saxutils import escape as my_gtk_label_escape
-from gtkmap import Map, OsdLayer, SingleMarkLayer
-from coordfinder import CalcCoordinate
-
-
 import logging
+import pango
+import re
+from math import ceil
+from os import extsep, system
+from os.path import join, exists
+from xml.sax.saxutils import escape as my_gtk_label_escape
+
+from advancedcaching import geo, geocaching
+from advancedcaching.astral import Astral
+from advancedcaching.coordfinder import CalcCoordinate
+from advancedcaching.gtkmap import Map, OsdLayer, SingleMarkLayer
+from advancedcaching.hildon_plugins import HildonFieldnotes, HildonSearchPlace, HildonSearchGeocaches, \
+    HildonAboutDialog, HildonDownloadMap, HildonToolsDialog
+from advancedcaching.portrait import FremantleRotation
+from advancedcaching.utils import HTMLManipulations
+from advancedcaching.simplegui import SimpleGui, UpdownRows
+
+
 logger = logging.getLogger('simplegui')
+
 
 class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSearchGeocaches, HildonAboutDialog, HildonDownloadMap, SimpleGui):
 
@@ -799,7 +793,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
             first_log = 10 + tab_number*logs_in_page #10=number of logs shown in basic view
             last_log = first_log + logs_in_page
             if last_log >= len(logs):
-               last_log = len(logs)
+                last_log = len(logs)
             label = str(first_log+1) +"-"+ str(last_log) #add 1 to showing first log, so they are more human readable
             notebook.append_page(page, gtk.Label(label))
 
@@ -1159,12 +1153,12 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
                 w_text.set_alignment(0, 0)
 
                 if events != None:
-                   events.append(self.window.connect('configure-event', self._on_configure_label, w_text, True))
+                    events.append(self.window.connect('configure-event', self._on_configure_label, w_text, True))
 
                 if dialog: #inside dialog (not window)
-                   w_text.set_size_request(self.window.size_request()[0] - 60, -1)
+                    w_text.set_size_request(self.window.size_request()[0] - 60, -1)
                 else:
-                   w_text.set_size_request(self.window.size_request()[0] - 10, -1)
+                    w_text.set_size_request(self.window.size_request()[0] - 10, -1)
 
                 w_first = gtk.HBox()
                 w_first.pack_start(w_type, False, False)

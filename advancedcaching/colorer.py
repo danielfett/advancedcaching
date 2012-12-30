@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 # source: http://stackoverflow.com/questions/384076/how-can-i-make-the-python-logging-output-to-be-colored
 # encoding: utf-8
+
 import logging
+
 # now we patch Python code to add color support to logging.StreamHandler
 def add_coloring_to_emit_windows(fn):
         # add methods we need to the class
@@ -25,7 +27,7 @@ def add_coloring_to_emit_windows(fn):
         FOREGROUND_RED       = 0x0004 # text color contains red.
         FOREGROUND_INTENSITY = 0x0008 # text color is intensified.
         FOREGROUND_WHITE     = FOREGROUND_BLUE|FOREGROUND_GREEN |FOREGROUND_RED
-       # winbase.h
+        # winbase.h
         STD_INPUT_HANDLE = -10
         STD_OUTPUT_HANDLE = -11
         STD_ERROR_HANDLE = -12

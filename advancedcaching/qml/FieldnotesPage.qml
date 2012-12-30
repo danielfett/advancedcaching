@@ -21,17 +21,12 @@ Page {
         anchors.topMargin: 8
         anchors.top: header.bottom
 
-        Label {
-            font.pixelSize: UI.FONT_DEFAULT
-            text: "Write Fieldnote"
-            anchors.left: parent.left
-            wrapMode: Text.Wrap
-
+    
+        Row {
+            spacing: 16
             Image {
+                id: fieldnoteHelp
                 source: "image://theme/icon-m-content-description" + (theme.inverted ? "-inverse" : "")
-                anchors.left: parent.right
-                anchors.leftMargin: 16
-                anchors.verticalCenter: parent.verticalCenter
                 height: 36
                 width: 36
                 MouseArea {
@@ -39,8 +34,31 @@ Page {
                     onClicked: { infoDialog.open() }
                 }
             }
+            
+            Label {
+                font.pixelSize: UI.FONT_DEFAULT
+                text: "Fieldnote"
+                wrapMode: Text.Wrap
+            }
+            
+            Switch {
+                onCheckedChanged: {
+                    // GeocacheCoordinate.UPLOAD_AS_FIELDNOTE == 0
+                    // GeocacheCoordinate.UPLOAD_AS_LOG == 1
+                    var value = checked ? 1 : 0;
+                    if (currentGeocache.uploadAs != value) currentGeocache.uploadAs = value;
+                }
+                checked: (currentGeocache.uploadAs == 1)
+                            
+            }
+            
+            Label {
+                font.pixelSize: UI.FONT_DEFAULT
+                text: "Log Entry"
+                wrapMode: Text.Wrap
+            }
         }
-
+        
         
         Item { 
             anchors.left: parent.left
@@ -86,24 +104,21 @@ Page {
         anchors.topMargin: 8
         anchors.bottom: row1.top
         anchors.bottomMargin: 8
-        onActiveFocusChanged: {
-            if (! activeFocus) {
-                saveFieldnote();
-            }
-        }
         textFormat: TextEdit.PlainText
         wrapMode: TextEdit.Wrap
         text: currentGeocache.fieldnotes
+        enabled: false
         
         anchors.leftMargin: 16
         anchors.rightMargin: 16
+        
     }
     
     Row {
         id: row1
         Button { 
-            text: "Upload all Fieldnotes now"
-            width: 4 * parent.width/5
+            text: "Upload all Logs/Fieldnotes now"
+            width: parent.width
             onClicked: {
                 controller.uploadFieldnotes();
             }
@@ -122,11 +137,8 @@ Page {
         model: logModel
         onSelectedIndexChanged: {
             if (selectedIndex != currentGeocache.logas) {
-                saveFieldnote();
+                currentGeocache.logas = Math.max(logAsDialog.selectedIndex, 0);
             }
-        }
-        onAccepted: {
-            console.debug("HI!");
         }
     }
 
@@ -140,7 +152,21 @@ Page {
             anchors.left: parent.left
             anchors.right: parent.right
             text: "Fieldnotes are temporary log entries, which can be reviewed and submitted as regular logs later on.<br><br>After uploading, you will find them in your account overview on the web page. If you don't upload them now, they are stored here for later uploading."
+            color: UI.COLOR_DIALOG_TEXT
         }]
+    }
+    
+    
+    MouseArea {
+        anchors.fill: fieldnoteText
+        onClicked: {
+            fieldnoteDialogLoader.source = "FieldnoteDialog.qml";
+            fieldnoteDialogLoader.item.accepted.connect(function() {
+                currentGeocache.fieldnotes = fieldnoteDialogLoader.item.getValue();
+            });
+            fieldnoteDialogLoader.item.setValue(currentGeocache.fieldnotes ? currentGeocache.fieldnotes : settings.getFieldnoteDefaultText());
+            fieldnoteDialogLoader.item.open();
+        }
     }
 
     Connections {
@@ -153,22 +179,22 @@ Page {
 
     ListModel {
         id: logModel
-        ListElement{ name: "Don't upload Fieldnote" }
+        ListElement{ name: "Don't upload" }
         ListElement{ name: "Found it!" }
         ListElement{ name: "Didn't find it!" }
         ListElement{ name: "Write a note" }
     }
     
-    function saveFieldnote() {
-        var logas = Math.max(logAsDialog.selectedIndex, 0)
-        var text = fieldnoteText.text
-        currentGeocache.setFieldnote(logas, text)
-    }
-
 
     function openMenu() {
         menu.open();
     }
+    
+    
+    Loader {
+        id: fieldnoteDialogLoader
+    }
+    
 
     Menu {
         id: menu

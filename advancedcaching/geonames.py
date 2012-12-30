@@ -20,17 +20,19 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
+import logging
 from urllib import quote
 
-import geo
 try:
     import json
     json.dumps
 except (ImportError, AttributeError):
     import simplejson as json
 
-import logging
+from advancedcaching import geo
+
 logger = logging.getLogger('geonames')
+
 
 class Geonames():
     URL = '''http://ws.geonames.org/searchJSON?formatted=true&q=%(query)s&maxRows=%(max_rows)d&style=short'''

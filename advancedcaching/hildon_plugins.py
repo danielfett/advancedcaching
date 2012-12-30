@@ -20,18 +20,20 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
-import geocaching
 import gtk
 import hildon
-import pango
-import threadpool
 import logging
-import geo
-from utils import HTMLManipulations
+import pango
+
+from advancedcaching import geo, geocaching, threadpool
+from advancedcaching.constants import TYPE_UNKNOWN, TYPES
+from advancedcaching.utils import HTMLManipulations
+
+
 logger = logging.getLogger('plugins')
 
+
 class HildonSearchPlace(object):
-    
     def plugin_init(self):
         self.last_searched_text = ''
         logger.info("Using Search Place plugin")
@@ -355,18 +357,8 @@ class HildonSearchGeocaches(object):
             if sizes == [1, 2, 3, 4, 5]:
                 sizes = None
 
-            typelist = [
-                geocaching.GeocacheCoordinate.TYPE_REGULAR,
-                geocaching.GeocacheCoordinate.TYPE_MULTI,
-                geocaching.GeocacheCoordinate.TYPE_VIRTUAL,
-                geocaching.GeocacheCoordinate.TYPE_EARTH,
-                geocaching.GeocacheCoordinate.TYPE_EVENT,
-                geocaching.GeocacheCoordinate.TYPE_MYSTERY,
-                geocaching.GeocacheCoordinate.TYPE_UNKNOWN
-            ]
-
-            types = [typelist[x] for x, in sel_type.get_selected_rows(0)]
-            if geocaching.GeocacheCoordinate.TYPE_UNKNOWN in types:
+            types = [TYPES[x] for x, in sel_type.get_selected_rows(0)]
+            if TYPE_UNKNOWN in types:
                 types = None
 
             # found, marked
@@ -586,7 +578,7 @@ Author: Daniel Fett advancedcaching@fragcom.de'''
         text = "%s\n\n%s\n\n" % (copyright, additional)
 
         l = gtk.Label('')
-        import core
+        from advancedcaching import core
         l.set_markup("<b><u>AGTL version %s</u></b>" % core.VERSION)
         l.set_alignment(0, 0)
         page.pack_start(l, False)
@@ -606,7 +598,7 @@ Author: Daniel Fett advancedcaching@fragcom.de'''
         notebook.append_page(page, gtk.Label('Update'))
 
         l = gtk.Label('')
-        import cachedownloader
+        from advancedcaching import cachedownloader
         l.set_markup("Website parser version %d (from %s)\n\nIf you're having trouble downloading geocaches or uploading fieldnotes, try clicking 'update' to fetch the latest website parser.\n\nAlso check the regular maemo updates from time to time." % (cachedownloader.VERSION, cachedownloader.VERSION_DATE))
         l.set_alignment(0, 0)
         l.set_line_wrap(True)
@@ -852,7 +844,6 @@ class HildonToolsDialog(object):
         dialog.vbox.pack_start(destination)
         
         def do_rot(widget):
-            import cachedownloader
             try:
                 text = HTMLManipulations._rot13(source.get_buffer().get_text(source.get_buffer().get_start_iter(), source.get_buffer().get_end_iter()))
             except Exception:

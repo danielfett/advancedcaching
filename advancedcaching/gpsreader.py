@@ -20,17 +20,19 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
-import geo
-from socket import socket, AF_INET, SOCK_STREAM
-from datetime import datetime
 import logging
+from datetime import datetime
+from socket import socket, AF_INET, SOCK_STREAM
 
-logger = logging.getLogger('gpsreader')
+from advancedcaching import geo
 
 try:
     import location
 except (ImportError):
     pass
+
+logger = logging.getLogger('gpsreader')
+
 
 class Fix():
     BEARING_HOLD_EPD = 90 # arbitrary, yet non-random value

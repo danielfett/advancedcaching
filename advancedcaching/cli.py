@@ -20,12 +20,13 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
-import geocaching
-import sys
-import geo
 import math
 import os
 import re
+import sys
+
+from advancedcaching import geo, geocaching
+
 
 usage = r'''Here's how to use this app:
 
@@ -52,6 +53,20 @@ If you don't like your mouse:
         Import geocaches, put them into the internal database, filter the imported geocaches and run the actions.
 %(name)s sql "SELECT * FROM geocaches WHERE ... ORDER BY ... LIMIT ..." do [actions]
         Select geocaches from local database and run the actions afterwards. Additional use of the filter is also supported. To get more information, run "%(name)s sql".
+%(name)s fieldnote [geocache-id] [type] [date] [text]
+        Write (but don't upload) a fieldnote of type [type] for the geocache defined by [geocache-id] with text [text].
+        Date must be given in the following format: YYYY-MM-DD
+        Available log types:
+            0 - just store the text, never upload this note
+            1 - log as found
+            2 - log as not found
+            3 - write note
+%(name)s log [geocache-id] [type] [date] [text]
+        As above, but this will create a log entry on the web page.
+%(name)s show-notes
+        List all stored logs/fieldnotes.
+%(name)s upload
+        Upload stored logs/fieldnotes.
 options:
         --user(name) username
         --pass(word) password
@@ -228,10 +243,18 @@ class Cli():
                 self.parse_actions()
             elif sys.argv[self.nt] == 'update':
                 self.perform_update()
+            elif sys.argv[self.nt] == 'fieldnote':
+                self.parse_note(geocaching.GeocacheCoordinate.UPLOAD_AS_FIELDNOTE)
+            elif sys.argv[self.nt] == 'log':
+                self.parse_note(geocaching.GeocacheCoordinate.UPLOAD_AS_LOG)
+            elif sys.argv[self.nt] == 'show-notes':
+                self.parse_show_notes()
+            elif sys.argv[self.nt] == 'upload':
+                self.parse_upload()
             elif sys.argv[self.nt] == '-v':
                 self.nt += 1
             else: 
-                raise ParseError("Expected 'import', 'sql', 'filter' or 'do' but found '%s'" % sys.argv[self.nt], self.nt - 1)
+                raise ParseError("Expected 'import', 'sql', 'filter', 'do', 'update', 'fieldnote', 'log', 'show-notes', 'upload', but found '%s'" % sys.argv[self.nt], self.nt - 1)
 
         self.core.prepare_for_disposal()
 
@@ -251,6 +274,38 @@ class Cli():
             else:
                 raise ParseError("I don't understand '%s'" % token)
         print "* Finished setting options."
+        
+    def parse_note(self, t):
+        self.nt += 1
+        try:
+            geocache, logtype, logdate, logtext = sys.argv[self.nt:self.nt+4]
+        except ValueError, e:
+            raise ParseError("Expected geocache-id, note type, date and text.")
+        self.nt += 5
+        
+        c = self.core.get_geocache_by_name(geocache)
+                
+        if re.match(r'^\d\d\d\d-\d\d-\d\d$', logdate) == None:
+            raise ParseError("Expected date in YYYY-MM-DD format, found %s instead." % logdate)
+        
+        c.logas = logtype
+        c.logdate = logdate
+        c.fieldnotes = unicode(logtext, sys.stdin.encoding)
+        c.upload_as = t
+        self.core.save_fieldnote(c)
+        
+    def parse_show_notes(self):
+        self.nt += 1
+        l = self.core.pointprovider.get_new_fieldnotes()
+        print "Geocaches with fieldnotes"
+        print "-------------------------"
+        for c in l:
+            t = "Log" if (geocaching.GeocacheCoordinate.UPLOAD_AS_LOG == c.upload_as) else "Fieldnote"
+            print '%s: %s (%s) - Type %d - Date %s - Text "%s"' % (t, c.name, c.title, c.logas, c.logdate, c.fieldnotes)
+            
+    def parse_upload(self):
+        self.nt += 1
+        self.core.upload_fieldnotes(sync=True)
         
         
     def parse_import(self):

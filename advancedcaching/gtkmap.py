@@ -20,35 +20,30 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
-import logging
-import math
-
-from abstractmap import AbstractGeocacheLayer
-from abstractmap import AbstractMap
-from abstractmap import AbstractMapLayer
-from abstractmap import AbstractMarksLayer
 import cairo
-import geo
-import geocaching
 import gobject
 import gtk
-import openstreetmap
+import logging
+import math
 import pango
-import threadpool
-logger = logging.getLogger('gtkmap')
-from os.path import getsize
+
 from hashlib import md5
+from os.path import getsize
+
+from advancedcaching import geo, geocaching, openstreetmap, threadpool
+from advancedcaching.abstractmap import AbstractGeocacheLayer, AbstractMap, AbstractMapLayer, AbstractMarksLayer
+from advancedcaching.constants import TYPE_REGULAR, TYPE_MULTI
+
+
+logger = logging.getLogger('gtkmap')
 
 
 class Map(gtk.DrawingArea, AbstractMap):
-
-
     MIN_DRAG_REDRAW_DISTANCE = 5
     DRAG_RECHECK_SPEED = 20
-    
+
     LAZY_SET_CENTER_DIFFERENCE = 0.1 # * screen (width|height)
 
-        
     def __init__(self, center, zoom, tile_loader=None, draggable=True):
         gtk.DrawingArea.__init__(self)
         AbstractMap.__init__(self, center, zoom, tile_loader)
@@ -58,7 +53,7 @@ class Map(gtk.DrawingArea, AbstractMap):
         self.connect("button_press_event", self.__drag_start)
         self.connect("scroll_event", self.__scroll)
         self.connect("button_release_event", self.__drag_end)
-        
+
         if draggable:
             self.connect("motion_notify_event", self.__drag)
         self.set_events(gtk.gdk.EXPOSURE_MASK | gtk.gdk.BUTTON_PRESS_MASK | gtk.gdk.BUTTON_RELEASE_MASK | gtk.gdk.POINTER_MOTION_MASK | gtk.gdk.SCROLL)
@@ -548,9 +543,9 @@ class GeocacheLayer(AbstractGeocacheLayer):
             radius = default_radius
             if c.found:
                 color = found
-            elif c.type == geocaching.GeocacheCoordinate.TYPE_REGULAR:
+            elif c.type == TYPE_REGULAR:
                 color = regular
-            elif c.type == geocaching.GeocacheCoordinate.TYPE_MULTI:
+            elif c.type == TYPE_MULTI:
                 color = multi
             else:
                 color = default

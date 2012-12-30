@@ -29,11 +29,11 @@ Page {
         }
 
         ListButton {
-            text: "...having Fieldnotes"
+            text: "...having Logs/Fieldnotes"
 
             onClicked: {
                 pageGeocacheList.source = "GeocacheListPage.qml";
-                pageGeocacheList.item.title = "Geocaches with Fieldnotes";
+                pageGeocacheList.item.title = "Geocaches with Logs/Notes";
                 pageGeocacheList.item.model = controller.getGeocachesWithFieldnotes();
                 pageGeocacheList.item.model.sort(0, gps);
                 showDetailsPage(pageGeocacheList.item);

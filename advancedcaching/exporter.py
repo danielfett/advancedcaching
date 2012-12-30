@@ -20,10 +20,13 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
-from pyfo import pyfo
 import os
 from datetime import datetime
-from geocaching import GeocacheCoordinate
+
+from advancedcaching.geocaching import GeocacheCoordinate
+from advancedcaching.pyfo import pyfo
+
+
 class Exporter():
 
     def export(self, coordinate, folder = None):

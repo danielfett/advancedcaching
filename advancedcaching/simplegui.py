@@ -18,7 +18,6 @@
 #   Author: Daniel Fett agtl@danielfett.de
 #   Jabber: fett.daniel@jaber.ccc.de
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
-#
 
  
 # deps: python-html python-image python-netclient python-misc python-pygtk python-mime python-json
@@ -28,32 +27,32 @@
 # add "next waypoint" button?
 # add description to displayed images?
 # add translation support?
- 
-### For the gui :-)
-import math
 
-from astral import Astral
-import geo
-import geocaching
 import gobject
 import gtk
-
 import logging
+import math
+import pango
+import re
+from os import extsep
+from os.path import islink, realpath, dirname, abspath, join, exists
+
+from advancedcaching import geo, geocaching
+from advancedcaching.astral import Astral
+from advancedcaching.constants import TYPE_REGULAR, TYPE_MULTI, TYPE_MYSTERY, TYPE_VIRTUAL
+from advancedcaching.gtkmap import Map, GeocacheLayer, MarksLayer, OsdLayer
+from advancedcaching.gui import Gui
+from advancedcaching.utils import HTMLManipulations
+
+
 logger = logging.getLogger('simplegui')
+
 
 try:
     import gtk.glade
-    import extListview
+    from advancedcaching import extListview
 except (ImportError):
     logger.info( "Please install glade if you're NOT on the maemo platform.")
-import pango
-from os import extsep
-from os.path import islink, realpath, dirname, abspath, join, exists
-import re
-from utils import HTMLManipulations
-from gtkmap import Map, GeocacheLayer, MarksLayer, OsdLayer
-from gui import Gui
-
 
 
 class SimpleGui(Gui):
@@ -265,10 +264,10 @@ class SimpleGui(Gui):
                 
         self.search_elements = {
             'type': {
-                geocaching.GeocacheCoordinate.TYPE_REGULAR: xml.get_widget('check_search_type_traditional'),
-                geocaching.GeocacheCoordinate.TYPE_MULTI: xml.get_widget('check_search_type_multi'),
-                geocaching.GeocacheCoordinate.TYPE_MYSTERY: xml.get_widget('check_search_type_unknown'),
-                geocaching.GeocacheCoordinate.TYPE_VIRTUAL: xml.get_widget('check_search_type_virtual'),
+                TYPE_REGULAR: xml.get_widget('check_search_type_traditional'),
+                TYPE_MULTI: xml.get_widget('check_search_type_multi'),
+                TYPE_MYSTERY: xml.get_widget('check_search_type_unknown'),
+                TYPE_VIRTUAL: xml.get_widget('check_search_type_virtual'),
                 'all': xml.get_widget('check_search_type_other')
                 },
             'name': xml.get_widget('entry_search_name'),
@@ -800,10 +799,8 @@ class SimpleGui(Gui):
             else:
                 return default
 
-        types = [a for a in [geocaching.GeocacheCoordinate.TYPE_REGULAR,
-            geocaching.GeocacheCoordinate.TYPE_MULTI,
-            geocaching.GeocacheCoordinate.TYPE_MYSTERY,
-            geocaching.GeocacheCoordinate.TYPE_VIRTUAL] if self.search_elements['type'][a].get_active()]
+        types = [a for a in [TYPE_REGULAR, TYPE_MULTI, TYPE_MYSTERY, TYPE_VIRTUAL]
+                 if self.search_elements['type'][a].get_active()]
 
         if self.search_elements['type']['all'].get_active() or len(types) == 0:
             types = None

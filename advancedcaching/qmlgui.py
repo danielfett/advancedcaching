@@ -21,24 +21,22 @@
 #
 
 import logging
-logger = logging.getLogger('qmlgui')
-
-from PySide.QtGui import QApplication
-from PySide.QtDeclarative import QDeclarativeView
-from PySide.QtOpenGL import QGLWidget
-from PySide import QtCore
 import os
-import sys
-import geo
-geo.DEGREES = geo.DEGREES.decode('utf-8')
 import re
-import geocaching
-import gpsreader
+import sys
 from os import path
-from gui import Gui
-#from astral import Astral
+from PySide import QtCore
+from PySide.QtDeclarative import QDeclarativeView
+from PySide.QtGui import QApplication
+from PySide.QtOpenGL import QGLWidget
 
-d = lambda x: x#.decode('utf-8', 'replace')
+from advancedcaching import geo, geocaching, gpsreader
+from advancedcaching.gui import Gui
+
+
+logger = logging.getLogger('qmlgui')
+geo.DEGREES = geo.DEGREES.decode('utf-8')
+
 
 class Controller(QtCore.QObject):
 
@@ -239,15 +237,15 @@ class Controller(QtCore.QObject):
         return self._progress_message
         
     def _core_version(self):
-        import core
+        from advancedcaching import core
         return core.VERSION
         
     def _parser_version(self):
-        import cachedownloader
+        from advancedcaching import cachedownloader
         return cachedownloader.VERSION
         
     def _parser_date(self):
-        import cachedownloader
+        from advancedcaching import cachedownloader
         return cachedownloader.VERSION_DATE
         
     @QtCore.Slot()
@@ -795,6 +793,15 @@ class SettingsWrapper(QtCore.QObject):
 
     def createSetting(name, type, signal, inputNotify = True):
         return QtCore.Property(type, lambda x: x._setting(name, type), lambda x, m: x._set_setting(name, m, inputNotify), notify=signal)
+        
+    @QtCore.Slot(result=str)
+    def getFieldnoteDefaultText(self):
+        from time import gmtime
+        from time import localtime
+        from time import strftime
+        
+        self._last_fieldnote_text = strftime(self.settings['options_default_log_text'], localtime()) % {'machine': 'Nokia N9'}
+        return self._last_fieldnote_text
 
     mapPositionLat = createSetting('map_position_lat', float, settingsChanged, False)
     mapPositionLon = createSetting('map_position_lon', float, settingsChanged, False)
@@ -811,6 +818,7 @@ class SettingsWrapper(QtCore.QObject):
     debugLogToHTTP = createSetting('debug_log_to_http', bool, settingsChanged)
     optionsRedownloadAfter = createSetting('options_redownload_after', int, settingsChanged)
     downloadNotFound = createSetting('download_not_found', bool, settingsChanged)
+    optionsDefaultLogText = createSetting('options_default_log_text', str, settingsChanged)
 
     currentMapType = QtCore.Property(QtCore.QObject, _get_current_map_type, _set_current_map_type, notify=settingsChanged)
     mapTypes = QtCore.Property(QtCore.QObject, _map_types, notify=settingsChanged)
@@ -847,10 +855,10 @@ class CoordinateWrapper(QtCore.QObject):
         return self._coordinate.lon if self._is_valid else -1
 
     def _display_text(self):
-        return d(self._coordinate.display_text)
+        return self._coordinate.display_text
 
     def _comment(self):
-        return d(self._coordinate.comment)
+        return self._coordinate.comment
 
     def _user_coordinate_id(self):
         return self._coordinate.user_coordinate_id if self._coordinate.user_coordinate_id != None else -1
@@ -1005,7 +1013,7 @@ class GeocacheWrapper(QtCore.QObject):
         return self._geocache.shortdesc
         
     def _stripped_shortdesc(self):
-        from utils import HTMLManipulations
+        from advancedcaching.utils import HTMLManipulations
         return HTMLManipulations.strip_html_visual(self._geocache.shortdesc)
 
     def _desc(self):
@@ -1086,9 +1094,37 @@ class GeocacheWrapper(QtCore.QObject):
             return int(self._geocache.logas)
         except ValueError:
             return 0
+            
+    def _set_logas(self, logas):
+        from time import gmtime
+        from time import strftime
+        self._geocache.logas = logas
+        self._geocache.logdate = strftime('%Y-%m-%d', gmtime())
+        self.core.save_fieldnote(self._geocache)
+        self.changed.emit()
+        
+        
+    def _upload_as(self):
+        try:
+            return int(self._geocache.upload_as)
+        except (TypeError, ValueError):
+            return 0
+            
+    def _set_upload_as(self, upload_as):
+        self._geocache.upload_as = upload_as
+        self.core.save_fieldnote(self._geocache)
+        self.changed.emit()
         
     def _fieldnotes(self):
         return self._geocache.fieldnotes
+        
+    def _set_fieldnotes(self, text):
+        from time import gmtime
+        from time import strftime
+        self._geocache.fieldnotes = text
+        self._geocache.logdate = strftime('%Y-%m-%d', gmtime())
+        self.core.save_fieldnote(self._geocache)
+        self.changed.emit()
         
     def _marked(self):
         return self._geocache.marked
@@ -1136,16 +1172,7 @@ class GeocacheWrapper(QtCore.QObject):
         return self._calc_coordinate_list
             
     
-    @QtCore.Slot(str, str)
-    def setFieldnote(self, logas, text):
-        from time import gmtime
-        from time import strftime
-        logger.debug("Setting fieldnote, logas=%r, text=%r" % (logas, text))
-        self._geocache.logas = logas
-        self._geocache.fieldnotes = text
-        self._geocache.logdate = strftime('%Y-%m-%d', gmtime())
-        self.core.save_fieldnote(self._geocache)
-        self.changed.emit()
+        
         
     @QtCore.Slot()
     def setViewed(self):
@@ -1179,11 +1206,12 @@ class GeocacheWrapper(QtCore.QObject):
     coordinatesCount = QtCore.Property(int, _coordinates_count, notify=coordsChanged)
     hasDetails = QtCore.Property(bool, _has_details, notify=changed)
     hints = QtCore.Property(str, _hints, notify=changed)
-    logas = QtCore.Property(int, _logas, notify=changed)
-    fieldnotes = QtCore.Property(str, _fieldnotes, notify=changed)
+    logas = QtCore.Property(int, _logas, _set_logas, notify=changed)
+    fieldnotes = QtCore.Property(str, _fieldnotes, _set_fieldnotes, notify=changed)
     varList = QtCore.Property(QtCore.QObject, _var_list, notify=coordsChanged)
     attributes = QtCore.Property(str, _attributes, notify=changed)
     calcCoordinates = QtCore.Property(QtCore.QObject, _calc_coordinates, notify=coordsChanged)
+    uploadAs = QtCore.Property(int, _upload_as, _set_upload_as, notify=changed)
 
 class GeocacheListModel(QtCore.QAbstractListModel):
     COLUMNS = ('geocache',)

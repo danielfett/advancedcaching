@@ -20,11 +20,13 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
+import logging
+
+from copy import copy
 from math import sqrt
 from sqlite3 import connect, Row
 
-from copy import copy
-import logging
+
 logger = logging.getLogger(__name__)
 
 

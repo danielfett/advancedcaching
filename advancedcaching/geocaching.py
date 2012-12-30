@@ -20,17 +20,20 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
+import logging
+import time
+from datetime import datetime
 try:
     from simplejson import dumps, loads
 except (ImportError, AttributeError):
     from json import loads, dumps
 
-from datetime import datetime
-import logging
-import time
+from advancedcaching import geo
+from advancedcaching.constants import TYPE_LABELS, TYPE_UNKNOWN
 
-import geo
+
 logger = logging.getLogger('geocaching')
+
 
 class GeocacheCoordinate(geo.Coordinate):
     LOG_NO_LOG = 0
@@ -38,24 +41,8 @@ class GeocacheCoordinate(geo.Coordinate):
     LOG_AS_NOTFOUND = 2
     LOG_AS_NOTE = 3
 
-    TYPE_REGULAR = 'regular'
-    TYPE_MULTI = 'multi'
-    TYPE_VIRTUAL = 'virtual'
-    TYPE_EVENT = 'event'
-    TYPE_MYSTERY = 'mystery'
-    TYPE_WEBCAM = 'webcam'
-    TYPE_UNKNOWN = 'unknown'
-    TYPE_EARTH = 'earth'
-    TYPES = [
-        TYPE_REGULAR,
-        TYPE_MULTI,
-        TYPE_VIRTUAL,
-        TYPE_EVENT,
-        TYPE_MYSTERY,
-        TYPE_WEBCAM,
-        TYPE_UNKNOWN,
-        TYPE_EARTH
-    ]
+    UPLOAD_AS_FIELDNOTE = 0
+    UPLOAD_AS_LOG = 1
 
     STATUS_NORMAL = 0
     STATUS_DISABLED = 1
@@ -77,16 +64,6 @@ class GeocacheCoordinate(geo.Coordinate):
 
     SIZES = ['other', 'micro', 'small', 'regular', 'big', 'other']
 
-    TYPE_MAPPING = {
-        TYPE_MULTI: 'Multi-cache',
-        TYPE_REGULAR: 'Traditional Cache',
-        TYPE_EARTH: 'Earthcache',
-        TYPE_UNKNOWN: 'Unknown Cache',
-        TYPE_EVENT: 'Event Cache',
-        TYPE_WEBCAM: 'Webcam Cache',
-        TYPE_VIRTUAL: 'Virtual Cache'
-    }
-
     USER_TYPE_COORDINATE = 0
     USER_TYPE_CALC_STRING = 1
     USER_TYPE_CALC_STRING_OVERRIDE = 2
@@ -95,7 +72,8 @@ class GeocacheCoordinate(geo.Coordinate):
              'size', 'difficulty', 'terrain', 'owner', 'found', 'waypoints', \
              'images', 'notes', 'fieldnotes', 'logas', 'logdate', 'marked', \
              'logs', 'status', 'vars', 'alter_lat', 'alter_lon', 'updated', \
-             'user_coordinates', 'attributes', 'last_viewed', 'websitelink')
+             'user_coordinates', 'attributes', 'last_viewed', 'websitelink', \
+             'upload_as')
 
     # These are the table fields which can safely be updated when
     # the geocache is re-downloaded. User data should not be contained
@@ -135,7 +113,9 @@ class GeocacheCoordinate(geo.Coordinate):
         'attributes' : 'TEXT',
         'last_viewed' : 'INTEGER', # SQLite doesn't have real DATETIME data type
         'websitelink' : 'TEXT',
+        'upload_as' : 'INTEGER',
         }
+
     def __init__(self, lat, lon=None, name='', data=None):
         geo.Coordinate.__init__(self, lat, lon, name)
         if data != None:
@@ -171,6 +151,7 @@ class GeocacheCoordinate(geo.Coordinate):
         self.attributes = ''
         self.last_viewed = 0
         self.websitelink = ''
+        self.upload_as = self.UPLOAD_AS_FIELDNOTE
 
     def clone(self):
         n = GeocacheCoordinate(self.lat, self.lon)
@@ -325,10 +306,10 @@ class GeocacheCoordinate(geo.Coordinate):
             self.attributes = ','.join(s)
 
     def get_gs_type(self):
-        if self.TYPE_MAPPING.has_key(self.type):
-            return self.TYPE_MAPPING[self.type]
+        if self.type in TYPE_LABELS:
+            return TYPE_LABELS[self.type]
         else:
-            return self.TYPE_MAPPING[self.TYPE_UNKNOWN]
+            return TYPE_LABELS[TYPE_UNKNOWN]
 
     def set_alternative_position(self, coord):
         self.alter_lat = coord.lat
@@ -337,7 +318,7 @@ class GeocacheCoordinate(geo.Coordinate):
     def start_calc(self, stripped_desc = None):
         if stripped_desc == None:
             stripped_desc = self.desc
-        from coordfinder import CalcCoordinateManager
+        from advancedcaching.coordfinder import CalcCoordinateManager
         if self.vars == None or self.vars == '':
             vars = {}
         else:
@@ -470,5 +451,3 @@ class GeocacheCoordinate(geo.Coordinate):
             i += 1
             logger.debug("Added coordinate, name=%r, title=%r, user_coordinate_id=%r" % (coord.name, coord.title, coord.user_coordinate_id))
         return clist
-    
-       

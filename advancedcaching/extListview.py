@@ -479,7 +479,7 @@ class ExtListView(gtk.TreeView):
 
 
     def shuffle(self):
-	import random
+        import random
         """ Shuffle the content of the list """
         order = xrange(len(self.store))
         random.shuffle(order)

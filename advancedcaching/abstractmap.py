@@ -20,15 +20,13 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
-
-import openstreetmap
-
 import logging
-logger = logging.getLogger('abstractmap')
-import geo
 import math
 
+from advancedcaching import geo, openstreetmap
 
+
+logger = logging.getLogger('abstractmap')
 
 
 class AbstractMap(object):
