@@ -953,7 +953,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         data = r['data']
         output = []
         for l in data:
-            tpe = l['LogTypeImage'].split('.')[0].replace('icon_', '')
+            tpe = l['LogType']
             date = l['Visited']
             finder = "%s (found %s)" % (l['UserName'], l['GeocacheFindCount'])
             text = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(l['LogText'])))
