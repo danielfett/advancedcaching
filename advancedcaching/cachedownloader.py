@@ -146,7 +146,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     # URL for log pages; fetches 10 logs by default
     LOGBOOK_URL = 'http://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=%d&num=10&decrypt=true'
     OVERVIEW_URL = 'http://www.geocaching.com/seek/nearest.aspx?lat=%f&lng=%f&dist=%f'
-    PRINT_PREVIEW_URL = 'http://www.geocaching.com/seek/cdpf.aspx?guid=%s'
+    PRINT_PREVIEW_URL_FULLNAME = 'http://www.geocaching.com/geocache/%s'
     SEEK_URL = "http://www.geocaching.com/seek/%s"
     DETAILS_URL = 'http://www.geocaching.com/seek/cache_details.aspx?wp=%s'
     LOGIN_URL = 'https://www.geocaching.com/login/default.aspx'
@@ -206,7 +206,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
             # Extract waypoint information from the page
             w = [(
                 # Get the GUID from the link
-                x.getparent().getchildren()[0].get('href').split('guid=')[1], 
+                # Actually, this is not the GUID anymore...
+                x.getparent().getchildren()[0].get('href').split('/')[-1], 
                 # See whether this cache was found or not
                 'TertiaryRow' in x.getparent().getparent().get('class'), 
                 # Get the GCID from the text
@@ -233,7 +234,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         points_that_need_downloading = [] # Geocaches that need to be downloaded
         points_finished = []              # Geocaches that only need to be updated in the database
         # and Geocaches which don't need any update (they will be removed)
-        for guid, found, id in wpts:
+        for fullname, found, id in wpts:
             # Check if geocache exists in DB
             coordinate = get_geocache_callback(id)
             
@@ -244,7 +245,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                     logger.info("Skipping %s. It was not in the DB." % id)
                     continue
                 # Else always download
-                points_that_need_downloading.append((guid, found, id, GeocacheCoordinate(-1, -1, id)))
+                points_that_need_downloading.append((fullname, found, id, GeocacheCoordinate(-1, -1, id)))
                 logger.info("Downloading %s. It was not in the DB." % id)
                 continue
             
@@ -264,19 +265,19 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 logger.info("Updating %s. It was in the DB, but its found status was not correct." % id)
                 continue
             logger.info("Downloading %s. It was in the DB, but it was not to be skipped." % id)
-            points_that_need_downloading.append((guid, found, id, coordinate))
+            points_that_need_downloading.append((fullname, found, id, coordinate))
                     
         
         # Download the geocaches using the print preview 
 
         i = 0
-        for guid, found, id, coordinate in points_that_need_downloading:
+        for fullname, found, id, coordinate in points_that_need_downloading:
             i += 1
             coordinate.found = found
             logger.debug("Coordinate %s, found=%r" % (coordinate.name, found))
             self.emit("progress", "Geocache %d of %d" % (i, len(points_that_need_downloading)), i, len(points_that_need_downloading))
             logger.info("Downloading %s..." % id)
-            url = self.PRINT_PREVIEW_URL % guid
+            url = self.PRINT_PREVIEW_URL_FULLNAME % fullname
             response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)                
             result = self._parse_cache_page_print(response, coordinate, num_logs = 20)
             if result != None and result.lat != -1:
