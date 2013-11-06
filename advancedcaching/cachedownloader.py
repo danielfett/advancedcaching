@@ -566,6 +566,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
         # Next, search image elements and replace them
         for element, attribute, link, pos in desc.iterlinks():
             if element.tag == 'img':
+                if attribute is not 'src': #only handle src-fields, it could be e.g. ImageMap
+                    break
+
                 replace_id = found_image(link, element.get('alt') or element.get('title') or '')
                 replacement = '[[img:%s]]' % replace_id
                 for parent in desc.getiterator():
