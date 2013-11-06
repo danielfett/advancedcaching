@@ -863,7 +863,7 @@ class Core(gobject.GObject):
             t.start()
             return False
         else:
-            return self._download_cache_details_list_complete(self.cachedownloader.update_coordinates(caches))
+            return self._download_cache_details_list_complete(self.cachedownloader.update_coordinates(caches,self.settings['download_num_logs']))
         
     def _download_cache_details_list_complete(self, caches):
         """
