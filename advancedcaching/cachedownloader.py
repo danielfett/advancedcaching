@@ -592,6 +592,14 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 logger.info("Downloading %s to %s" % (url, filename))
                 
                 # Download file
+                #Some images (e.g. smileys) have path without domain name
+                if url.startswith("/"):
+                    url = "http://www.geocaching.com"+url  #Needs rethinking when agtl supports different domains/services.
+
+                #some images (e.g. attribute-icons) have path without domain name
+                if url.startswith("../"):
+                    url = "http://www.geocaching.com"+url[2:]  #Needs rethinking when agtl supports different domains/services.
+
                 try:
                     f = open(filename, 'wb')
                     f.write(self.downloader.get_reader(url, login = False).read())
