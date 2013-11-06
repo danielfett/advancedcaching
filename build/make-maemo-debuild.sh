@@ -25,7 +25,7 @@ mkdir -p $PKGTMP/src/opt/agtl-maemo/
 cp changelog $PKGTMP/debian/
 # Copy python sources 
 rsync -av --delete --exclude='*.pyc' $SOURCE/utils.py $SOURCE/astral.py $SOURCE/connection.py $SOURCE/gpsreader.py $SOURCE/cachedownloader.py $SOURCE/coordfinder.py $SOURCE/geo.py $SOURCE/gui.py $SOURCE/cli.py $SOURCE/core.py $SOURCE/geocaching.py $SOURCE/provider.py $SOURCE/colorer.py $SOURCE/downloader.py $SOURCE/geonames.py $SOURCE/hildongui.py $SOURCE/simplegui.py $SOURCE/hildon_plugins.py $SOURCE/gtkmap.py $SOURCE/abstractmap.py $SOURCE/openstreetmap.py $SOURCE/portrait.py $SOURCE/threadpool.py $PKGTMP/src/opt/agtl-maemo/
-find $PKGTMP/src/opt/agtl-maemo/ -iname '*.pyc' | xargs rm 
+find $PKGTMP/src/opt/agtl-maemo/ -iname '*.pyc' | xargs rm -f
 # Copy additional resources
 cp -r $SOURCE/data $PKGTMP/src/opt/agtl-maemo/
 cp -r $SOURCE/actors $PKGTMP/src/opt/agtl-maemo/
