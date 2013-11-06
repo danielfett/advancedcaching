@@ -168,6 +168,8 @@ class Core(gobject.GObject):
         'debug_log_to_http': False,
         'options_backend': 'geocaching-com-new',
         'options_redownload_after': 14,
+        'use_assisted_gps': True,
+        'gps_interval_seconds': 1,
     }
             
     def __init__(self, guitype, gpstype, extensions):
@@ -595,7 +597,9 @@ class Core(gobject.GObject):
             self.gps_thread = gpsreader.GpsReader()
             gobject.timeout_add(1000, lambda: self.__read_gps(self.gps_thread.get_data()))
         elif gps == 'locationgpsprovider':
-            self.gps_thread = gpsreader.LocationGpsReader(self.__read_gps)
+            use_agps = self.settings['use_assisted_gps']
+            gps_interval = self.settings['gps_interval_seconds']
+            self.gps_thread = gpsreader.LocationGpsReader(self.__read_gps, use_agps,gps_interval)
             gobject.idle_add(self.gps_thread.start)
         elif gps == 'qmllocationprovider':
             self.gui.get_gps(self.__read_gps)

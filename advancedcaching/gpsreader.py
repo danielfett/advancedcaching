@@ -214,7 +214,7 @@ class LocationGpsReader():
     TIMEOUT = 5
     BEARING_HOLD_SPEED = 2.5 # km/h
 
-    def __init__(self, cb_fix):
+    def __init__(self, cb_fix, use_assisted_gps,gps_interval_seconds):
         try:
             location
         except NameError:
@@ -223,7 +223,32 @@ class LocationGpsReader():
 
         control = location.GPSDControl.get_default()
         device = location.GPSDevice()
-        control.set_properties(preferred_method = location.METHOD_CWP | location.METHOD_ACWP | location.METHOD_GNSS | location.METHOD_AGNSS, preferred_interval=location.INTERVAL_1S)
+
+        #print "init LocationGpsReader with agps="+str(use_assisted_gps)+" and interval="+str(gps_interval_seconds)
+        interval = location.INTERVAL_DEFAULT
+
+        if gps_interval_seconds <= 1:
+           interval = location.INTERVAL_1S
+        elif gps_interval_seconds <= 2:
+           interval = location.INTERVAL_2S
+        elif gps_interval_seconds <= 5:
+           interval = location.INTERVAL_5S
+        elif gps_interval_seconds <= 10:
+           interval = location.INTERVAL_10S
+        elif gps_interval_seconds <= 20:
+           interval = location.INTERVAL_20S
+        elif gps_interval_seconds <= 30:
+           interval = location.INTERVAL_30S
+        elif gps_interval_seconds <= 60:
+           interval = location.INTERVAL_60S
+        else:
+           interval = location.INTERVAL_120S
+
+        if (use_assisted_gps):
+            control.set_properties(preferred_method = location.METHOD_CWP | location.METHOD_ACWP | location.METHOD_GNSS | location.METHOD_AGNSS, preferred_interval=interval)
+        else:
+            control.set_properties(preferred_method = location.METHOD_CWP | location.METHOD_GNSS, preferred_interval=interval)
+
         control.connect("error-verbose", self.cb_error)
         device.connect("changed", self.cb_changed)
         self.last_gps_bearing = 0
