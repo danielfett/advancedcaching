@@ -463,6 +463,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                     userToken = re.sub("(?s).*userToken = '", '', line)
                     userToken = re.sub("(?s)'.*", '', userToken)
                     logger.debug("userToken: %s" % userToken)
+                    break
                 if line.startswith('initialLogs'):
                     new_set_of_logs, dummy = self._parse_logs_json(line[13:])
 
