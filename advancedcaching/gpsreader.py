@@ -265,10 +265,13 @@ class LocationGpsReader():
         if (not f[1] & (location.GPS_DEVICE_LATLONG_SET | location.GPS_DEVICE_ALTITUDE_SET | location.GPS_DEVICE_TRACK_SET)):
             return a
 
+        if f[0] in (location.GPS_DEVICE_MODE_NOT_SEEN, location.GPS_DEVICE_MODE_NO_FIX):
+            return a
+
         # location independent data
         a.sats = device.satellites_in_use
         a.sats_known = device.satellites_in_view
-        a.dgps = False
+        a.dgps = False  #LOCATION_GPS_DEVICE_STATUS_DGPS_FIX The device has a DGPS fix. Deprecated: this constant is not used anymore.
         a.quality = 0
 
 
