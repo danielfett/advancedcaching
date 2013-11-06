@@ -26,11 +26,6 @@ import logging
 logger = logging.getLogger('downloader')
 import connection
 from sys import argv
-from urllib2 import build_opener, install_opener, HTTPCookieProcessor, HTTPHandler
-from urllib2 import Request, urlopen
-from urllib import urlencode
-from cookielib import LWPCookieJar
-
 
 DEBUG_HTTP = False
 
@@ -46,7 +41,9 @@ class FileDownloader():
     USER_AGENT = 'User-Agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/535.19 (KHTML, like Gecko) Ubuntu/12.04 Chromium/18.0.1025.168 Chrome/18.0.1025.168 Safari/535.19'
     opener_installed = False
 
-    def __init__(self, cookiefile, core = None):
+    def __init__(self, username, password, cookiefile):
+        self.username = username
+        self.password = password
         self.cookiefile = cookiefile
         self.logged_in = False
         from socket import setdefaulttimeout
@@ -56,38 +53,14 @@ class FileDownloader():
         # This controls the use of the cache-headers in requests to allow/deny minified answers
         # as provided by some mobile operators.
         self.allow_minified_answers = True
-        
-        
-        self.cj = LWPCookieJar(self.cookiefile)
 
-        
-        if DEBUG_HTTP:
-            opener = build_opener(HTTPHandler(debuglevel=1), HTTPCookieProcessor(self.cj))
-        else:
-            opener = build_opener(HTTPCookieProcessor(self.cj))
-        install_opener(opener)
-
-        try:
-            self.cj.load()
-            logger.info("Loaded cookie file")
-        except IOError, e:
-            logger.info("Couldn't load cookie file")
-            
-        if core != None:
-            core.connect('save-settings', self._on_save_settings)
-            
-        #todo : username and password need to go to cachedownloader
-        #todo: 
-            
-    def _on_save_settings(settings, source):
-        try:
-            self.cj.save()
-        except Exception, e:
-            logger.warn("Could not save cookies: %s" % e)
-            
-    
-    def reset_cookies(self):
+    def update_userdata(self, username = None, password = None):
         from os import path, remove
+        if username != None:
+            self.username = username
+        if password != None:
+            self.password = password
+        self.logged_in = False
         if path.exists(self.cookiefile):
             try:
                 remove(self.cookiefile)
@@ -95,9 +68,56 @@ class FileDownloader():
                 logger.error("Could not remove cookie file?!")
                 pass
 
-    def get_reader(self, url, values=None, data=None):
+
+    def login(self, login_callback, check_login_callback):
+        global DEBUG_HTTP
         if connection.offline:
             raise Exception("Can't connect in offline mode.")
+        if self.username == '' or self.password == '':
+            raise Exception("Please configure your username/password and restart the application")
+        logger.info("Checking Login status")
+        from cookielib import LWPCookieJar
+        cj = LWPCookieJar(self.cookiefile)
+
+        if not self.opener_installed:
+            from urllib2 import build_opener, install_opener, HTTPCookieProcessor, HTTPHandler
+            if DEBUG_HTTP:
+                opener = build_opener(HTTPHandler(debuglevel=1), HTTPCookieProcessor(cj))
+            else:
+                opener = build_opener(HTTPCookieProcessor(cj))
+            install_opener(opener)
+            self.opener_installed = True
+
+        try:
+            cj.load()
+            logger.info("Loaded cookie file")
+        except IOError, e:
+            logger.info("Couldn't load cookie file")
+        else:
+            logger.info("Checking if still logged in...")
+            if check_login_callback(self):
+                self.logged_in = True
+                return
+        
+        logger.info("Logging in with username %s" % self.username)
+        login_callback(self, self.username, self.password)
+
+        self.logged_in = True
+        try:
+            cj.save()
+        except Exception, e:
+            logger.info("Could not save cookies: %s" % e)
+
+
+    def get_reader(self, url, values=None, data=None, login=True, login_callback=None, check_login_callback=None):
+        if login and not (login_callback and check_login_callback):
+            raise Exception("Either login must be set to False or (check_)login_callback must be provided.")
+        if connection.offline:
+            raise Exception("Can't connect in offline mode.")
+        from urllib import urlencode
+        from urllib2 import Request, urlopen
+        if login and not self.logged_in:
+            self.login(login_callback, check_login_callback)
 
         logger.info("Sending request to %s" % url)
         

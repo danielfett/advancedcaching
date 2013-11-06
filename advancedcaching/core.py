@@ -205,7 +205,7 @@ class Core(gobject.GObject):
         self.create_recursive(self.settings['download_output_dir'])
         self.create_recursive(self.settings['download_map_path'])
         
-        self.downloader = downloader.FileDownloader(self.COOKIE_FILE)
+        self.downloader = downloader.FileDownloader(self.settings['options_username'], self.settings['options_password'], self.COOKIE_FILE)
                 
         self.pointprovider = provider.PointProvider(self.CACHES_DB, geocaching.GeocacheCoordinate)
 
@@ -478,9 +478,9 @@ class Core(gobject.GObject):
         if source == self:
             return
         if 'options_username' in settings:
-            self.cachedownloader.update_userdata(username = settings['options_username'])
+            self.downloader.update_userdata(username = settings['options_username'])
         if 'options_password' in settings:
-            self.cachedownloader.update_userdata(password = settings['options_password'])
+            self.downloader.update_userdata(password = settings['options_password'])
 
     def __on_save_settings(self, caller):
         """
