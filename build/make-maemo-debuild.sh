@@ -29,6 +29,7 @@ find $PKGTMP/src/opt/agtl-maemo/ -iname '*.pyc' | xargs rm
 # Copy additional resources
 cp -r $SOURCE/data $PKGTMP/src/opt/agtl-maemo/
 cp -r $SOURCE/actors $PKGTMP/src/opt/agtl-maemo/
+mkdir -p $PKGTMP/src/usr/share/icons/hicolor/64x64/apps/
 cp $RES/advancedcaching-64.png $PKGTMP/src/usr/share/icons/hicolor/64x64/apps/agtl-maemo.png
 cd $PKGTMP/
 
