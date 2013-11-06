@@ -1140,9 +1140,10 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
             container = gtk.VBox()
             for l in logs:
                 try:
-                    w_type = gtk.image_new_from_pixbuf(self.icon_pixbufs[l['type']])
+                    filename = join(self.settings['download_output_dir'], l['typeicon'])  # typeicon is like "1.png"
+                    w_type = gtk.image_new_from_file(filename)
                 except KeyError:
-                    w_type = gtk.Label(l['type'].upper())
+                    w_type = gtk.Label(l['type'].upper())   # type is like "found it"
                     w_type.set_alignment(0, 0)
                 w_finder = gtk.Label()
                 w_finder.set_markup(" <b>%s</b>" % my_gtk_label_escape(HTMLManipulations._decode_htmlentities(l['finder'])))

@@ -1007,10 +1007,11 @@ class GeocachingComCacheDownloader(CacheDownloader):
         output = []
         for l in data:
             tpe = l['LogType']
+            icon = l['LogTypeImage']
             date = l['Visited']
             finder = "%s (found %s)" % (l['UserName'], l['GeocacheFindCount'])
             text = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(l['LogText'])))
-            output.append(dict(type=tpe, date=date, finder=finder, text=text))
+            output.append(dict(type=tpe, typeicon=icon, date=date, finder=finder, text=text))
         logger.debug("Read %d log entries" % len(output))
         
         total_page = r['pageInfo']['totalPages']
