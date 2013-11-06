@@ -348,8 +348,10 @@ class Cli():
         if not self.has_next():
             print "Table structure for geocaches:"
             info = self.pointprovider.get_table_info()
+
             for row in info:
-                print "\t".join([str(x) for x in row])
+                #Note: sqlite3.Row is iterable since python2.6 (agtl targets to python2.5)
+                print "\t".join([str(row[i]) for i in range(len(row))])  
             print "Example SQL-Query:"
             print "SELECT * FROM geocaches WHERE type = 'multi' AND name LIKE 'GC1X%' AND found = 0 ORDER BY title DESC LIMIT 5"
             raise ParseError("Expected sql string.")
