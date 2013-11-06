@@ -20,8 +20,8 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
-VERSION = 33
-VERSION_DATE = '2012-09-11'
+VERSION = 35
+VERSION_DATE = '2013-08-27'
 
 import logging
 logger = logging.getLogger('cachedownloader')
@@ -146,7 +146,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     # URL for log pages; fetches 10 logs by default
     LOGBOOK_URL = 'http://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=%d&num=10&decrypt=true'
     OVERVIEW_URL = 'http://www.geocaching.com/seek/nearest.aspx?lat=%f&lng=%f&dist=%f'
-    PRINT_PREVIEW_URL = 'http://www.geocaching.com/seek/cdpf.aspx?guid=%s'
+    PRINT_PREVIEW_URL_FULLNAME = 'http://www.geocaching.com/geocache/%s'
     SEEK_URL = "http://www.geocaching.com/seek/%s"
     DETAILS_URL = 'http://www.geocaching.com/seek/cache_details.aspx?wp=%s'
     LOGIN_URL = 'https://www.geocaching.com/login/default.aspx'
@@ -206,7 +206,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
             # Extract waypoint information from the page
             w = [(
                 # Get the GUID from the link
-                x.getparent().getchildren()[0].get('href').split('guid=')[1], 
+                # Actually, this is not the GUID anymore...
+                x.getparent().getchildren()[0].get('href').split('/')[-1], 
                 # See whether this cache was found or not
                 'TertiaryRow' in x.getparent().getparent().get('class'), 
                 # Get the GCID from the text
@@ -233,7 +234,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         points_that_need_downloading = [] # Geocaches that need to be downloaded
         points_finished = []              # Geocaches that only need to be updated in the database
         # and Geocaches which don't need any update (they will be removed)
-        for guid, found, id in wpts:
+        for fullname, found, id in wpts:
             # Check if geocache exists in DB
             coordinate = get_geocache_callback(id)
             
@@ -244,7 +245,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                     logger.info("Skipping %s. It was not in the DB." % id)
                     continue
                 # Else always download
-                points_that_need_downloading.append((guid, found, id, GeocacheCoordinate(-1, -1, id)))
+                points_that_need_downloading.append((fullname, found, id, GeocacheCoordinate(-1, -1, id)))
                 logger.info("Downloading %s. It was not in the DB." % id)
                 continue
             
@@ -264,21 +265,21 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 logger.info("Updating %s. It was in the DB, but its found status was not correct." % id)
                 continue
             logger.info("Downloading %s. It was in the DB, but it was not to be skipped." % id)
-            points_that_need_downloading.append((guid, found, id, coordinate))
+            points_that_need_downloading.append((fullname, found, id, coordinate))
                     
         
         # Download the geocaches using the print preview 
 
         i = 0
-        for guid, found, id, coordinate in points_that_need_downloading:
+        for fullname, found, id, coordinate in points_that_need_downloading:
             i += 1
             coordinate.found = found
             logger.debug("Coordinate %s, found=%r" % (coordinate.name, found))
             self.emit("progress", "Geocache %d of %d" % (i, len(points_that_need_downloading)), i, len(points_that_need_downloading))
             logger.info("Downloading %s..." % id)
-            url = self.PRINT_PREVIEW_URL % guid
+            url = self.PRINT_PREVIEW_URL_FULLNAME % fullname
             response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)                
-            result = self._parse_cache_page_print(response, coordinate, num_logs = 20)
+            result = self._parse_cache_page(response, coordinate, 10, progress_min = i, progress_max = i+1, progress_all = len(points_that_need_downloading), download_images = False)
             if result != None and result.lat != -1:
                 points_finished.append(result)
                 
@@ -417,7 +418,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             
         # Terrain/Difficulty
         try:
-            coordinate.difficulty, coordinate.terrain = [self._handle_stars(basename(x.get('src'))) for x in doc.cssselect('.CacheStarImgs span img')]
+            coordinate.difficulty, coordinate.terrain = [self._handle_stars(basename(x.get('src'))) for x in doc.cssselect('.CacheStarLabels img')]
         except Exception, e:
             logger.error("Could not find/parse star ratings")
             
@@ -456,14 +457,24 @@ class GeocachingComCacheDownloader(CacheDownloader):
         
         # User token and Logs
         userToken = ''
+        new_set_of_logs = []
         for x in doc.cssselect('script'):
             if not x.text:
                 continue
             s = x.text.strip()
-            if s.startswith('//<![CDATA[\r\nvar uvtoken'):
-                userToken = re.sub("(?s).*userToken = '", '', s)
-                userToken = re.sub("(?s)'.*", '', userToken)
-                logger.debug("userToken: %s" % userToken)
+            if not s.startswith('//<![CDATA['):
+                continue
+            for line in s.split('\n'):
+                if line.startswith('userToken'):
+                    userToken = re.sub("(?s).*userToken = '", '', line)
+                    userToken = re.sub("(?s)'.*", '', userToken)
+                    logger.debug("userToken: %s" % userToken)
+                if line.startswith('initialLogs'):
+                    new_set_of_logs, dummy = self._parse_logs_json(line[13:])
+
+        if userToken == '':
+            logger.error('User token is empty before retrieving logs!')
+                        
         
         self.emit('progress', 'Fetching logs', progress_min + 0.2 * (progress_max - progress_min), progress_all)
         
@@ -472,29 +483,32 @@ class GeocachingComCacheDownloader(CacheDownloader):
             self.LOGBOOK_URL % (userToken, 1),
             login_callback = self.login_callback, 
             check_login_callback = self.check_login_callback)
-        new_set_of_logs, total_page = self._parse_logs_json(logs.read()) #True=we want also number of page
+        new_set_of_logs.extend(self._parse_logs_json(logs.read()))
         logs.close()
-        page_of_logs=num_logs/10 #num_logs from parameter (which comes from settings 'download_num_logs')
 
         #First page is already handled, so counter starts from 2
         counter = 2
-        upper_limit = min(total_page, page_of_logs)
-        while (counter <= upper_limit):
+        while len(new_set_of_logs) < num_logs:
             # We want progress to be between 0.3 and 0.5 times of our own range.
             # Our own range is progress_min -> progress_max
             # Log range is 0.3 to 0.5
-            progress_internal = 0.3 + (float(counter-1)/float(upper_limit)) * 0.2
+            progress_internal = 0.3 + (float(len(new_set_of_logs))/float(num_logs)) * 0.2
             logger.debug("- Progress internal is %f" % progress_internal)
             logger.debug("- Progress is %f of %f" % (progress_min + progress_internal * (progress_max - progress_min), progress_all))
-            self.emit('progress', "Logs (%d/%d)" % (counter, upper_limit), progress_min + progress_internal * (progress_max - progress_min), progress_all)
+            self.emit('progress', "Logs (%d)" % counter, progress_min + progress_internal * (progress_max - progress_min), progress_all)
             logs = self.downloader.get_reader(
                 self.LOGBOOK_URL % (userToken, counter),
                 login_callback = self.login_callback, 
                 check_login_callback = self.check_login_callback)
-            new_set_of_logs.extend(self._parse_logs_json(logs.read())[0])
+            new_set_of_logs.extend(self._parse_logs_json(logs.read()))
             logs.close()
 
             counter += 1
+            
+            # Bail out if we don't download any logs.
+            if counter > num_logs:
+                logger.error("Downloading logs did not really work.")
+                break
 
         coordinate.set_logs(new_set_of_logs)
 
@@ -623,6 +637,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     def _parse_cache_page_print(self, cache_page, coordinate, num_logs):
         logger.debug("Start parsing.")
         pg = cache_page.read()
+        print pg
         cache_page.close()
         t = unicode(pg, 'utf-8')
         doc = fromstring(t)
@@ -643,12 +658,12 @@ class GeocachingComCacheDownloader(CacheDownloader):
             raise e  
             
         # Type 
-        try:
-            t = int(basename(doc.cssselect('#Content h2 img')[0].get('src')).split('.')[0])
-            coordinate.type = self.CTIDS[t] if t in self.CTIDS else GeocacheCoordinate.TYPE_UNKNOWN
-        except Exception, e:
-            logger.error("Could not find type - probably premium cache!")
-            return None
+        #try:
+        t = int(basename(doc.cssselect('#Content h2 img')[0].get('src')).split('.')[0])
+        coordinate.type = self.CTIDS[t] if t in self.CTIDS else GeocacheCoordinate.TYPE_UNKNOWN
+        #except Exception, e:
+        #    logger.error("Could not find type - probably premium cache!")
+        #    return None
         
         # Short Description - Long Desc. is added after the image handling (see below)
         try:
@@ -927,6 +942,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         
     def _parse_logs_json(self, logs):
         logger.debug("Start json logs parsing")
+        print logs
         try:
             r = json.loads(logs)
         except Exception, e:
@@ -935,10 +951,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
         if not 'status' in r or r['status'] != 'success':
             logger.error('Could not read logs, status is "%s"' % r['status'])
         data = r['data']
-
         output = []
         for l in data:
-            tpe = l['LogTypeImage'].replace('.gif', '').replace('icon_', '')
+            tpe = l['LogType']
             date = l['Visited']
             finder = "%s (found %s)" % (l['UserName'], l['GeocacheFindCount'])
             text = HTMLManipulations._decode_htmlentities(HTMLManipulations._strip_html(HTMLManipulations._replace_br(l['LogText'])))
@@ -946,7 +961,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         logger.debug("Read %d log entries" % len(output))
         
         total_page = r['pageInfo']['totalPages']
-        return output,total_page
+        return output
 
 BACKENDS = {
     'geocaching-com-new': {'class': GeocachingComCacheDownloader, 'name': 'geocaching.com', 'description': 'Backend for geocaching.com'},
