@@ -1,6 +1,6 @@
-opt/advancedcaching/
-opt/advancedcaching/actors/
-opt/advancedcaching/data/
-opt/advancedcaching/qml/
+opt/agtl-maemo/
+opt/agtl-maemo/actors/
+opt/agtl-maemog/data/
+opt/agtl-maemo/qml/
 usr/share/applications/hildon/
 usr/share/icons/hicolor/48x48/hildon/
