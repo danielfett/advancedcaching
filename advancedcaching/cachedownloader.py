@@ -37,7 +37,7 @@ import threading
 import re
 import gobject
 from utils import HTMLManipulations
-from lxml.html import fromstring, tostring, submit_form
+from lxml.html import fromstring, tostring
 
 #ugly workaround...
 user_token = [None]
