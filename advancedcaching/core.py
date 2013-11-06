@@ -205,11 +205,37 @@ class Core(gobject.GObject):
         self.create_recursive(self.settings['download_map_path'])
         
         self.downloader = downloader.FileDownloader(self.settings['options_username'], self.settings['options_password'], self.COOKIE_FILE)
-                
+
+        # Download log-type icons
+        #logger.info("Download log-type icons")
+        import os
+        filename = os.path.join(self.settings['download_output_dir'], "1.png" )
+        if os.path.isfile(filename):
+            logger.info("%s exists already, don't reload icons for log-types" % filename)
+        else:
+            #server have mystery ranges of filenames
+            icons = range(1,26) + range(45,49) + range(54,58) + range(67,78)
+            #for some reason some numbers are not used
+            icons.remove(8)
+            icons.remove(20)
+            icons.remove(21)
+
+            for i in icons:
+                filename = os.path.join(self.settings['download_output_dir'], "%s.png" % i)
+                url="http://www.geocaching.com/images/logtypes/%s.png" % i
+                logger.info("Downloading icon for log-type %s to %s" % (url, filename))
+
+                try:
+                    f = open(filename, 'wb')
+                    f.write(self.downloader.get_reader(url, login = False).read())
+                    f.close()
+                except Exception, e:
+                    logger.exception(e)
+                    logger.error("Failed to download image from URL %s" % url)
+
         self.pointprovider = provider.PointProvider(self.CACHES_DB, geocaching.GeocacheCoordinate)
 
         self.gui = guitype(self)
-        
         
         if ('debug_log_to_http' in self.settings and self.settings['debug_log_to_http']) or '--remote' in argv:
             http_handler = logging.handlers.HTTPHandler("danielfett.de", "http://www.danielfett.de/files/collect.php")
