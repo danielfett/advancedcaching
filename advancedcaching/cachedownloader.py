@@ -620,8 +620,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
                     f.write(self.downloader.get_reader(url, login = False).read())
                     f.close()
                 except Exception, e:
-                    logger.exception(e)
-                    logger.error("Failed to download image from URL %s" % url)
+                    #logger.exception(e)
+                    logger.error("Failed to download image from URL '%s': '%s'" % (url,e))
                 counter += 1
                 
         # And save Images to coordinate
