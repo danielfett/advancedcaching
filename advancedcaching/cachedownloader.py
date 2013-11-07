@@ -1004,7 +1004,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         
     def _parse_logs_json(self, logs):
         logger.debug("Start json logs parsing")
-        print logs
+        #print logs
         try:
             r = json.loads(logs)
         except Exception, e:
