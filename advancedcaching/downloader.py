@@ -125,8 +125,6 @@ class FileDownloader():
         if values == None and data == None:
             req = Request(url)
             self.add_headers(req)
-            self.debug_request(req)
-            resp = urlopen(req)
 
         # There are only URL parameters, expected in values
         elif data == None:
@@ -134,8 +132,6 @@ class FileDownloader():
                 values = urlencode( values)
             req = Request(url, values)
             self.add_headers(req)
-            self.debug_request(req)
-            resp = urlopen(req)
             
         # There are no URL parameters, but a content_type, body tuple in data
         elif values == None:
@@ -145,11 +141,12 @@ class FileDownloader():
             req.add_header('Content-Length', len(str(body)))
             self.add_headers(req)
             req.add_data(body)
-            self.debug_request(req)
-            resp = urlopen(req)
 
         else: #This should never happen: values != None and data != None
             return None
+
+        self.debug_request(req)
+        resp = urlopen(req)
 
         if resp.info().get('Content-Encoding') == 'gzip':
             from StringIO import StringIO
