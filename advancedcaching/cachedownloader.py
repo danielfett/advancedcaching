@@ -508,10 +508,10 @@ class GeocachingComCacheDownloader(CacheDownloader):
         coordinate.set_logs(new_set_of_logs)
 
         # Attributes
-        '''if not coordinate.attributes:
+        if not coordinate.attributes:
             logger.warn("No attributes set for this geocache yet.")
             try:
-                attr_xml = doc.cssselect('.CacheDetailNavigationWidget.BottomSpacing .WidgetBody img')
+                attr_xml = doc.cssselect('.CacheDetailNavigationWidget.TopSpacing.BottomSpacing .WidgetBody img')
                 attributes = self._parse_attributes_from_doc(attr_xml)
                 coordinate.clear_attributes()
                 for x in attributes: 
@@ -522,7 +522,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
             except Exception, e:
                 logger.error("Could not find/parse attributes")
                 raise e
-        '''     
         
         # Image Handling
 
