@@ -359,7 +359,17 @@ class GeocachingComCacheDownloader(CacheDownloader):
         # Basename - Image name without path and extension
         def basename(url):
             return url.split('/')[-1].split('.')[0]
-            
+
+        #check for premium-only cache
+        try:
+            doc.get_element_by_id('ctl00_ContentBody_basicMemberMsg') #Premium user will not get this
+            logger.info("PREMIUM ONLY cache (and not premium account), skip it totally")
+            return
+        except Exception, e:
+            None
+            #print "normal cache, can continue"
+
+
         # Title
         try:
             coordinate.title = doc.cssselect('meta[name="og:title"]')[0].get('content')
