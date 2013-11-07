@@ -553,7 +553,10 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 return images[url]['filename']
             
             # If this URL is encountered for the first time, calculate the filename
-            ext = url.rsplit('.', 1)[1]
+            if '.' in url: #this is the normal case (filename has dot)
+                ext = url.rsplit('.', 1)[1]    #this will be out of range if no dot in filename
+            else:   #there are filenames without dot and extension
+                ext = "img"
             if not re.match('^[a-zA-Z0-9]+$', ext):
                 ext = 'img'
             filename = "%s-image%d.%s" % (coordinate.name, len(images), ext)
