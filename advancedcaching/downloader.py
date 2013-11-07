@@ -147,6 +147,10 @@ class FileDownloader():
             req.add_data(body)
             self.debug_request(req)
             resp = urlopen(req)
+
+        else: #This should never happen: values != None and data != None
+            return None
+
         if resp.info().get('Content-Encoding') == 'gzip':
             from StringIO import StringIO
             import gzip
