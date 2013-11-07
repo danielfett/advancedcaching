@@ -843,7 +843,7 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
         attribute_table = gtk.HBox()
 
         if cache.attributes != None:
-            for attribute in cache.attributes.split(',')[0:-1]:
+            for attribute in cache.attributes.split(','):
                 filename = join(self.settings['download_output_dir'], attribute)
                 attribute_table.pack_start(gtk.image_new_from_file(filename))
         else:
