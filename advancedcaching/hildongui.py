@@ -923,19 +923,19 @@ class HildonGui(HildonToolsDialog, HildonSearchPlace, HildonFieldnotes, HildonSe
 
                 text_shortdesc_esc = my_gtk_label_escape(self._strip_html(cache.shortdesc).strip())
                 text_longdesc_esc = my_gtk_label_escape(self._strip_html(text_longdesc).strip())
-                
-                if cache.status == geocaching.GeocacheCoordinate.STATUS_DISABLED:
-                    text_shortdesc = '<u>This Cache is not available!</u>\n%s' % text_shortdesc
+                #logger.debug("Short description is '%s'" % cache.shortdesc)
+                #logger.debug("Long description is '%s'" % text_longdesc)
 
-                if text_longdesc != '' and text_shortdesc != '':
-                    showdesc = "<b>%s</b>\n\n%s" % (text_shortdesc_esc, text_longdesc_esc)
-                elif text_longdesc == '' and text_shortdesc == '':
-                    showdesc = "<i>No description available</i>"
-                elif text_longdesc == '':
-                    showdesc = text_shortdesc_esc
-                else:
-                    showdesc = text_longdesc_esc
-                    
+                #if short and long -descriptions are empty, use 'No description available'
+                if text_shortdesc_esc == '' and text_longdesc_esc == '':
+                    text_shortdesc_esc = "<i>No description available</i>"
+
+                #If cache is disabled, add warning
+                if cache.status == geocaching.GeocacheCoordinate.STATUS_DISABLED:
+                    text_shortdesc_esc = '<u>This Cache is not available!</u>\n%s' % text_shortdesc_esc
+
+                showdesc = "<b>%s</b>\n\n%s" % (text_shortdesc_esc, text_longdesc_esc)
+
                 widget_description.set_markup(showdesc)
                 events.append(self.window.connect('configure-event', self._on_configure_label, widget_description))
                 
