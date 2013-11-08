@@ -44,7 +44,9 @@ def read_from_network(req, UrlOpen=False):
               if UrlOpen:
                   return urlopen(req)
               else:
-                  return req.read()
+                  ret=req.read()
+                  req.close()
+                  return ret
           except Exception, e:
               logger.warning("Download error "+str(e)) #debug only
               logger.warning("Download error "+str(type(e))) #debug only
