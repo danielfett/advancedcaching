@@ -194,6 +194,8 @@ class FileDownloader():
 
         self.debug_request(req)
         resp = read_from_network(req, UrlOpen=True)
+        if resp == None:
+            return None
 
         if resp.info().get('Content-Encoding') == 'gzip':
             from StringIO import StringIO
