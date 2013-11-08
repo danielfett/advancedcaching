@@ -35,6 +35,40 @@ def enable_http_debugging():
     DEBUG_PATH = ''
     DEBUG_COUNTER = 0
     logger.info("Writing debug HTTP logs.")
+
+def read_from_network(req, UrlOpen=False):
+        from urllib2 import urlopen, URLError
+        #try 3 times
+        for count in range(3,0,-1):
+          try:
+              if UrlOpen:
+                  return urlopen(req)
+              else:
+                  return req.read()
+          except Exception, e:
+              logger.warning("Download error "+str(e)) #debug only
+              logger.warning("Download error "+str(type(e))) #debug only
+              if str(type(e)) == "<class 'socket.timeout'>":
+                  logger.warning("Socket timeout error: "+str(e))
+              elif str(type(e)) == "<class 'httplib.IncompleteRead'>":
+                  logger.warning("IncompleteRead error (giving up): "+str(e))
+                  count = 1 #this will break the loop
+              elif str(type(e)) =="<class 'urllib2.URLError'>": #after that it is safe to ask .reason
+                  if 'timed out' in str(e.reason):
+                      logger.warning("Time out error while downloading: "+str(e))
+                  elif 'Network is unreachable' in str(e.reason):
+                      logger.warning("Network is down while downloading:"+str(e))
+              else:
+                  #logger.warning("Error "+str(e)+str(e.reason)+str(e.code)+str(e.read()))
+                  count = 1 #this will break the loop
+
+              if count == 1:
+                  logger.error('  Giving up downloading')
+                  return None
+
+              logger.warning(" Trying again")
+          else: #this is for try-catch
+              break
     
 
 class FileDownloader():
@@ -115,7 +149,7 @@ class FileDownloader():
         if connection.offline:
             raise Exception("Can't connect in offline mode.")
         from urllib import urlencode
-        from urllib2 import Request, urlopen
+        from urllib2 import Request
         if login and not self.logged_in:
             self.login(login_callback, check_login_callback)
 
@@ -146,13 +180,13 @@ class FileDownloader():
             return None
 
         self.debug_request(req)
-        resp = urlopen(req)
+        resp = read_from_network(req, UrlOpen=True)
 
         if resp.info().get('Content-Encoding') == 'gzip':
             from StringIO import StringIO
             import gzip
-            buf = StringIO(resp.read())
             logger.debug("Got gzip encoded answer")
+            buf = StringIO(read_from_network(resp))
             resp = gzip.GzipFile(fileobj=buf)
         else:
             logger.debug("Got unencoded answer")
