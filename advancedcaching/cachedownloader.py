@@ -189,41 +189,47 @@ class GeocachingComCacheDownloader(CacheDownloader):
         
         self.emit("progress", "Fetching list", 0, 1)
         response = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
-        
+        if response == None:
+            logger.warning("Got None from downloader")
+
         cont = True
         wpts = []
         page_last = 0 # Stores the "old" value of the page counter; If it doesn't increment, abort!
         while cont:
             # Count the number of results and pages
-            text = response.read()
-            response.close()
-            doc = self._parse(text)
-            bs = doc.cssselect('#ctl00_ContentBody_ResultsPanel .PageBuilderWidget b')
-            if len(bs) == 0:
-                raise Exception("There are no geocaches in this area.")
-            count = int(bs[0].text_content())
-            page_current = int(bs[1].text_content())
-            if page_current == page_last:
-                raise Exception("Current page has the same number as the last page; aborting!")
-                break
-            page_last = page_current
-            page_max = int(bs[2].text_content())
-            logger.info("We are at page %d of %d, total %d geocaches" % (page_current, page_max, count))
-            if count > self.MAX_DOWNLOAD_NUM:
-                raise Exception("%d geocaches found, please select a smaller part of the map!" % count)
+            if response == None:
+                logger.warning("_get_overview: Error: response is None:"+str(e))
+            else:
+                text = response.read()
+                response.close()
+                doc = self._parse(text)
+                bs = doc.cssselect('#ctl00_ContentBody_ResultsPanel .PageBuilderWidget b')
+                if len(bs) == 0:
+                    raise Exception("There are no geocaches in this area.")
+                count = int(bs[0].text_content())
+                page_current = int(bs[1].text_content())
+                if page_current == page_last:
+                    raise Exception("Current page has the same number as the last page; aborting!")
+                    break
+                page_last = page_current
+                page_max = int(bs[2].text_content())
+                logger.info("We are at page %d of %d, total %d geocaches" % (page_current, page_max, count))
+                if count > self.MAX_DOWNLOAD_NUM:
+                    raise Exception("%d geocaches found, please select a smaller part of the map!" % count)
                 
                 
-            # Extract waypoint information from the page
-            w = [(
-                # Get the GUID from the link
-                # Actually, this is not the GUID anymore...
-                x.getparent().getchildren()[0].get('href').split('/')[-1], 
-                # See whether this cache was found or not
-                'TertiaryRow' in x.getparent().getparent().get('class'), 
-                # Get the GCID from the text
-                x.text_content().split('|')[1].strip()
-                ) for x in doc.cssselect(".SearchResultsTable .Merge .small")]
-            wpts += w
+                # Extract waypoint information from the page
+                w = [(
+                    # Get the GUID from the link
+                    # Actually, this is not the GUID anymore...
+                    x.getparent().getchildren()[0].get('href').split('/')[-1],
+                    # See whether this cache was found or not
+                    'TertiaryRow' in x.getparent().getparent().get('class'),
+                    # Get the GCID from the text
+                    x.text_content().split('|')[1].strip()
+                    ) for x in doc.cssselect(".SearchResultsTable .Merge .small")]
+                wpts += w
+
                 
             cont = False  
             # There are more pages...
@@ -351,6 +357,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
         
     def __parse_cache_page(self, cache_page, coordinate, num_logs, download_images = True, progress_min = 0.0, progress_max = 1.0, progress_all = 1.0):
         logger.debug("Start parsing, pmin = %f, pmax = %f." % (progress_min, progress_max))
+        if cache_page == None:
+            logger.warning("Can't parse this cache, it is None")
+            return
         pg = cache_page.read()
         cache_page.close()
         t = unicode(pg, 'utf-8')
