@@ -31,6 +31,7 @@ try:
 except (ImportError, AttributeError):
     import simplejson as json	 
 from geocaching import GeocacheCoordinate
+from downloader import read_from_network
 import geo
 import os
 import threading
@@ -200,8 +201,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             if response == None:
                 logger.warning("_get_overview: Error: response is None:"+str(e))
             else:
-                text = response.read()
-                response.close()
+                text = read_from_network(response)
                 doc = self._parse(text)
                 bs = doc.cssselect('#ctl00_ContentBody_ResultsPanel .PageBuilderWidget b')
                 if len(bs) == 0:
@@ -318,8 +318,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     @staticmethod
     def check_login_callback(downloader):
         login_request = downloader.get_reader(GeocachingComCacheDownloader.NEAREST_URL, login = False)
-        page = login_request.read()
-        login_request.close()
+        page = read_from_network(login_request)
 
         t = unicode(page, 'utf-8')
         doc = fromstring(t)
@@ -342,8 +341,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             '__EVENTARGUMENT': ''
         }
         request = downloader.get_reader(GeocachingComCacheDownloader.LOGIN_URL, values, login = False)
-        page = request.read()
-        request.close()
+        page = read_from_network(request)
 
         t = unicode(page, 'utf-8')
         doc = fromstring(t)
@@ -360,8 +358,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         if cache_page == None:
             logger.warning("Can't parse this cache, it is None")
             return
-        pg = cache_page.read()
-        cache_page.close()
+        pg = read_from_network(cache_page)
         t = unicode(pg, 'utf-8')
         doc = fromstring(t)
                 
@@ -497,8 +494,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             self.LOGBOOK_URL % (userToken, 1),
             login_callback = self.login_callback, 
             check_login_callback = self.check_login_callback)
-        new_set_of_logs.extend(self._parse_logs_json(logs.read()))
-        logs.close()
+        new_set_of_logs.extend(self._parse_logs_json(read_from_network(logs)))
 
         #First page is already handled, so counter starts from 2
         counter = 2
@@ -514,8 +510,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 self.LOGBOOK_URL % (userToken, counter),
                 login_callback = self.login_callback, 
                 check_login_callback = self.check_login_callback)
-            new_set_of_logs.extend(self._parse_logs_json(logs.read()))
-            logs.close()
+            new_set_of_logs.extend(self._parse_logs_json(read_from_network(logs)))
 
             counter += 1
             
@@ -626,7 +621,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
                 try:
                     f = open(filename, 'wb')
-                    f.write(self.downloader.get_reader(url, login = False).read())
+                    f.write(read_from_network(self.downloader.get_reader(url, login = False)))
                     f.close()
                 except Exception, e:
                     #logger.exception(e)
@@ -663,8 +658,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
     # It currently omits images, waypoints and logs.
     def __parse_cache_page_print(self, cache_page, coordinate, num_logs):
         logger.debug("Start parsing.")
-        pg = cache_page.read()
-        cache_page.close()
+        pg = read_from_network(cache_page)
         t = unicode(pg, 'utf-8')
         doc = fromstring(t)
         
@@ -813,7 +807,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
                 try:
                     f = open(filename, 'wb')
-                    f.write(self.downloader.get_reader(url, login = False).read())
+                    f.write(read_from_network(self.downloader.get_reader(url, login = False)))
                     f.close()
                 except Exception, e:
                     logger.exception(e)
@@ -880,8 +874,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             
             # First, download webpage to get the correct viewstate value
             cache_page = self.downloader.get_reader(self.UPLOAD_FIELDNOTES_URL, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
-            pg = cache_page.read()
-            cache_page.close()
+            pg = read_from_network(cache_page)
             t = unicode(pg, 'utf-8')
             doc = fromstring(t)
             # Sometimes this field is not available
@@ -898,8 +891,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 login_callback = self.login_callback, 
                 check_login_callback = self.check_login_callback)
 
-            res = response.read()
-            response.close()
+            res = read_from_network(response)
             t = unicode(res, 'utf-8')
             doc = fromstring(t)
             
@@ -941,8 +933,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 # First, download webpage to get the correct viewstate value
                 self.emit('progress', "Uploading Logs (%d of %d)..." % (i, len(geocaches)), i + 1, len(geocaches))
                 cache_page = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
-                pg = cache_page.read()
-                cache_page.close()
+                pg = read_from_network(cache_page)
                 t = unicode(pg, 'utf-8')
                 doc = fromstring(t)
                 doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$ddLogType'] = str(logtype_trans)
@@ -962,8 +953,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                     login_callback = self.login_callback, 
                     check_login_callback = self.check_login_callback)
 
-                res = response.read()
-                response.close()
+                res = read_from_network(response)
                 t = unicode(res, 'utf-8')
                 doc = fromstring(t)
                 
