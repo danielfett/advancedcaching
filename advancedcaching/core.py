@@ -227,7 +227,7 @@ class Core(gobject.GObject):
 
                 try:
                     f = open(filename, 'wb')
-                    f.write(self.downloader.get_reader(url, login = False).read())
+                    f.write(downloader.read_from_network(self.downloader.get_reader(url, login = False)))
                     f.close()
                 except Exception, e:
                     logger.exception(e)
