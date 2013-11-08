@@ -53,6 +53,15 @@ def read_from_network(req, UrlOpen=False):
               elif str(type(e)) == "<class 'httplib.IncompleteRead'>":
                   logger.warning("IncompleteRead error (giving up): "+str(e))
                   count = 1 #this will break the loop
+              elif str(type(e)) == "<type 'exceptions.IOError'>":
+                  logger.warning("IOError (not gzipped file) (giving up): "+str(e))
+                  count = 1 #this will break the loop
+              elif str(type(e)) == "<type 'exceptions.ValueError'>":
+                  logger.warning("ValueError (giving up): "+str(e))
+                  count = 1 #this will break the loop
+              elif str(type(e)) == "<type 'exceptions.AttributeError'>":
+                  logger.warning("Attribute error (giving up): "+str(e))
+                  count = 1 #this will break the loop
               elif str(type(e)) =="<class 'urllib2.URLError'>": #after that it is safe to ask .reason
                   if 'timed out' in str(e.reason):
                       logger.warning("Time out error while downloading: "+str(e))
