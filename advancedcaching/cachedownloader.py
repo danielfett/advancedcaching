@@ -525,6 +525,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             # Bail out if we don't download any logs.
             if counter > num_logs:
                 logger.error("Downloading logs did not really work.")
+                logger.warning("cache=" +str(coordinate.serialize()))
                 break
 
         coordinate.set_logs(new_set_of_logs)
