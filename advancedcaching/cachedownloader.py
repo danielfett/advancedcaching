@@ -403,7 +403,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         try:
             coordinate.websitelink = doc.get_element_by_id('ctl00_ContentBody_uxCacheUrl').get('href')
         except KeyError, e:
-            logger.info("No website link found, skipping.")
+            #logger.info("No website link found, skipping.")
             coordinate.websitelink = ''
         
         # Short Description - Long Desc. is added after the image handling (see below)
