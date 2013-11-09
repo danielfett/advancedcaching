@@ -94,7 +94,7 @@ class FileDownloader():
         self.cookiefile = cookiefile
         self.logged_in = False
         from socket import setdefaulttimeout
-        setdefaulttimeout(30)
+        setdefaulttimeout(15)
         self.opener_installed = False
         
         # This controls the use of the cache-headers in requests to allow/deny minified answers
