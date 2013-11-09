@@ -92,7 +92,7 @@ class HildonFieldnotes(object):
         self.button_fieldnotes = button
 
     def _get_fieldnotes_button(self):
-        self.update_fieldnotes_display()
+        #self.update_fieldnotes_display()
         self.button_fieldnotes.unparent()
         return self.button_fieldnotes
 
