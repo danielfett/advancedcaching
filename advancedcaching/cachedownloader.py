@@ -202,33 +202,34 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 logger.warning("_get_overview: Error: response is None:"+str(e))
             else:
                 text = read_from_network(response)
-                doc = self._parse(text)
-                bs = doc.cssselect('#ctl00_ContentBody_ResultsPanel .PageBuilderWidget b')
-                if len(bs) == 0:
-                    raise Exception("There are no geocaches in this area.")
-                count = int(bs[0].text_content())
-                page_current = int(bs[1].text_content())
-                if page_current == page_last:
-                    raise Exception("Current page has the same number as the last page; aborting!")
-                    break
-                page_last = page_current
-                page_max = int(bs[2].text_content())
-                logger.info("We are at page %d of %d, total %d geocaches" % (page_current, page_max, count))
-                if count > self.MAX_DOWNLOAD_NUM:
-                    raise Exception("%d geocaches found, please select a smaller part of the map!" % count)
+                if text != None:
+                    doc = self._parse(text)
+                    bs = doc.cssselect('#ctl00_ContentBody_ResultsPanel .PageBuilderWidget b')
+                    if len(bs) == 0:
+                        raise Exception("There are no geocaches in this area.")
+                    count = int(bs[0].text_content())
+                    page_current = int(bs[1].text_content())
+                    if page_current == page_last:
+                        raise Exception("Current page has the same number as the last page; aborting!")
+                        break
+                    page_last = page_current
+                    page_max = int(bs[2].text_content())
+                    logger.info("We are at page %d of %d, total %d geocaches" % (page_current, page_max, count))
+                    if count > self.MAX_DOWNLOAD_NUM:
+                        raise Exception("%d geocaches found, please select a smaller part of the map!" % count)
                 
                 
-                # Extract waypoint information from the page
-                w = [(
-                    # Get the GUID from the link
-                    # Actually, this is not the GUID anymore...
-                    x.getparent().getchildren()[0].get('href').split('/')[-1],
-                    # See whether this cache was found or not
-                    'TertiaryRow' in x.getparent().getparent().get('class'),
-                    # Get the GCID from the text
-                    x.text_content().split('|')[1].strip()
-                    ) for x in doc.cssselect(".SearchResultsTable .Merge .small")]
-                wpts += w
+                    # Extract waypoint information from the page
+                    w = [(
+                        # Get the GUID from the link
+                        # Actually, this is not the GUID anymore...
+                        x.getparent().getchildren()[0].get('href').split('/')[-1],
+                        # See whether this cache was found or not
+                        'TertiaryRow' in x.getparent().getparent().get('class'),
+                        # Get the GCID from the text
+                        x.text_content().split('|')[1].strip()
+                        ) for x in doc.cssselect(".SearchResultsTable .Merge .small")]
+                    wpts += w
 
                 
             cont = False  
@@ -319,6 +320,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
     def check_login_callback(downloader):
         login_request = downloader.get_reader(GeocachingComCacheDownloader.NEAREST_URL, login = False)
         page = read_from_network(login_request)
+        if page == None:
+            return False
 
         t = unicode(page, 'utf-8')
         doc = fromstring(t)
@@ -342,6 +345,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
         }
         request = downloader.get_reader(GeocachingComCacheDownloader.LOGIN_URL, values, login = False)
         page = read_from_network(request)
+        if page == None:
+            return False
 
         t = unicode(page, 'utf-8')
         doc = fromstring(t)
@@ -359,6 +364,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
             logger.warning("Can't parse this cache, it is None")
             return
         pg = read_from_network(cache_page)
+        if pg == None:
+            return False
+
         t = unicode(pg, 'utf-8')
         doc = fromstring(t)
                 
@@ -659,6 +667,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
     def __parse_cache_page_print(self, cache_page, coordinate, num_logs):
         logger.debug("Start parsing.")
         pg = read_from_network(cache_page)
+        if pg == None:
+           return None
+
         t = unicode(pg, 'utf-8')
         doc = fromstring(t)
         
@@ -875,6 +886,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
             # First, download webpage to get the correct viewstate value
             cache_page = self.downloader.get_reader(self.UPLOAD_FIELDNOTES_URL, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
             pg = read_from_network(cache_page)
+            if pg == None:
+                logger.error("network error")
+                return
             t = unicode(pg, 'utf-8')
             doc = fromstring(t)
             # Sometimes this field is not available
@@ -892,6 +906,10 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 check_login_callback = self.check_login_callback)
 
             res = read_from_network(response)
+            if res == None:
+                logger.error("network error")
+                return
+
             t = unicode(res, 'utf-8')
             doc = fromstring(t)
             
@@ -934,6 +952,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 self.emit('progress', "Uploading Logs (%d of %d)..." % (i, len(geocaches)), i + 1, len(geocaches))
                 cache_page = self.downloader.get_reader(url, login_callback = self.login_callback, check_login_callback = self.check_login_callback)
                 pg = read_from_network(cache_page)
+                if pg == None:
+                    return success #it is list of successfully
                 t = unicode(pg, 'utf-8')
                 doc = fromstring(t)
                 doc.forms[0].fields['ctl00$ContentBody$LogBookPanel1$ddLogType'] = str(logtype_trans)
@@ -954,6 +974,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
                     check_login_callback = self.check_login_callback)
 
                 res = read_from_network(response)
+                if res == None:
+                    return success #it is list of successfully
                 t = unicode(res, 'utf-8')
                 doc = fromstring(t)
                 
