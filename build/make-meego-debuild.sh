@@ -22,6 +22,7 @@ mkdir -p $PKGTMP
 
 cp -a $PKGROOT/* $PKGTMP/
 mkdir -p $PKGTMP/src/opt/advancedcaching/
+mv $PKGTMP/launch $PKGTMP/src/opt/advancedcaching/
 cp changelog $PKGTMP/debian/
 # Copy python sources 
 rsync -av --delete --exclude='*.pyc' \
