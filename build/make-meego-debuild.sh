@@ -43,11 +43,12 @@ rsync -av --delete --exclude='*.pyc' \
     $SOURCE/qmlgui.py \
     $PKGTMP/src/opt/advancedcaching/
     
-find $PKGTMP/src/opt/advancedcaching/ -iname '*.pyc' | xargs rm 
+find $PKGTMP/src/opt/advancedcaching/ -iname '*.pyc' | xargs rm -f
 # Copy additional resources
 cp -r $SOURCE/data $PKGTMP/src/opt/advancedcaching/
 cp -r $SOURCE/actors $PKGTMP/src/opt/advancedcaching/
 cp -r $SOURCE/qml $PKGTMP/src/opt/advancedcaching/
+mkdir -p $PKGTMP/src/usr/share/icons/hicolor/80x80/apps/
 cp $RES/advancedcaching-80.png $PKGTMP/src/usr/share/icons/hicolor/80x80/apps/advancedcaching.png
 cd $PKGTMP/
 debuild --no-lintian -aarmel 
