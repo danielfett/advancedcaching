@@ -1,7 +1,7 @@
 Source: advancedcaching
 Section: user/navigation
 Priority: extra
-Maintainer: Daniel Fett <advancedcaching@fragcom.de>
+Maintainer: Aapo Rantalainen <aapo.rantalainen@gmail.com>
 Build-Depends: debhelper (>= 5)
 Standards-Version: 3.7.2
 
