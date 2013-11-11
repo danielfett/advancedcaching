@@ -1,6 +1,6 @@
 opt/agtl-maemo/
 opt/agtl-maemo/actors/
-opt/agtl-maemog/data/
+opt/agtl-maemo/data/
 opt/agtl-maemo/qml/
 usr/share/applications/hildon/
-usr/share/icons/hicolor/48x48/hildon/
+usr/share/icons/hicolor/64x64/hildon/
