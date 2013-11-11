@@ -1,3 +1,48 @@
+advancedcaching (0.9.1.3) stable; urgency=low
+  - cachedownloader: bump version to 36
+  - Do not print "No website link found, skipping". Fix #175 (website=RelatedWebPage)
+  - Adding more messages realting: "Downloading logs did not really work."
+  - Fix #177
+  - downloader: String 'User-Agent' duplicated in header. FIX #171, FIX #174
+  - downloader: Catch http-errors. Fix #163
+  - downloader: defaulttimeout=15 (it was 30, but now there are retries)
+  - downloader: Fix: error checking in wrong place
+  - cachedownloader: check more if network reading returns None
+  - core: Use read_from_network for reading over network
+  - cachedownloader: Use read_from_network for all reading
+  - downloader: After urlopen but before checking if content is gzipped, check errors (None returned)
+  - downloader: automatic close after read
+  - downloader: return None at the end of the function
+  - downloader: add more different errors (on networking)
+  - cachedownloader: Errors with networking (e.g. timeouts) is not crashing anymore, but returning None
+  - downloader: retry three times in network issues (e.g. timeout is typically working on the next try)
+  - downloader: common set out from if-elif -branches
+  - downloader: additional error case checking
+  - If image can't be loaded: use logger.error, not logger.exception
+  - Fix: there are images without dot in filename, they run out of range
+  - disable debug message
+  - hildongui: Fix: short description not shown (if no-use-html)
+  - Fix #180: premium-only cache crashes free-account user
+  - Fix #176: hildongui: last attribute of cache not shown
+  - Enable (fixed) attributes downloading
+  - hildongui: Show log-type icons. Fix #173
+  - Download log-type icons (start for fixing #173)
+  - Fix #172: cache with (html-) ImageMap breaks parsing
+  - Fix #170:  images without domain (i.e. smileys and attribute icons from geocaching.com)
+  - Fix #169: download_num_logs from settings is not respected
+  - Fix #168: break for-loop after userToken is found
+  - Fix #167: ./core.py sql crashes
+  - Fix #162: hildon_plugins: rot13 doesn't work with non-ascii letters
+  - make-maemo-debuild.sh: fix #161: maemo5 deb contains empty directories
+  - make-maemo-debuild.sh: fix #160: rm: missing operand (add -f)
+  - make-maemo-debuild.sh: fix #159: "missing icon agtl-maemo.png" (wasn't missing icon, but missing target directory)
+  - make-maemo-debuild.sh: fix #158:  badly formatted trailer line" for debian/changelog
+  - LocationGpsReader: add two settings (for configure file): use_assisted_gps and gps_interval_seconds
+  - Check if no-fix or MODE_NOT_SEEN. (old patch from maemo-branch: 9feb8b789b39c0882a32715c6983fc73e641c0e2)
+  - Cleanup (from devel-branch: b1e813f)
+
+ -- Aapo Rantalaien <aapo.rantalainen@gmail.com@gmail.com>  Sun, 10 Nov 2013 20:56:05 +0200
+
 advancedcaching (0.9.1.2) stable; urgency=low
   - Fix JSON parse error
 
