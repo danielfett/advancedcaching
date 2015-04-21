@@ -20,8 +20,8 @@
 #   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
 #
 
-VERSION = 36
-VERSION_DATE = '2013-10-11'
+VERSION = 37
+VERSION_DATE = '2015-4-21'
 
 import logging
 logger = logging.getLogger('cachedownloader')
@@ -351,7 +351,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         t = unicode(page, 'utf-8')
         doc = fromstring(t)
         
-        if doc.get_element_by_id('ctl00_liNavProfile', None) == None:
+        if doc.get_element_by_id('ctl00_ContentBody_hlVisitProfile', None) == None:
             raise Exception("Wrong username or password!")
         elif doc.get_element_by_id('ctl00_liNavJoin', None) == None:
             logger.info("Great success.")
