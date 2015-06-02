@@ -23,7 +23,7 @@
 from __future__ import with_statement
 
 # This is also evaluated by the build scripts
-VERSION='0.9.1.3'
+VERSION='0.9.1.4'
 import logging
 import logging.handlers
 logging.basicConfig(level=logging.WARNING,
