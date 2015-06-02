@@ -198,9 +198,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         page_last = 0 # Stores the "old" value of the page counter; If it doesn't increment, abort!
         while cont:
             # Count the number of results and pages
-            if response == None:
-                logger.warning("_get_overview: Error: response is None:"+str(e))
-            else:
+            if response != None: #Warning has been already printed for this. Any other actions?
                 text = read_from_network(response)
                 if text != None:
                     doc = self._parse(text)
@@ -365,7 +363,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
             return
         pg = read_from_network(cache_page)
         if pg == None:
-            return False
+            return None
 
         t = unicode(pg, 'utf-8')
         doc = fromstring(t)
@@ -1029,7 +1027,12 @@ class GeocachingComCacheDownloader(CacheDownloader):
         
     def _parse_logs_json(self, logs):
         logger.debug("Start json logs parsing")
+        output = []
+
         #print logs
+        if logs == None or logs == "":
+            return output
+
         try:
             r = json.loads(logs)
         except Exception, e:
@@ -1038,7 +1041,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
         if not 'status' in r or r['status'] != 'success':
             logger.error('Could not read logs, status is "%s"' % r['status'])
         data = r['data']
-        output = []
         for l in data:
             tpe = l['LogType']
             icon = l['LogTypeImage']
