@@ -17,11 +17,11 @@
 #
 #   Author: Daniel Fett agtl@danielfett.de
 #   Jabber: fett.daniel@jaber.ccc.de
-#   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
+#   Bugtracker and GIT Repository: https://github.com/webhamster/advancedcaching
 #
 
-VERSION = 37
-VERSION_DATE = '2015-4-21'
+VERSION = 38
+VERSION_DATE = '2016-07-28'
 
 import logging
 logger = logging.getLogger('cachedownloader')
@@ -154,16 +154,16 @@ class GeocachingComCacheDownloader(CacheDownloader):
     }
     
     # URL for log pages; fetches 10 logs by default
-    LOGBOOK_URL = 'http://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=%d&num=10&decrypt=true'
-    OVERVIEW_URL = 'http://www.geocaching.com/seek/nearest.aspx?lat=%f&lng=%f&dist=%f'
-    PRINT_PREVIEW_URL_FULLNAME = 'http://www.geocaching.com/geocache/%s'
-    SEEK_URL = "http://www.geocaching.com/seek/%s"
-    DETAILS_URL = 'http://www.geocaching.com/seek/cache_details.aspx?wp=%s'
+    LOGBOOK_URL = 'https://www.geocaching.com/seek/geocache.logbook?tkn=%s&idx=%d&num=10&decrypt=true'
+    OVERVIEW_URL = 'https://www.geocaching.com/seek/nearest.aspx?lat=%f&lng=%f&dist=%f'
+    PRINT_PREVIEW_URL_FULLNAME = 'https://www.geocaching.com/geocache/%s'
+    SEEK_URL = "https://www.geocaching.com/seek%s"
+    DETAILS_URL = 'https://www.geocaching.com/seek/cache_details.aspx?wp=%s'
     LOGIN_URL = 'https://www.geocaching.com/login/default.aspx'
-    NEAREST_URL = 'http://www.geocaching.com/seek/nearest.aspx'
-    USER_TOKEN_URL = 'http://www.geocaching.com/map/default.aspx?lat=6&lng=9'
-    UPLOAD_FIELDNOTES_URL = 'http://www.geocaching.com/my/uploadfieldnotes.aspx'
-    UPLOAD_LOG_URL = 'http://www.geocaching.com/seek/log.aspx?wp=%s'
+    NEAREST_URL = 'https://www.geocaching.com/seek/nearest.aspx'
+    USER_TOKEN_URL = 'https://www.geocaching.com/map/default.aspx?lat=6&lng=9'
+    UPLOAD_FIELDNOTES_URL = 'https://www.geocaching.com/my/uploadfieldnotes.aspx'
+    UPLOAD_LOG_URL = 'https://www.geocaching.com/seek/log.aspx?wp=%s'
     
     def __init__(self, downloader, path = None, download_images = True):
         CacheDownloader.__init__(self, downloader, path, download_images)
@@ -200,6 +200,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
             # Count the number of results and pages
             if response != None: #Warning has been already printed for this. Any other actions?
                 text = read_from_network(response)
+                with open('/tmp/agtl-debug-overview-after-%d.html' % page_last, 'w') as f:
+                    f.write(text)
                 if text != None:
                     doc = self._parse(text)
                     bs = doc.cssselect('#ctl00_ContentBody_ResultsPanel .PageBuilderWidget b')
@@ -208,7 +210,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                     count = int(bs[0].text_content())
                     page_current = int(bs[1].text_content())
                     if page_current == page_last:
-                        raise Exception("Current page has the same number as the last page; aborting!")
+                        raise Exception("Current page (%d) has the same number as the last page (%d); aborting!" % (page_current, page_last))
                         break
                     page_last = page_current
                     page_max = int(bs[2].text_content())
@@ -238,7 +240,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 # Quick hack. Nicer solution would be to remove the element.
                 v = [x for x in doc.forms[0].form_values() if x[0] != 'ctl00$ContentBody$chkAll']
                 values = urlencode(v)
-                action = self.SEEK_URL % doc.forms[0].action
+                action = self.SEEK_URL % doc.forms[0].action[1:] + '&t=m&submit8=Search'
                 logger.info("Retrieving next page!")
                 self.emit("progress", "Fetching list (%d of %d)" % (page_current + 1, page_max), page_current, page_max)
                 response = self.downloader.get_reader(action, data=('application/x-www-form-urlencoded', values), login_callback = self.login_callback, check_login_callback = self.check_login_callback)
@@ -357,7 +359,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         raise Exception("Name/Password MAY be correct, but I encountered unexpected data while logging in.")
         
     def __parse_cache_page(self, cache_page, coordinate, num_logs, download_images = True, progress_min = 0.0, progress_max = 1.0, progress_all = 1.0):
-        logger.debug("Start parsing, pmin = %f, pmax = %f." % (progress_min, progress_max))
+        logger.debug("Start parsing coordinate %s, pmin = %f, pmax = %f." % (coordinate.name, progress_min, progress_max))
         if cache_page == None:
             logger.warning("Can't parse this cache, it is None")
             return
@@ -374,7 +376,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
 
         #check for premium-only cache
         try:
-            doc.get_element_by_id('ctl00_ContentBody_basicMemberMsg') #Premium user will not get this
+            doc.cssselect('.pmo-banner')[0] #Premium user will not get this
             logger.info("PREMIUM ONLY cache (and not premium account), skip it totally")
             return
         except Exception, e:
@@ -392,6 +394,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
         # Type 
         try:
             t = int(basename(doc.cssselect('.cacheImage img')[0].get('src')).split('.')[0])
+            
             coordinate.type = self.CTIDS[t] if t in self.CTIDS else GeocacheCoordinate.TYPE_UNKNOWN
         except Exception, e:
             logger.error("Could not find type!")
@@ -551,8 +554,8 @@ class GeocachingComCacheDownloader(CacheDownloader):
         # Returns a unique filename for the given URL
         def found_image(url, title):
             # First, only use the large geocaching.com images
-            if url.startswith('http://img.geocaching.com/cache/') and not url.startswith('http://img.geocaching.com/cache/large/'):
-                url = url.replace('http://img.geocaching.com/cache/', 'http://img.geocaching.com/cache/large/')
+            if url.startswith('https://img.geocaching.com/cache/') and not url.startswith('https://img.geocaching.com/cache/large/'):
+                url = url.replace('https://img.geocaching.com/cache/', 'https://img.geocaching.com/cache/large/')
             
             # Then, check if this URL is known        
             if url in images:
@@ -620,11 +623,11 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 # Download file
                 #Some images (e.g. smileys) have path without domain name
                 if url.startswith("/"):
-                    url = "http://www.geocaching.com"+url  #Needs rethinking when agtl supports different domains/services.
+                    url = "https://www.geocaching.com"+url  #Needs rethinking when agtl supports different domains/services.
 
                 #some images (e.g. attribute-icons) have path without domain name
                 if url.startswith("../"):
-                    url = "http://www.geocaching.com"+url[2:]  #Needs rethinking when agtl supports different domains/services.
+                    url = "https://www.geocaching.com"+url[2:]  #Needs rethinking when agtl supports different domains/services.
 
                 try:
                     f = open(filename, 'wb')
@@ -812,7 +815,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                 logger.info("%s exists already, don't reload " % filename)
             else:
                 # Download file
-                url="http://www.geocaching.com/images/attributes/%s" % attrib
+                url="https://www.geocaching.com/images/attributes/%s" % attrib
                 logger.info("Downloading %s to %s" % (url, filename))
 
                 try:

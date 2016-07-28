@@ -628,7 +628,7 @@ Author: Daniel Fett advancedcaching@fragcom.de'''
 
         if result == RESPONSE_HOMEPAGE:
             dialog.hide()
-            self._open_browser(None, 'http://www.danielfett.de/')
+            self._open_browser(None, 'https://www.danielfett.de/')
             return
         elif result == RESPONSE_UPDATE:
             dialog.hide()

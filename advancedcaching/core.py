@@ -17,7 +17,7 @@
 #
 #   Author: Daniel Fett agtl@danielfett.de
 #   Jabber: fett.daniel@jaber.ccc.de
-#   Bugtracker and GIT Repository: http://github.com/webhamster/advancedcaching
+#   Bugtracker and GIT Repository: https://github.com/webhamster/advancedcaching
 #
 
 from __future__ import with_statement
@@ -222,7 +222,7 @@ class Core(gobject.GObject):
 
             for i in icons:
                 filename = os.path.join(self.settings['download_output_dir'], "%s.png" % i)
-                url="http://www.geocaching.com/images/logtypes/%s.png" % i
+                url="https://www.geocaching.com/images/logtypes/%s.png" % i
                 logger.info("Downloading icon for log-type %s to %s" % (url, filename))
 
                 try:
@@ -238,7 +238,7 @@ class Core(gobject.GObject):
         self.gui = guitype(self)
         
         if ('debug_log_to_http' in self.settings and self.settings['debug_log_to_http']) or '--remote' in argv:
-            http_handler = logging.handlers.HTTPHandler("danielfett.de", "http://www.danielfett.de/files/collect.php")
+            http_handler = logging.handlers.HTTPHandler("danielfett.de", "https://www.danielfett.de/files/collect.php")
             buffering_handler = logging.handlers.MemoryHandler(100, target = http_handler)
             logging.getLogger('').addHandler(buffering_handler)
             logging.getLogger('').setLevel(logging.DEBUG)
@@ -406,7 +406,7 @@ class Core(gobject.GObject):
         import hashlib
         from shutil import copyfile
         self.create_recursive(self.UPDATE_DIR)
-        baseurl = 'http://www.danielfett.de/files/agtl-updates/%s' % VERSION
+        baseurl = 'https://www.danielfett.de/agtl-updates/%s' % VERSION
         url = "%s/updates" % baseurl
         self.emit('progress', 0.5, "Checking for updates...")
         try:
