@@ -200,8 +200,6 @@ class GeocachingComCacheDownloader(CacheDownloader):
             # Count the number of results and pages
             if response != None: #Warning has been already printed for this. Any other actions?
                 text = read_from_network(response)
-                with open('/tmp/agtl-debug-overview-after-%d.html' % page_last, 'w') as f:
-                    f.write(text)
                 if text != None:
                     doc = self._parse(text)
                     bs = doc.cssselect('#ctl00_ContentBody_ResultsPanel .PageBuilderWidget b')

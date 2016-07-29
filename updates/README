@@ -1,0 +1,11 @@
+Here be updates.
+================
+
+When started, clients will search for updates in this directory on github.
+
+Updates are stored in subdirectories of this directory, named after
+the client's current version number. Clients will first search for a
+file called updates, which is the output of md5sums for all the
+updated files. Then, it will download these updated files and put them
+in the user's directory (and use them from then on). See core.py for
+details, also on live-reloading of modules.
