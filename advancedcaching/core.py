@@ -406,7 +406,7 @@ class Core(gobject.GObject):
         import hashlib
         from shutil import copyfile
         self.create_recursive(self.UPDATE_DIR)
-        baseurl = 'https://www.danielfett.de/agtl-updates/%s' % VERSION
+        baseurl = 'https://raw.githubusercontent.com/webhamster/advancedcaching/master/updates/%s' % VERSION
         url = "%s/updates" % baseurl
         self.emit('progress', 0.5, "Checking for updates...")
         try:
