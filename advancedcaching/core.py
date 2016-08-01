@@ -62,6 +62,13 @@ if len(argv) == 1:
 if '-v' in argv or '--remote' in argv:
     import colorer
     logging.getLogger('').setLevel(logging.DEBUG)
+
+#  "help"  or   "-help"  or   "--help"  or "-h"
+if "help" in argv[1] or argv[1] == "-h":
+    import cli
+    print cli.usage % ({'name': argv[0]})
+    exit()
+
     logging.debug("Set log level to DEBUG")
     
 if '--debug-http' in argv:
