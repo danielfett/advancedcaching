@@ -18,6 +18,5 @@ License:
 On Debian systems, the complete text of the GNU General
 Public License can be found in `/usr/share/common-licenses/GPL'.
 
-
-The Debian package is (C) 2012, Daniel Fett <advancedcaching@fragcom.de> and
-is licensed under the GPL, see above.
+Copyright 2012-2016 Aapo Rantalainen <aapo.rantalainen@gmail.com>
+Copyright 2009-2016 Daniel Fett <advancedcaching@fragcom.de>
