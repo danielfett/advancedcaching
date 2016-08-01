@@ -183,9 +183,9 @@ class GeocachingComCacheDownloader(CacheDownloader):
         c1, c2 = location
         center = geo.Coordinate((c1.lat + c2.lat)/2, (c1.lon + c2.lon)/2)
         dist = (center.distance_to(c1)/1000)/2
-        logger.debug("Distance is %f meters" % dist)
+        logger.debug("Distance is %f meters" % (dist*1000) )
         if dist > 100:
-            raise Exception("Please select a smaller part of the map!")
+            raise Exception("Please select a smaller part of the map! (MAX=%d km)" % dist)
         url = self.OVERVIEW_URL % (center.lat, center.lon, dist)
         
         self.emit("progress", "Fetching list", 0, 1)
@@ -214,7 +214,7 @@ class GeocachingComCacheDownloader(CacheDownloader):
                     page_max = int(bs[2].text_content())
                     logger.info("We are at page %d of %d, total %d geocaches" % (page_current, page_max, count))
                     if count > self.MAX_DOWNLOAD_NUM:
-                        raise Exception("%d geocaches found, please select a smaller part of the map!" % count)
+                        raise Exception("%d geocaches found, please select a smaller part of the map! (MAX=%d caches)" % (count,self.MAX_DOWNLOAD_NUM))
                 
                 
                     # Extract waypoint information from the page
