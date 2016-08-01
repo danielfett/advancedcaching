@@ -1,4 +1,5 @@
 #!/bin/bash
+PATH=`pwd`:$PATH
 DIST=maemo-debuild
 source settings
 BUILD=0
@@ -33,4 +34,4 @@ mkdir -p $PKGTMP/src/usr/share/icons/hicolor/64x64/apps/
 cp $RES/advancedcaching-64.png $PKGTMP/src/usr/share/icons/hicolor/64x64/apps/agtl-maemo.png
 cd $PKGTMP/
 
-debuild -aarmel 
+debuild --preserve-envvar PATH -aarmel
