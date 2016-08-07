@@ -55,5 +55,5 @@ cd $PKGTMP/
 debuild --no-lintian -aarmel 
 cd -
 echo "Running aegis-build:"
-PATH=$PATH:`pwd`/aegis-builder/ perl aegis-builder/aegis-deb-util --verbose --add-manifest --manifest=meego-debuild/_aegis --add-digsigsums='/opt/advancedcaching/launch.sh' `ls $PKG/*.deb`
+PATH=$PATH:`pwd`/aegis-builder/ perl aegis-builder/aegis-deb-util --verbose --add-manifest --manifest=meego-debuild/_aegis --add-digsigsums='/opt/advancedcaching/launch.sh' --add-digsigsums='/opt/advancedcaching/core.py' `ls $PKG/*.deb`
 

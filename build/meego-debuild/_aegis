@@ -4,6 +4,7 @@
                 <credential name="GRP::video" />
 		<credential name="GRP::pulse-access" />
                 <for path="/opt/advancedcaching/launch.sh" />
+                <for path="/opt/advancedcaching/core.py" />
         </request>
 
 </aegis>
