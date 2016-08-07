@@ -20,12 +20,18 @@ fi
 #mkdir -p $PKG
 mkdir -p $PKGTMP
 
-cp -a $PKGROOT/* $PKGTMP/
-mkdir -p $PKGTMP/src/opt/advancedcaching/
-mv $PKGTMP/launch.sh $PKGTMP/src/opt/advancedcaching/
-cp changelog $PKGTMP/debian/
+cp -r $PKGROOT/DEBIAN $PKGTMP
+cp changelog $PKGTMP/DEBIAN
+sed -i "s/Homepage:/Version: "$VERSION"\nHomepage:/" $PKGTMP/DEBIAN/control
+
+mkdir -p $PKGTMP/opt/advancedcaching/
+cp $PKGROOT/launch.sh $PKGTMP/opt/advancedcaching/
+
+mkdir -p $PKGTMP/usr/share/applications/
+cp $PKGROOT/advancedcaching.desktop   $PKGTMP/usr/share/applications/
+
 # Copy python sources 
-rsync -av --delete --exclude='*.pyc' \
+cp \
     $SOURCE/utils.py \
     $SOURCE/astral.py \
     $SOURCE/connection.py \
@@ -42,18 +48,37 @@ rsync -av --delete --exclude='*.pyc' \
     $SOURCE/downloader.py \
     $SOURCE/geonames.py \
     $SOURCE/qmlgui.py \
-    $PKGTMP/src/opt/advancedcaching/
+    $PKGTMP/opt/advancedcaching/
     
-find $PKGTMP/src/opt/advancedcaching/ -iname '*.pyc' | xargs rm -f
 # Copy additional resources
-cp -r $SOURCE/data $PKGTMP/src/opt/advancedcaching/
-cp -r $SOURCE/actors $PKGTMP/src/opt/advancedcaching/
-cp -r $SOURCE/qml $PKGTMP/src/opt/advancedcaching/
-mkdir -p $PKGTMP/src/usr/share/icons/hicolor/80x80/apps/
-cp $RES/advancedcaching-80.png $PKGTMP/src/usr/share/icons/hicolor/80x80/apps/advancedcaching.png
+cp -r $SOURCE/data $PKGTMP/opt/advancedcaching/
+cp -r $SOURCE/actors $PKGTMP/opt/advancedcaching/
+cp -r $SOURCE/qml $PKGTMP/opt/advancedcaching/
+cp -r $RES/splash.png $PKGTMP/opt/advancedcaching/
+
+mkdir -p $PKGTMP/usr/share/icons/hicolor/80x80/apps/
+cp -r $RES/advancedcaching-80.png $PKGTMP/usr/share/icons/hicolor/80x80/apps/advancedcaching.png
+
 cd $PKGTMP/
-debuild --no-lintian -aarmel 
+
+echo
+echo Calculate md5sums
+for line in `find . -type f -follow -print | grep -v "./DEBIAN" | cut -c 3-`
+do
+ if [ -f "$line" ]; then
+  md5sum "$line" >> DEBIAN/md5sums
+ fi
+done
 cd -
+cd $PKGTMP/..
+
+echo
+echo Generate deb
+#mv $PKGTMP $PKG/advancedcaching-$VERSION
+fakeroot dpkg-deb -b -Zgzip temp advancedcaching-$VERSION.deb
+cd -
+
+echo
 echo "Running aegis-build:"
 PATH=$PATH:`pwd`/aegis-builder/ perl aegis-builder/aegis-deb-util --verbose --add-manifest --manifest=meego-debuild/_aegis --add-digsigsums='/opt/advancedcaching/launch.sh' --add-digsigsums='/opt/advancedcaching/core.py' `ls $PKG/*.deb`
 
