@@ -1,3 +1,10 @@
+advancedcaching (0.9.1.6) stable; urgency=low
+  - Move updates from danielfett.de to raw.githubusercontent.com
+  - URLs to use HTTPS
+  - cachedownloader version 38
+
+ -- Aapo Rantalainen <aapo.rantalainen@gmail.com>  Sun, 07 Aug 2016 22:25:05 +0200
+
 advancedcaching (0.9.1.4) stable; urgency=low
   - cachedownloader: bump to version to 37
 
