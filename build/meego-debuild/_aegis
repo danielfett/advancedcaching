@@ -3,7 +3,7 @@
                 <credential name="Location" />
                 <credential name="GRP::video" />
 		<credential name="GRP::pulse-access" />
-                <for path="/opt/advancedcaching/launch" />
+                <for path="/opt/advancedcaching/launch.sh" />
         </request>
 
 </aegis>
